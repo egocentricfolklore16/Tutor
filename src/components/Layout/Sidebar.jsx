@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-
 function Sidebar() {
   const [isOpen, setIsOpen] = useState(true);
   const [activeItem, setActiveItem] = useState("Dashboard");
@@ -23,7 +22,7 @@ function Sidebar() {
       ),
     },
     {
-      name: "Lumo AI",
+      name: "Study",
       icon: (
         <svg
           stroke="currentColor"
@@ -39,7 +38,7 @@ function Sidebar() {
       ),
     },
     {
-      name: "task",
+      name: "Planner",
       icon: (
         <svg
           stroke="currentColor"
@@ -55,7 +54,7 @@ function Sidebar() {
       ),
     },
     {
-      name: "Focus",
+      name: "Progress",
       icon: (
         <svg
           stroke="currentColor"
@@ -77,52 +76,7 @@ function Sidebar() {
       ),
     },
     {
-      name: "Resources",
-      icon: (
-        <svg
-          stroke="currentColor"
-          fill="currentColor"
-          strokeWidth="0"
-          viewBox="0 0 1024 1024"
-          height="1em"
-          width="1em"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path d="M551.9 513c19.6 0 35.9-14.2 39.3-32.8A40.02 40.02 0 0 1 552 512a40 40 0 0 1-40-39.4v.5c0 22 17.9 39.9 39.9 39.9zM752 687.8l-.3-.3c-29-17.5-62.3-26.8-97-26.8-44.9 0-87.2 15.7-121 43.8a256.27 256.27 0 0 1-164.9 59.9c-41.2 0-81-9.8-116.7-28L210.5 844h603l-59.9-155.2-1.6-1z"></path>
-          <path d="M879 824.9L696.3 352V178H768v-68H256v68h71.7v174L145 824.9c-2.8 7.4-4.3 15.2-4.3 23.1 0 35.3 28.7 64 64 64h614.6c7.9 0 15.7-1.5 23.1-4.3 33-12.7 49.4-49.8 36.6-82.8zM395.7 364.7V180h232.6v184.7L719.2 600c-20.7-5.3-42.1-8-63.9-8-61.2 0-119.2 21.5-165.3 60a188.78 188.78 0 0 1-121.3 43.9c-32.7 0-64.1-8.3-91.8-23.7l118.8-307.5zM210.5 844l41.6-107.6.1-.2c35.7 18.1 75.4 27.8 116.6 27.8 61.2 0 119.2-21.5 165.3-60 33.9-28.2 76.3-43.9 121.3-43.9 35 0 68.4 9.5 97.6 27.1l.6 1.6L813.5 844h-603z"></path>
-          <path d="M552 512c19.3 0 35.4-13.6 39.2-31.8.6-2.7.8-5.4.8-8.2 0-22.1-17.9-40-40-40s-40 17.9-40 40v.6a40 40 0 0 0 40 39.4z"></path>
-        </svg>
-      ),
-    },
-    {
-      name: "Projects",
-      icon: (
-        <svg
-          stroke="currentColor"
-          fill="currentColor"
-          strokeWidth="0"
-          t="1569683753031"
-          viewBox="0 0 1024 1024"
-          version="1.1"
-          pId="14137"
-          height="1em"
-          width="1em"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <defs></defs>
-          <path
-            d="M312.1 591.5c3.1 3.1 8.2 3.1 11.3 0l101.8-101.8 86.1 86.2c3.1 3.1 8.2 3.1 11.3 0l226.3-226.5c3.1-3.1 3.1-8.2 0-11.3l-36.8-36.8c-3.1-3.1-8.2-3.1-11.3 0L517 485.3l-86.1-86.2c-3.1-3.1-8.2-3.1-11.3 0L275.3 543.4c-3.1 3.1-3.1 8.2 0 11.3l36.8 36.8z"
-            pId="14138"
-          ></path>
-          <path
-            d="M904 160H548V96c0-4.4-3.6-8-8-8h-56c-4.4 0-8 3.6-8 8v64H120c-17.7 0-32 14.3-32 32v520c0 17.7 14.3 32 32 32h356.4v32L311.6 884.1c-3.7 2.4-4.7 7.3-2.3 11l30.3 47.2v0.1c2.4 3.7 7.4 4.7 11.1 2.3L512 838.9l161.3 105.8c3.7 2.4 8.7 1.4 11.1-2.3v-0.1l30.3-47.2c2.4-3.7 1.3-8.6-2.3-11L548 776.3V744h356c17.7 0 32-14.3 32-32V192c0-17.7-14.3-32-32-32z m-40 512H160V232h704v440z"
-            pId="14139"
-          ></path>
-        </svg>
-      ),
-    },
-    {
-      name: "Journal",
+      name: "Library",
       icon: (
         <svg
           stroke="currentColor"
@@ -134,6 +88,25 @@ function Sidebar() {
           xmlns="http://www.w3.org/2000/svg"
         >
           <path d="M542.22 32.05c-54.8 3.11-163.72 14.43-230.96 55.59-4.64 2.84-7.27 7.89-7.27 13.17v363.87c0 11.55 12.63 18.85 23.28 13.49 69.18-34.82 169.23-44.32 218.7-46.92 16.89-.89 30.02-14.43 30.02-30.66V62.75c.01-17.71-15.35-31.74-33.77-30.7zM264.73 87.64C197.5 46.48 88.58 35.17 33.78 32.05 15.36 31.01 0 45.04 0 62.75V400.6c0 16.24 13.13 29.78 30.02 30.66 49.49 2.6 149.59 12.11 218.77 46.95 10.62 5.35 23.21-1.94 23.21-13.46V100.63c0-5.29-2.62-10.14-7.27-12.99z"></path>
+        </svg>
+      ),
+    },
+    {
+      name: "Community",
+      icon: (
+        <svg
+          stroke="currentColor"
+          fill="currentColor"
+          stroke-width="0"
+          viewBox="0 0 24 24"
+          height="1em"
+          width="1em"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <g>
+            <path fill="none" d="M0 0h24v24H0z"></path>
+            <path d="M2 22a8 8 0 1 1 16 0H2zm8-9c-3.315 0-6-2.685-6-6s2.685-6 6-6 6 2.685 6 6-2.685 6-6 6zm7.363 2.233A7.505 7.505 0 0 1 22.983 22H20c0-2.61-1-4.986-2.637-6.767zm-2.023-2.276A7.98 7.98 0 0 0 18 7a7.964 7.964 0 0 0-1.015-3.903A5 5 0 0 1 21 8a4.999 4.999 0 0 1-5.66 4.957z"></path>
+          </g>
         </svg>
       ),
     },
@@ -183,16 +156,20 @@ function Sidebar() {
     <div
       className={`${
         isOpen ? "w-60" : "w-16"
-      } transition-all duration-200 ease-in-out bg-gray-900 text-white min-h-screen flex flex-col font-['Lexend']`}
+      } transition-all duration-200 ease-in-out border-r-4 border-r-green-500 text-white min-h-screen flex flex-col font-['Lexend']`}
     >
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
-          <img src="./public/logo.png" alt="Logo" className="w-7 h-7" />
+          <img src="./public/logo.png" alt="Logo" className="w-12 h-7" />
           {isOpen && (
-            <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
-              Hyper Tutor
-            </h1>
+            <Link 
+            to={"/Dashboard"}
+            className="text-white no-underline">
+              <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
+                Hyper Tutor
+              </h1>
+            </Link>
           )}
         </div>
         <svg

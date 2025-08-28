@@ -161,7 +161,7 @@ function Sidebar() {
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
-          <img src="./public/logo.png" alt="Logo" className="w-12 h-7" />
+          <img src="logo.png" alt="Logo" className="w-12 h-7" />
           {isOpen && (
             <Link 
             to={"/Dashboard"}

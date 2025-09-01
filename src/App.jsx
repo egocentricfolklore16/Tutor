@@ -1,6 +1,9 @@
 import { Children, StrictMode } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import LoginPage from "./components/Auth/LoginForm";
+import SignupPage from "./components/Auth/SignupForm";
 import Layout from "./app/Layout";
+import Overview from "./components/Dashboard/Overview";
 
 const router = createBrowserRouter([
   {
@@ -9,39 +12,35 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <div>Home Page</div>,
+        element: <Overview />,
       },
       {
         path: "/Dashboard",
-        element: <div>Dashboard Page</div>,
+        element: <LoginPage />,
       },
       {
-        path: "/Lumo AI",
-        element: <div>Lumo AI Page</div>,
+        path: "/Study",
+        element: <SignupPage />,
       },
       {
-        path: "/task",
+        path: "/Planner",
         element: <div>Task Page</div>,
       },
       {
-        path: "/focus",
+        path: "/Progress",
         element: <div>Focus Page</div>,
       },
       {
-        path: "/resources",
+        path: "/Library",
         element: <div>Resources Page</div>,
       },
       {
-        path: "/projects",
+        path: "/Community",
         element: <div>Projects Page</div>,
       },
       {
-        path: "/Journal",
-        element: <div>Journal Page</div>,
-      },
-      {
         path: "/FAQ",
-        element: <div>FAQ Page</div>,
+        element: <div>Journal Page</div>,
       },
       {
         path: "/Settings",

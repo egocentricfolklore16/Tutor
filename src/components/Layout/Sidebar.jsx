@@ -1,7 +1,6 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
-function Sidebar() {
-  const [isOpen, setIsOpen] = useState(true);
+import { useState } from "react";
+function Sidebar({ isOpen, toggleSidebar }) {
   const [activeItem, setActiveItem] = useState("Dashboard");
 
   const menuItems = [
@@ -144,8 +143,8 @@ function Sidebar() {
     },
   ];
 
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
+  const toggleSidebar2 = () => {
+    toggleSidebar();
   };
 
   const handleMenuItemClick = (itemName) => {
@@ -156,16 +155,14 @@ function Sidebar() {
     <div
       className={`${
         isOpen ? "w-60" : "w-16"
-      } transition-all duration-200 ease-in-out border-r-4 border-r-green-500 text-white min-h-screen flex flex-col font-['Lexend']`}
+      } transition-all duration-200 ease-in-out border-r-4 border-r-green-500 text-white min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full z-50`}
     >
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
-{isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
+          {isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
           {isOpen && (
-            <Link 
-            to={"/Dashboard"}
-            className="text-white no-underline">
+            <Link to={"/Dashboard"} className="text-white no-underline">
               <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
                 Hyper Tutor
               </h1>
@@ -173,7 +170,7 @@ function Sidebar() {
           )}
         </div>
         <svg
-          onClick={toggleSidebar}
+          onClick={toggleSidebar2}
           className="cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300"
           stroke="currentColor"
           fill="currentColor"
@@ -233,7 +230,7 @@ function Sidebar() {
 
         {/* New Project Button */}
         <button className="w-full h-8 bg-green-600 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors duration-300 text-sm">
-          {isOpen ? "New Project" : "+"}
+          {isOpen ? "+ New Study Session" : "+"}
         </button>
 
         {/* Help and Feedback */}

@@ -89,7 +89,7 @@ const UpcomingSessions = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-18">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Clock className="h-5 w-5 text-blue-600" />
           Upcoming Sessions
@@ -121,7 +121,7 @@ const UpcomingSessions = () => {
                 <h3 className="font-semibold text-gray-900 mb-1">
                   {session.subject}
                 </h3>
-                <p className="text-sm text-gray-600 mb-2">{session.topic}</p>
+                <p className="text-[10px] text-gray-600 mb-2 lg:w-fit">{session.topic}</p>
 
                 <div className="flex items-center gap-4 text-xs text-gray-500">
                   <div className="flex items-center gap-1">

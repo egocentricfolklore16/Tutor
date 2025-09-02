@@ -9,7 +9,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const HyperTutorDashboard = () => {
+const PerformanceDashboard = () => {
   // Mock data for the area chart (weekly progress)
   const progressData = [
     { day: "Mon", hours: 2.5 },
@@ -187,4 +187,4 @@ const HyperTutorDashboard = () => {
   );
 };
 
-export default HyperTutorDashboard;
+export default PerformanceDashboard;

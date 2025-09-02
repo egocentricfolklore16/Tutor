@@ -1,7 +1,7 @@
 import React from 'react'
 import QuickActions from './QuickActions'
 import RecentActivity from './RecentActivity'
-import HyperTutorDashboard from './StudyStats'
+import PerformanceDashboard from './StudyStats'
 import StudyStreak from './StudyStreak'
 import UpcomingSession from './UpcomingSession'
 import AISuggestions from './AISuggestions'
@@ -60,14 +60,18 @@ const randomParagraph =
       </div>
       <div className="w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-12 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
         <div className="lg:col-span-2 lg:row-span-5">
-          <HyperTutorDashboard />
+          <PerformanceDashboard />
         </div>
         <div className="lg:col-span-1 row-span-5 ">
           <UpcomingSession />
-           <StudyStreak />
-          <QuickActions />
+
+          {/* <QuickActions />
           <RecentActivity />
-          <AISuggestions /> 
+          <AISuggestions /> */}
+        </div>
+
+        <div className="lg:col-span-2 row-span-3">
+          <StudyStreak />
         </div>
       </div>
     </>

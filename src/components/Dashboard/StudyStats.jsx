@@ -31,7 +31,7 @@ const PerformanceDashboard = () => {
 
 
   return (
-    <div className="p-5 rounded-lg border border-gray-200 shadow-sm">
+    <div className="p-2 lg:p-5 rounded-lg border border-gray-200 shadow-sm">
       <div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Progress Chart */}
@@ -52,8 +52,8 @@ const PerformanceDashboard = () => {
                     data={progressData}
                     margin={{
                       top: 10,
-                      right: 30,
-                      left: 0,
+                      right: 0,
+                      left: -55,
                       bottom: 0,
                     }}
                   >
@@ -154,7 +154,7 @@ const PerformanceDashboard = () => {
           </div>
         </div>
         {/* Bottom Stats Cards */}
-        <div className="grid w-full grid-cols-3 gap-6 mt-6">
+        <div className="grid w-full grid-cols-3 gap-2 mt-6">
           {/* Study Time Card */}
           <div className="bg-white col-span-1 rounded-lg shadow-sm border border-gray-200 p-4">
             <div className="text-center">

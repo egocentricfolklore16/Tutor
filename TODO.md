@@ -12,3 +12,7 @@
 # TODO: Make Streak Cards Scroll Horizontally on Mobile
 
 - [x] Update StudyStreak.jsx to add responsive overflow classes to container div for horizontal scroll on mobile
+
+# TODO: Prevent Page Adjustment on Mobile When Sidebar Opens
+
+- [x] Update Layout.jsx to apply responsive margin-left classes for pagecontent div

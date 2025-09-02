@@ -14,9 +14,9 @@
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  transition: background-size 0.3s ease;
+   transition: background-size 0.5s ease-in-out;
 }
 
 .performance-legend-bg:hover {
-  background-size: 120% 120%;
+  background-size: 120%;
 }

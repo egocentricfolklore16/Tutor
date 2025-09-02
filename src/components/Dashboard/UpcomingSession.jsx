@@ -88,7 +88,7 @@ const UpcomingSessions = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
       <div className="flex items-center justify-between mb-18">
         <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
           <Clock className="h-5 w-5 text-blue-600" />

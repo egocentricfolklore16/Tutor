@@ -12,27 +12,27 @@ function Overview() {
   const greetings = {
     headings: [
       "Welcome back, [Name]",
-      "Good to see you again",
-      "Hey [Name], glad you’re back",
-      "Look who’s here",
-      "Back at it",
-      "The dashboard missed you, [Name]",
-      "Captain [Name], reporting for duty",
-      "Guess who just leveled up again",
-      "Mission control ready",
-      "Always a pleasure having you here, [Name]",
+      "Ready to learn, [Name]?",
+      "Your study buddy missed you",
+      "Hey [Name], time to grow smarter",
+      "Back to the grind, [Name]",
+      "The knowledge hub awaits you",
+      "Hypertutor is ready for you",
+      "Good to see you, [Name]",
+      "Learning never stops, [Name]",
+      "Back on track, [Name]",
     ],
     paragraphs: [
-      "Ready to get things done?",
-      "Let’s make today productive.",
-      "Let’s dive in.",
-      "Let’s keep up the momentum.",
-      "Here’s to progress—let’s get started.",
-      "You got this.",
-      "Glad to have you back in the driver’s seat.",
-      "Back again? You must love it here.",
-      "Your space, your tools, your dashboard—ready when you are.",
-      "Let’s make today count.",
+      "Let’s make progress together today.",
+      "Your learning journey continues right here.",
+      "Time to sharpen your skills, one step at a time.",
+      "Small steps today lead to big wins tomorrow.",
+      "Hypertutor’s got your back—let’s dive in.",
+      "Knowledge is calling—ready to answer?",
+      "Consistency is the secret. Let’s build it.",
+      "Let’s pick up right where you left off.",
+      "Your growth is just one session away.",
+      "The best investment is in your learning.",
     ],
   };
 
@@ -42,14 +42,15 @@ const randomParagraph =
   greetings.paragraphs[
     Math.floor(Math.random() * greetings.paragraphs.length)
   ];
+  const user = "Egocentricfolkore16";
 
-  const personalizedHeading = randomHeading.replace("[Name]", "Egocentricfolkore16");
+  const personalizedHeading = randomHeading.replace("[Name]", user);
 
 
   return (
     <>
       <div className="">
-        <h1 className="z-[1000] px-6 py-3  fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
+        <h1 className="z-[100] px-3 py-3  fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
           Dashboard
         </h1>
         <div className="px-6">
@@ -65,7 +66,7 @@ const randomParagraph =
           <p className="mt-3 mb-3">{randomParagraph}</p>
         </div>
       </div>
-      <div className="w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-11 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
+      <div className="w-[90%] lg:w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-11 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
         <div className="lg:col-span-2 lg:row-span-5">
           <PerformanceDashboard />
         </div>

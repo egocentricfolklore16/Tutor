@@ -11,7 +11,7 @@ function Layout() {
   return (
     <div className="mainapp">
       <Sidebar isOpen={isOpen} toggleSidebar={toggleSidebar} />
-      <div className={`pagecontent ${isOpen ? 'ml-60' : 'ml-16'} transition-all duration-200 ease-in-out`}>
+      <div className={`pagecontent ${isOpen ? 'ml-16 md:ml-60' : 'ml-16'} transition-all duration-200 ease-in-out`}>
         <Outlet />
       </div>
     </div>

@@ -19,7 +19,7 @@ function StudyStreak() {
           </svg>
           <h1 className='font-bold text-2xl'>Streak</h1>
         </div><br />
-        <div className="flex justify-between p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] rounded-lg">
+        <div className="flex justify-between p-2 overflow-x-auto sm:overflow-x-hidden [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] rounded-lg">
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center">
             <img className="scale-125" src="sreak.png" alt="streak fire" />
             <span className="hidden sm:inline">Day 1</span>

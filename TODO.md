@@ -8,3 +8,7 @@
 # TODO: Hide Streak Cards Spans on Mobile
 
 - [x] Update StudyStreak.jsx to add 'hidden sm:inline' class to each span
+
+# TODO: Make Streak Cards Scroll Horizontally on Mobile
+
+- [x] Update StudyStreak.jsx to add responsive overflow classes to container div for horizontal scroll on mobile

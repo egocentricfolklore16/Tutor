@@ -1,11 +1,20 @@
 import React, { useState } from "react";
+import { useNavigate } from 'react-router-dom';
 const LoginPage = () => {
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: "",
+    username: "",
     password: "",
     rememberMe: false,
   });
+
+  const userDetails = 
+    {
+      user: "Egocentricfolklore16",
+      password: "Calebdboy_44."
+    }
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -16,12 +25,11 @@ const LoginPage = () => {
   };
 
   const handleSubmit = () => {
-    console.log("Login attempt:", {
-      email: formData.email,
-      password: formData.password,
-    });
-    // Add your login logic here
-    alert("Login functionality to be implemented!");
+    if (formData.username === userDetails.user && formData.password === userDetails.password) {
+      navigate("/Dashboard");
+    } else {
+      setError("Invalid username. Please enter 'user' to login.");
+    }
   };
 
   const handleSocialLogin = (provider) => {
@@ -29,6 +37,8 @@ const LoginPage = () => {
     // Add your social login logic here
     alert(`${provider} login to be implemented!`);
   };
+
+  
 
   return (
     <div className="w-auto flex items-center justify-center p-4">
@@ -47,15 +57,16 @@ const LoginPage = () => {
           <p className="text-gray-400">
             Sign in to continue your learning journey
           </p>
+          {error && <p className="text-red-500 text-sm">{error}</p>}
         </div>
 
         {/* Login Form */}
         <div className="bg-[#1a2f1a] rounded-xl p-6 shadow-xl border border-emerald-900/20">
           <div className="space-y-4">
-            {/* Email Field */}
+            {/* Username Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Email Address
+                Username
               </label>
               <div className="relative">
                 <svg
@@ -74,12 +85,12 @@ const LoginPage = () => {
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
                 <input
-                  type="email"
-                  name="email"
-                  value={formData.email}
+                  type="text"
+                  name="username"
+                  value={formData.username}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-[#0f1f0f] border border-emerald-800/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  placeholder="Enter your email"
+                  placeholder="Enter your Username"
                   required
                 />
               </div>

@@ -155,14 +155,14 @@ function Sidebar({ isOpen, toggleSidebar }) {
     <div
       className={`${
         isOpen ? "w-60" : "w-16"
-      } transition-all duration-200 ease-in-out border-r-4 border-r-green-500 text-white min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full z-50`}
+      } transition-all duration-200 ease-in-out border-r-4 border-r-green-500 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full z-50`}
     >
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4">
         <div className="flex items-center">
           {isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
           {isOpen && (
-            <Link to={"/Dashboard"} className="text-white no-underline">
+            <Link to={"/Dashboard"} className="text-black no-underline">
               <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
                 Hyper Tutor
               </h1>
@@ -196,21 +196,21 @@ function Sidebar({ isOpen, toggleSidebar }) {
             <Link
               key={item.name}
               to={"/" + item.name}
-              className="block text-white no-underline"
+              className="block text-black no-underline"
             >
               <li
                 className={`
                   ${
                     activeItem === item.name
-                      ? "bg-white/15 border-l-2 border-green-600 ml-2"
-                      : "hover:bg-white/5 hover:border-l-2 hover:border-green-600 hover:ml-2"
+                      ? "bg-black/15 border-l-2 border-green-600 ml-2"
+                      : "hover:bg-black/5 hover:border-l-2 hover:border-green-600 hover:ml-2"
                   }
                   flex items-center h-8 px-3 rounded-lg cursor-pointer 
                   transition-all duration-300 text-xs whitespace-nowrap overflow-hidden
                 `}
                 onClick={() => handleMenuItemClick(item.name)}
               >
-                <span className="text-white pr-3">{item.icon}</span>
+                <span className="text-black pr-3">{item.icon}</span>
                 {isOpen && <span>{item.name}</span>}
               </li>
             </Link>
@@ -224,18 +224,18 @@ function Sidebar({ isOpen, toggleSidebar }) {
         <div className="flex items-center mb-4">
           <img src="user.png" className="w-8 h-8 rounded-full" alt="Profile" />
           {isOpen && (
-            <h4 className="ml-4 text-white text-sm font-medium">Donny Yen</h4>
+            <h4 className="ml-4 text-black text-sm font-medium">Donny Yen</h4>
           )}
         </div>
 
         {/* New Project Button */}
-        <button className="w-full h-8 bg-green-600 hover:bg-green-400 text-black font-semibold rounded-lg transition-colors duration-300 text-sm">
+        <button className="w-full h-8 bg-green-600 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
           {isOpen ? "+ New Study Session" : "+"}
         </button>
 
         {/* Help and Feedback */}
         {isOpen && (
-          <p className="flex items-center text-gray-300 text-xs mt-4 whitespace-nowrap overflow-hidden">
+          <p className="flex items-center text-gray-700 text-xs mt-4 whitespace-nowrap overflow-hidden">
             <svg
               className="mr-2"
               stroke="currentColor"

@@ -104,22 +104,22 @@ const PerformanceDashboard = () => {
           {/* Right Column - Subject Performance */}
           <div className="lg:col-span-1">
             {/* Performance Legend */}
-            <div className="bg-white border border-gray-200 p-4 mb-6">
-              <div className="text-sm font-medium text-gray-900 mb-3">
+            <div className="performance-legend-bg border border-gray-200 p-4 mb-6">
+              <div className="text-sm font-medium text-gray-100 mb-3">
                 Performance Legend
               </div>
               <div className="space-y-2">
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-red-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Bad</span>
+                  <span className="text-sm text-gray-300">Bad</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-yellow-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Good</span>
+                  <span className="text-sm text-gray-300">Good</span>
                 </div>
                 <div className="flex items-center space-x-2">
                   <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                  <span className="text-sm text-gray-600">Excellent</span>
+                  <span className="text-sm text-gray-300">Excellent</span>
                 </div>
               </div>
             </div>

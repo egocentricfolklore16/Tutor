@@ -4,3 +4,19 @@
   font-family: "Lexend", sans-serif;
   background-color: #ffffff;
 }
+
+.performance-legend-bg {
+  background-image: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0) 0%,   /* fully transparent at the top */
+    rgba(0, 0, 0, 0.7) 100% /* semi-transparent black at bottom */
+  ), url('/perfom.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  transition: background-size 0.3s ease;
+}
+
+.performance-legend-bg:hover {
+  background-size: 120% 120%;
+}

@@ -1,4 +1,5 @@
 import React from 'react'
+import TextType from '../common/TargetCursor'
 import QuickActions from './QuickActions'
 import RecentActivity from './RecentActivity'
 import PerformanceDashboard from './StudyStats'
@@ -48,31 +49,41 @@ const randomParagraph =
   return (
     <>
       <div className="">
-        <h1 className="px-6 py-3  fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
+        <h1 className="z-[1000] px-6 py-3  fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
           Dashboard
         </h1>
         <div className="px-6">
           <h1 className="pt-20 text-green-600 text-2xl font-bold">
-            {personalizedHeading}
+            <TextType
+              text={personalizedHeading}
+              typingSpeed={75}
+              pauseDuration={1500}
+              showCursor={true}
+              cursorCharacter="|"
+            />
           </h1>
           <p className="mt-3 mb-3">{randomParagraph}</p>
         </div>
       </div>
-      <div className="w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-12 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
+      <div className="w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-11 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
         <div className="lg:col-span-2 lg:row-span-5">
           <PerformanceDashboard />
         </div>
         <div className="lg:col-span-1 row-span-5 ">
           <UpcomingSession />
 
-          {/* <QuickActions />
+          {/* 
           <RecentActivity />
           <AISuggestions /> */}
         </div>
 
-        <div className="lg:col-span-2 row-span-3">
-          <StudyStreak />
+        <div className="lg:col-span-1 row-span-3">
+          <QuickActions />
         </div>
+        
+          <div className="lg:col-span-2 row-span-6">
+            <StudyStreak />
+          </div>
       </div>
     </>
   );

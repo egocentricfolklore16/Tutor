@@ -1,12 +1,10 @@
-import React, { useState } from 'react'
+import React from 'react'
 import { Outlet } from 'react-router'
 import Sidebar from '../components/Layout/Sidebar'
-function Layout() {
-  const [isOpen, setIsOpen] = useState(true);
+import { useSidebar } from '../contexts/SidebarContext'
 
-  const toggleSidebar = () => {
-    setIsOpen(!isOpen);
-  };
+function Layout() {
+  const { isOpen, toggleSidebar } = useSidebar();
 
   return (
     <div className="mainapp">

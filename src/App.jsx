@@ -1,9 +1,14 @@
 import { Children, StrictMode } from "react";
 import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import CommunityComingSoon from "./components/Community/community";
 import LoginPage from "./components/Auth/LoginForm";
 import SignupPage from "./components/Auth/SignupForm";
 import Layout from "./app/Layout";
 import Overview from "./components/Dashboard/Overview";
+import Study from "./components/Study/Study";
+import Card from "./components/common/NotFound";
+import NotFound from "./components/common/NotFound";
+import { SidebarProvider } from "./contexts/SidebarContext";
 
 const router = createBrowserRouter([
   {
@@ -12,7 +17,7 @@ const router = createBrowserRouter([
     children: [
       {
         path: "/",
-        element: <LoginPage />,
+        element: <Overview />,
       },
       {
         path: "/Dashboard",
@@ -20,11 +25,11 @@ const router = createBrowserRouter([
       },
       {
         path: "/Study",
-        element: <SignupPage />,
+        element: <Study />,
       },
       {
         path: "/Planner",
-        element: <div>Task Page</div>,
+        element: <LoginPage />,
       },
       {
         path: "/Progress",
@@ -36,7 +41,7 @@ const router = createBrowserRouter([
       },
       {
         path: "/Community",
-        element: <div>Projects Page</div>,
+        element: <CommunityComingSoon />,
       },
       {
         path: "/FAQ",
@@ -46,12 +51,17 @@ const router = createBrowserRouter([
         path: "/Settings",
         element: <div>Settings Page</div>,
       },
+      { path: "*", element: <NotFound /> },
     ],
   },
 ]);
 
 function App() {
-  return <RouterProvider router={router} />;
+  return (
+    <SidebarProvider>
+      <RouterProvider router={router} />
+    </SidebarProvider>
+  );
 }
 
 export default App;

@@ -89,12 +89,12 @@ const UpcomingSessions = () => {
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-      <div className="flex items-center justify-between mb-18">
-        <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+      <div className="flex items-center justify-between mb-23">
+        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
           <Clock className="h-5 w-5 text-blue-600" />
           Upcoming Sessions
         </h2>
-        <button className="text-sm text-blue-600 hover:text-blue-800 font-medium">
+        <button className="text-sm text-blue-600 hover:text-blue-800 font-medium cursor-pointer">
           View All
         </button>
       </div>

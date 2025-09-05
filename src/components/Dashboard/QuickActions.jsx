@@ -22,7 +22,7 @@ function QuickActions() {
         </svg>
         <h1 className="font-bold text-2xl mb-4">Quick Actions</h1>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Continue Session</h2>
           <svg
@@ -41,7 +41,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Library</h2>
           <svg
@@ -60,7 +60,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Flashcards</h2>
           <svg
@@ -79,7 +79,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Library</h2>
           <svg
@@ -98,7 +98,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Library</h2>
           <svg
@@ -117,7 +117,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500">
+      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Library</h2>
           <svg

@@ -1,6 +1,6 @@
 import { Children, StrictMode, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import CommunityComingSoon from "./components/Community/community";
+import Community from "./components/Community/Community";
 // import LoginPage from "./components/Auth/LoginForm";
 import SignupPage from "./components/Auth/SignupForm";
 import AuthLayout from "./components/Auth/AuthLayout";
@@ -12,6 +12,7 @@ import NotFound from "./components/common/NotFound";
 import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
 import ErrorBoundary from "./components/Common/ErrorBoundary";
+import Community from "./components/Community/community";
 // Routing will be handled inside the BrowserRouter below
 
 function App() {
@@ -43,7 +44,7 @@ function App() {
               <Route path="Planner" element={<div>Planner Page</div>} />
               <Route path="Progress" element={<div>Progress Page</div>} />
               <Route path="Library" element={<div>Resources Page</div>} />
-              <Route path="Community" element={<CommunityComingSoon />} />
+              <Route path="Community" element={<Community />} />
               <Route path="FAQ" element={<div>Frequently Asked Questions Page</div>} />
               <Route path="Settings" element={<div>Settings Page</div>} />
               <Route path="*" element={<NotFound />} />

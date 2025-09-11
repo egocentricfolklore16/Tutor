@@ -11,7 +11,7 @@ import {
   Heart,
 } from "lucide-react";
 
-const CommunityComingSoon = () => {
+const Community = () => {
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
@@ -360,4 +360,4 @@ const CommunityComingSoon = () => {
   );
 };
 
-export default CommunityComingSoon;
+export default Community;

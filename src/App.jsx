@@ -12,7 +12,7 @@ import NotFound from "./components/common/NotFound";
 import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
 import ErrorBoundary from "./components/Common/ErrorBoundary";
-import Community from "./components/Community/community";
+
 // Routing will be handled inside the BrowserRouter below
 
 function App() {

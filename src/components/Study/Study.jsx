@@ -1,4 +1,6 @@
 import React, { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
+import StudyEnvironment from "./StudyEnvironment";
 import {
   Clock,
   BookOpen,
@@ -14,11 +16,16 @@ function Study() {
     topic: "",
     status: "",
     date: "",
+    time: "",
     hours: "",
   });
   const [sessions, setSessions] = useState([]);
+  const [dropdownIndex, setDropdownIndex] = useState(null);
+  const [mutedIds, setMutedIds] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
+  const [activeSession, setActiveSession] = useState(null);
   const formRef = useRef(null);
+  const navigate = useNavigate();
 
   const getTypeIcon = () => {
     return <BookOpen className="h-4 w-4" />;
@@ -71,6 +78,17 @@ function Study() {
     setIsOpen(!isOpen);
   };
 
+  // Generate a random ID with letters, numbers, and symbols
+  function generateRandomId(length = 12) {
+    const chars =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=";
+    let result = "";
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return result;
+  }
+
   const addSession = (e) => {
     e.preventDefault();
     if (
@@ -78,14 +96,16 @@ function Study() {
       session.topic &&
       session.status &&
       session.date &&
+      session.time &&
       session.hours
     ) {
-      setSessions([...sessions, { ...session, id: Date.now() }]);
+      setSessions([...sessions, { ...session, id: generateRandomId() }]);
       setSession({
         subject: "",
         topic: "",
         status: "",
         date: "",
+        time: "",
         hours: "",
       });
       setIsOpen(false);
@@ -97,66 +117,143 @@ function Study() {
     setSession((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleDropdown = (index) => {
+    setDropdownIndex(dropdownIndex === index ? null : index);
+  };
+
+  const handleMuteToggle = (id) => {
+    setMutedIds((prev) =>
+      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
+    );
+    setDropdownIndex(null);
+  };
+
+  const handleDelete = (id) => {
+    setSessions((prev) => prev.filter((s) => s.id !== id));
+    setDropdownIndex(null);
+  };
+
   return (
     <div className="relative min-h-screen">
+      {activeSession && (
+        <StudyEnvironment
+          session={activeSession}
+          onClose={() => setActiveSession(null)}
+        />
+      )}
       <div className="p-6">
         <h1 className="text-2xl font-bold text-gray-800 mb-6">
           Study Sessions
         </h1>
 
         {sessions.length === 0 ? (
-          <div className="text-center py-12">
-            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+          <div className="text-center py-12  [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] ">
+            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4 " />
             <p className="text-gray-500 text-lg mb-4">No study sessions yet</p>
             <p className="text-gray-400">
               Click the + button to create your first session
             </p>
           </div>
         ) : (
-          <div className="grid gap-auto grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-4">
-            {sessions.map((sessionItem, index) => (
-              <div
-                key={sessionItem.id || index}
-                className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[335px] hover:shadow-md ${getPriorityColor(
-                  sessionItem.status
-                )}`}
-              >
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-2 text-gray-600">
-                        {getTypeIcon()}
+          <div className="w-full  grid gap-9 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-3 overflow-y-hidden">
+            {sessions.map((sessionItem, index) => {
+              const isMuted = mutedIds.includes(sessionItem.id);
+              return (
+                <div
+                  key={sessionItem.id || index}
+                  className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[380px] hover:shadow-md cursor-pointer relative ${
+                    isMuted
+                      ? "bg-gray-200 border-l-gray-400"
+                      : getPriorityColor(sessionItem.status)
+                  }`}
+                  style={
+                    isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
+                  }
+                >
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-3 mb-2">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          {getTypeIcon()}
+                        </div>
+                        {!isMuted && getStatusBadge(sessionItem.status)}
                       </div>
-                      {getStatusBadge(sessionItem.status)}
+
+                      <h2
+                        className={`font-semibold mb-1 ${
+                          isMuted ? "text-gray-500" : "text-gray-800"
+                        }`}
+                      >
+                        {sessionItem.subject}
+                      </h2>
+                      <h3
+                        className={`mb-1 ${
+                          isMuted ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        {sessionItem.topic}
+                      </h3>
+                      <p
+                        className={`text-sm mb-1 ${
+                          isMuted ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        {sessionItem.date}{" "}
+                        {sessionItem.time && (
+                          <span className="ml-2 text-gray-400">
+                            at {sessionItem.time}
+                          </span>
+                        )}
+                      </p>
+                      <p
+                        className={`text-sm font-medium ${
+                          isMuted ? "text-gray-400" : "text-gray-700"
+                        }`}
+                      >
+                        {sessionItem.hours} hour(s)
+                      </p>
                     </div>
 
-                    <h2 className="font-semibold text-gray-800 mb-1">
-                      {sessionItem.subject}
-                    </h2>
-                    <h3 className="text-gray-600 mb-1">{sessionItem.topic}</h3>
-                    <p className="text-sm text-gray-500 mb-1">
-                      {sessionItem.date}
-                    </p>
-                    <p className="text-sm font-medium text-gray-700">
-                      {sessionItem.hours} hour(s)
-                    </p>
-                  </div>
-
-                  <div className="flex flex-col items-center gap-2 ml-4">
-                   
-                      <button className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors">
+                    <div className="flex flex-col items-center gap-2 ml-4 relative">
+                      <button
+                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        onClick={() =>
+                          navigate(
+                            `/Study/${encodeURIComponent(sessionItem.id)}`
+                          )
+                        }
+                      >
                         <Play className="h-3 w-3" />
                         Start
                       </button>
-                    
-                    
-                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                      <MoreHorizontal className="h-4 w-4" />
-                    </button>
+
+                      <button
+                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        onClick={() => handleDropdown(index)}
+                      >
+                        <MoreHorizontal className="h-4 w-4" />
+                      </button>
+                      {dropdownIndex === index && (
+                        <div className="absolute right-0 top-10 bg-white border rounded shadow-lg z-10 min-w-[120px]">
+                          <button
+                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            onClick={() => handleMuteToggle(sessionItem.id)}
+                          >
+                            {isMuted ? "Unmute" : "Mute"}
+                          </button>
+                          <button
+                            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                            onClick={() => handleDelete(sessionItem.id)}
+                          >
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
@@ -164,7 +261,8 @@ function Study() {
       {/* Fixed Overlay Modal */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-gray-200 bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
+          style={{ background: "rgba(255,255,255,0.05)" }}
           onClick={(e) => {
             if (formRef.current && !formRef.current.contains(e.target)) {
               setIsOpen(false);
@@ -242,18 +340,33 @@ function Study() {
                 </div>
 
                 {/* Date */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date *
-                  </label>
-                  <input
-                    required
-                    type="date"
-                    name="date"
-                    value={session.date}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                  />
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date *
+                    </label>
+                    <input
+                      required
+                      type="date"
+                      name="date"
+                      value={session.date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Time *
+                    </label>
+                    <input
+                      required
+                      type="time"
+                      name="time"
+                      value={session.time}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    />
+                  </div>
                 </div>
 
                 {/* Hours */}

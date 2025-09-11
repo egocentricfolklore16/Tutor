@@ -1,20 +1,20 @@
 import React, { useState } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
+import supabase from "../../lib/supabase";
+
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
-  const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    username: "",
+    email: "",
     password: "",
     rememberMe: false,
   });
 
-  const userDetails = 
-    {
-      user: "Egocentricfolklore16",
-      password: "Calebdboy_44."
-    }
+  const handleClick = () => {
+    navigate("/signup"); // change this to your target route
+  };
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -24,11 +24,22 @@ const LoginPage = () => {
     }));
   };
 
-  const handleSubmit = () => {
-    if (formData.username === userDetails.user && formData.password === userDetails.password) {
-      navigate("/Dashboard");
+  const handleSubmit = async (e) => {
+    e?.preventDefault?.();
+    setError("");
+    if (!formData.email || !formData.password) {
+      setError("Please enter both email and password.");
+      return;
+    }
+    // Try to sign in with Supabase
+    const { error } = await supabase.auth.signInWithPassword({
+      email: formData.email,
+      password: formData.password,
+    });
+    if (error) {
+      setError(error.message || "Login failed. Please try again.");
     } else {
-      setError("Invalid username. Please enter 'user' to login.");
+      navigate("/Dashboard");
     }
   };
 
@@ -37,8 +48,6 @@ const LoginPage = () => {
     // Add your social login logic here
     alert(`${provider} login to be implemented!`);
   };
-
-  
 
   return (
     <div className="w-auto flex items-center justify-center p-4">
@@ -66,7 +75,7 @@ const LoginPage = () => {
             {/* Username Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
-                Username
+                Email
               </label>
               <div className="relative">
                 <svg
@@ -85,12 +94,12 @@ const LoginPage = () => {
                   <polyline points="22,6 12,13 2,6"></polyline>
                 </svg>
                 <input
-                  type="text"
-                  name="username"
-                  value={formData.username}
+                  type="email"
+                  name="email"
+                  value={formData.email}
                   onChange={handleInputChange}
                   className="w-full pl-10 pr-4 py-3 bg-[#0f1f0f] border border-emerald-800/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                  placeholder="Enter your Username"
+                  placeholder="Enter your email"
                   required
                 />
               </div>
@@ -256,7 +265,7 @@ const LoginPage = () => {
             <span className="text-gray-400">Don't have an account? </span>
             <button
               type="button"
-              onClick={() => alert("Navigate to signup page")}
+              onClick={handleClick}
               className="text-emerald-400 hover:text-emerald-300 font-medium"
             >
               Sign up

@@ -4,7 +4,7 @@ import styled from "styled-components";
 const NotFound = () => {
   return (
     <StyledWrapper>
-      <div className="main_wrapper">
+      <div className="main_wrapper mx-auto">
         <div className="main">
           <div className="antenna">
             <div className="antenna_shadow" />

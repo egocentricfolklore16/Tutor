@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import { Eye, EyeOff, Mail, Lock, User, BookOpen, Check } from "lucide-react";
-
+import supabase from "../../lib/supabase.js";
+import { useNavigate } from "react-router-dom";
 const SignupPage = () => {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
-    firstName: "",
-    lastName: "",
+    userName: "",
     email: "",
     password: "",
     confirmPassword: "",
@@ -15,6 +16,7 @@ const SignupPage = () => {
   });
 
   const [passwordStrength, setPasswordStrength] = useState(0);
+  const [showConfirmDialog, setShowConfirmDialog] = useState(false);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -53,14 +55,9 @@ const SignupPage = () => {
     return "Strong";
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Basic validation
-    if (
-      !formData.firstName ||
-      !formData.lastName ||
-      !formData.email ||
-      !formData.password
-    ) {
+    if (!formData.userName || !formData.email || !formData.password) {
       alert("Please fill in all required fields");
       return;
     }
@@ -76,8 +73,21 @@ const SignupPage = () => {
     }
 
     console.log("Signup attempt:", formData);
-    // Add your signup logic here
-    alert("Account created successfully! (This is a demo)");
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        data: {
+          userName: formData.userName
+        }
+      }
+    });
+    if (error) {
+      console.error("Error signing Up:", error.message);
+      alert(error.message || "Signup failed.");
+      return;
+    }
+    setShowConfirmDialog(true);
   };
 
   const handleSocialSignup = (provider) => {
@@ -86,32 +96,50 @@ const SignupPage = () => {
     alert(`${provider} signup to be implemented!`);
   };
 
+  const handleClick = () => {
+    navigate("/signin"); // change this to your target route
+  };
   return (
-    <div className="w-auto flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
-        {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-lg flex items-center justify-center">
-              <img src="logo.png" alt="" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Hyper Tutor</h1>
+    <>
+      {showConfirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
+            <h2 className="text-xl font-bold mb-4 text-emerald-700">Confirm your email</h2>
+            <p className="mb-4 text-gray-700">A confirmation link has been sent to <span className="font-semibold">{formData.email}</span>.<br/>Please check your inbox and click the link to activate your account.</p>
+            <button
+              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-6 rounded-lg mt-2"
+              onClick={() => window.location.reload()}
+            >
+              I have confirmed my email
+            </button>
           </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Create Account
-          </h2>
-          <p className="text-gray-400">
-            Start your personalized learning journey today
-          </p>
         </div>
+      )}
+      <div className="w-auto flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          {/* Logo and Header */}
+          <div className="text-center mb-8">
+            <div className="flex items-center justify-center gap-2 mb-4">
+              <div className="w-12 h-12 rounded-lg flex items-center justify-center">
+                <img src="logo.png" alt="" />
+              </div>
+              <h1 className="text-2xl font-bold text-white">Hyper Tutor</h1>
+            </div>
+            <h2 className="text-xl font-semibold text-white mb-2">
+              Create Account
+            </h2>
+            <p className="text-gray-400">
+              Start your personalized learning journey today
+            </p>
+          </div>
 
-        {/* Signup Form */}
-        <div className="bg-[#1a2f1a] rounded-xl p-6 shadow-xl border border-emerald-900/20">
-          <div className="space-y-4">
-            {/* Name Fields */}
-            <div className="w-full">
-              <div>
-                <label className="block text-sm font-medium text-gray-300 mb-2">
+          {/* Signup Form */}
+          <div className="bg-[#1a2f1a] rounded-xl p-6 shadow-xl border border-emerald-900/20">
+            <div className="space-y-4">
+              {/* Name Fields */}
+              <div className="w-full">
+                <div>
+                  <label className="block text-sm font-medium text-gray-300 mb-2">
                   Username *
                 </label>
                 <div className="relative">
@@ -129,11 +157,11 @@ const SignupPage = () => {
                   </svg>
                   <input
                     type="text"
-                    name="Username"
-                    value={formData.firstName}
+                    name="userName"
+                    value={formData.userName}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 bg-[#0f1f0f] border border-emerald-800/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    placeholder= "Username"
+                    placeholder="Username"
                     required
                   />
                 </div>
@@ -462,7 +490,7 @@ const SignupPage = () => {
             <span className="text-gray-400">Already have an account? </span>
             <button
               type="button"
-              onClick={() => alert("Navigate to login page")}
+              onClick={handleClick}
               className="text-emerald-400 hover:text-emerald-300 font-medium"
             >
               Sign in
@@ -500,6 +528,7 @@ const SignupPage = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

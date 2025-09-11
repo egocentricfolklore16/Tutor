@@ -1,6 +1,6 @@
 import { Children, StrictMode, useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Community from "./components/Community/Community";
+import Community from "./components/Community/community";
 // import LoginPage from "./components/Auth/LoginForm";
 import SignupPage from "./components/Auth/SignupForm";
 import AuthLayout from "./components/Auth/AuthLayout";

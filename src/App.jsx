@@ -11,7 +11,7 @@ import LoginPage from "./components/Auth/LoginForm";
 import NotFound from "./components/common/NotFound";
 import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
-import ErrorBoundary from "./components/common/ErrorBoundary";
+import ErrorBoundary from "./components/Common/ErrorBoundary";
 
 // Routing will be handled inside the BrowserRouter below
 

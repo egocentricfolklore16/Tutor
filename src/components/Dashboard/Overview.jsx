@@ -1,14 +1,13 @@
-import React from 'react'
-import TextType from '../common/TargetCursor'
-import QuickActions from './QuickActions'
-import RecentActivity from './RecentActivity'
-import PerformanceDashboard from './StudyStats'
-import StudyStreak from './StudyStreak'
-import UpcomingSession from './UpcomingSession'
-import AISuggestions from './AISuggestions'
+import React from "react";
+import TextType from "../Common/TargetCursor";
+import QuickActions from "./QuickActions";
+import RecentActivity from "./RecentActivity";
+import PerformanceDashboard from "./StudyStats";
+import StudyStreak from "./StudyStreak";
+import UpcomingSession from "./UpcomingSession";
+import AISuggestions from "./AISuggestions";
 
 function Overview() {
-
   const greetings = {
     headings: [
       "Welcome back, [Name]",
@@ -38,14 +37,13 @@ function Overview() {
 
   const randomHeading =
     greetings.headings[Math.floor(Math.random() * greetings.headings.length)];
-const randomParagraph =
-  greetings.paragraphs[
-    Math.floor(Math.random() * greetings.paragraphs.length)
-  ];
+  const randomParagraph =
+    greetings.paragraphs[
+      Math.floor(Math.random() * greetings.paragraphs.length)
+    ];
   const user = "Egocentricfolkore16";
 
   const personalizedHeading = randomHeading.replace("[Name]", user);
-
 
   return (
     <>
@@ -81,13 +79,13 @@ const randomParagraph =
         <div className="lg:col-span-1 row-span-3">
           <QuickActions />
         </div>
-        
-          <div className="lg:col-span-2 row-span-6">
-            <StudyStreak />
-          </div>
+
+        <div className="lg:col-span-2 row-span-6">
+          <StudyStreak />
+        </div>
       </div>
     </>
   );
 }
 
-export default Overview
+export default Overview;

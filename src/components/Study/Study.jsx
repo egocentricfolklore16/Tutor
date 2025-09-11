@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import supabase from "../../lib/supabase";
 import StudyEnvironment from "./StudyEnvironment";
 import {
   Clock,
@@ -20,6 +21,19 @@ function Study() {
     hours: "",
   });
   const [sessions, setSessions] = useState([]);
+  // Fetch sessions from Supabase on mount
+  useEffect(() => {
+    const fetchSessions = async () => {
+      const { data, error } = await supabase.from("Study Session").select("*");
+      if (error) {
+        console.error("Supabase fetch error:", error);
+      } else {
+        console.log("Supabase fetch data:", data);
+        setSessions(data || []);
+      }
+    };
+    fetchSessions();
+  }, []);
   const [dropdownIndex, setDropdownIndex] = useState(null);
   const [mutedIds, setMutedIds] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
@@ -79,17 +93,8 @@ function Study() {
   };
 
   // Generate a random ID with letters, numbers, and symbols
-  function generateRandomId(length = 12) {
-    const chars =
-      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789!@#$%^&*()_+-=";
-    let result = "";
-    for (let i = 0; i < length; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return result;
-  }
 
-  const addSession = (e) => {
+  const addSession = async (e) => {
     e.preventDefault();
     if (
       session.subject &&
@@ -99,7 +104,23 @@ function Study() {
       session.time &&
       session.hours
     ) {
-      setSessions([...sessions, { ...session, id: generateRandomId() }]);
+      // Save to Supabase
+      const { data, error } = await supabase
+        .from("Study Session")
+        .insert([
+          {
+            Subject: session.subject,
+            Topic: session.topic,
+            Status: session.status,
+            Date: session.date,
+            "Start Time": session.time,
+            Duration: session.hours,
+          },
+        ])
+        .select();
+      if (!error && data && data.length > 0) {
+        setSessions((prev) => [...prev, data[0]]);
+      }
       setSession({
         subject: "",
         topic: "",
@@ -164,7 +185,7 @@ function Study() {
                   className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[380px] hover:shadow-md cursor-pointer relative ${
                     isMuted
                       ? "bg-gray-200 border-l-gray-400"
-                      : getPriorityColor(sessionItem.status)
+                      : getPriorityColor(sessionItem["Status"])
                   }`}
                   style={
                     isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
@@ -176,7 +197,7 @@ function Study() {
                         <div className="flex items-center gap-2 text-gray-600">
                           {getTypeIcon()}
                         </div>
-                        {!isMuted && getStatusBadge(sessionItem.status)}
+                        {!isMuted && getStatusBadge(sessionItem["Status"])}
                       </div>
 
                       <h2
@@ -184,24 +205,24 @@ function Study() {
                           isMuted ? "text-gray-500" : "text-gray-800"
                         }`}
                       >
-                        {sessionItem.subject}
+                        {sessionItem["Subject"]}
                       </h2>
                       <h3
                         className={`mb-1 ${
                           isMuted ? "text-gray-400" : "text-gray-600"
                         }`}
                       >
-                        {sessionItem.topic}
+                        {sessionItem["Topic"]}
                       </h3>
                       <p
                         className={`text-sm mb-1 ${
                           isMuted ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {sessionItem.date}{" "}
-                        {sessionItem.time && (
+                        {sessionItem["Date"]}{" "}
+                        {sessionItem["Start Time"] && (
                           <span className="ml-2 text-gray-400">
-                            at {sessionItem.time}
+                            at {sessionItem["Start Time"]}
                           </span>
                         )}
                       </p>
@@ -210,7 +231,7 @@ function Study() {
                           isMuted ? "text-gray-400" : "text-gray-700"
                         }`}
                       >
-                        {sessionItem.hours} hour(s)
+                        {sessionItem["Duration"]} hour(s)
                       </p>
                     </div>
 

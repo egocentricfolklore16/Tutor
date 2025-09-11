@@ -8,10 +8,10 @@ import Layout from "./app/Layout";
 import Overview from "./components/Dashboard/Overview";
 import Study from "./components/Study/Study";
 import LoginPage from "./components/Auth/LoginForm";
-import NotFound from "./components/Common/NotFound";
+import NotFound from "./components/Common/NotFound.jsx";
 import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
-import ErrorBoundary from "./components/Common/ErrorBoundary";
+import ErrorBoundary from "./components/Common/ErrorBoundary.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 

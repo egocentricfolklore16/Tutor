@@ -6,12 +6,13 @@ import SignupPage from "./components/Auth/SignupForm";
 import AuthLayout from "./components/Auth/AuthLayout";
 import Layout from "./app/Layout";
 import Overview from "./components/Dashboard/Overview";
-import Study from "./components/Study/Study";
+import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm";
-import NotFound from "./components/Common/NotFound.jsx";
+import NotFound from "./components/common/NotFound.jsx";
 import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
 import ErrorBoundary from "./components/Common/ErrorBoundary.jsx";
+import PlannerPage from "./components/Planner/Planner.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -41,7 +42,7 @@ function App() {
               <Route path="Study/:Studyid" element={<Environ />} />
               <Route path="signup" element={<SignupPage />} />
               <Route path="signin" element={<LoginPage />} />
-              <Route path="Planner" element={<div>Planner Page</div>} />
+              <Route path="Planner" element={<PlannerPage/>} />
               <Route path="Progress" element={<div>Progress Page</div>} />
               <Route path="Library" element={<div>Resources Page</div>} />
               <Route path="Community" element={<Community />} />

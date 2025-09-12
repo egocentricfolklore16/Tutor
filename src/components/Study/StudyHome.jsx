@@ -21,14 +21,20 @@ function Study() {
     hours: "",
   });
   const [sessions, setSessions] = useState([]);
+  const [fetchError, setFetchError] = useState("");
   // Fetch sessions from Supabase on mount
   useEffect(() => {
     const fetchSessions = async () => {
-      const { data, error } = await supabase.from("Study Session").select("*");
+      const { data, error } = await supabase
+        .from("Study Session")
+        .select('Subject,Topic,Status,Date,"Start Time",Duration');
       if (error) {
+        setFetchError(
+          "An error occurred while loading study sessions: " + error.message
+        );
         console.error("Supabase fetch error:", error);
       } else {
-        console.log("Supabase fetch data:", data);
+        setFetchError("");
         setSessions(data || []);
       }
     };
@@ -149,8 +155,30 @@ function Study() {
     setDropdownIndex(null);
   };
 
-  const handleDelete = (id) => {
-    setSessions((prev) => prev.filter((s) => s.id !== id));
+  const handleDelete = async (id) => {
+    // Delete from Supabase
+    const { error } = await supabase
+      .from("Study Session")
+      .delete()
+      .eq("id", id);
+    if (error) {
+      setFetchError("Failed to delete session: " + error.message);
+      console.error("Supabase delete error:", error);
+    } else {
+      // Refetch sessions to ensure UI is in sync with DB
+      const { data, error: fetchError_ } = await supabase
+        .from("Study Session")
+        .select("*");
+      if (fetchError_) {
+        setFetchError(
+          "Deleted, but failed to refresh sessions: " + fetchError_.message
+        );
+        console.error("Supabase fetch error after delete:", fetchError_);
+      } else {
+        setFetchError("");
+        setSessions(data || []);
+      }
+    }
     setDropdownIndex(null);
   };
 
@@ -163,6 +191,11 @@ function Study() {
         />
       )}
       <div className="p-6">
+        {fetchError && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-300 text-center font-medium">
+            {fetchError}
+          </div>
+        )}
         <h1 className="text-2xl font-bold text-gray-800 mb-6">
           Study Sessions
         </h1>

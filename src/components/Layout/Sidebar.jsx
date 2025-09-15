@@ -155,7 +155,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
     <div
       className={`${
         isOpen ? "w-60" : "w-16"
-      } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-500 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white`}
+      } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white`}
     >
       {/* Logo Section */}
       <div className="flex items-center justify-between p-4">
@@ -229,7 +229,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
         </div>
 
         {/* New Project Button */}
-        <button className="w-full h-8 bg-green-600 hover:bg-green-400 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
+        <button className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
           {isOpen ? "+ New Study Session" : "+"}
         </button>
 

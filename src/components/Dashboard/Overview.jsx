@@ -80,8 +80,14 @@ function Overview() {
           <QuickActions />
         </div>
 
-        <div className="lg:col-span-2 row-span-6">
-          <StudyStreak />
+        <div className="lg:col-span-2">
+          <div className="row-span-6 mb-6">
+            <StudyStreak />
+          </div>
+
+          <div className="lg:col-span-2 row-span-3">
+            <AISuggestions />
+          </div>
         </div>
       </div>
     </>

@@ -13,6 +13,7 @@ import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
 import ErrorBoundary from "./components/Common/ErrorBoundary.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
+import StudyEnvironment from "./components/Study/StudyEnvironment.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -39,7 +40,7 @@ function App() {
               <Route index element={<Overview />} />
               <Route path="Dashboard" element={<Overview />} />
               <Route path="Study" element={<Study />} />
-              <Route path="Study/:Studyid" element={<Environ />} />
+              <Route path="Study/:Studyid" element={<StudyEnvironment />} />
               <Route path="signup" element={<SignupPage />} />
               <Route path="signin" element={<LoginPage />} />
               <Route path="Planner" element={<PlannerPage/>} />

@@ -93,26 +93,36 @@ const Calendar = ({
     }
 
     return (
-      <div className="grid grid-cols-8 gap-2 h-96">
+      <div className="grid grid-cols-8 gap-2 h-96 overflow-x-hidden">
         <div className="text-sm font-semibold text-gray-600">Time</div>
-        {weekDays.map(day => (
-          <div key={day.toDateString()} className="text-sm font-semibold text-gray-600 text-center">
-            <div>{day.toLocaleDateString('en-US', { weekday: 'short' })}</div>
-            <div className={`text-lg ${day.toDateString() === new Date().toDateString() ? 'text-blue-600 font-bold' : ''}`}>
+        {weekDays.map((day) => (
+          <div
+            key={day.toDateString()}
+            className="text-sm font-semibold text-gray-600 text-center"
+          >
+            <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+            <div
+              className={`text-lg ${
+                day.toDateString() === new Date().toDateString()
+                  ? "text-blue-600 font-bold"
+                  : ""
+              }`}
+            >
               {day.getDate()}
             </div>
           </div>
         ))}
 
         {[...Array(12)].map((_, hour) => {
-          const time = `${(hour + 8).toString().padStart(2, '0')}:00`;
+          const time = `${(hour + 8).toString().padStart(2, "0")}:00`;
           return (
             <React.Fragment key={time}>
               <div className="text-xs text-gray-500 py-2">{time}</div>
-              {weekDays.map(day => {
-                const daySession = sessions.filter(session =>
-                  session.date.toDateString() === day.toDateString() &&
-                  parseInt(session.startTime.split(':')[0]) === hour + 8
+              {weekDays.map((day) => {
+                const daySession = sessions.filter(
+                  (session) =>
+                    session.date.toDateString() === day.toDateString() &&
+                    parseInt(session.startTime.split(":")[0]) === hour + 8
                 );
                 return (
                   <div
@@ -121,7 +131,7 @@ const Calendar = ({
                     onDrop={(e) => handleDrop(e, day)}
                     onDragOver={(e) => e.preventDefault()}
                   >
-                    {daySession.map(session => (
+                    {daySession.map((session) => (
                       <div
                         key={session.id}
                         className={`text-xs p-1 rounded text-white cursor-move mb-1 ${session.color}`}

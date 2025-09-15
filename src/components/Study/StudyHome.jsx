@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./StudyEnvironment";
 import {
-  Clock,
   BookOpen,
   Play,
   MoreHorizontal,
@@ -26,8 +25,8 @@ function Study() {
   useEffect(() => {
     const fetchSessions = async () => {
       const { data, error } = await supabase
-        .from("Study Session")
-        .select('Subject,Topic,Status,Date,"Start Time",Duration');
+        .from("Study")
+        .select('Subject,Topic,Status,Date,"Start",Duration');
       if (error) {
         setFetchError(
           "An error occurred while loading study sessions: " + error.message
@@ -54,11 +53,11 @@ function Study() {
   const getPriorityColor = (status) => {
     switch (status) {
       case "Very Important":
-        return "border-l-red-500 bg-red-50";
+        return "border-l-red-500 bg-red-100";
       case "Not so Important":
-        return "border-l-green-500 bg-green-50";
+        return "border-l-green-500 bg-green-100";
       case "Medium":
-        return "border-l-orange-500 bg-blue-50";
+        return "border-l-orange-500 bg-orange-50";
       default:
         return "border-l-gray-300 bg-gray-50";
     }
@@ -112,14 +111,14 @@ function Study() {
     ) {
       // Save to Supabase
       const { data, error } = await supabase
-        .from("Study Session")
+        .from("Study")
         .insert([
           {
             Subject: session.subject,
             Topic: session.topic,
             Status: session.status,
             Date: session.date,
-            "Start Time": session.time,
+            Start: session.time,
             Duration: session.hours,
           },
         ])
@@ -158,7 +157,7 @@ function Study() {
   const handleDelete = async (id) => {
     // Delete from Supabase
     const { error } = await supabase
-      .from("Study Session")
+      .from("Study")
       .delete()
       .eq("id", id);
     if (error) {
@@ -167,7 +166,7 @@ function Study() {
     } else {
       // Refetch sessions to ensure UI is in sync with DB
       const { data, error: fetchError_ } = await supabase
-        .from("Study Session")
+        .from("Study")
         .select("*");
       if (fetchError_) {
         setFetchError(
@@ -253,9 +252,9 @@ function Study() {
                         }`}
                       >
                         {sessionItem["Date"]}{" "}
-                        {sessionItem["Start Time"] && (
+                        {sessionItem["Start"] && (
                           <span className="ml-2 text-gray-400">
-                            at {sessionItem["Start Time"]}
+                            at {sessionItem["Start"]}
                           </span>
                         )}
                       </p>
@@ -270,7 +269,7 @@ function Study() {
 
                     <div className="flex flex-col items-center gap-2 ml-4 relative">
                       <button
-                        className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
+                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors"
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`

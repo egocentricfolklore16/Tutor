@@ -1,6 +1,24 @@
 import React from "react";
 
 const StudyEnvironment = ({ session, onClose }) => {
+  if (!session) {
+    return (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
+        <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">
+          <button
+            className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
+            onClick={onClose}
+          >
+            &times;
+          </button>
+          <div className="text-red-600 font-semibold text-center">
+            No session data available.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
       <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">

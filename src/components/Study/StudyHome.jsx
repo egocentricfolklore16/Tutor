@@ -1,14 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
-import StudyEnvironment from "./StudyEnvironment";
-import {
-  BookOpen,
-  Play,
-  MoreHorizontal,
-  AlertCircle,
-  X,
-} from "lucide-react";
+import StudyEnvironment from "./studyEnviron/StudyEnvironment";
+import { BookOpen, Play, MoreHorizontal, AlertCircle, X } from "lucide-react";
 
 function Study() {
   const [session, setSession] = useState({
@@ -156,10 +150,7 @@ function Study() {
 
   const handleDelete = async (id) => {
     // Delete from Supabase
-    const { error } = await supabase
-      .from("Study")
-      .delete()
-      .eq("id", id);
+    const { error } = await supabase.from("Study").delete().eq("id", id);
     if (error) {
       setFetchError("Failed to delete session: " + error.message);
       console.error("Supabase delete error:", error);

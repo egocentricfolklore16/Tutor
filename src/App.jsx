@@ -1,7 +1,6 @@
-import { Children, StrictMode, useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Community from "./components/Community/community";
-// import LoginPage from "./components/Auth/LoginForm";
 import SignupPage from "./components/Auth/SignupForm";
 import AuthLayout from "./components/Auth/AuthLayout";
 import Layout from "./app/Layout";
@@ -9,7 +8,6 @@ import Overview from "./components/Dashboard/Overview";
 import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm";
 import NotFound from "./components/common/NotFound.jsx";
-import Environ from "./components/Study/studyEnviron/environ";
 import supabase from "./lib/supabase";
 import ErrorBoundary from "./components/Common/ErrorBoundary_temp.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";

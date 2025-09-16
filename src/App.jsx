@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Community from "./components/Community/Community.jsx";
+import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
 import AuthLayout from "./components/Auth/AuthLayout.jsx";
 import Layout from "./app/Layout.jsx";

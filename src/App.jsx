@@ -1,4 +1,17 @@
-
+import { useEffect, useState } from "react";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Community from "./components/Community/Community.jsx";
+import SignupPage from "./components/Auth/SignupForm.jsx";
+import AuthLayout from "./components/Auth/AuthLayout.jsx";
+import Layout from "./app/Layout.jsx";
+import Overview from "./components/Dashboard/Overview.jsx";
+import Study from "./components/Study/StudyHome.jsx";
+import LoginPage from "./components/Auth/LoginForm.jsx";
+import NotFound from "./components/common/NotFound.jsx";
+import supabase from "./lib/supabase.js";
+import ErrorBoundary from "./components/Common/ErrorBoundary_temp.jsx";
+import PlannerPage from "./components/Planner/Planner.jsx";
+import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 

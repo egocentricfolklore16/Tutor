@@ -152,32 +152,21 @@ function Sidebar({ isOpen, toggleSidebar }) {
   };
 
   return (
-    <div
-      className={`${
-        isOpen ? "w-60" : "w-16"
-      } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white`}
-    >
-      {/* Logo Section */}
-      <div className="flex items-center justify-between p-4">
-        <div className="flex items-center">
-          {isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
-          {isOpen && (
-            <Link to={"/Dashboard"} className="text-black no-underline">
-              <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
-                Hyper Tutor
-              </h1>
-            </Link>
-          )}
-        </div>
+    <>
+      {/* Fixed Toggle Button for Small Screens */}
+      <button
+        onClick={toggleSidebar2}
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-black p-2 ${
+          isOpen ? "hidden" : ""
+        }`}
+      >
         <svg
-          onClick={toggleSidebar2}
-          className="cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300"
           stroke="currentColor"
           fill="currentColor"
           strokeWidth="0"
           viewBox="0 0 16 16"
-          height="1em"
-          width="1em"
+          height="1.5em"
+          width="1.5em"
           xmlns="http://www.w3.org/2000/svg"
         >
           <path
@@ -187,19 +176,59 @@ function Sidebar({ isOpen, toggleSidebar }) {
           />
           <path fillRule="evenodd" d="M4 14V2h1v12H4z" clipRule="evenodd" />
         </svg>
-      </div>
+      </button>
 
-      {/* Menu Items */}
-      <nav className="flex-1 px-2">
-        <ul className="space-y-2">
-          {menuItems.map((item) => (
-            <Link
-              key={item.name}
-              to={"/" + item.name}
-              className="block text-black no-underline"
-            >
-              <li
-                className={`
+      {/* Sidebar */}
+      <div
+        className={`${
+          isOpen ? "w-60" : "w-16"
+        } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white ${
+          isOpen ? "block" : "hidden"
+        } md:block`}
+      >
+        {/* Logo Section */}
+        <div className="flex items-center justify-between p-4">
+          <div className="flex items-center">
+            {isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
+            {isOpen && (
+              <Link to={"/Dashboard"} className="text-black no-underline">
+                <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
+                  Hyper Tutor
+                </h1>
+              </Link>
+            )}
+          </div>
+          <svg
+            onClick={toggleSidebar2}
+            className="cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300"
+            stroke="currentColor"
+            fill="currentColor"
+            strokeWidth="0"
+            viewBox="0 0 16 16"
+            height="1em"
+            width="1em"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              fillRule="evenodd"
+              d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V3a2 2 0 00-2-2H2z"
+              clipRule="evenodd"
+            />
+            <path fillRule="evenodd" d="M4 14V2h1v12H4z" clipRule="evenodd" />
+          </svg>
+        </div>
+
+        {/* Menu Items */}
+        <nav className="flex-1 px-2">
+          <ul className="space-y-2">
+            {menuItems.map((item) => (
+              <Link
+                key={item.name}
+                to={"/" + item.name}
+                className="block text-black no-underline"
+              >
+                <li
+                  className={`
                   ${
                     activeItem === item.name
                       ? "bg-black/15 border-l-2 border-green-600 ml-2"
@@ -208,52 +237,57 @@ function Sidebar({ isOpen, toggleSidebar }) {
                   flex items-center h-8 px-3 rounded-lg cursor-pointer 
                   transition-all duration-300 text-xs whitespace-nowrap overflow-hidden
                 `}
-                onClick={() => handleMenuItemClick(item.name)}
-              >
-                <span className="text-black pr-3">{item.icon}</span>
-                {isOpen && <span>{item.name}</span>}
-              </li>
-            </Link>
-          ))}
-        </ul>
-      </nav>
+                  onClick={() => handleMenuItemClick(item.name)}
+                >
+                  <span className="text-black pr-3">{item.icon}</span>
+                  {isOpen && <span>{item.name}</span>}
+                </li>
+              </Link>
+            ))}
+          </ul>
+        </nav>
 
-      {/* Footer Section */}
-      <div className="mt-auto p-4 border-t border-gray-700">
-        {/* User Info */}
-        <div className="flex items-center mb-4">
-          <img src="user.png" className="w-8 h-8 rounded-full" alt="Profile" />
+        {/* Footer Section */}
+        <div className="mt-auto p-4 border-t border-gray-700">
+          {/* User Info */}
+          <div className="flex items-center mb-4">
+            <img
+              src="user.png"
+              className="w-8 h-8 rounded-full"
+              alt="Profile"
+            />
+            {isOpen && (
+              <h4 className="ml-4 text-black text-sm font-medium">Donny Yen</h4>
+            )}
+          </div>
+
+          {/* New Project Button */}
+          <button className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
+            {isOpen ? "+ New Study Session" : "+"}
+          </button>
+
+          {/* Help and Feedback */}
           {isOpen && (
-            <h4 className="ml-4 text-black text-sm font-medium">Donny Yen</h4>
+            <p className="flex items-center text-gray-700 text-xs mt-4 whitespace-nowrap overflow-hidden">
+              <svg
+                className="mr-2"
+                stroke="currentColor"
+                fill="currentColor"
+                strokeWidth="0"
+                viewBox="0 0 24 24"
+                height="1.2em"
+                width="1.2em"
+                xmlns="http://www.w3.org/2000/svg"
+              >
+                <path d="M12 6C9.831 6 8.066 7.765 8.066 9.934h2C10.066 8.867 10.934 8 12 8s1.934.867 1.934 1.934c0 .598-.481 1.032-1.216 1.626-.255.207-.496.404-.691.599C11.029 13.156 11 14.215 11 14.333V15h2l-.001-.633c.001-.016.033-.386.441-.793.15-.15.339-.3.535-.458.779-.631 1.958-1.584 1.958-3.182C15.934 7.765 14.169 6 12 6zM11 16H13V18H11z"></path>
+                <path d="M12,2C6.486,2,2,6.486,2,12s4.486,10,10,10s10-4.486,10-10S17.514,2,12,2z M12,20c-4.411,0-8-3.589-8-8s3.589-8,8-8 s8,3.589,8,8S16.411,20,12,20z"></path>
+              </svg>
+              Help and Feedback
+            </p>
           )}
         </div>
-
-        {/* New Project Button */}
-        <button className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
-          {isOpen ? "+ New Study Session" : "+"}
-        </button>
-
-        {/* Help and Feedback */}
-        {isOpen && (
-          <p className="flex items-center text-gray-700 text-xs mt-4 whitespace-nowrap overflow-hidden">
-            <svg
-              className="mr-2"
-              stroke="currentColor"
-              fill="currentColor"
-              strokeWidth="0"
-              viewBox="0 0 24 24"
-              height="1.2em"
-              width="1.2em"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M12 6C9.831 6 8.066 7.765 8.066 9.934h2C10.066 8.867 10.934 8 12 8s1.934.867 1.934 1.934c0 .598-.481 1.032-1.216 1.626-.255.207-.496.404-.691.599C11.029 13.156 11 14.215 11 14.333V15h2l-.001-.633c.001-.016.033-.386.441-.793.15-.15.339-.3.535-.458.779-.631 1.958-1.584 1.958-3.182C15.934 7.765 14.169 6 12 6zM11 16H13V18H11z"></path>
-              <path d="M12,2C6.486,2,2,6.486,2,12s4.486,10,10,10s10-4.486,10-10S17.514,2,12,2z M12,20c-4.411,0-8-3.589-8-8s3.589-8,8-8 s8,3.589,8,8S16.411,20,12,20z"></path>
-            </svg>
-            Help and Feedback
-          </p>
-        )}
       </div>
-    </div>
+    </>
   );
 }
 

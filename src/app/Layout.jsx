@@ -15,7 +15,7 @@ function Layout() {
 
       <div
         className={`pagecontent ${
-          isOpen ? "ml-16 md:ml-60" : "ml-16"
+          isOpen ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
         } transition-all duration-200 ease-in-out`}
       >
         <Outlet />

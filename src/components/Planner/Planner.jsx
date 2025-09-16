@@ -158,8 +158,12 @@ const PlannerPage = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Study Planner</h1>
-          <p className="text-gray-600 mt-1">Schedule and manage your study sessions</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-gray-900 px-10 lg:px-0">
+            Study Planner
+          </h1>
+          <p className="text-gray-600 mt-1">
+            Schedule and manage your study sessions
+          </p>
         </div>
         <button
           onClick={() => setShowCreateModal(true)}
@@ -171,8 +175,9 @@ const PlannerPage = () => {
       </div>
 
       {/* Controls */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex items-center space-x-4">
+      <div className="lg:flex justify-between items-center mb-6">
+        <div className="flex items-center space-x-4 mb-10">
+          
           <button
             onClick={() => navigateDate(-1)}
             className="p-2 hover:bg-gray-100 rounded"
@@ -188,6 +193,7 @@ const PlannerPage = () => {
           >
             <ChevronRight className="w-5 h-5" />
           </button>
+          
           <button
             onClick={() => setCurrentDate(new Date())}
             className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
@@ -198,12 +204,12 @@ const PlannerPage = () => {
 
         <div className="flex items-center space-x-2">
           <div className="flex bg-gray-100 rounded-lg p-1">
-            {['month', 'week', 'day'].map(mode => (
+            {["month", "week", "day"].map((mode) => (
               <button
                 key={mode}
                 onClick={() => setViewMode(mode)}
                 className={`px-3 py-1 text-sm rounded capitalize ${
-                  viewMode === mode ? 'bg-white shadow-sm' : 'hover:bg-gray-200'
+                  viewMode === mode ? "bg-white shadow-sm" : "hover:bg-gray-200"
                 }`}
               >
                 {mode}

@@ -186,7 +186,7 @@ function Study() {
             {fetchError}
           </div>
         )}
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">
+        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 mb-6 ">
           Study Sessions
         </h1>
 

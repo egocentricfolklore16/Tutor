@@ -9,7 +9,7 @@ import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";
 import NotFound from "./components/common/NotFound.jsx";
 import supabase from "./lib/supabase.js";
-import ErrorBoundary from "./components/Common/ErrorBoundary_temp.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 

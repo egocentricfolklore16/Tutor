@@ -1,5 +1,5 @@
 import React from "react";
-import TextType from "../Common/TargetCursor";
+import TextType from "../common/TargetCursor";
 import QuickActions from "./QuickActions";
 import RecentActivity from "./RecentActivity";
 import PerformanceDashboard from "./StudyStats";

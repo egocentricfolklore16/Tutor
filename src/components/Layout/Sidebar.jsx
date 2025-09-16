@@ -156,7 +156,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
       {/* Fixed Toggle Button for Small Screens */}
       <button
         onClick={toggleSidebar2}
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-black p-2 ${
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 ${
           isOpen ? "hidden" : ""
         }`}
       >

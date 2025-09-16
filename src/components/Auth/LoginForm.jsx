@@ -32,14 +32,14 @@ const LoginPage = () => {
       return;
     }
     // Try to sign in with Supabase
-    const { error } = await supabase.auth.signInWithPassword({
+    const { user, error } = await supabase.auth.signInWithPassword({
       email: formData.email,
       password: formData.password,
     });
     if (error) {
       setError(error.message || "Login failed. Please try again.");
     } else {
-      navigate("/Dashboard");
+      navigate("/dashboard"); // or your desired route
     }
   };
 

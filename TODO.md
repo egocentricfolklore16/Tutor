@@ -1,18 +1,8 @@
-# TODO: Add Background Image and Hover Zoom to Performance Legend Div
+# TODO: Fix Login Redirect Issue
 
-- [x] Read src/index.css to understand current styles
-- [x] Add custom CSS class 'performance-legend-bg' to src/index.css for background image and hover zoom effect
-- [x] Update StudyStats.jsx to add class 'performance-legend-bg' and inline style for background-image to the Performance Legend div
-- [x] Test the implementation (optional, if needed) - Skipped
+## Steps to Complete
+- [x] Add onAuthStateChange subscription in App.jsx to listen for authentication state changes and update session state accordingly.
 
-# TODO: Hide Streak Cards Spans on Mobile
-
-- [x] Update StudyStreak.jsx to add 'hidden sm:inline' class to each span
-
-# TODO: Make Streak Cards Scroll Horizontally on Mobile
-
-- [x] Update StudyStreak.jsx to add responsive overflow classes to container div for horizontal scroll on mobile
-
-# TODO: Prevent Page Adjustment on Mobile When Sidebar Opens
-
-- [x] Update Layout.jsx to apply responsive margin-left classes for pagecontent div
+## Completed Steps
+- [x] Analyzed LoginForm.jsx and App.jsx to understand the login flow and identify the root cause.
+- [x] Confirmed that session state is not updated after login due to missing auth state listener.

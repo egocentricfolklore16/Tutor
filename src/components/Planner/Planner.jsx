@@ -23,6 +23,7 @@ const PlannerPage = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [draggedSession, setDraggedSession] = useState(null);
   const [sessions, setSessions] = useState([]);
+  const [selectedSession, setSelectedSession] = useState(null);
 
   const [newSession, setNewSession] = useState({
     title: '',
@@ -230,16 +231,58 @@ const PlannerPage = () => {
         </div>
       </div>
 
-      {/* Calendar */}
-      <Calendar
-        currentDate={currentDate}
-        viewMode={viewMode}
-        selectedDate={selectedDate}
-        setSelectedDate={setSelectedDate}
-        sessions={sessions}
-        handleDragStart={handleDragStart}
-        handleDrop={handleDrop}
-      />
+      {/* Calendar and Details */}
+      <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1">
+          <Calendar
+            currentDate={currentDate}
+            viewMode={viewMode}
+            selectedDate={selectedDate}
+            setSelectedDate={setSelectedDate}
+            sessions={sessions}
+            handleDragStart={handleDragStart}
+            handleDrop={handleDrop}
+            setSelectedSession={setSelectedSession}
+          />
+        </div>
+        {selectedSession && (
+          <div className="w-full h-fit lg:w-80 bg-white rounded-lg border border-gray-200 p-6 shadow-lg">
+            <h3 className="text-xl font-bold text-gray-900 mb-4">Session Details</h3>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <p className="text-gray-900">{selectedSession.title}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Subject</label>
+                <p className="text-gray-900">{selectedSession.subject}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Date</label>
+                <p className="text-gray-900">{selectedSession.date.toLocaleDateString()}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Time</label>
+                <p className="text-gray-900">{selectedSession.startTime} - {selectedSession.endTime}</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Duration</label>
+                <p className="text-gray-900">{selectedSession.duration} minutes</p>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Type</label>
+                <p className="text-gray-900">{selectedSession.type}</p>
+              </div>
+            </div>
+            <button
+              onClick={() => setSelectedSession(null)}
+              className="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
+            >
+              Close
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">

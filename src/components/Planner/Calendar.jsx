@@ -6,8 +6,8 @@ const Calendar = ({
   selectedDate,
   setSelectedDate,
   sessions,
-  handleDragStart,
-  handleDrop
+  handleDrop,
+  setSelectedSession
 }) => {
   const renderCalendarGrid = () => {
     if (viewMode === 'month') {
@@ -63,9 +63,8 @@ const Calendar = ({
                 {daySession.slice(0, 2).map(session => (
                   <div
                     key={session.id}
-                    className={`text-xs p-1 rounded text-white cursor-move ${session.color}`}
-                    draggable
-                    onDragStart={(e) => handleDragStart(e, session)}
+                    className={`text-xs p-1 rounded text-white cursor-pointer ${session.color}`}
+                    onClick={() => setSelectedSession && setSelectedSession(session)}
                   >
                     {session.title.substring(0, 12)}...
                   </div>
@@ -93,7 +92,7 @@ const Calendar = ({
     }
 
     return (
-      <div className="grid grid-cols-8 gap-2 h-96 overflow-x-hidden">
+      <div className="grid grid-cols-8 gap-2 h-96 overflow-x-auto">
         <div className="text-sm font-semibold text-gray-600">Time</div>
         {weekDays.map((day) => (
           <div
@@ -134,9 +133,8 @@ const Calendar = ({
                     {daySession.map((session) => (
                       <div
                         key={session.id}
-                        className={`text-xs p-1 rounded text-white cursor-move mb-1 ${session.color}`}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, session)}
+                        className={`text-xs p-1 rounded text-white mb-1 cursor-pointer ${session.color}`}
+                        onClick={() => setSelectedSession && setSelectedSession(session)}
                       >
                         {session.title}
                       </div>
@@ -170,13 +168,12 @@ const Calendar = ({
                 return (
                   <div key={time} className="flex items-start space-x-3 min-h-12">
                     <div className="text-sm text-gray-500 w-16">{time}</div>
-                    <div className="flex-1 space-y-1">
+                    <div className="flex-1 space-y-1 overflow-x-hidden">
                       {hourSessions.map(session => (
                         <div
                           key={session.id}
-                          className={`p-2 rounded text-white cursor-move ${session.color}`}
-                          draggable
-                          onDragStart={(e) => handleDragStart(e, session)}
+                          className={`p-2 rounded text-white cursor-pointer ${session.color}`}
+                          onClick={() => setSelectedSession && setSelectedSession(session)}
                         >
                           <div className="font-medium">{session.title}</div>
                           <div className="text-xs">{session.startTime} - {session.endTime}</div>
@@ -219,7 +216,7 @@ const Calendar = ({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-6 mb-6">
+    <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 mb-6">
       {renderCalendarGrid()}
     </div>
   );

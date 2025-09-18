@@ -199,13 +199,13 @@ function Study() {
             </p>
           </div>
         ) : (
-          <div className="w-full  grid gap-9 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-3 overflow-y-hidden">
+          <div className="w-full  grid gap-3 gap-y-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-2 overflow-y-auto">
             {sessions.map((sessionItem, index) => {
               const isMuted = mutedIds.includes(sessionItem.id);
               return (
                 <div
                   key={sessionItem.id || index}
-                  className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[380px] hover:shadow-md cursor-pointer relative ${
+                  className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[390px] hover:shadow-md cursor-pointer relative ${
                     isMuted
                       ? "bg-gray-200 border-l-gray-400"
                       : getPriorityColor(sessionItem["Status"])

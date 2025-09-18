@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   Plus,
   ChevronLeft,
@@ -8,6 +8,7 @@ import {
   Bell,
   ExternalLink,
 } from "lucide-react";
+import supabase from "../../lib/supabase";
 import Calendar from './Calendar';
 import SessionScheduler from './SessionScheduler';
 import DeadlineManager from './DeadlineManager';
@@ -21,43 +22,7 @@ const PlannerPage = () => {
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [draggedSession, setDraggedSession] = useState(null);
-  const [sessions, setSessions] = useState([
-    {
-      id: 1,
-      title: 'Calculus II Review',
-      subject: 'Mathematics',
-      type: 'study',
-      date: new Date(2025, 8, 15), // September 15, 2025
-      startTime: '09:00',
-      endTime: '10:30',
-      duration: 90,
-      recurring: 'weekly',
-      color: 'bg-blue-500'
-    },
-    {
-      id: 2,
-      title: 'Chemistry Lab Report',
-      subject: 'Chemistry',
-      type: 'assignment',
-      date: new Date(2025, 8, 16),
-      startTime: '14:00',
-      endTime: '16:00',
-      duration: 120,
-      deadline: new Date(2025, 8, 18),
-      color: 'bg-green-500'
-    },
-    {
-      id: 3,
-      title: 'Midterm Exam - Physics',
-      subject: 'Physics',
-      type: 'exam',
-      date: new Date(2025, 8, 20),
-      startTime: '10:00',
-      endTime: '12:00',
-      duration: 120,
-      color: 'bg-red-500'
-    }
-  ]);
+  const [sessions, setSessions] = useState([]);
 
   const [newSession, setNewSession] = useState({
     title: '',
@@ -77,6 +42,49 @@ const PlannerPage = () => {
     { value: 'exam', label: 'Exam', color: 'bg-red-500' },
     { value: 'review', label: 'Review', color: 'bg-purple-500' }
   ];
+
+  // Fetch study sessions from Supabase
+  useEffect(() => {
+    const fetchSessions = async () => {
+      const { data, error } = await supabase
+        .from("Study")
+        .select('id,Subject,Topic,Status,Date,"Start",Duration');
+      if (error) {
+        console.error("Error fetching study sessions:", error);
+      } else {
+        const mappedSessions = data.map(session => {
+          let color = 'bg-blue-500';
+          switch (session.Status) {
+            case 'Very Important':
+              color = 'bg-red-500';
+              break;
+            case 'Not so Important':
+              color = 'bg-green-500';
+              break;
+            case 'Medium':
+              color = 'bg-orange-500';
+              break;
+            default:
+              color = 'bg-blue-500';
+          }
+          return {
+            id: session.id,
+            title: session.Topic,
+            subject: session.Subject,
+            type: 'study',
+            date: new Date(session.Date),
+            startTime: session.Start,
+            endTime: calculateEndTime(session.Start, session.Duration),
+            duration: session.Duration,
+            recurring: 'none',
+            color: color
+          };
+        });
+        setSessions(mappedSessions);
+      }
+    };
+    fetchSessions();
+  }, []);
 
   // Navigation functions
   const navigateDate = (direction) => {

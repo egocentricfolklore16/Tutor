@@ -2,7 +2,14 @@ import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
-import { BookOpen, Play, MoreHorizontal, AlertCircle, X } from "lucide-react";
+import {
+  BookOpen,
+  Play,
+  MoreHorizontal,
+  AlertCircle,
+  X,
+  Loader2,
+} from "lucide-react";
 
 function Study() {
   const [session, setSession] = useState({
@@ -15,26 +22,51 @@ function Study() {
   });
   const [sessions, setSessions] = useState([]);
   const [fetchError, setFetchError] = useState("");
+  const [loadingStates, setLoadingStates] = useState({});
+  const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+
   // Fetch sessions from Supabase on mount
   useEffect(() => {
     const fetchSessions = async () => {
-      const { data, error } = await supabase
-        .from("Study")
-        .select('Subject,Topic,Status,Date,"Start",Duration');
-      if (error) {
-        setFetchError(
-          "An error occurred while loading study sessions: " + error.message
-        );
-        console.error("Supabase fetch error:", error);
-      } else {
+      try {
+        setIsLoadingSessions(true);
         setFetchError("");
-        setSessions(data || []);
+
+        // Get the current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setFetchError("User not authenticated");
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("Study")
+          .select("*")
+          .eq("user_id", user.id); // Filter by current user's ID
+
+        if (error) {
+          setFetchError(
+            "An error occurred while loading study sessions: " + error.message
+          );
+          console.error("Supabase fetch error:", error);
+        } else {
+          setFetchError("");
+          setSessions(data || []);
+        }
+      } catch (err) {
+        setFetchError("An unexpected error occurred while loading sessions");
+        console.error("Unexpected error:", err);
+      } finally {
+        setIsLoadingSessions(false);
       }
     };
     fetchSessions();
   }, []);
+
   const [dropdownIndex, setDropdownIndex] = useState(null);
-  const [mutedIds, setMutedIds] = useState([]);
   const [isOpen, setIsOpen] = useState(false);
   const [activeSession, setActiveSession] = useState(null);
   const formRef = useRef(null);
@@ -91,7 +123,12 @@ function Study() {
     setIsOpen(!isOpen);
   };
 
-  // Generate a random ID with letters, numbers, and symbols
+  const setLoadingState = (id, type, isLoading) => {
+    setLoadingStates((prev) => ({
+      ...prev,
+      [`${id}_${type}`]: isLoading,
+    }));
+  };
 
   const addSession = async (e) => {
     e.preventDefault();
@@ -103,32 +140,58 @@ function Study() {
       session.time &&
       session.hours
     ) {
-      // Save to Supabase
-      const { data, error } = await supabase
-        .from("Study")
-        .insert([
-          {
-            Subject: session.subject,
-            Topic: session.topic,
-            Status: session.status,
-            Date: session.date,
-            Start: session.time,
-            Duration: session.hours,
-          },
-        ])
-        .select();
-      if (!error && data && data.length > 0) {
-        setSessions((prev) => [...prev, data[0]]);
+      try {
+        setLoadingState("form", "submit", true);
+
+        // Get the current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setFetchError("User not authenticated");
+          return;
+        }
+
+        // Save to Supabase with user_id
+        const { data, error } = await supabase
+          .from("Study")
+          .insert([
+            {
+              Subject: session.subject,
+              Topic: session.topic,
+              Status: session.status,
+              Date: session.date,
+              Start: session.time,
+              Duration: session.hours,
+              muted: false,
+              user_id: user.id, // Add user_id to the new session
+            },
+          ])
+          .select("*");
+
+        if (error) {
+          setFetchError("Failed to create session: " + error.message);
+          console.error("Supabase insert error:", error);
+        } else if (data && data.length > 0) {
+          setSessions((prev) => [...prev, data[0]]);
+          setSession({
+            subject: "",
+            topic: "",
+            status: "",
+            date: "",
+            time: "",
+            hours: "",
+          });
+          setIsOpen(false);
+          setFetchError("");
+        }
+      } catch (err) {
+        setFetchError("An unexpected error occurred while creating session");
+        console.error("Unexpected error:", err);
+      } finally {
+        setLoadingState("form", "submit", false);
       }
-      setSession({
-        subject: "",
-        topic: "",
-        status: "",
-        date: "",
-        time: "",
-        hours: "",
-      });
-      setIsOpen(false);
     }
   };
 
@@ -141,36 +204,95 @@ function Study() {
     setDropdownIndex(dropdownIndex === index ? null : index);
   };
 
-  const handleMuteToggle = (id) => {
-    setMutedIds((prev) =>
-      prev.includes(id) ? prev.filter((mid) => mid !== id) : [...prev, id]
-    );
-    setDropdownIndex(null);
+  const handleMuteToggle = async (id) => {
+    if (!id) {
+      setFetchError("Cannot toggle mute: Invalid session ID");
+      return;
+    }
+
+    // Find the session to toggle
+    const sessionToToggle = sessions.find((s) => s.id === id);
+    if (!sessionToToggle) {
+      setFetchError("Session not found");
+      return;
+    }
+
+    const newMutedState = !sessionToToggle.muted;
+
+    try {
+      setLoadingState(id, "mute", true);
+
+      // Update the muted state in Supabase
+      const { error } = await supabase
+        .from("Study")
+        .update({ muted: newMutedState })
+        .eq("id", id);
+
+      if (error) {
+        setFetchError("Failed to update mute state: " + error.message);
+        console.error("Supabase update error:", error);
+      } else {
+        // Update local state to reflect change
+        setSessions((prevSessions) =>
+          prevSessions.map((session) =>
+            session.id === id ? { ...session, muted: newMutedState } : session
+          )
+        );
+        setFetchError("");
+        setDropdownIndex(null);
+      }
+    } catch (err) {
+      setFetchError("An unexpected error occurred while updating session");
+      console.error("Unexpected error:", err);
+    } finally {
+      setLoadingState(id, "mute", false);
+    }
   };
 
   const handleDelete = async (id) => {
-    // Delete from Supabase
-    const { error } = await supabase.from("Study").delete().eq("id", id);
-    if (error) {
-      setFetchError("Failed to delete session: " + error.message);
-      console.error("Supabase delete error:", error);
-    } else {
-      // Refetch sessions to ensure UI is in sync with DB
-      const { data, error: fetchError_ } = await supabase
-        .from("Study")
-        .select("*");
-      if (fetchError_) {
-        setFetchError(
-          "Deleted, but failed to refresh sessions: " + fetchError_.message
-        );
-        console.error("Supabase fetch error after delete:", fetchError_);
-      } else {
-        setFetchError("");
-        setSessions(data || []);
-      }
+    if (!id) {
+      setFetchError("Cannot delete: Invalid session ID");
+      return;
     }
-    setDropdownIndex(null);
+
+    try {
+      setLoadingState(id, "delete", true);
+
+      // Delete from Supabase
+      const { error } = await supabase.from("Study").delete().eq("id", id);
+
+      if (error) {
+        setFetchError("Failed to delete session: " + error.message);
+        console.error("Supabase delete error:", error);
+      } else {
+        // Update local state immediately
+        setSessions((prevSessions) =>
+          prevSessions.filter((session) => session.id !== id)
+        );
+        setFetchError("");
+        setDropdownIndex(null);
+      }
+    } catch (err) {
+      setFetchError("An unexpected error occurred while deleting session");
+      console.error("Unexpected error:", err);
+    } finally {
+      setLoadingState(id, "delete", false);
+    }
   };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (!event.target.closest(".dropdown-container")) {
+        setDropdownIndex(null);
+      }
+    };
+
+    if (dropdownIndex !== null) {
+      document.addEventListener("click", handleClickOutside);
+      return () => document.removeEventListener("click", handleClickOutside);
+    }
+  }, [dropdownIndex]);
 
   return (
     <div className="relative min-h-screen">
@@ -184,32 +306,49 @@ function Study() {
         {fetchError && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-300 text-center font-medium">
             {fetchError}
+            <button
+              onClick={() => setFetchError("")}
+              className="ml-2 text-red-800 hover:text-red-900"
+            >
+              <X className="h-4 w-4 inline" />
+            </button>
           </div>
         )}
-        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 mb-6 ">
+        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 mb-6">
           Study Sessions
         </h1>
 
-        {sessions.length === 0 ? (
-          <div className="text-center py-12  [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] ">
-            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4 " />
+        {isLoadingSessions ? (
+          <div className="text-center py-12 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
+            <Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" />
+            <p className="text-gray-500 text-lg mb-2">
+              Loading your study sessions...
+            </p>
+            <p className="text-gray-400">This may take a few moments</p>
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="text-center py-12 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
+            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg mb-4">No study sessions yet</p>
             <p className="text-gray-400">
               Click the + button to create your first session
             </p>
           </div>
         ) : (
-          <div className="w-full  grid gap-3 gap-y-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-2 overflow-y-auto">
+          <div className="w-full grid gap-3 gap-y-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-2 overflow-y-auto">
             {sessions.map((sessionItem, index) => {
-              const isMuted = mutedIds.includes(sessionItem.id);
+              const isMuted = sessionItem.muted;
+              const isDeleting = loadingStates[`${sessionItem.id}_delete`];
+              const isMuting = loadingStates[`${sessionItem.id}_mute`];
+
               return (
                 <div
                   key={sessionItem.id || index}
                   className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[390px] hover:shadow-md cursor-pointer relative ${
                     isMuted
                       ? "bg-gray-200 border-l-gray-400"
-                      : getPriorityColor(sessionItem["Status"])
-                  }`}
+                      : getPriorityColor(sessionItem.Status)
+                  } ${isDeleting ? "opacity-50" : ""}`}
                   style={
                     isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
                   }
@@ -220,7 +359,7 @@ function Study() {
                         <div className="flex items-center gap-2 text-gray-600">
                           {getTypeIcon()}
                         </div>
-                        {!isMuted && getStatusBadge(sessionItem["Status"])}
+                        {!isMuted && getStatusBadge(sessionItem.Status)}
                       </div>
 
                       <h2
@@ -228,24 +367,24 @@ function Study() {
                           isMuted ? "text-gray-500" : "text-gray-800"
                         }`}
                       >
-                        {sessionItem["Subject"]}
+                        {sessionItem.Subject}
                       </h2>
                       <h3
                         className={`mb-1 ${
                           isMuted ? "text-gray-400" : "text-gray-600"
                         }`}
                       >
-                        {sessionItem["Topic"]}
+                        {sessionItem.Topic}
                       </h3>
                       <p
                         className={`text-sm mb-1 ${
                           isMuted ? "text-gray-400" : "text-gray-500"
                         }`}
                       >
-                        {sessionItem["Date"]}{" "}
-                        {sessionItem["Start"] && (
+                        {sessionItem.Date}{" "}
+                        {sessionItem.Start && (
                           <span className="ml-2 text-gray-400">
-                            at {sessionItem["Start"]}
+                            at {sessionItem.Start}
                           </span>
                         )}
                       </p>
@@ -254,42 +393,67 @@ function Study() {
                           isMuted ? "text-gray-400" : "text-gray-700"
                         }`}
                       >
-                        {sessionItem["Duration"]} hour(s)
+                        {sessionItem.Duration} hour(s)
                       </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-2 ml-4 relative">
+                    <div className="flex flex-col items-center gap-2 ml-4 relative dropdown-container">
                       <button
-                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors"
+                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`
                           )
                         }
+                        disabled={isDeleting || isMuting}
                       >
                         <Play className="h-3 w-3" />
                         Start
                       </button>
 
                       <button
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors"
+                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
                         onClick={() => handleDropdown(index)}
+                        disabled={isDeleting || isMuting}
                       >
-                        <MoreHorizontal className="h-4 w-4" />
+                        {isDeleting || isMuting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <MoreHorizontal className="h-4 w-4" />
+                        )}
                       </button>
-                      {dropdownIndex === index && (
+
+                      {dropdownIndex === index && !isDeleting && !isMuting && (
                         <div className="absolute right-0 top-10 bg-white border rounded shadow-lg z-10 min-w-[120px]">
                           <button
-                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
                             onClick={() => handleMuteToggle(sessionItem.id)}
+                            disabled={isMuting}
                           >
-                            {isMuted ? "Unmute" : "Mute"}
+                            {isMuting ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                {isMuted ? "Unmuting..." : "Muting..."}
+                              </span>
+                            ) : isMuted ? (
+                              "Unmute"
+                            ) : (
+                              "Mute"
+                            )}
                           </button>
                           <button
-                            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100"
+                            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 disabled:opacity-50"
                             onClick={() => handleDelete(sessionItem.id)}
+                            disabled={isDeleting}
                           >
-                            Delete
+                            {isDeleting ? (
+                              <span className="flex items-center gap-2">
+                                <Loader2 className="h-3 w-3 animate-spin" />
+                                Deleting...
+                              </span>
+                            ) : (
+                              "Delete"
+                            )}
                           </button>
                         </div>
                       )}
@@ -326,6 +490,7 @@ function Study() {
                   type="button"
                   onClick={() => setIsOpen(false)}
                   className="text-gray-400 hover:text-gray-600 transition-colors"
+                  disabled={loadingStates.form_submit}
                 >
                   <X className="h-6 w-6" />
                 </button>
@@ -345,6 +510,7 @@ function Study() {
                     onChange={handleChange}
                     placeholder="e.g., Mathematics, Biology"
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
                   />
                 </div>
 
@@ -361,6 +527,7 @@ function Study() {
                     onChange={handleChange}
                     placeholder="e.g., Calculus, Cell Division"
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
                   />
                 </div>
 
@@ -375,6 +542,7 @@ function Study() {
                     value={session.status}
                     onChange={handleChange}
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
                   >
                     <option value="">Select status</option>
                     <option value="Very Important">Very Important</option>
@@ -396,6 +564,7 @@ function Study() {
                       value={session.date}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      disabled={loadingStates.form_submit}
                     />
                   </div>
                   <div className="flex-1">
@@ -409,6 +578,7 @@ function Study() {
                       value={session.time}
                       onChange={handleChange}
                       className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      disabled={loadingStates.form_submit}
                     />
                   </div>
                 </div>
@@ -429,6 +599,7 @@ function Study() {
                     step="0.5"
                     max="12"
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
                   />
                 </div>
               </div>
@@ -436,9 +607,17 @@ function Study() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6"
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingStates.form_submit}
               >
-                Create Session
+                {loadingStates.form_submit ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating Session...
+                  </>
+                ) : (
+                  "Create Session"
+                )}
               </button>
             </form>
           </div>

@@ -189,7 +189,7 @@ function Sidebar({ isOpen, toggleSidebar }) {
         {/* Logo Section */}
         <div className="flex items-center justify-between p-4">
           <div className="flex items-center">
-            {isOpen && <img src="logo.png" alt="Logo" className="w-12 h-7" />}
+            {isOpen && <img src="logo.svg" alt="Logo" className="w-12 h-7" />}
             {isOpen && (
               <Link to={"/Dashboard"} className="text-black no-underline">
                 <h1 className="ml-3 text-base font-semibold whitespace-nowrap">

@@ -70,7 +70,7 @@ function App() {
               }
             />
             <Route
-              path="/*"
+              path="/login"
               element={
                 <AuthLayout>
                   <LoginPage />

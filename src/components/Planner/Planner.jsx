@@ -269,7 +269,7 @@ const PlannerPage = () => {
         <>
           {/* Controls */}
           <div className="lg:flex justify-between items-center mb-6">
-            <div className="flex items-center space-x-4 mb-10">
+            <div className="flex items-center space-x-4 mb-10 overflow-x-auto md:overflow-x-visible">
               <button
                 onClick={() => navigateDate(-1)}
                 className="p-2 hover:bg-gray-100 rounded"

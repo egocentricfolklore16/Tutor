@@ -42,7 +42,7 @@ function StudyStreak() {
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center flex-shrink-0">
             <img
               className="scale-125"
-              src="sreak.png"
+              src="sreak.svg"
               loading="lazy"
               alt="streak fire"
             />
@@ -51,7 +51,7 @@ function StudyStreak() {
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center flex-shrink-0">
             <img
               className="scale-125"
-              src="sreak.png"
+              src="sreak.svg"
               loading="lazy"
               alt="streak fire"
             />
@@ -60,7 +60,7 @@ function StudyStreak() {
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center flex-shrink-0">
             <img
               className="scale-125"
-              src="sreak.png"
+              src="sreak.svg"
               loading="lazy"
               alt="streak fire"
             />
@@ -69,7 +69,7 @@ function StudyStreak() {
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center flex-shrink-0">
             <img
               className="scale-125"
-              src="sreak.png"
+              src="sreak.svg"
               loading="lazy"
               alt="streak fire"
             />
@@ -78,7 +78,7 @@ function StudyStreak() {
           <div className="w-[100px] h-[100px] bg-red-100 flex-col border rounded-lg shadow-lg  border-gray-100 text-center flex-shrink-0">
             <img
               className="scale-125"
-              src="sreak.png"
+              src="sreak.svg"
               loading="lazy"
               alt="streak fire"
             />

@@ -97,7 +97,7 @@ const SignupPage = () => {
   };
 
   const handleClick = () => {
-    navigate("/signin"); // change this to your target route
+    navigate("/login"); // change this to your target route
   };
   return (
     <>
@@ -493,7 +493,7 @@ const SignupPage = () => {
               onClick={handleClick}
               className="text-emerald-400 hover:text-emerald-300 font-medium"
             >
-              Sign in
+              Log in
             </button>
           </div>
         </div>

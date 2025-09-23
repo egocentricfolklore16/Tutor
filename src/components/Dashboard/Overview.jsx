@@ -51,7 +51,7 @@ function Overview() {
         <h1 className="ml-17 lg:ml-0 z-[100] px-3 py-3  fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
           Dashboard
         </h1>
-        
+
         <div className="px-6">
           <h1 className="pt-20 text-green-600 text-2xl font-bold">
             <TextType
@@ -71,10 +71,6 @@ function Overview() {
         </div>
         <div className="lg:col-span-1 row-span-5 ">
           <UpcomingSession />
-
-          {/* 
-          <RecentActivity />
-          <AISuggestions /> */}
         </div>
 
         <div className="lg:col-span-1 row-span-3">

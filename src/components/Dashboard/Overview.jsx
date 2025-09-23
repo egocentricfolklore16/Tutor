@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import TextType from "../common/TargetCursor";
 import QuickActions from "./QuickActions";
 import RecentActivity from "./RecentActivity";
@@ -6,11 +6,51 @@ import PerformanceDashboard from "./StudyStats";
 import StudyStreak from "./StudyStreak";
 import UpcomingSession from "./UpcomingSession";
 import AISuggestions from "./AISuggestions";
+import supabase from "../../lib/supabase";
 
 function Overview() {
+    const [fetchError, setFetchError] = useState("");
+  const [userName, setUserName] = useState({
+    username: "",
+  })
+  useEffect(() => {
+    const fetchUsername = async() => {
+      setFetchError("");
+      try {
+        // Get the current user
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setFetchError("User not authenticated");
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("*")
+          .eq("user_id", user.id); // Filter by current user's ID
+
+        if (error) {
+          setFetchError(
+            "An error occurred while loading username: " + error.message
+          );
+          console.error("Supabase fetch error:", error);
+        } else {
+          setFetchError("");
+          setUserName(data);
+        }
+      } catch (err) {
+        setFetchError("An unexpected error occurred while loading username");
+        console.error("Unexpected error:", err);
+      }          
+    }
+    fetchUsername();
+  });
   const greetings = {
     headings: [
-      "Welcome back, [Name]",
+      `Welcome back, [Name]`,
       "Ready to learn, [Name]?",
       "Your study buddy missed you",
       "Hey [Name], time to grow smarter",
@@ -41,7 +81,7 @@ function Overview() {
     greetings.paragraphs[
       Math.floor(Math.random() * greetings.paragraphs.length)
     ];
-  const user = "Egocentricfolkore16";
+  const user = userName;
 
   const personalizedHeading = randomHeading.replace("[Name]", user);
 

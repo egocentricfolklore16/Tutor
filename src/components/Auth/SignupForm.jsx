@@ -105,8 +105,16 @@ const SignupPage = () => {
       }
     }
 
-    setShowConfirmDialog(true);
-  };
+await supabase.auth.signUp(
+  {
+    email: formData.email,
+    password: formData.password
+  },
+  {
+    emailRedirectTo: "https://hyper-tutor.vercel.app/auth/callback"
+  }
+);
+  }
 
   const handleSocialSignup = (provider) => {
     console.log(`Signup with ${provider}`);
@@ -119,7 +127,7 @@ const SignupPage = () => {
   };
   return (
     <>
-      {showConfirmDialog && (
+      {/* {showConfirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
           <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
             <h2 className="text-xl font-bold mb-4 text-emerald-700">Confirm your email</h2>
@@ -132,7 +140,7 @@ const SignupPage = () => {
             </button>
           </div>
         </div>
-      )}
+      )} */}
       <div className="w-auto flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo and Header */}

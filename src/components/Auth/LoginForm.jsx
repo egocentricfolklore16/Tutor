@@ -39,14 +39,52 @@ const LoginPage = () => {
     if (error) {
       setError(error.message || "Login failed. Please try again.");
     } else {
+      // Set session persistence based on "Remember me" checkbox
+      if (formData.rememberMe) {
+        await supabase.auth.setSession({
+          access_token: (await supabase.auth.getSession()).data.session?.access_token,
+          refresh_token: (await supabase.auth.getSession()).data.session?.refresh_token,
+        });
+      }
       navigate("/Dashboard");
     }
   };
 
-  const handleSocialLogin = (provider) => {
-    console.log(`Login with ${provider}`);
-    // Add your social login logic here
-    alert(`${provider} login to be implemented!`);
+  const handleSocialLogin = async (provider) => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider.toLowerCase(),
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        setError(`Error signing in with ${provider}: ${error.message}`);
+      }
+    } catch (err) {
+      setError(`Error signing in with ${provider}: ${err.message}`);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    if (!formData.email) {
+      setError("Please enter your email address first.");
+      return;
+    }
+
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(formData.email, {
+        redirectTo: `${window.location.origin}/auth/callback`,
+      });
+
+      if (error) {
+        setError(`Error sending reset email: ${error.message}`);
+      } else {
+        alert("Password reset email sent! Please check your inbox.");
+      }
+    } catch (err) {
+      setError(`Error sending reset email: ${err.message}`);
+    }
   };
 
   return (
@@ -187,9 +225,7 @@ const LoginPage = () => {
               <button
                 type="button"
                 className="text-sm text-emerald-400 hover:text-emerald-300"
-                onClick={() =>
-                  alert("Forgot password functionality to be implemented!")
-                }
+                onClick={handleForgotPassword}
               >
                 Forgot password?
               </button>

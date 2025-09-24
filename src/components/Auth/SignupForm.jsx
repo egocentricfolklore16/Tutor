@@ -79,7 +79,8 @@ const SignupPage = () => {
       options: {
         data: {
           userName: formData.userName
-        }
+        },
+        emailRedirectTo: `${window.location.origin}/auth/callback`
       }
     });
     if (error) {
@@ -105,21 +106,24 @@ const SignupPage = () => {
       }
     }
 
-await supabase.auth.signUp(
-  {
-    email: formData.email,
-    password: formData.password
-  },
-  {
-    emailRedirectTo: "https://hyper-tutor.vercel.app/auth/callback"
-  }
-);
+    // Show confirmation dialog
+    setShowConfirmDialog(true);
   }
 
-  const handleSocialSignup = (provider) => {
-    console.log(`Signup with ${provider}`);
-    // Add your social signup logic here
-    alert(`${provider} signup to be implemented!`);
+  const handleSocialSignup = async (provider) => {
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider: provider.toLowerCase(),
+        options: {
+          redirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+      if (error) {
+        alert(`Error signing up with ${provider}: ${error.message}`);
+      }
+    } catch (err) {
+      alert(`Error signing up with ${provider}: ${err.message}`);
+    }
   };
 
   const handleClick = () => {
@@ -127,20 +131,42 @@ await supabase.auth.signUp(
   };
   return (
     <>
-      {/* {showConfirmDialog && (
+      {showConfirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-white rounded-lg shadow-lg p-8 max-w-sm w-full text-center">
-            <h2 className="text-xl font-bold mb-4 text-emerald-700">Confirm your email</h2>
-            <p className="mb-4 text-gray-700">A confirmation link has been sent to <span className="font-semibold">{formData.email}</span>.<br/>Please check your inbox and click the link to activate your account.</p>
-            <button
-              className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2 px-6 rounded-lg mt-2"
-              onClick={() => window.location.reload()}
-            >
-              I have confirmed my email
-            </button>
+          <div className="bg-[#1a2f1a] rounded-xl shadow-xl p-8 max-w-md w-full text-center border border-emerald-900/20">
+            <div className="mb-6">
+              <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 4.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                </svg>
+              </div>
+              <h2 className="text-2xl font-bold mb-4 text-white">Check your email</h2>
+              <p className="mb-6 text-gray-300">
+                We've sent a confirmation link to <br/>
+                <span className="font-semibold text-emerald-400">{formData.email}</span>
+              </p>
+              <p className="text-sm text-gray-400 mb-6">
+                Click the link in the email to verify your account and complete the signup process.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <button
+                className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                onClick={() => navigate('/auth/callback')}
+              >
+                I've confirmed my email
+              </button>
+              <button
+                className="w-full bg-transparent border border-emerald-600 text-emerald-400 hover:bg-emerald-600 hover:text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                onClick={() => setShowConfirmDialog(false)}
+              >
+                Back to signup
+              </button>
+            </div>
           </div>
         </div>
-      )} */}
+      )}
       <div className="w-auto flex items-center justify-center p-4">
         <div className="w-full max-w-md">
           {/* Logo and Header */}

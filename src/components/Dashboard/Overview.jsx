@@ -9,13 +9,12 @@ import AISuggestions from "./AISuggestions";
 import supabase from "../../lib/supabase";
 
 function Overview() {
-    const [fetchError, setFetchError] = useState("");
-  const [userName, setUserName] = useState({
-    username: "",
-  })
+  const [userName, setUserName] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
   useEffect(() => {
     const fetchUsername = async() => {
-      setFetchError("");
+      setIsLoading(true);
       try {
         // Get the current user
         const {
@@ -23,31 +22,32 @@ function Overview() {
         } = await supabase.auth.getUser();
 
         if (!user) {
-          setFetchError("User not authenticated");
+          setUserName("User");
+          setIsLoading(false);
           return;
         }
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("*")
-          .eq("user_id", user.id); // Filter by current user's ID
+          .select("username")
+          .eq("user_id", user.id)
+          .single(); // Get single profile record
 
         if (error) {
-          setFetchError(
-            "An error occurred while loading username: " + error.message
-          );
           console.error("Supabase fetch error:", error);
+          setUserName("User");
         } else {
-          setFetchError("");
-          setUserName(data);
+          setUserName(data?.username || "User");
         }
       } catch (err) {
-        setFetchError("An unexpected error occurred while loading username");
         console.error("Unexpected error:", err);
-      }          
+        setUserName("User");
+      } finally {
+        setIsLoading(false);
+      }
     }
     fetchUsername();
-  });
+  }, []);
   const greetings = {
     headings: [
       `Welcome back, [Name]`,
@@ -94,13 +94,23 @@ function Overview() {
 
         <div className="px-6">
           <h1 className="pt-20 text-green-600 text-2xl font-bold">
-            <TextType
-              text={personalizedHeading}
-              typingSpeed={75}
-              pauseDuration={1500}
-              showCursor={true}
-              cursorCharacter="|"
-            />
+            {isLoading ? (
+              <TextType
+                text="Loading your personalized greeting..."
+                typingSpeed={75}
+                pauseDuration={1500}
+                showCursor={true}
+                cursorCharacter="|"
+              />
+            ) : (
+              <TextType
+                text={personalizedHeading}
+                typingSpeed={75}
+                pauseDuration={1500}
+                showCursor={true}
+                cursorCharacter="|"
+              />
+            )}
           </h1>
           <p className="mt-3 mb-3">{randomParagraph}</p>
         </div>

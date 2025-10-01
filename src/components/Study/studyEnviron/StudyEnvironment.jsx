@@ -1,72 +1,117 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
+import { Routes, Route } from "react-router-dom";
+import Layout from "../StudyLayout";
+import Sidepane from "./Sidepane";
+import PomodoroTimer from "./PomodoroTimer";
+import SessionControls from "./SessionControls";
+import PracticeQuestions from "./PracticeQuestions";
+import ResourceAttachments from "./ResourceAttachments";
+import AITutorChat from "./AITutorChat";
+import NoteEditor from "./NoteEditor";
+import Flashcards from "./Flashcards";
+import StudySession from "./StudySession";
+import PlaceholderPage from "./PlaceholderPage";
 
-const StudyEnvironment = ({ session, onClose }) => {
-  if (!session) {
-    return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-        <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">
-          <button
-            className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
-            onClick={onClose}
-          >
-            &times;
-          </button>
-          <div className="text-red-600 font-semibold text-center">
-            No session data available.
-          </div>
-        </div>
-      </div>
-    );
-  }
+// ==================== MAIN APP COMPONENT ====================
+export default function HyperTutor() {
+  const [isStudying, setIsStudying] = useState(false);
+  const [timeLeft, setTimeLeft] = useState({
+    hours: 0,
+    minutes: 25,
+    seconds: 0,
+  });
+  const [activeTab, setActiveTab] = useState("timer");
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isAiPanelOpen, setIsAiPanelOpen] = useState(true);
+  const [messages, setMessages] = useState([
+    {
+      sender: "ai",
+      text: "Hi there! How can I help you with your calculus study session today?",
+    },
+  ]);
+  const [currentMessage, setCurrentMessage] = useState("");
+  const [sessionStats] = useState({
+    timeStudied: "1h 30m",
+    questionsAnswered: 5,
+    accuracy: "80%",
+  });
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-      <div className="bg-white rounded-lg shadow-lg p-8 max-w-2xl w-full relative">
-        <button
-          className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 text-2xl"
-          onClick={onClose}
-        >
-          &times;
-        </button>
-        <h2 className="text-2xl font-bold mb-2 text-emerald-700">
-          Study Environment
-        </h2>
-        <div className="mb-4 text-gray-700">
-          <div>
-            <span className="font-semibold">Subject:</span> {session.subject}
-          </div>
-          <div>
-            <span className="font-semibold">Topic:</span> {session.topic}
-          </div>
-          <div>
-            <span className="font-semibold">Date:</span> {session.date}
-          </div>
-          <div>
-            <span className="font-semibold">Start Time:</span> {session.time}
-          </div>
-          <div>
-            <span className="font-semibold">Duration:</span> {session.hours}{" "}
-            hour(s)
-          </div>
-        </div>
-        <div className="border-t pt-4 mt-4">
-          <div className="flex flex-col md:flex-row gap-4">
-            <div className="flex-1 bg-gray-100 rounded-lg p-4 min-h-[120px]">
-              <h3 className="font-semibold mb-2 text-gray-800">Notes</h3>
-              <textarea
-                className="w-full h-24 p-2 rounded border border-gray-300"
-                placeholder="Write your study notes here..."
-              />
-            </div>
-            <div className="flex-1 bg-gray-100 rounded-lg p-4 min-h-[120px]">
-              <h3 className="font-semibold mb-2 text-gray-800">Resources</h3>
-              <div className="text-gray-500">(Coming soon)</div>
-            </div>
-          </div>
-        </div>
-      </div>
+  useEffect(() => {
+    let interval = null;
+    if (isStudying) {
+      interval = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev.seconds > 0) {
+            return { ...prev, seconds: prev.seconds - 1 };
+          } else if (prev.minutes > 0) {
+            return { ...prev, minutes: prev.minutes - 1, seconds: 59 };
+          } else if (prev.hours > 0) {
+            return { hours: prev.hours - 1, minutes: 59, seconds: 59 };
+          }
+          return prev;
+        });
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [isStudying]);
+
+  const handleSendMessage = () => {
+    if (currentMessage.trim()) {
+      setMessages([
+        ...messages,
+        { sender: "user", text: currentMessage },
+        {
+          sender: "ai",
+          text: "Of course! I can generate some practice problems for you. What difficulty level would you like?",
+        },
+      ]);
+      setCurrentMessage("");
+    }
+  };
+
+  const PomodoroPage = () => (
+    <div className="flex-1 flex flex-col lg:flex-row">
+      <StudySession
+        timeLeft={timeLeft}
+        isStudying={isStudying}
+        onToggleStudying={() => setIsStudying(!isStudying)}
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        sessionStats={sessionStats}
+      />
     </div>
   );
-};
 
-export default StudyEnvironment;
+  return (
+    <div className="flex h-screen bg-gray-50">
+      <Sidepane
+        isOpen={isSidebarOpen}
+        onClose={() => setIsSidebarOpen(false)}
+      />
+      <Layout
+        onToggleSidebar={() => setIsSidebarOpen(!isSidebarOpen)}
+        onToggleAiPanel={() => setIsAiPanelOpen(!isAiPanelOpen)}
+        isAiPanelOpen={isAiPanelOpen}
+      >
+        <Routes>
+          <Route path="pomodoro" element={<PomodoroPage />} />
+          <Route path="notes" element={<NoteEditor />} />
+          <Route path="flashcards" element={<Flashcards />} />
+          <Route path="quizzicle" element={<PlaceholderPage pageName="Quizzicle" />} />
+          <Route path="resources" element={<ResourceAttachments />} />
+          <Route path="*" element={<PlaceholderPage pageName="Not Found" />} />
+        </Routes>
+      </Layout>
+      {isAiPanelOpen && (
+        <AITutorChat
+          isOpen={isAiPanelOpen}
+          onClose={() => setIsAiPanelOpen(false)}
+          messages={messages}
+          currentMessage={currentMessage}
+          onMessageChange={setCurrentMessage}
+          onSendMessage={handleSendMessage}
+        />
+      )}
+    </div>
+  );
+}

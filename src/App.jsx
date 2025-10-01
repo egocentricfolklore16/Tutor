@@ -4,6 +4,7 @@ import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
 import AuthLayout from "./components/Auth/AuthLayout.jsx";
 import Layout from "./app/Layout.jsx";
+import StudyLayout from "./components/Study/StudyLayout.jsx";
 import Overview from "./components/Dashboard/Overview.jsx";
 import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";

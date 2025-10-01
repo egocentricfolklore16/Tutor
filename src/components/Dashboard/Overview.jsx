@@ -142,19 +142,19 @@ function Overview() {
 
         <div className="px-6">
           <h1 className="pt-20 text-green-600 text-2xl font-bold">
-            {isLoading ? (
+            {/* {isLoading ? (
               <TypingText
                 text="Loading your personalized greeting..."
                 typingSpeed={75}
                 showCursor={true}
               />
-            ) : (
+            ) : ( */}
               <TypingText
                 text={greeting.heading}
                 typingSpeed={75}
                 showCursor={true}
               />
-            )}
+            {/* )} */}
           </h1>
           <p className="mt-3 mb-3">{greeting.paragraph}</p>
         </div>

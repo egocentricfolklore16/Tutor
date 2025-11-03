@@ -22,6 +22,7 @@ function Study() {
   });
   const [sessions, setSessions] = useState([]);
   const [fetchError, setFetchError] = useState("");
+  const [currentUser, setCurrentUser] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
@@ -36,6 +37,8 @@ function Study() {
         const {
           data: { user },
         } = await supabase.auth.getUser();
+
+        setCurrentUser(user || null);
 
         if (!user) {
           setFetchError("User not authenticated");
@@ -300,6 +303,7 @@ function Study() {
         <StudyEnvironment
           session={activeSession}
           onClose={() => setActiveSession(null)}
+          user={currentUser || undefined}
         />
       )}
       <div className="p-6">

@@ -85,7 +85,7 @@ const UpcomingSessions = () => {
               subject: session.Subject,
               topic: session.Topic,
               time: timeDisplay,
-              duration: `${session.Duration || 60} min`,
+              duration: `${session.Duration || 60} hour(s)`,
               type: "Study Session",
               priority: priority,
               status: "scheduled",

@@ -1,30 +1,25 @@
+=======
 import { Link } from "react-router-dom";
-<<<<<<< HEAD
 import { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
-function Sidebar({ isOpen, toggleSidebar }) {
-=======
+
+function Sidebar({ isOpen, toggleSidebar, user }) {
 import { useState } from "react";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
 >>>>>>> 902447310e2af23da33d443174e5972a461e8fa0
   const [activeItem, setActiveItem] = useState("Dashboard");
-  const [username, setUsername] = useState("User");
-  const [isLoading, setIsLoading] = useState(true);
-
-  // Get username from user metadata or fall back to email
-  const getUserName = () => {
-    if (!user) return "Guest";
-    // Try user_metadata.username first, then user_metadata.userName, then email
-    return (
-      user.user_metadata?.username ||
-      user.user_metadata?.userName ||
-      user.email?.split("@")[0] ||
-      "User"
-    );
-  };
-
-  const userName = getUserName();
+  const [username, setUsername] = useState(() => {
+    if (user)
+      return (
+        user.user_metadata?.username ||
+        user.user_metadata?.userName ||
+        user.email?.split("@")[0] ||
+        "User"
+      );
+    return "User";
+  });
+  const [isLoading, setIsLoading] = useState(!user);
 
   const menuItems = [
     {
@@ -175,14 +170,20 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
   };
 
   useEffect(() => {
+    // If parent provided a `user` prop, use it and skip fetching.
+    if (user) {
+      setIsLoading(false);
+      return;
+    }
+
     const fetchUsername = async () => {
       setIsLoading(true);
       try {
         const {
-          data: { user },
+          data: { user: currentUser },
         } = await supabase.auth.getUser();
 
-        if (!user) {
+        if (!currentUser) {
           setUsername("User");
           setIsLoading(false);
           return;
@@ -191,14 +192,14 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         const { data, error } = await supabase
           .from("profiles")
           .select("username")
-          .eq("user_id", user.id)
+          .eq("user_id", currentUser.id)
           .single();
 
         if (error) {
           console.error("Supabase fetch error:", error);
-          setUsername(user.email || "User");
+          setUsername(currentUser.email || "User");
         } else {
-          setUsername(data?.username || user.email || "User");
+          setUsername(data?.username || currentUser.email || "User");
         }
       } catch (err) {
         console.error("Unexpected error:", err);
@@ -209,7 +210,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     };
 
     fetchUsername();
-  }, []);
+  }, [user]);
 
   return (
     <>
@@ -318,11 +319,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             />
             {isOpen && (
               <h4 className="ml-4 text-black text-sm font-medium">
-<<<<<<< HEAD
                 {isLoading ? "Loading..." : username}
-=======
-                {userName}
->>>>>>> 902447310e2af23da33d443174e5972a461e8fa0
               </h4>
             )}
           </div>

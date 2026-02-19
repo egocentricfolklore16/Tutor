@@ -2,16 +2,18 @@ import React, { useState } from "react";
 import { Outlet } from "react-router";
 import Sidebar from "../components/Layout/Sidebar";
 
-function Layout() {
-
+function Layout({ session }) {
   const [isOpen, setIsOpen] = useState(true);
   const toggleSidebar = () => {
     setIsOpen((prev) => !prev);
   };
 
+  // Extract user from session
+  const user = session?.user || null;
+
   return (
     <div className="mainapp">
-      <Sidebar isOpen={!isOpen} toggleSidebar={toggleSidebar} />
+      <Sidebar isOpen={!isOpen} toggleSidebar={toggleSidebar} user={user} />
 
       <div
         className={`pagecontent ${

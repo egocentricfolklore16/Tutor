@@ -19,15 +19,19 @@ import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.j
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const fetchSession = async () => {
       const currentSession = await supabase.auth.getSession();
       setSession(currentSession.data?.session || null);
       setLoading(false);
     };
+
     fetchSession();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
     });
 
@@ -41,7 +45,7 @@ function App() {
       <BrowserRouter>
         {session ? (
           <Routes>
-            <Route path="/*" element={<Layout />}>
+            <Route path="/*" element={<Layout session={session} />}>
               <Route index element={<Overview />} />
               <Route path="Dashboard" element={<Overview />} />
               <Route path="Study" element={<Study />} />

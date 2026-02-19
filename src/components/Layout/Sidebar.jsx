@@ -1,13 +1,8 @@
-=======
 import { Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
-import { useState } from "react";
-
-function Sidebar({ isOpen, toggleSidebar, user }) {
->>>>>>> 902447310e2af23da33d443174e5972a461e8fa0
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [username, setUsername] = useState(() => {
     if (user)

@@ -1,7 +1,10 @@
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import supabase from "../../lib/supabase";
 function Sidebar({ isOpen, toggleSidebar }) {
   const [activeItem, setActiveItem] = useState("Dashboard");
+  const [username, setUsername] = useState("User");
+  const [isLoading, setIsLoading] = useState(true);
 
   const menuItems = [
     {
@@ -151,6 +154,43 @@ function Sidebar({ isOpen, toggleSidebar }) {
     setActiveItem(itemName);
   };
 
+  useEffect(() => {
+    const fetchUsername = async () => {
+      setIsLoading(true);
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
+        if (!user) {
+          setUsername("User");
+          setIsLoading(false);
+          return;
+        }
+
+        const { data, error } = await supabase
+          .from("profiles")
+          .select("username")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Supabase fetch error:", error);
+          setUsername(user.email || "User");
+        } else {
+          setUsername(data?.username || user.email || "User");
+        }
+      } catch (err) {
+        console.error("Unexpected error:", err);
+        setUsername("User");
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUsername();
+  }, []);
+
   return (
     <>
       {/* Fixed Toggle Button for Small Screens */}
@@ -257,7 +297,9 @@ function Sidebar({ isOpen, toggleSidebar }) {
               alt="Profile"
             />
             {isOpen && (
-              <h4 className="ml-4 text-black text-sm font-medium">Donny Yen</h4>
+              <h4 className="ml-4 text-black text-sm font-medium">
+                {isLoading ? "Loading..." : username}
+              </h4>
             )}
           </div>
 

@@ -1,7 +1,22 @@
 import { Link } from "react-router-dom";
 import { useState } from "react";
-function Sidebar({ isOpen, toggleSidebar }) {
+
+function Sidebar({ isOpen, toggleSidebar, user }) {
   const [activeItem, setActiveItem] = useState("Dashboard");
+
+  // Get username from user metadata or fall back to email
+  const getUserName = () => {
+    if (!user) return "Guest";
+    // Try user_metadata.username first, then user_metadata.userName, then email
+    return (
+      user.user_metadata?.username ||
+      user.user_metadata?.userName ||
+      user.email?.split("@")[0] ||
+      "User"
+    );
+  };
+
+  const userName = getUserName();
 
   const menuItems = [
     {
@@ -257,7 +272,9 @@ function Sidebar({ isOpen, toggleSidebar }) {
               alt="Profile"
             />
             {isOpen && (
-              <h4 className="ml-4 text-black text-sm font-medium">Donny Yen</h4>
+              <h4 className="ml-4 text-black text-sm font-medium">
+                {userName}
+              </h4>
             )}
           </div>
 

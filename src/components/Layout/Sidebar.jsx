@@ -1,8 +1,9 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
+  const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [username, setUsername] = useState(() => {
     if (user)
@@ -320,7 +321,10 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           </div>
 
           {/* New Project Button */}
-          <button className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm">
+          <button
+            onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
+            className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm"
+          >
             {isOpen ? "+ New Study Session" : "+"}
           </button>
 

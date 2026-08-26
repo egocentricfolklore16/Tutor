@@ -23,7 +23,12 @@ const SessionScheduler = ({
             <input
               type="text"
               value={newSession.title}
-              onChange={(e) => setNewSession(prev => ({ ...prev, title: e.target.value }))}
+              onChange={(e) => setNewSession(prev => ({
+                ...prev,
+                title: e.target.value
+                  .toLowerCase()
+                  .replace(/\b\w/g, (character) => character.toUpperCase()),
+              }))}
               className="w-full border border-gray-300 rounded-lg px-3 py-2"
               placeholder="e.g., Calculus Review"
             />

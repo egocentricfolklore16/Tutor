@@ -83,15 +83,15 @@ const PlannerPage = () => {
         } else {
           const mappedSessions = data.map((session) => {
             let color = "bg-blue-500";
-            switch (session.Status) {
-              case "Very Important":
-                color = "bg-red-500";
+            switch (session.Status?.trim().toLowerCase()) {
+              case "very important":
+                color = "bg-red-300";
                 break;
-              case "Not so Important":
-                color = "bg-green-500";
+              case "not so important":
+                color = "bg-green-300";
                 break;
-              case "Medium":
-                color = "bg-orange-500";
+              case "medium":
+                color = "bg-orange-300";
                 break;
               default:
                 color = "bg-blue-500";

@@ -1,8 +1,8 @@
 import React from "react";
 
-const PracticeQuestions = () => {
+const PracticeQuestions = ({ theme }) => {
   const QuestionCard = () => (
-    <div className="border border-gray-200 rounded-lg p-4 flex items-center justify-between hover:border-indigo-300 transition-colors cursor-pointer">
+    <div className={`border border-gray-200 rounded-lg p-4 flex items-center justify-between transition-colors ${theme?.accentBorder || "hover:border-gray-300"}`}>
       <span className="text-gray-600">Practice Question</span>
       <div className="flex gap-2">
         <button className="text-gray-400 hover:text-gray-600">↑</button>

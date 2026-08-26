@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
 import {
@@ -12,6 +12,13 @@ import {
 } from "lucide-react";
 
 function Study() {
+  const toTitleCase = (value) =>
+    value
+      .toLowerCase()
+      .replace(/\b\w/g, (character) => character.toUpperCase());
+
+  const normalizeStatus = (status) => status?.trim().toLowerCase();
+
   const [session, setSession] = useState({
     subject: "",
     topic: "",
@@ -73,43 +80,51 @@ function Study() {
   const [isOpen, setIsOpen] = useState(false);
   const [activeSession, setActiveSession] = useState(null);
   const formRef = useRef(null);
+  const location = useLocation();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (location.state?.openCreateSession) {
+      setIsOpen(true);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+  }, [location, navigate]);
 
   const getTypeIcon = () => {
     return <BookOpen className="h-4 w-4" />;
   };
 
   const getPriorityColor = (status) => {
-    switch (status) {
-      case "Very Important":
-        return "border-l-red-500 bg-red-100";
-      case "Not so Important":
-        return "border-l-green-500 bg-green-100";
-      case "Medium":
-        return "border-l-orange-500 bg-orange-50";
+    switch (normalizeStatus(status)) {
+      case "very important":
+        return "border-l-red-300 bg-red-50";
+      case "not so important":
+        return "border-l-green-300 bg-green-50";
+      case "medium":
+        return "border-l-orange-300 bg-orange-50";
       default:
         return "border-l-gray-300 bg-gray-50";
     }
   };
 
   const getStatusBadge = (status) => {
-    switch (status) {
-      case "Very Important":
+    switch (normalizeStatus(status)) {
+      case "very important":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full flex items-center gap-1">
+            <span className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-full flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Very Important
           </span>
         );
-      case "Not so Important":
+      case "not so important":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+          <span className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
             Not so Important
           </span>
         );
-      case "Medium":
+      case "medium":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-orange-100 text-blue-700 rounded-full">
+          <span className="px-2 py-1 text-xs font-medium bg-orange-50 text-orange-700 rounded-full">
             Medium
           </span>
         );
@@ -200,7 +215,10 @@ function Study() {
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setSession((prev) => ({ ...prev, [name]: value }));
+    setSession((prev) => ({
+      ...prev,
+      [name]: name === "subject" || name === "topic" ? toTitleCase(value) : value,
+    }));
   };
 
   const handleDropdown = (index) => {
@@ -371,14 +389,14 @@ function Study() {
                           isMuted ? "text-gray-500" : "text-gray-800"
                         }`}
                       >
-                        {sessionItem.Subject}
+                        {toTitleCase(sessionItem.Subject || "")}
                       </h2>
                       <h3
                         className={`mb-1 ${
                           isMuted ? "text-gray-400" : "text-gray-600"
                         }`}
                       >
-                        {sessionItem.Topic}
+                        {toTitleCase(sessionItem.Topic || "")}
                       </h3>
                       <p
                         className={`text-sm mb-1 ${

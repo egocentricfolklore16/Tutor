@@ -77,8 +77,9 @@ const UpcomingSessions = () => {
 
             // Determine priority based on Status
             let priority = "medium";
-            if (session.Status === "Very Important") priority = "high";
-            else if (session.Status === "Not so Important") priority = "low";
+            const normalizedStatus = session.Status?.trim().toLowerCase();
+            if (normalizedStatus === "very important") priority = "high";
+            else if (normalizedStatus === "not so important") priority = "low";
 
             return {
               id: session.id,
@@ -124,14 +125,14 @@ const UpcomingSessions = () => {
   };
 
   const getPriorityColor = (priority, isOverdue) => {
-    if (isOverdue) return "border-l-red-500 bg-red-50";
+    if (isOverdue) return "border-l-red-300 bg-red-50";
     switch (priority) {
       case "high":
-        return "border-l-red-500 bg-red-50";
+        return "border-l-red-300 bg-red-50";
       case "medium":
-        return "border-l-orange-500 bg-orange-50";
+        return "border-l-orange-300 bg-orange-50";
       case "low":
-        return "border-l-green-500 bg-green-50";
+        return "border-l-green-300 bg-green-50";
       default:
         return "border-l-gray-300 bg-gray-50";
     }

@@ -1,4 +1,4 @@
-import { useNavigate } from "react-router";
+import { createElement } from "react";
 import {
   BookOpen,
   X,
@@ -8,8 +8,7 @@ import {
   HelpCircle,
 } from "lucide-react";
 
-const Sidepane = ({ isOpen, onClose, width, user }) => {
-  const navigate = useNavigate();
+const Sidepane = ({ isOpen, onClose, width, user, activeTool, onToolSelect, theme }) => {
 
   const UserCard = ({ user }) => (
     <div className="flex items-center justify-center py-6">
@@ -35,17 +34,18 @@ const Sidepane = ({ isOpen, onClose, width, user }) => {
     </div>
   );
 
-  const NavItem = ({ Icon, label, page }) => (
+  const NavItem = ({ Icon: NavIcon, label, page }) => (
     <button
       onClick={() => {
-        navigate(page);
-        if (window.innerWidth < 1024) {
-          onClose();
-        }
+        onToolSelect(page);
       }}
-      className="w-full flex items-center gap-3 px-2 py-1 rounded-lg mb-1 transition-colors text-gray-600 hover:bg-gray-50"
+      className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg mb-1 transition-colors text-left ${
+        activeTool === page
+          ? `${theme?.accentBg || "bg-red-50"} ${theme?.accentText || "text-red-700"}`
+          : "text-gray-600 hover:bg-gray-50"
+      }`}
     >
-      <Icon className="w-5 h-5" />
+      {createElement(NavIcon, { className: "w-5 h-5" })}
       <span className="font-medium">{label}</span>
     </button>
   );
@@ -60,14 +60,14 @@ const Sidepane = ({ isOpen, onClose, width, user }) => {
       )} */}
 
       <div
-        className={` lg:static inset-y-0 left-0 z-10 bg-white border-r border-gray-200 flex flex-col transition-transform duration-300 ${
-          isOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        className={`shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
+          isOpen ? "translate-x-0" : "-translate-x-full w-0 border-0"
         }`}
-        style={isOpen ? { width: `${width}px` } : {}}
+        style={isOpen ? { width: `${width}px` } : undefined}
       >
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <BookOpen className="w-6 h-6 text-green-600" />
+            <BookOpen className={`w-6 h-6 ${theme?.accent || "text-red-600"}`} />
             <span className="text-sm font-bold text-gray-900">StudyBuddy</span>
           </div>
           <button
@@ -85,7 +85,7 @@ const Sidepane = ({ isOpen, onClose, width, user }) => {
           <NavItem Icon={FileText} label="Notes" page="notes" />
           <NavItem Icon={Clock} label="Pomodoro Timer" page="pomodoro" />
           <NavItem Icon={Library} label="Flashcards" page="flashcards" />
-          <NavItem Icon={HelpCircle} label="Quizzicle" page="quizzicle" />
+          <NavItem Icon={HelpCircle} label="Quizicle" page="quizzicle" />
           <NavItem Icon={BookOpen} label="Resources" page="resources" />
         </nav>
       </div>

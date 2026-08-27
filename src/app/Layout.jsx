@@ -19,6 +19,9 @@ function Layout({ session }) {
         className={`pagecontent ${
           !isOpen ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
         } transition-all duration-200 ease-in-out`}
+        style={{
+          "--app-sidebar-width": isOpen ? "4rem" : "15rem",
+        }}
       >
         <Outlet />
       </div>

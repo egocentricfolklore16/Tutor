@@ -60,10 +60,14 @@ const Sidepane = ({ isOpen, onClose, width, user, activeTool, onToolSelect, them
       )} */}
 
       <div
-        className={`shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
+        className={`fixed inset-y-0 left-0 z-30 shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
           isOpen ? "translate-x-0" : "-translate-x-full w-0 border-0"
         }`}
-        style={isOpen ? { width: `${width}px` } : undefined}
+        style={
+          isOpen
+            ? { width: `${width}px`, left: "var(--app-sidebar-width, 0px)" }
+            : undefined
+        }
       >
         <div className="p-6 border-b border-gray-200 flex items-center justify-between">
           <div className="flex items-center gap-2">

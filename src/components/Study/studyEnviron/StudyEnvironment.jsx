@@ -14,6 +14,7 @@ import supabase from "../../../lib/supabase";
 import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
+import NoteEditor from "./NoteEditor";
 import PracticeQuestions from "./PracticeQuestions";
 import ResourceAttachments from "./ResourceAttachments";
 
@@ -26,6 +27,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [isLoading, setIsLoading] = useState(!incomingSession);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
+  const [userId, setUserId] = useState(null);
+  const [aiMessages, setAiMessages] = useState([]);
+  const [aiMessage, setAiMessage] = useState("");
+  const [isAiTyping, setIsAiTyping] = useState(false);
   const { Studyid } = useParams();
   const navigate = useNavigate();
 
@@ -64,6 +69,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       } = await supabase.auth.getUser();
 
       if (!authUser) return;
+      setUserId(authUser.id);
 
       const { data, error: profileError } = await supabase
         .from("profiles")
@@ -204,18 +210,31 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
   const secondsLeft = timeLeft % 60;
 
+  const sendAiMessage = () => {
+    const text = aiMessage.trim();
+    if (!text || isAiTyping) return;
+    setAiMessages((messages) => [...messages, { sender: "user", text }]);
+    setAiMessage("");
+    setIsAiTyping(true);
+    window.setTimeout(() => {
+      setAiMessages((messages) => [
+        ...messages,
+        {
+          sender: "ai",
+          text: `For ${subject} - ${topic}, ${text.toLowerCase().includes("plan") ? "try a focused cycle: review the concept, practise one example, then explain it in your own words." : "break that question into one small step at a time and write down what you already know before solving it."}`,
+        },
+      ]);
+      setIsAiTyping(false);
+    }, 700);
+  };
+
   const renderTool = () => {
     if (activeTool === "notes") {
-      return (
-        <textarea
-          className={`min-h-[300px] w-full resize-y rounded-xl border border-slate-200 bg-slate-50 p-4 text-slate-700 outline-none focus:ring-2 ${importanceTheme.focus}`}
-          placeholder="Capture what you learn during this session..."
-        />
-      );
+      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
     }
-    if (activeTool === "flashcards") return <Flashcards />;
+    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
     if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} />;
-    if (activeTool === "resources") return <ResourceAttachments />;
+    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
     return (
       <div>
         <div className="grid grid-cols-3 gap-3">
@@ -254,7 +273,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   };
 
   return (
-    <div className="flex min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 text-slate-900">
       <Sidepane
         isOpen={isToolsOpen}
         onClose={() => setIsToolsOpen(false)}
@@ -265,7 +284,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         onToolSelect={setActiveTool}
       />
 
-      <main className="min-w-0 flex-1 px-5 py-6 md:px-10 lg:px-16">
+      <main
+        className={`min-w-0 px-5 py-6 md:px-10 lg:px-16 ${
+          isToolsOpen ? "lg:ml-[calc(var(--app-sidebar-width)+300px)]" : ""
+        }`}
+      >
         <div className="mx-auto max-w-6xl">
           <div className="flex items-center justify-between gap-4 mb-8">
             <button
@@ -331,10 +354,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         <AITutorChat
           isOpen={isAIOpen}
           onClose={() => setIsAIOpen(false)}
-          messages={[]}
-          currentMessage={""}
-          onMessageChange={() => {}}
-          onSendMessage={() => {}}
+          messages={aiMessages}
+          currentMessage={aiMessage}
+          onMessageChange={setAiMessage}
+          onSendMessage={sendAiMessage}
+          onClear={() => {
+            setAiMessages([]);
+            setAiMessage("");
+          }}
+          isTyping={isAiTyping}
           width={360}
           user={user}
           theme={importanceTheme}

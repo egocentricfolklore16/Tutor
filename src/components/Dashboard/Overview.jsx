@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import QuickActions from "./QuickActions";
 import RecentActivity from "./RecentActivity";
-import PerformanceDashboard from "./StudyStats";
+import PerformanceDashboard from "./AnalyticsDashboard";
 import StudyStreak from "./StudyStreak";
 import UpcomingSession from "./UpcomingSession";
 import AISuggestions from "./AISuggestions";

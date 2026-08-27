@@ -1,11 +1,15 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import { ExternalLink, Pencil, Plus, Trash2 } from "lucide-react";
+import supabase from "../../../lib/supabase";
 
-const ResourceAttachments = () => (
-  <div className="bg-gray-50 p-4 lg:p-6 rounded-lg mb-8">
-    <p className="text-gray-900 font-medium">
-      Question: Solve the integral of x²·2 + 3x - 2.
-    </p>
-  </div>
-);
+const ResourceAttachments = ({ studyId, userId, theme }) => {
+  const [resources, setResources] = useState([]);
+  const [form, setForm] = useState({ title: "", url: "" });
+  const [editingId, setEditingId] = useState(null);
+  useEffect(() => { if (studyId && userId) supabase.from("study_resources").select("*").eq("study_id", studyId).order("created_at", { ascending: false }).then(({ data, error }) => { if (!error) setResources(data || []); }); }, [studyId, userId]);
+  const saveResource = async (event) => { event.preventDefault(); if (!form.title.trim() || !form.url.trim()) return; const payload = { ...form, title: form.title.trim(), url: form.url.trim(), study_id: studyId, user_id: userId, updated_at: new Date().toISOString() }; const query = editingId ? supabase.from("study_resources").update(payload).eq("id", editingId).select().single() : supabase.from("study_resources").insert(payload).select().single(); const { data, error } = await query; if (!error) { setResources((current) => editingId ? current.map((resource) => resource.id === editingId ? data : resource) : [data, ...current]); setForm({ title: "", url: "" }); setEditingId(null); } };
+  const removeResource = async (id) => { const { error } = await supabase.from("study_resources").delete().eq("id", id); if (!error) setResources((current) => current.filter((resource) => resource.id !== id)); };
+  return <div className="space-y-5"><form onSubmit={saveResource} className="grid gap-3 md:grid-cols-[1fr_1.5fr_auto]"><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Resource title" className="rounded-xl border border-slate-200 bg-slate-50 p-3" /><input type="url" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} placeholder="https://example.com" className="rounded-xl border border-slate-200 bg-slate-50 p-3" /><button className={`rounded-lg px-4 py-2 text-white ${theme.accentButton}`}><Plus className="mr-1 inline h-4 w-4" />{editingId ? "Update" : "Add"}</button></form>{resources.length === 0 ? <p className="text-sm text-slate-500">No resources yet.</p> : resources.map((resource) => <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4"><a href={resource.url} target="_blank" rel="noreferrer" className={`min-w-0 truncate font-semibold ${theme.accentText}`}>{resource.title}<ExternalLink className="ml-2 inline h-3 w-3" /></a><div className="flex shrink-0 gap-3"><button onClick={() => { setEditingId(resource.id); setForm({ title: resource.title, url: resource.url }); }} className={`inline-flex items-center gap-1 text-sm ${theme.accentText}`}><Pencil className="h-3 w-3" />Edit</button><button onClick={() => removeResource(resource.id)} className="inline-flex items-center gap-1 text-sm text-red-600"><Trash2 className="h-3 w-3" />Delete</button></div></article>)}</div>;
+};
 
 export default ResourceAttachments;

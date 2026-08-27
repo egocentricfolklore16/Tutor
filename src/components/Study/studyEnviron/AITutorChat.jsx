@@ -1,5 +1,5 @@
 import React from "react";
-import { BookOpen, X, MessageSquare } from "lucide-react";
+import { BookOpen, Bot, Eraser, Send, Sparkles, X } from "lucide-react";
 
 const AITutorChat = ({
   isOpen,
@@ -8,9 +8,10 @@ const AITutorChat = ({
   currentMessage,
   onMessageChange,
   onSendMessage,
+  onClear,
   width,
-  user,
   theme,
+  isTyping,
 }) => {
   const MessageBubble = ({ message }) => {
     if (message.sender === "ai") {
@@ -20,8 +21,8 @@ const AITutorChat = ({
             <BookOpen className="w-4 h-4 text-white" />
           </div>
           <div className="flex-1">
-            <div className="text-xs text-gray-500 mb-1">AI Tutor</div>
-            <div className="bg-gray-100 rounded-lg p-3 text-gray-900">
+            <div className="mb-1 text-xs font-semibold text-gray-500">AI Tutor</div>
+            <div className="rounded-2xl rounded-tl-sm bg-gray-100 p-3 text-sm leading-6 text-gray-900">
               {message.text}
             </div>
           </div>
@@ -31,12 +32,12 @@ const AITutorChat = ({
       return (
         <div className="flex gap-3 justify-end">
           <div className="flex-1 text-right">
-            <div className="text-xs text-gray-500 mb-1">Emily</div>
-            <div className={`text-white rounded-lg p-3 inline-block ${theme?.accentButton || "bg-green-600"}`}>
+            <div className="mb-1 text-xs font-semibold text-gray-500">You</div>
+            <div className={`inline-block rounded-2xl rounded-tr-sm p-3 text-left text-sm leading-6 text-white ${theme?.accentButton || "bg-green-600"}`}>
               {message.text}
             </div>
           </div>
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-400 to-purple-400 flex-shrink-0"></div>
+          <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center"><Bot className="h-4 w-4 text-gray-500" /></div>
         </div>
       );
     }
@@ -46,77 +47,39 @@ const AITutorChat = ({
 
   return (
     <div
-      className="bg-white border-l border-gray-200 flex flex-col"
-      style={{ width: `${width}px` }}
+      className="flex h-full w-[min(92vw,390px)] flex-col border-l border-gray-200 bg-white shadow-2xl"
+      style={{ width: `${width}px`, maxWidth: "92vw" }}
     >
-      <div className="p-4 lg:p-6 border-b border-gray-200 flex items-center justify-between">
-        <h2 className="text-lg lg:text-xl font-bold text-gray-900">
-          AI Tutor Assistant
-        </h2>
-        <button
-          onClick={onClose}
-          className="lg:hidden p-2 hover:bg-gray-100 rounded-lg"
-        >
-          <X className="w-5 h-5 text-gray-600" />
-        </button>
+      <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 p-4">
+        <div className="flex items-center gap-3"><div className={`flex h-10 w-10 items-center justify-center rounded-xl text-white ${theme?.accentButton || "bg-green-600"}`}><Sparkles className="h-5 w-5" /></div><div><h2 className="font-bold text-gray-900">AI Tutor</h2><p className="text-xs text-gray-500">Your study companion</p></div></div>
+        <div className="flex items-center gap-1"><button title="Clear conversation" onClick={onClear} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700"><Eraser className="h-4 w-4" /></button><button title="Close AI tutor" onClick={onClose} className="rounded-lg p-2 text-gray-400 hover:bg-white hover:text-gray-700"><X className="h-5 w-5" /></button></div>
       </div>
 
-      {/* optional centered user card */}
-      {user && (
-        <div className="p-4 border-b">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
-              {user.avatar ? (
-                <img
-                  src={user.avatar}
-                  alt="avatar"
-                  className="w-12 h-12 rounded-full"
-                />
-              ) : (
-                <span className="font-semibold text-gray-700">
-                  {(user.name || "?").charAt(0)}
-                </span>
-              )}
-            </div>
-            <div>
-              <div className="font-semibold text-gray-900">{user.name}</div>
-              <div className="text-xs text-gray-500">{user.email}</div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      <div className="flex-1 overflow-y-auto p-4 lg:p-6 space-y-4">
+      <div className="flex-1 space-y-4 overflow-y-auto p-4 lg:p-5">
+        {messages.length === 0 && <div className="rounded-2xl border border-gray-200 bg-gray-50 p-4"><div className="mb-2 flex items-center gap-2 text-sm font-semibold text-gray-900"><BookOpen className="h-4 w-4 text-gray-500" />Ready to help</div><p className="text-sm leading-6 text-gray-500">Ask for an explanation, a study plan, or a practice question for this session.</p></div>}
         {messages.map((msg, idx) => (
           <MessageBubble key={idx} message={msg} />
         ))}
+        {isTyping && <div className="flex items-center gap-2 text-sm text-gray-500"><span className={`h-2 w-2 animate-pulse rounded-full ${theme?.accentBg || "bg-gray-200"}`}></span>Thinking...</div>}
       </div>
 
-      <div className="p-4 border-t border-gray-200">
-        <div className="flex gap-2">
+      <div className="border-t border-gray-200 bg-gray-50 p-4">
+        <div className="mb-3 flex gap-2 overflow-x-auto"><button onClick={() => onMessageChange("Help me make a study plan")} className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 hover:border-gray-300">Make a study plan</button><button onClick={() => onMessageChange("Explain this topic")} className="whitespace-nowrap rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-600 hover:border-gray-300">Explain topic</button></div>
+        <div className="flex items-end gap-2 rounded-xl border border-gray-200 bg-white p-2 focus-within:ring-2 focus-within:ring-gray-200">
           <input
             type="text"
             value={currentMessage}
             onChange={(e) => onMessageChange(e.target.value)}
-            onKeyPress={(e) => e.key === "Enter" && onSendMessage()}
+            onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && (e.preventDefault(), onSendMessage())}
             placeholder="Type your message..."
-            className={`flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 ${theme?.focus || "focus:ring-green-100"}`}
+            className="min-w-0 flex-1 bg-transparent px-2 py-2 text-sm outline-none"
           />
           <button
             onClick={onSendMessage}
-            className={`p-2 text-white rounded-lg ${theme?.accentButton || "bg-green-600"}`}
+            disabled={!currentMessage.trim() || isTyping}
+            className={`rounded-lg p-2 text-white disabled:cursor-not-allowed disabled:opacity-40 ${theme?.accentButton || "bg-green-600"}`}
           >
-            <svg
-              stroke="currentColor"
-              fill="currentColor"
-              stroke-width="0"
-              viewBox="0 0 24 24"
-              height="1.5em"
-              width="1.5em"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path d="M21.426,11.095l-17-8c-0.35-0.163-0.763-0.112-1.061,0.133C3.066,3.473,2.937,3.868,3.03,4.242L4.969,12L3.03,19.758	c-0.094,0.374,0.036,0.77,0.335,1.015C3.548,20.923,3.772,21,4,21c0.145,0,0.29-0.031,0.426-0.095l17-8	C21.776,12.74,22,12.388,22,12S21.776,11.26,21.426,11.095z M5.481,18.197L6.32,14.84L12,12L6.32,9.16L5.481,5.803L18.651,12	L5.481,18.197z"></path>
-            </svg>
+            <Send className="h-5 w-5" />
           </button>
         </div>
       </div>

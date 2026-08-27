@@ -12,6 +12,8 @@ import supabase from "./lib/supabase.js";
 import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
+import Library from "./components/Library/Library.jsx";
+import Progress from "./components/Progress/Progress.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -52,8 +54,8 @@ function App() {
               <Route path="signup" element={<SignupPage />} />
               <Route path="signin" element={<LoginPage />} />
               <Route path="Planner" element={<PlannerPage />} />
-              <Route path="Progress" element={<div>Progress Page</div>} />
-              <Route path="Library" element={<div>Resources Page</div>} />
+              <Route path="Progress" element={<Progress />} />
+              <Route path="Library" element={<Library session={session} />} />
               <Route path="Community" element={<Community />} />
               <Route
                 path="FAQ"

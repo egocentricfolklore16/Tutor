@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import supabase from "../../lib/supabase.js";
+import supabase from "../../../lib/supabase.js";
 
 export default function AuthCallback() {
   const navigate = useNavigate();
@@ -35,7 +35,7 @@ export default function AuthCallback() {
 
           // Small delay to show success state
           setTimeout(() => {
-            navigate("/Dashboard");
+            navigate("/onboarding");
           }, 1500);
         } else {
           // No session found, redirect to login
@@ -68,7 +68,7 @@ export default function AuthCallback() {
       if (event === "SIGNED_IN" && session) {
         setStatus("success");
         setTimeout(() => {
-          navigate("/Dashboard");
+          navigate("/onboarding");
         }, 1500);
       } else if (event === "SIGNED_OUT") {
         navigate("/login");

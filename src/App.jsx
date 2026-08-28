@@ -14,17 +14,33 @@ import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 import Library from "./components/Library/Library.jsx";
 import Progress from "./components/Progress/Progress.jsx";
+import NoteDetail from "./components/Study/NoteDetail.jsx";
+import Onboarding from "./components/Auth/Onboarding.jsx";
+import AuthCallback from "./components/Auth/callback/page.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
 function App() {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [onboardingLoading, setOnboardingLoading] = useState(false);
+  const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
     const fetchSession = async () => {
       const currentSession = await supabase.auth.getSession();
-      setSession(currentSession.data?.session || null);
+      const nextSession = currentSession.data?.session || null;
+      setSession(nextSession);
+      if (nextSession?.user) {
+        setOnboardingLoading(true);
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed")
+          .eq("user_id", nextSession.user.id)
+          .maybeSingle();
+        setNeedsOnboarding(Boolean(error) || !profile?.onboarding_completed);
+        setOnboardingLoading(false);
+      }
       setLoading(false);
     };
 
@@ -34,23 +50,36 @@ function App() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
+      if (!session) {
+        setNeedsOnboarding(false);
+        return;
+      }
+      supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("user_id", session.user.id)
+        .maybeSingle()
+        .then(({ data, error }) => setNeedsOnboarding(Boolean(error) || !data?.onboarding_completed));
     });
 
     return () => subscription.unsubscribe();
   }, []);
 
-  if (loading) return null;
+  if (loading || onboardingLoading) return null;
 
   return (
     <ErrorBoundary>
       <BrowserRouter>
         {session ? (
           <Routes>
+            <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/onboarding" element={<Onboarding session={session} />} />
             <Route path="/*" element={<Layout session={session} />}>
               <Route index element={<Overview />} />
               <Route path="Dashboard" element={<Overview />} />
               <Route path="Study" element={<Study />} />
               <Route path="Study/:Studyid" element={<StudyEnvironment />} />
+              <Route path="Study/:Studyid/notes/:noteId" element={<NoteDetail />} />
               <Route path="signup" element={<SignupPage />} />
               <Route path="signin" element={<LoginPage />} />
               <Route path="Planner" element={<PlannerPage />} />
@@ -62,7 +91,7 @@ function App() {
                 element={<div>Frequently Asked Questions Page</div>}
               />
               <Route path="Settings" element={<div>Settings Page</div>} />
-              <Route path="*" element={<NotFound />} />
+              <Route path="*" element={needsOnboarding ? <Onboarding session={session} /> : <NotFound />} />
             </Route>
           </Routes>
         ) : (

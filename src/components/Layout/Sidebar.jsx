@@ -1,5 +1,6 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
+import { LogOut } from "lucide-react";
 import supabase from "../../lib/supabase";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
@@ -165,6 +166,13 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     setActiveItem(itemName);
   };
 
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      console.error("Supabase sign out error:", error);
+    }
+  };
+
   useEffect(() => {
     // If parent provided a `user` prop, use it and skip fetching.
     if (user) {
@@ -326,6 +334,16 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm"
           >
             {isOpen ? "+ New Study Session" : "+"}
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            title="Log out"
+            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+          >
+            <LogOut size={15} />
+            {isOpen && "Log out"}
           </button>
 
           {/* Help and Feedback */}

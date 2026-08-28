@@ -17,6 +17,8 @@ import Progress from "./components/Progress/Progress.jsx";
 import NoteDetail from "./components/Study/NoteDetail.jsx";
 import Onboarding from "./components/Auth/Onboarding.jsx";
 import AuthCallback from "./components/Auth/callback/page.jsx";
+import Settings from "./components/Settings/Settings.jsx";
+import FAQ from "./components/FAQ/FAQ.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -74,7 +76,7 @@ function App() {
           <Routes>
             <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/onboarding" element={<Onboarding session={session} />} />
-            <Route path="/*" element={<Layout session={session} />}>
+            <Route path="/*" element={<Layout session={session} needsOnboarding={needsOnboarding} />}>
               <Route index element={<Overview />} />
               <Route path="Dashboard" element={<Overview />} />
               <Route path="Study" element={<Study />} />
@@ -86,12 +88,9 @@ function App() {
               <Route path="Progress" element={<Progress />} />
               <Route path="Library" element={<Library session={session} />} />
               <Route path="Community" element={<Community />} />
-              <Route
-                path="FAQ"
-                element={<div>Frequently Asked Questions Page</div>}
-              />
-              <Route path="Settings" element={<div>Settings Page</div>} />
-              <Route path="*" element={needsOnboarding ? <Onboarding session={session} /> : <NotFound />} />
+              <Route path="FAQ" element={<FAQ />} />
+              <Route path="Settings" element={<Settings />} />
+              <Route path="*" element={<NotFound />} />
             </Route>
           </Routes>
         ) : (

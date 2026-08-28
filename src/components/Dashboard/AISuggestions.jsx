@@ -1,6 +1,12 @@
 import React from 'react'
+import { useProfile } from "../../app/ProfileContext";
 
 function AISuggestions() {
+  const { profile } = useProfile();
+  const subjects = profile?.subjects?.length ? profile.subjects.join(", ") : "your priority subjects";
+  const weeklyHours = profile?.weekly_hours || 5;
+  const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
+
   return (
     <div className="border border-white border-0.3 p-5 bg-[#9cc8e5] rounded-lg">
       <h1 className="mb-2 font-bold flex gap-2 text-xl">
@@ -23,10 +29,9 @@ function AISuggestions() {
       </h1>
       <div>
         <p className="[box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] rounded-lg p-3">
-          Lorem ipsum dolor, sit amet consectetur adipisicing elit. Ipsum,
-          asperiores. Ipsam quibusdam eius laboriosam in quis repudiandae
-          voluptatem. Voluptatibus quae sapiente dignissimos consequuntur?
-          Voluptate nesciunt tempora eius repellendus temporibus nam.
+          Start with {subjects} and plan {weeklyHours} focused hours this week.
+          Your {learningStyle} approach will work well with a short active-recall
+          session, followed by practice questions and a quick review tomorrow.
         </p>
       </div>
     </div>

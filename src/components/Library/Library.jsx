@@ -36,7 +36,7 @@ function Library({ session }) {
       ]);
 
       if (resourceError || studyError) {
-        setError("Unable to load your resources right now.");
+        setError("Unable To Load Your Library Right Now.");
       } else {
         setResources(resourceData || []);
         setStudies(studyData || []);
@@ -92,7 +92,7 @@ function Library({ session }) {
       const groupId = resource.session_id || "ungrouped";
       const groupName = study
         ? `${study.Subject || "Untitled subject"}${study.Topic ? `: ${study.Topic}` : ""}`
-        : "Other resources";
+        : "Other Library Items";
 
       if (!groups.has(groupId)) groups.set(groupId, { name: groupName, resources: [] });
       groups.get(groupId).resources.push(resource);
@@ -109,7 +109,7 @@ function Library({ session }) {
     }, {});
     const subjectTotals = resources.reduce((totals, resource) => {
       const study = studyById.get(resource.session_id);
-      const subject = study?.Subject || "Other resources";
+      const subject = study?.Subject || "Other Library Items";
       totals[subject] = (totals[subject] || 0) + 1;
       return totals;
     }, {});
@@ -131,7 +131,7 @@ function Library({ session }) {
       subjectBreakdown,
       uploadDays,
       sessionsCovered: new Set(resources.map((resource) => resource.session_id).filter(Boolean)).size,
-      topSubject: subjectBreakdown[0]?.[0] || "No subject yet",
+      topSubject: subjectBreakdown[0]?.[0] || "No Subject Yet",
       recentUploads: uploadDays.reduce((total, day) => total + day.count, 0),
     };
   }, [resources, studyById]);
@@ -144,7 +144,7 @@ function Library({ session }) {
       .eq("id", resourceId);
 
     if (deleteError) {
-      setError("Unable to remove this resource.");
+      setError("Unable To Remove This Library Item.");
     } else {
       const resource = resources.find((item) => item.id === resourceId);
       if (resource?.file_path) await supabase.storage.from(STORAGE_BUCKET).remove([resource.file_path]);
@@ -158,7 +158,7 @@ function Library({ session }) {
       .from(STORAGE_BUCKET)
       .createSignedUrl(filePath, 3600);
     if (urlError) {
-      setError("Unable to open this resource.");
+      setError("Unable To Open This Library Item.");
       return;
     }
     window.open(data.signedUrl, "_blank", "noopener,noreferrer");
@@ -171,7 +171,7 @@ function Library({ session }) {
     const { data, error: urlError } = await supabase.storage
       .from(STORAGE_BUCKET)
       .createSignedUrl(resource.file_path, 3600);
-    if (urlError) setError("Unable to preview this resource.");
+    if (urlError) setError("Unable To Preview This Library Item.");
     else setPreviewUrl(data.signedUrl);
     setIsPreviewLoading(false);
   };
@@ -184,10 +184,10 @@ function Library({ session }) {
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">
-              <LibraryIcon className="h-4 w-4" /> Your study library
+              <LibraryIcon className="h-4 w-4" /> Your Study Library
             </div>
-            <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Resources</h1>
-            <p className="mt-2 text-slate-500">Everything you have saved, organized by study session.</p>
+            <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Library</h1>
+            <p className="mt-2 text-slate-500">Everything You Have Saved, Organized By Study Session.</p>
           </div>
           <label className="relative block w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
@@ -195,7 +195,7 @@ function Library({ session }) {
               type="search"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search resources"
+              placeholder="Search Library"
               className="w-full rounded-lg border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
             />
           </label>
@@ -205,10 +205,10 @@ function Library({ session }) {
           <section className="mb-8 space-y-4">
             <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
               {[
-                [resources.length, "Total files"],
-                [resourceAnalytics.sessionsCovered, "Sessions covered"],
-                [resourceAnalytics.typeBreakdown.length, "File formats"],
-                [resourceAnalytics.recentUploads, "Uploaded this week"],
+                [resources.length, "Total Files"],
+                [resourceAnalytics.sessionsCovered, "Sessions Covered"],
+                [resourceAnalytics.typeBreakdown.length, "File Formats"],
+                [resourceAnalytics.recentUploads, "Uploaded This Week"],
               ].map(([value, label]) => (
                 <div key={label} className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
                   <p className="text-2xl font-bold text-slate-900">{value}</p>
@@ -219,8 +219,8 @@ function Library({ session }) {
             <div className="grid gap-4 lg:grid-cols-3">
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
                 <div className="mb-4 flex items-end justify-between gap-3">
-                  <div><h2 className="font-semibold text-slate-900">Upload activity</h2><p className="mt-1 text-sm text-slate-500">Files added over the last seven days</p></div>
-                  <span className="text-sm font-semibold text-indigo-600">{resourceAnalytics.recentUploads} files</span>
+                  <div><h2 className="font-semibold text-slate-900">Upload Activity</h2><p className="mt-1 text-sm text-slate-500">Files Added Over The Last Seven Days</p></div>
+                  <span className="text-sm font-semibold text-indigo-600">{resourceAnalytics.recentUploads} Files</span>
                 </div>
                 <div className="flex h-32 items-end justify-between gap-2 border-b border-slate-100 px-1">
                   {resourceAnalytics.uploadDays.map((day) => {
@@ -230,11 +230,11 @@ function Library({ session }) {
                 </div>
               </div>
               <div className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-                <h2 className="font-semibold text-slate-900">Library makeup</h2>
-                <p className="mt-1 text-sm text-slate-500">Formats and subjects in your collection</p>
+                <h2 className="font-semibold text-slate-900">Library Makeup</h2>
+                <p className="mt-1 text-sm text-slate-500">Formats And Subjects In Your Collection</p>
                 <div className="mt-4 space-y-3">
                   {resourceAnalytics.typeBreakdown.slice(0, 4).map(([type, count]) => <div key={type}><div className="mb-1 flex justify-between text-sm"><span className="font-medium text-slate-700">{type}</span><span className="text-slate-500">{count}</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-400" style={{ width: `${(count / resources.length) * 100}%` }} /></div></div>)}
-                  <p className="pt-1 text-xs text-slate-400">Top subject: <span className="font-semibold text-slate-600">{resourceAnalytics.topSubject}</span></p>
+                  <p className="pt-1 text-xs text-slate-400">Top Subject: <span className="font-semibold text-slate-600">{resourceAnalytics.topSubject}</span></p>
                 </div>
               </div>
             </div>
@@ -250,15 +250,15 @@ function Library({ session }) {
                 <FileText className="h-5 w-5 shrink-0 text-indigo-600" />
                 <h2 className="min-w-0 break-words font-semibold text-slate-800">{preview.file_name}</h2>
               </div>
-              <button type="button" onClick={() => { setPreview(null); setPreviewUrl(""); }} title="Close preview" className="shrink-0 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
+              <button type="button" onClick={() => { setPreview(null); setPreviewUrl(""); }} title="Close Preview" className="shrink-0 rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"><X className="h-5 w-5" /></button>
             </div>
             <div className="flex min-h-64 items-center justify-center bg-slate-50 p-4">
               {isPreviewLoading ? <Loader2 className="h-6 w-6 animate-spin text-indigo-600" /> : canEmbed(preview.file_type) ? (
                 preview.file_type.startsWith("image/") ? <img src={previewUrl} alt={preview.file_name} className="max-h-[32rem] max-w-full object-contain" /> : preview.file_type.startsWith("video/") ? <video src={previewUrl} controls className="max-h-[32rem] max-w-full" /> : preview.file_type.startsWith("audio/") ? <audio src={previewUrl} controls /> : <iframe src={previewUrl} title={`Preview of ${preview.file_name}`} className="h-[28rem] w-full rounded-lg border border-slate-200 bg-white" />
-              ) : <p className="text-center text-sm text-slate-500">Preview is not available for this file type. Open the file to view it.</p>}
+              ) : <p className="text-center text-sm text-slate-500">Preview Is Not Available For This File Type. Open The File To View It.</p>}
             </div>
             <div className="flex flex-wrap items-center gap-3 border-t border-slate-200 p-4">
-              <button type="button" onClick={() => openResource(preview.file_path)} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"><ExternalLink className="h-4 w-4" /> Open full file</button>
+              <button type="button" onClick={() => openResource(preview.file_path)} className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white"><ExternalLink className="h-4 w-4" /> Open Full File</button>
               <span className="break-words text-xs text-slate-400">{preview.file_type}</span>
             </div>
           </section>
@@ -266,16 +266,16 @@ function Library({ session }) {
 
         {isLoading ? (
           <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-20 text-slate-500">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading resources...
+            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading Library...
           </div>
         ) : groupedResources.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center">
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300" />
             <h2 className="text-lg font-semibold text-slate-800">
-              {searchTerm ? "No matching resources" : "Your library is empty"}
+              {searchTerm ? "No Matching Library Items" : "Your Library Is Empty"}
             </h2>
             <p className="mt-1 text-sm text-slate-500">
-              {searchTerm ? "Try a different search term." : "Add links from a study session to see them here."}
+              {searchTerm ? "Try A Different Search Term." : "Add Resources From A Study Session To See Them Here."}
             </p>
           </div>
         ) : (
@@ -299,7 +299,7 @@ function Library({ session }) {
                       </div>
                       <button
                         type="button"
-                        title="Delete resource"
+                        title="Delete Library Item"
                         aria-label={`Delete ${resource.file_name}`}
                         disabled={deletingId === resource.id}
                         onClick={() => removeResource(resource.id)}

@@ -6,6 +6,7 @@ import StudyStreak from "./StudyStreak";
 import UpcomingSession from "./UpcomingSession";
 import AISuggestions from "./AISuggestions";
 import supabase from "../../lib/supabase";
+import { useProfile } from "../../app/ProfileContext";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -43,6 +44,7 @@ const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
 };
 
 function Overview() {
+  const { profile, isLoading: isProfileLoading } = useProfile();
   const [userName, setUserName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
@@ -133,6 +135,12 @@ function Overview() {
     }
   }, [isLoading, userName]);
 
+  useEffect(() => {
+    if (!isProfileLoading && profile) {
+      setUserName(profile.full_name || profile.username || "Learner");
+    }
+  }, [isProfileLoading, profile]);
+
   return (
     <>
       <div className="">
@@ -157,6 +165,12 @@ function Overview() {
             {/* )} */}
           </h1>
           <p className="mt-3 mb-3">{greeting.paragraph}</p>
+          {profile?.primary_goal && (
+            <p className="mb-4 text-sm text-slate-600">
+              Focus: <span className="font-semibold">{profile.primary_goal}</span>
+              {profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
+            </p>
+          )}
         </div>
       </div>
       <div className="w-[90%] lg:w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-11 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">

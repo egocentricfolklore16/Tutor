@@ -16,8 +16,10 @@ import DeadlineManager from "./DeadlineManager";
 import RecurringSetup from "./RecurringSetup";
 import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
+import { useProfile } from "../../app/ProfileContext";
 
 const PlannerPage = () => {
+  const { profile } = useProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
   const [viewMode, setViewMode] = useState("month"); // month, week, day
   const [selectedDate, setSelectedDate] = useState(new Date());
@@ -39,7 +41,7 @@ const PlannerPage = () => {
     reminder: 15,
   });
 
-  const subjects = [
+  const defaultSubjects = [
     "Mathematics",
     "Chemistry",
     "Physics",
@@ -48,12 +50,23 @@ const PlannerPage = () => {
     "History",
     "Computer Science",
   ];
+  const subjects = profile?.subjects?.length ? profile.subjects : defaultSubjects;
   const sessionTypes = [
     { value: "study", label: "Study Session", color: "bg-blue-500" },
     { value: "assignment", label: "Assignment", color: "bg-green-500" },
     { value: "exam", label: "Exam", color: "bg-red-500" },
     { value: "review", label: "Review", color: "bg-purple-500" },
   ];
+
+  useEffect(() => {
+    if (!profile) return;
+    const preferredStart = { Morning: "08:00", Afternoon: "13:00", Evening: "18:00" }[profile.preferred_time] || "09:00";
+    setNewSession((current) => ({
+      ...current,
+      startTime: preferredStart,
+      duration: profile.weekly_hours ? Math.min(120, Math.max(30, Math.round((profile.weekly_hours * 60) / Math.max(profile.study_days?.length || 3, 3)))) : current.duration,
+    }));
+  }, [profile]);
 
   // Fetch study sessions from Supabase
   useEffect(() => {

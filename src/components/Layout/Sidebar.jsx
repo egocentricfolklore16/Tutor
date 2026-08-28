@@ -2,8 +2,10 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { useProfile } from "../../app/ProfileContext";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
+  const { profile } = useProfile();
   const navigate = useNavigate();
   const [activeItem, setActiveItem] = useState("Dashboard");
   const [username, setUsername] = useState(() => {
@@ -316,11 +318,11 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         <div className="mt-auto p-4 border-t border-gray-700">
           {/* User Info */}
           <div className="flex items-center mb-4">
-            <img
-              src="user.png"
+            {profile?.avatar_url ? <img
+              src={profile.avatar_url}
               className="w-8 h-8 rounded-full"
               alt="Profile"
-            />
+            /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900">{(profile?.full_name || username).charAt(0).toUpperCase()}</div>}
             {isOpen && (
               <h4 className="ml-4 text-black text-sm font-medium">
                 {isLoading ? "Loading..." : username}

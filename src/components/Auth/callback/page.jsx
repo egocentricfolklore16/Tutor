@@ -117,7 +117,7 @@ export default function AuthCallback() {
           ),
           title: "Email Confirmed!",
           description:
-            "Welcome to Hyper Tutor. Redirecting you to your dashboard...",
+            "Welcome to Hyper Tutor. Redirecting you to setup...",
           bgColor: "bg-green-50",
           textColor: "text-green-900",
         };

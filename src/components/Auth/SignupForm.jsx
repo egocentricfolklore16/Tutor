@@ -73,37 +73,18 @@ const SignupPage = () => {
     }
 
     console.log("Signup attempt:", formData);
-    const { data, error } = await supabase.auth.signUp({
+    const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
-        data: {
-          userName: formData.userName
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`
+        data: { userName: formData.userName },
+        emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     });
     if (error) {
       console.error("Error signing Up:", error.message);
       alert(error.message || "Signup failed.");
       return;
-    }
-
-    // Insert username into profiles table
-    if (data.user) {
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert([
-          {
-            user_id: data.user.id,
-            username: formData.userName
-          }
-        ]);
-      if (profileError) {
-        console.error("Error saving profile:", profileError.message);
-        alert("Account created but profile save failed: " + profileError.message);
-        return;
-      }
     }
 
     // Show confirmation dialog

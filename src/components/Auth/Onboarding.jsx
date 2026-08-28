@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, ArrowRight, Check, Sparkles } from "lucide-react";
 import supabase from "../../lib/supabase.js";
@@ -66,6 +66,14 @@ function Onboarding({ session }) {
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
+  useEffect(() => {
+    if (!session) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (!data?.session) navigate("/login", { replace: true });
+      });
+    }
+  }, [navigate, session]);
+
   const update = (name, value) => setForm((current) => ({ ...current, [name]: value }));
 
   const canContinue = () => {
@@ -78,8 +86,12 @@ function Onboarding({ session }) {
   const saveProfile = async () => {
     setSaving(true);
     setError("");
-    const user = session?.user;
-    if (!user) return;
+    const { data: { user }, error: userError } = await supabase.auth.getUser();
+    if (userError || !user) {
+      setError("Your Auth Session Is Missing. Please Confirm Your Email Or Sign In Again.");
+      setSaving(false);
+      return;
+    }
 
     const profile = {
       user_id: user.id,

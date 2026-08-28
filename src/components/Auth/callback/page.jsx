@@ -32,11 +32,7 @@ export default function AuthCallback() {
 
         if (session?.user) {
           setStatus("success");
-
-          // Small delay to show success state
-          setTimeout(() => {
-            navigate("/onboarding");
-          }, 1500);
+          navigate("/onboarding", { replace: true });
         } else {
           // No session found, redirect to login
           setError("No valid session found. Please try logging in again.");
@@ -67,9 +63,7 @@ export default function AuthCallback() {
 
       if (event === "SIGNED_IN" && session) {
         setStatus("success");
-        setTimeout(() => {
-          navigate("/onboarding");
-        }, 1500);
+        navigate("/onboarding", { replace: true });
       } else if (event === "SIGNED_OUT") {
         navigate("/login");
       }

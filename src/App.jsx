@@ -96,6 +96,7 @@ function App() {
         ) : (
           <Routes>
             <Route path="/auth/callback" element={<AuthCallback />} />
+            <Route path="/onboarding" element={<Onboarding />} />
             <Route
               path="/"
               element={

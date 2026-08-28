@@ -17,6 +17,7 @@ import RecurringSetup from "./RecurringSetup";
 import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
+import LoadingCompanion from "../common/LoadingCompanion";
 
 const PlannerPage = () => {
   const { profile } = useProfile();
@@ -231,9 +232,7 @@ const PlannerPage = () => {
   const LoadingSpinner = () => (
     <div className="flex flex-col items-center justify-center py-16">
       <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
-      <p className="text-gray-600 text-lg mb-2">
-        Loading your study planner...
-      </p>
+      <LoadingCompanion message="Loading your study planner..." />
       <p className="text-gray-400 text-sm">Getting your sessions ready</p>
     </div>
   );
@@ -408,7 +407,7 @@ const PlannerPage = () => {
             <DeadlineManager sessions={sessions} />
             <TimeBlocking />
           </div>
-          <ExternalCalendarSync />
+          <ExternalCalendarSync sessions={sessions} />
         </>
       )}
 

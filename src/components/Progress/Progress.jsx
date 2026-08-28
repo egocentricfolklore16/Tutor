@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { BookOpen, CalendarCheck, Clock3, Library, Loader2, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
+import LoadingCompanion from "../common/LoadingCompanion";
 
 const dateKey = (value) => {
   const date = new Date(value);
@@ -58,7 +59,7 @@ function Progress() {
     return { plannedHours, completedHours, pastSessions: pastSessions.length, upcoming: sessions.length - pastSessions.length, studyDays, subjects, last30Days, topSubjects };
   }, [sessions]);
 
-  if (status === "loading") return <div className="flex min-h-screen items-center justify-center text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading progress...</div>;
+  if (status === "loading") return <LoadingCompanion message="Loading progress..." />;
   if (status === "unauthenticated") return <div className="p-8 text-slate-500">Sign in to view your progress.</div>;
   if (status === "error") return <div className="m-8 rounded-lg bg-red-50 p-6 text-red-700">Unable to load your progress.</div>;
 

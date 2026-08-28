@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { BookOpen, ExternalLink, FileText, Library as LibraryIcon, Loader2, Search, Trash2, X } from "lucide-react";
 import supabase from "../../lib/supabase";
+import LoadingCompanion from "../common/LoadingCompanion";
 
 const STORAGE_BUCKET = "resources";
 
@@ -266,7 +267,7 @@ function Library({ session }) {
 
         {isLoading ? (
           <div className="flex items-center justify-center rounded-xl border border-slate-200 bg-white py-20 text-slate-500">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Loading Library...
+            <LoadingCompanion message="Loading your library..." />
           </div>
         ) : groupedResources.length === 0 ? (
           <div className="rounded-xl border border-dashed border-slate-300 bg-white px-6 py-20 text-center">

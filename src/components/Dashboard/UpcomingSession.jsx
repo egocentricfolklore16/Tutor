@@ -206,10 +206,7 @@ const UpcomingSessions = () => {
       {sessions.length === 0 ? (
         <div className="text-center py-8">
           <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No upcoming sessions</p>
-          <p className="text-gray-400 text-sm mt-1">
-            Create a new study session to get started
-          </p>
+          <p className="text-gray-500 font-medium">No upcoming sessions - Schedule one to stay consistent</p>
           <button
             onClick={() => (window.location.href = "/Study")}
             className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"

@@ -17,6 +17,7 @@ import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
 import PracticeQuestions from "./PracticeQuestions";
 import ResourceAttachments from "./ResourceAttachments";
+import LoadingCompanion from "../../common/LoadingCompanion";
 
 // StudyEnvironment: orchestrates the study workspace, sidepane and AI pane.
 const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
@@ -119,11 +120,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       : { name: "Guest User", email: "guest@example.com", avatar: "" });
 
   if (isLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-50">
-        <Loader2 className="h-8 w-8 text-red-600 animate-spin" />
-      </div>
-    );
+    return <LoadingCompanion message="Loading your study environment..." />;
   }
 
   if (error || !session) {
@@ -233,7 +230,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
     }
     if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} />;
+    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} />;
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
     return (
       <div>
@@ -285,11 +282,12 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-5 py-6 md:px-10 lg:px-16 ${
+        className={`min-w-0 px-4 py-5 md:px-8 lg:px-10 ${
           isToolsOpen ? "lg:ml-[calc(var(--app-sidebar-width)+300px)]" : ""
         }`}
       >
-        <div className="mx-auto max-w-6xl">
+        <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
+          <div className="min-w-0">
           <div className="flex items-center justify-between gap-4 mb-8">
             <button
               title="Open study menu"
@@ -335,6 +333,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
             </div>
             {renderTool()}
           </section>
+          </div>
         </div>
       </main>
 

@@ -3,6 +3,7 @@ import { ArrowLeft, FileText, Loader2, MessageCircle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import AITutorChat from "./studyEnviron/AITutorChat";
+import LoadingCompanion from "../common/LoadingCompanion";
 
 function NoteDetail() {
   const { Studyid, noteId } = useParams();
@@ -62,7 +63,7 @@ function NoteDetail() {
     page: "bg-slate-50", accent: "text-slate-700", button: "bg-slate-600 hover:bg-slate-700", border: "border-slate-200", soft: "border-slate-100",
   };
 
-  if (status === "loading") return <div className="flex min-h-screen items-center justify-center text-slate-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading note...</div>;
+  if (status === "loading") return <LoadingCompanion message="Loading note..." />;
   if (status === "error") return <main className="min-h-screen bg-slate-50 p-8"><div className="mx-auto max-w-3xl rounded-xl border border-red-200 bg-red-50 p-6 text-red-700">Unable to load this note.</div></main>;
 
   return (

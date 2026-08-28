@@ -249,7 +249,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white ${
+        } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white dark-sidebar ${
           isOpen ? "block" : "hidden"
         } md:block`}
       >

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
+import LoadingCompanion from "../common/LoadingCompanion";
 import {
   BookOpen,
   Play,
@@ -279,7 +280,18 @@ function Study() {
     try {
       setLoadingState(id, "delete", true);
 
-      // Delete from Supabase
+      const [{ error: notesError }, { error: flashcardsError }, { error: resourcesError }] = await Promise.all([
+        supabase.from("notes").delete().eq("session_id", id),
+        supabase.from("flashcards").delete().eq("session_id", id),
+        supabase.from("resources").delete().eq("session_id", id),
+      ]);
+
+      if (notesError || flashcardsError || resourcesError) {
+        const childError = notesError || flashcardsError || resourcesError;
+        setFetchError("Failed to delete session items: " + childError.message);
+        return;
+      }
+
       const { error } = await supabase.from("Study").delete().eq("id", id);
 
       if (error) {
@@ -341,15 +353,9 @@ function Study() {
         </h1>
 
         {isLoadingSessions ? (
-          <div className="text-center py-12 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
-            <Loader2 className="h-16 w-16 text-blue-500 mx-auto mb-4 animate-spin" />
-            <p className="text-gray-500 text-lg mb-2">
-              Loading your study sessions...
-            </p>
-            <p className="text-gray-400">This may take a few moments</p>
-          </div>
+          <LoadingCompanion message="Loading your study sessions..." />
         ) : sessions.length === 0 ? (
-          <div className="text-center py-12 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
+          <div className="">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
             <p className="text-gray-500 text-lg mb-4">No study sessions yet</p>
             <p className="text-gray-400">

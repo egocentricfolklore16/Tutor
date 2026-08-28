@@ -1,10 +1,16 @@
 import React, { useEffect, useState } from "react";
-import QuickActions from "./QuickActions";
+import Leaderboard from "./Leaderboard";
 import RecentActivity from "./RecentActivity";
 import PerformanceDashboard from "./AnalyticsDashboard";
 import StudyStreak from "./StudyStreak";
-import UpcomingSession from "./UpcomingSession";
 import AISuggestions from "./AISuggestions";
+import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
+import DashboardStatsBar from "./DashboardStatsBar";
+import QuickShortcuts from "./QuickShortcuts";
+import CommunitySpotlight from "./CommunitySpotlight";
+import AchievementsCard from "./AchievementsCard";
+import DashboardHeader from "./DashboardHeader";
+import { MessageSquare } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 
@@ -48,6 +54,7 @@ function Overview() {
   const [userName, setUserName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
+  const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
 
   useEffect(() => {
     const fetchUsername = async () => {
@@ -88,52 +95,19 @@ function Overview() {
 
   useEffect(() => {
     if (!isLoading && userName) {
-      const greetings = {
-        headings: [
-          `Welcome back, [Name]`,
-          "Ready to learn, [Name]?",
-          "Your study buddy missed you",
-          "Hey [Name], time to grow smarter",
-          "Back to the grind, [Name]",
-          "The knowledge hub awaits you",
-          "Hypertutor is ready for you",
-          "Good to see you, [Name]",
-          "Learning never stops, [Name]",
-          "Back on track, [Name]",
-        ],
-        paragraphs: [
-          "Let's make progress together today.",
-          "Your learning journey continues right here.",
-          "Time to sharpen your skills, one step at a time.",
-          "Small steps today lead to big wins tomorrow.",
-          "Hypertutor's got your back—let's dive in.",
-          "Knowledge is calling—ready to answer?",
-          "Consistency is the secret. Let's build it.",
-          "Let's pick up right where you left off.",
-          "Your growth is just one session away.",
-          "The best investment is in your learning.",
-        ],
-      };
-
-      const randomHeading =
-        greetings.headings[
-          Math.floor(Math.random() * greetings.headings.length)
-        ];
-      const randomParagraph =
-        greetings.paragraphs[
-          Math.floor(Math.random() * greetings.paragraphs.length)
-        ];
-
       const rawUser = userName || "Guest";
       const user = rawUser.split("?")[0];
-      const personalizedHeading = randomHeading.replace("[Name]", user);
+      const hour = new Date().getHours();
+      const timeOfDay = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
 
       setGreeting({
-        heading: personalizedHeading,
-        paragraph: randomParagraph,
+        heading: `${timeOfDay}, ${user}`,
+        paragraph: knowledgeGaps.length
+          ? `You have ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"} to revisit before your next session.`
+          : "Pick up where you left off with a focused tutoring session.",
       });
     }
-  }, [isLoading, userName]);
+  }, [isLoading, userName, knowledgeGaps.length]);
 
   useEffect(() => {
     if (!isProfileLoading && profile) {
@@ -144,12 +118,13 @@ function Overview() {
   return (
     <>
       <div className="">
-        <h1 className="ml-17 lg:ml-0 z-[100] px-3 py-3 fixed w-full border-b-2 border-black bg-white text-3xl font-bold [text-shadow:_2px_2px_0px_rgba(0,0,0,0.5)]">
-          Dashboard
-        </h1>
+        <DashboardHeader />
 
         <div className="px-6">
-          <h1 className="pt-20 text-green-600 text-2xl font-bold">
+          <div className="flex items-center justify-between gap-5">
+            <div>
+          <h1 className="premium-greeting relative pt-20 text-4xl font-bold md:text-5xl">
+            <img src="/logo3.png" alt="Small Lumo mascot" className="pointer-events-none absolute left-1 top-[-20px] z-10 h-[100px] w-[100px] object-contain" />
             {/* {isLoading ? (
               <TypingText
                 text="Loading your personalized greeting..."
@@ -171,18 +146,30 @@ function Overview() {
               {profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
             </p>
           )}
+            </div>
+            <img src="/logo2.png" alt="Lumo mascot" className="lumo-float-left mt-[70px] hidden h-48 w-auto object-contain sm:block lg:h-64" />
+          </div>
+          <DashboardStatsBar />
+          <QuickShortcuts />
         </div>
       </div>
       <div className="w-[90%] lg:w-[96%] mx-6 grid grid-cols-1 lg:grid-cols-3 lg:grid-row-11 gap-6 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
         <div className="lg:col-span-2 lg:row-span-5">
           <PerformanceDashboard />
         </div>
-        <div className="lg:col-span-1 row-span-5 ">
-          <UpcomingSession />
+        <div className="lg:col-span-1 row-span-5">
+          <StudyCompanion topic={profile?.current_topic || "your studies"} />
         </div>
 
-        <div className="lg:col-span-1 row-span-3">
-          <QuickActions />
+        <div className="lg:col-span-1 lg:col-start-3 row-span-3">
+          <Leaderboard />
+        </div>
+
+        <div className="lg:col-span-1">
+          <CommunitySpotlight />
+        </div>
+        <div className="lg:col-span-1">
+          <AchievementsCard />
         </div>
 
         <div className="lg:col-span-2">
@@ -195,6 +182,7 @@ function Overview() {
           </div>
         </div>
       </div>
+      <button type="button" title="Send feedback" className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-700"><MessageSquare className="h-4 w-4" /> Feedback</button>
     </>
   );
 }

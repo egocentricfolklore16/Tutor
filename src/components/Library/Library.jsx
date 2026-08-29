@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 import { BookOpen, ExternalLink, FileText, Library as LibraryIcon, Loader2, Search, Trash2, X } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
-import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
 
 const STORAGE_BUCKET = "resources";
 
@@ -316,11 +315,6 @@ function Library({ session }) {
             ))}
           </div>
         )}
-
-        {/* Motivation & Riddle Section */}
-        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
-          <StudyCompanion layout="horizontal" />
-        </div>
       </div>
     </main>
   );

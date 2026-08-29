@@ -3,7 +3,6 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BookOpen, CalendarCheck, Clock3, Library, Loader2, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
-import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
 
 const dateKey = (value) => {
   const date = new Date(value);
@@ -91,10 +90,6 @@ function Progress() {
             <div className="h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={analytics.last30Days} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" /><XAxis dataKey="day" stroke="#94a3b8" fontSize={11} interval={4} /><YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} /><Tooltip formatter={(value) => [`${value} hrs`, "Planned time"]} /><Area type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2} fill="#e0e7ff" /></AreaChart></ResponsiveContainer></div>
           </section>
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">Consistency snapshot</h2><div className="mt-5 space-y-5"><div><div className="flex justify-between text-sm"><span className="text-slate-500">Study days</span><strong className="text-slate-800">{analytics.studyDays}</strong></div><div className="mt-2 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-400" style={{ width: `${Math.min(analytics.studyDays / 30 * 100, 100)}%` }} /></div></div><div className="flex items-center justify-between border-t border-slate-100 pt-4"><span className="text-slate-500">Upcoming sessions</span><strong className="text-slate-800">{analytics.upcoming}</strong></div><div className="flex items-center justify-between"><span className="text-slate-500">Subjects explored</span><strong className="text-slate-800">{analytics.subjects}</strong></div></div></section>
-        </div>
-
-        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
-          <StudyCompanion layout="horizontal" />
         </div>
 
         <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-5 flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-600" /><div><h2 className="font-semibold text-slate-900">Time investment by subject</h2><p className="mt-1 text-sm text-slate-500">Where your planned study time is going</p></div></div>{analytics.topSubjects.length === 0 ? <p className="text-sm text-slate-500">Create study sessions to see subject progress.</p> : <div className="grid gap-4 md:grid-cols-2">{analytics.topSubjects.map(([subject, hours]) => <div key={subject}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-medium text-slate-700">{subject}</span><span className="shrink-0 text-slate-500">{hours.toFixed(1)}h</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-indigo-400" style={{ width: `${analytics.plannedHours ? hours / analytics.plannedHours * 100 : 0}%` }} /></div></div>)}</div>}</section>

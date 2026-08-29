@@ -410,7 +410,7 @@ const PlannerPage = () => {
           </div>
 
           {/* Motivation & Riddle Section */}
-          <div className="mb-8">
+          <div className="mb-8 flex flex-col gap-6 lg:flex-row lg:items-start">
             <StudyCompanion layout="horizontal" />
           </div>
 

@@ -318,7 +318,7 @@ function Library({ session }) {
         )}
 
         {/* Motivation & Riddle Section */}
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
           <StudyCompanion layout="horizontal" />
         </div>
       </div>

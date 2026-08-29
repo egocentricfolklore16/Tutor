@@ -93,7 +93,7 @@ function Progress() {
           <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">Consistency snapshot</h2><div className="mt-5 space-y-5"><div><div className="flex justify-between text-sm"><span className="text-slate-500">Study days</span><strong className="text-slate-800">{analytics.studyDays}</strong></div><div className="mt-2 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-400" style={{ width: `${Math.min(analytics.studyDays / 30 * 100, 100)}%` }} /></div></div><div className="flex items-center justify-between border-t border-slate-100 pt-4"><span className="text-slate-500">Upcoming sessions</span><strong className="text-slate-800">{analytics.upcoming}</strong></div><div className="flex items-center justify-between"><span className="text-slate-500">Subjects explored</span><strong className="text-slate-800">{analytics.subjects}</strong></div></div></section>
         </div>
 
-        <div className="mt-8">
+        <div className="mt-8 flex flex-col gap-6 lg:flex-row lg:items-start">
           <StudyCompanion layout="horizontal" />
         </div>
 

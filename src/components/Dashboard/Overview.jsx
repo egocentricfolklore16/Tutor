@@ -9,7 +9,6 @@ import DashboardStatsBar from "./DashboardStatsBar";
 import QuickShortcuts from "./QuickShortcuts";
 import CommunitySpotlight from "./CommunitySpotlight";
 import AchievementsCard from "./AchievementsCard";
-import DashboardHeader from "./DashboardHeader";
 import { MessageSquare } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
@@ -118,8 +117,6 @@ function Overview() {
   return (
     <>
       <div className="">
-        <DashboardHeader />
-
         <div className="px-6">
           <div className="flex items-center justify-between gap-5">
             <div>

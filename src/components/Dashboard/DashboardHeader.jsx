@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import supabase from "../../lib/supabase";
 
-function DashboardHeader() {
+function DashboardHeader({ title = "Dashboard" }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -18,7 +18,7 @@ function DashboardHeader() {
 
   return <>
     <header className="sticky top-0 z-[100] flex h-16 items-center justify-between border-b border-black bg-white px-4 shadow-sm dark:border-slate-700 dark:bg-[#18211f] md:px-6">
-      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Dashboard</h1>
+      <h1 className="text-2xl font-bold text-slate-900 dark:text-white">{title}</h1>
       <div className="flex items-center gap-2">
         <button type="button" title="Notifications" onClick={() => setNotificationsOpen(true)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10"><Bell className="h-5 w-5" /></button>
         <button type="button" title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => toggleDarkMode(!darkMode)} className="rounded-lg p-2 text-slate-600 hover:bg-slate-100 dark:text-white dark:hover:bg-white/10">{darkMode ? <Sun className="h-5 w-5" /> : <Moon className="h-5 w-5" />}</button>

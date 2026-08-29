@@ -18,6 +18,7 @@ import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
+import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
 
 const PlannerPage = () => {
   const { profile } = useProfile();
@@ -407,6 +408,12 @@ const PlannerPage = () => {
             <DeadlineManager sessions={sessions} />
             <TimeBlocking />
           </div>
+
+          {/* Motivation & Riddle Section */}
+          <div className="mb-8">
+            <StudyCompanion layout="horizontal" />
+          </div>
+
           <ExternalCalendarSync sessions={sessions} />
         </>
       )}

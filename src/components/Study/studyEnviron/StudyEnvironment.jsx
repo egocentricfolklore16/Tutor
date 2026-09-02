@@ -283,6 +283,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <Sidepane
         isOpen={isToolsOpen}
+        onToggle={() => setIsToolsOpen((open) => !open)}
         onClose={() => setIsToolsOpen(false)}
         width={300}
         user={profile || user}
@@ -292,19 +293,20 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-4 py-5 md:px-8 lg:px-10 ${
-          isToolsOpen ? "lg:ml-[calc(var(--app-sidebar-width)+300px)]" : ""
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 ${
+          isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
         }`}
       >
-        <div className="mx-auto grid max-w-[1500px] gap-6 xl:grid-cols-[minmax(0,1fr)_290px]">
-          <div className="min-w-0">
-          <div className="flex items-center justify-between gap-4 mb-8">
+        <div className="mx-auto w-full max-w-[1500px]">
+          <div className="min-w-0 w-full">
+          <div className="mb-6 flex min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
             <button
               title="Open study menu"
               onClick={() => setIsToolsOpen((isOpen) => !isOpen)}
-              className="rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm hover:bg-slate-100"
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm hover:bg-slate-100"
             >
               <Menu className="h-5 w-5" />
+              <span className="hidden text-sm font-semibold sm:inline">Study tools</span>
             </button>
             <button
               onClick={() => navigate("/Study")}
@@ -350,7 +352,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       <button
         title="Open AI tutor"
         onClick={() => setIsAIOpen((isOpen) => !isOpen)}
-        className={`fixed bottom-6 right-6 z-10 inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white shadow-lg ${importanceTheme.accentButton}`}
+        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 sm:right-6 sm:px-5 sm:text-base ${importanceTheme.accentButton}`}
       >
         <MessageCircle className="h-5 w-5" />
         AI Tutor

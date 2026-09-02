@@ -13,6 +13,8 @@ function GlobalStudyCompanion() {
 function Layout({ session, needsOnboarding }) {
   const [isOpen, setIsOpen] = useState(true);
   const location = useLocation();
+  const isStudyEnvironment = location.pathname.startsWith("/Study/");
+  const isSidebarExpanded = !isStudyEnvironment && !isOpen;
   const toggleSidebar = () => {
     setIsOpen((prev) => !prev);
   };
@@ -36,14 +38,14 @@ function Layout({ session, needsOnboarding }) {
   return (
     <ProfileProvider user={user}>
       <div className="mainapp">
-        <Sidebar isOpen={!isOpen} toggleSidebar={toggleSidebar} user={user} />
+        <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
 
         <div
           className={`pagecontent ${
-            !isOpen ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
+            isSidebarExpanded ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
           } transition-all duration-200 ease-in-out`}
           style={{
-            "--app-sidebar-width": isOpen ? "4rem" : "15rem",
+            "--app-sidebar-width": isSidebarExpanded ? "15rem" : "4rem",
           }}
         >
           <DashboardHeader title={pageTitle} />
@@ -54,7 +56,7 @@ function Layout({ session, needsOnboarding }) {
               <div className="min-w-0 flex-1">
                 <Outlet />
               </div>
-              <section className="w-full self-start px-5 pb-8 md:px-10 xl:sticky xl:top-6 xl:w-[340px] xl:shrink-0 xl:px-0">
+              <section className="w-full self-start px-5 pb-8 md:px-10 xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
                 <GlobalStudyCompanion />
               </section>
             </div>

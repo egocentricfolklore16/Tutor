@@ -9,7 +9,8 @@ import DashboardStatsBar from "./DashboardStatsBar";
 import QuickShortcuts from "./QuickShortcuts";
 import CommunitySpotlight from "./CommunitySpotlight";
 import AchievementsCard from "./AchievementsCard";
-import { MessageSquare } from "lucide-react";
+import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 
@@ -49,11 +50,14 @@ const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
 };
 
 function Overview() {
+  const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useProfile();
   const [userName, setUserName] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
+  const hour = new Date().getHours();
+  const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
   useEffect(() => {
     const fetchUsername = async () => {
@@ -116,36 +120,30 @@ function Overview() {
 
   return (
     <>
-      <div className="">
+      <div>
         <div className="px-6">
-          <div className="flex items-center justify-between gap-5">
-            <div>
-          <h1 className="premium-greeting relative pt-20 text-4xl font-bold md:text-5xl">
-            <img src="/logo3.png" alt="Small Lumo mascot" className="pointer-events-none absolute left-1 top-[-20px] z-10 h-[100px] w-[100px] object-contain" />
-            {/* {isLoading ? (
-              <TypingText
-                text="Loading your personalized greeting..."
-                typingSpeed={75}
-                showCursor={true}
-              />
-            ) : ( */}
-              <TypingText
-                text={greeting.heading}
-                typingSpeed={75}
-                showCursor={true}
-              />
-            {/* )} */}
-          </h1>
-          <p className="mt-3 mb-3">{greeting.paragraph}</p>
-          {profile?.primary_goal && (
-            <p className="mb-4 text-sm text-slate-600">
-              Focus: <span className="font-semibold">{profile.primary_goal}</span>
-              {profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
-            </p>
-          )}
+          <section className="rounded-2xl bg-white/70 px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />22d Streak</span>
             </div>
-            <img src="/logo2.png" alt="Lumo mascot" className="lumo-float-left mt-[70px] hidden h-48 w-auto object-contain sm:block lg:h-64" />
-          </div>
+
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
+                <h1 id="dashboard-greeting-title" className="min-w-0 text-2xl font-bold text-slate-950 md:text-3xl"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></h1>
+              </div>
+              <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center justify-center gap-2 self-start rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 sm:self-auto"><Bot className="h-4 w-4" />Ask AI &amp; Study</button>
+            </div>
+
+            <p className="mt-2 pl-14 text-sm text-slate-600">{greeting.paragraph}</p>
+            {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500">Focus: <span className="font-semibold text-slate-700">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
+
+            <div className="mt-4 flex flex-col gap-2 rounded-xl bg-slate-50 px-3 py-2.5 sm:flex-row sm:items-center">
+              <div className="flex min-w-0 items-center gap-2 text-sm"><span className="h-2 w-2 shrink-0 rounded-full bg-orange-500" /><CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500" /><strong className="truncate text-slate-800">{knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}</strong><span className="hidden truncate text-slate-500 sm:inline">{knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}</span></div>
+              <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 sm:ml-auto">Review now <ArrowRight className="h-4 w-4" /></button>
+            </div>
+          </section>
           <DashboardStatsBar />
           <QuickShortcuts />
         </div>

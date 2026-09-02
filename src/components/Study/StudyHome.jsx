@@ -363,7 +363,7 @@ function Study() {
             </p>
           </div>
         ) : (
-          <div className="w-full grid gap-3 gap-y-3 grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] p-2 overflow-y-auto">
+          <div className="grid w-full grid-cols-1 gap-4 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] sm:grid-cols-2 xl:grid-cols-3">
             {sessions.map((sessionItem, index) => {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];
@@ -372,7 +372,7 @@ function Study() {
               return (
                 <div
                   key={sessionItem.id || index}
-                  className={`border-l-4 rounded-r-lg p-4 transition-all w-full lg:w-[390px] hover:shadow-md cursor-pointer relative ${
+                  className={`relative w-full min-w-0 rounded-r-lg border-l-4 p-4 transition-all hover:shadow-md cursor-pointer ${
                     isMuted
                       ? "bg-gray-200 border-l-gray-400"
                       : getPriorityColor(sessionItem.Status)
@@ -381,8 +381,8 @@ function Study() {
                     isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
                   }
                 >
-                  <div className="flex items-start justify-between">
-                    <div className="flex-1">
+                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2 text-gray-600">
                           {getTypeIcon()}
@@ -425,7 +425,7 @@ function Study() {
                       </p>
                     </div>
 
-                    <div className="flex flex-col items-center gap-2 ml-4 relative dropdown-container">
+                    <div className="relative flex shrink-0 flex-row items-center gap-2 sm:ml-4 sm:flex-col dropdown-container">
                       <button
                         className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() =>

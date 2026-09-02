@@ -4,6 +4,18 @@
   font-family: "Lexend", sans-serif;
   background-color: #ffffff;
   color-scheme: light;
+  --bg-base: #0F1115;
+  --bg-surface: #14171C;
+  --card-red-bg: #2A1518;
+  --card-green-bg: #1B2119;
+  --card-amber-bg: #241D12;
+  --card-purple-bg: #201A29;
+  --text-primary: #F2F0EC;
+  --text-secondary: #B8B4AC;
+  --text-accent-red: #E8A9AC;
+  --text-accent-green: #9CC98A;
+  --text-accent-amber: #E0B96B;
+  --text-accent-purple: #C3A8E8;
 }
 
 body {
@@ -60,11 +72,23 @@ body {
 
 .dark body,
 .dark .mainapp {
-  background: #101615;
+  background: var(--bg-base);
   color: #e5eee9;
 }
 
-.dark .bg-white { background-color: #18211f; }
+.dark .dark-surface { background: var(--bg-surface); color: var(--text-primary); }
+.dark .dark-session-surface { background: var(--card-red-bg); color: var(--text-primary); }
+.dark .dark-green-surface { background: var(--card-green-bg); color: var(--text-primary); }
+.dark .dark-amber-surface { background: var(--card-amber-bg); color: var(--text-primary); }
+.dark .dark-purple-surface { background: var(--card-purple-bg); color: var(--text-primary); }
+.dark .dark-primary-text { color: var(--text-primary); }
+.dark .dark-secondary-text { color: var(--text-secondary); }
+.dark .dark-red-text { color: var(--text-accent-red); }
+.dark .dark-green-text { color: var(--text-accent-green); }
+.dark .dark-amber-text { color: var(--text-accent-amber); }
+.dark .dark-purple-text { color: var(--text-accent-purple); }
+
+.dark .bg-white { background-color: var(--bg-surface); }
 .dark .bg-gray-50,
 .dark .bg-slate-50 { background-color: #101615; }
 .dark .bg-gray-100,

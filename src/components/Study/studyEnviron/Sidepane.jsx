@@ -8,11 +8,11 @@ import {
   HelpCircle,
 } from "lucide-react";
 
-const Sidepane = ({ isOpen, onClose, width, user, activeTool, onToolSelect, theme }) => {
+const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, theme }) => {
 
   const UserCard = ({ user }) => (
     <div className="flex items-center justify-center py-6">
-      <div className="bg-white rounded-lg shadow p-4 text-center w-48">
+    <div className={`rounded-lg bg-white p-4 text-center ${isOpen ? "w-48 shadow" : "w-12"}`}>
         <div className="w-16 h-16 rounded-full bg-gray-200 mx-auto mb-3 flex items-center justify-center">
           {user?.avatar ? (
             <img
@@ -46,7 +46,7 @@ const Sidepane = ({ isOpen, onClose, width, user, activeTool, onToolSelect, them
       }`}
     >
       {createElement(NavIcon, { className: "w-5 h-5" })}
-      <span className="font-medium">{label}</span>
+      {isOpen && <span className="font-medium">{label}</span>}
     </button>
   );
 
@@ -60,32 +60,27 @@ const Sidepane = ({ isOpen, onClose, width, user, activeTool, onToolSelect, them
       )} */}
 
       <div
-        className={`fixed inset-y-0 left-0 z-30 shrink-0 bg-white border-r border-gray-200 flex flex-col transition-all duration-300 overflow-hidden ${
-          isOpen ? "translate-x-0" : "-translate-x-full w-0 border-0"
-        }`}
-        style={
-          isOpen
-            ? { width: `${width}px`, left: "var(--app-sidebar-width, 0px)" }
-            : undefined
-        }
+        className="fixed inset-y-0 left-0 z-[1005] flex flex-col overflow-hidden border-r border-gray-200 bg-white transition-all duration-300"
+        style={{ width: isOpen ? `${width}px` : "64px", left: "var(--app-sidebar-width, 0px)" }}
       >
-        <div className="p-6 border-b border-gray-200 flex items-center justify-between">
+        {isOpen && <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <div className="flex items-center gap-2">
             <BookOpen className={`w-6 h-6 ${theme?.accent || "text-red-600"}`} />
-            <span className="text-sm font-bold text-gray-900">StudyBuddy</span>
+            {isOpen && <span className="text-sm font-bold text-gray-900">StudyBuddy</span>}
           </div>
           <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-lg lg:hidden"
+            onClick={onToggle}
+            title={isOpen ? "Collapse study tools" : "Expand study tools"}
+            className="rounded-lg p-2 text-gray-600 hover:bg-gray-100"
           >
-            <X className="w-5 h-5 text-gray-600" />
+            {isOpen ? <X className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
           </button>
-        </div>
+        </div>}
 
         {/* center area: show user card */}
-        {user && <UserCard user={user} />}
+        {isOpen && user && <UserCard user={user} />}
 
-        <nav className="flex-1 p-2 text-[14px]">
+        <nav className={`flex-1 p-2 text-[14px] ${isOpen ? "" : "pt-5"}`}>
           <NavItem Icon={FileText} label="Notes" page="notes" />
           <NavItem Icon={Clock} label="Pomodoro Timer" page="pomodoro" />
           <NavItem Icon={Library} label="Flashcards" page="flashcards" />

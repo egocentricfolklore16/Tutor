@@ -25,6 +25,23 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
+.dark .notification-pane { background: #ffffff !important; color: #000000 !important; }
+.dark .notification-pane * { color: inherit; }
+
+.settings-page { background: #eef3f8; }
+.settings-card { border-radius: 1rem; background: #ffffff; padding: 2rem; }
+.settings-section { border: 0; background: transparent; }
+.settings-field,
+.settings-card input:not([type="checkbox"]):not([type="file"]),
+.settings-card select { border: 0 !important; border-radius: 9999px; background: #f1f5f9 !important; padding: 0.85rem 1.1rem; color: #1e293b; outline: none; }
+.settings-card input:focus,
+.settings-card select:focus { box-shadow: 0 0 0 4px rgb(16 185 129 / 0.12); }
+
+@media (max-width: 640px) {
+  .settings-card { padding: 1.25rem; }
+  .settings-tabs button { padding-left: 1rem; padding-right: 1rem; }
+}
+
 .auth-form-content input {
   background: #f8fafc !important;
   border-color: #e2e8f0 !important;

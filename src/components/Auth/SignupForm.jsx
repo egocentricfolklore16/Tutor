@@ -248,7 +248,7 @@ const SignupPage = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                   stroke="currentColor"
                   fill="currentColor"
-                  stroke-width="0"
+                  strokeWidth="0"
                   viewBox="0 0 16 16"
                   height="1em"
                   width="1em"
@@ -256,9 +256,9 @@ const SignupPage = () => {
                 >
                   <rect width="11" height="9" x="2.5" y="7" rx="2"></rect>
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M4.5 4a3.5 3.5 0 117 0v3h-1V4a2.5 2.5 0 00-5 0v3h-1V4z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   ></path>
                 </svg>
                 <input
@@ -279,7 +279,7 @@ const SignupPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"
@@ -292,7 +292,7 @@ const SignupPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"
@@ -336,7 +336,7 @@ const SignupPage = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                   stroke="currentColor"
                   fill="currentColor"
-                  stroke-width="0"
+                  strokeWidth="0"
                   viewBox="0 0 16 16"
                   height="1em"
                   width="1em"
@@ -344,9 +344,9 @@ const SignupPage = () => {
                 >
                   <rect width="11" height="9" x="2.5" y="7" rx="2"></rect>
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M4.5 4a3.5 3.5 0 117 0v3h-1V4a2.5 2.5 0 00-5 0v3h-1V4z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   ></path>
                 </svg>
                 <input
@@ -367,7 +367,7 @@ const SignupPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"
@@ -380,7 +380,7 @@ const SignupPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"

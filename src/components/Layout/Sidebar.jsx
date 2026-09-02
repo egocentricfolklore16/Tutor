@@ -113,7 +113,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         <svg
           stroke="currentColor"
           fill="currentColor"
-          stroke-width="0"
+          strokeWidth="0"
           viewBox="0 0 24 24"
           height="1em"
           width="1em"
@@ -166,6 +166,9 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
 
   const handleMenuItemClick = (itemName) => {
     setActiveItem(itemName);
+    if (window.innerWidth < 768 && isOpen) {
+      toggleSidebar();
+    }
   };
 
   const handleLogout = async () => {
@@ -249,9 +252,9 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } transition-all z-[1000] duration-200 ease-in-out border-r-4 border-r-green-600 text-black min-h-screen flex flex-col font-['Lexend'] fixed left-0 top-0 h-full bg-white dark-sidebar ${
-          isOpen ? "block" : "hidden"
-        } md:block`}
+        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col border-r-4 border-r-green-600 bg-white font-['Lexend'] text-black transition-all duration-300 ease-out dark-sidebar ${
+          isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
+        } md:translate-x-0 md:opacity-100 md:pointer-events-auto`}
       >
         {/* Logo Section */}
         <div className="flex items-center justify-between p-4">

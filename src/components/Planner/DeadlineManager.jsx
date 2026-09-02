@@ -19,7 +19,7 @@ const DeadlineManager = ({ sessions, onAddActivity }) => {
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
           <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">Priority view</p>
-          <h3 className="mt-1 text-lg font-bold text-red-950">Upcoming deadlines</h3>
+          <h3 className="mt-1 text-lg font-bold text-red-950">Upcoming exams</h3>
         </div>
       <button
         type="button"
@@ -43,8 +43,8 @@ const DeadlineManager = ({ sessions, onAddActivity }) => {
                 <div className="mt-2 truncate text-xs text-slate-500">{deadline.subject}</div>
                 <div className="mt-1 text-xs text-slate-500">Due {new Date(`${deadline.deadline}T00:00:00`).toLocaleDateString()}</div>
               </div>
-              <div className="mt-3 text-sm font-bold text-red-600">
-                {getDaysLeft(deadline.deadline) < 0 ? `${Math.abs(getDaysLeft(deadline.deadline))} days overdue` : getDaysLeft(deadline.deadline) === 0 ? "Due today" : `${getDaysLeft(deadline.deadline)} days left`}
+              <div className="mt-3 inline-flex rounded-full bg-red-50 px-3 py-1 text-sm font-bold text-red-600">
+                {getDaysLeft(deadline.deadline) < 0 ? `${Math.abs(getDaysLeft(deadline.deadline))} days overdue` : getDaysLeft(deadline.deadline) === 0 ? "Due today" : `in ${getDaysLeft(deadline.deadline)} days`}
               </div>
             </li>
           ))}

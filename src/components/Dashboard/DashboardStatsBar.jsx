@@ -27,7 +27,7 @@ function DashboardStatsBar() {
     { value: stats.gaps, label: "concepts to revisit" },
   ];
 
-  return <section className="rounded-lg border border-gray-200 bg-white p-2 shadow-sm" aria-label="Study statistics"><div className="grid grid-cols-1 md:grid-cols-3">{items.map(({ value, label }, index) => <div key={label} className={`relative flex min-h-20 items-center justify-center px-4 py-4 text-center md:py-5 ${index > 0 ? "border-t border-gray-200 md:border-l-0 md:border-t-0" : ""}`}><div className="hidden md:block absolute left-0 top-1/2 h-8 w-px -translate-y-1/2 bg-stone-300" /><div><p className="text-2xl font-bold text-gray-900">{value}</p><p className="text-sm text-gray-500">{label}</p></div></div>)}</div></section>;
+  return <section className="rounded-2xl bg-white p-2 shadow-sm" aria-label="Study statistics"><div className="grid grid-cols-3">{items.map(({ value, label }, index) => <div key={label} className={`relative flex min-h-20 min-w-0 items-center justify-center px-1 py-3 text-center md:py-5 ${index > 0 ? "border-l border-gray-100" : ""}`}><div className="min-w-0"><p className="truncate text-xl font-bold text-gray-900 sm:text-2xl">{value}</p><p className="truncate text-[10px] leading-4 text-gray-500 sm:text-sm">{label}</p></div></div>)}</div></section>;
 }
 
 export default DashboardStatsBar;

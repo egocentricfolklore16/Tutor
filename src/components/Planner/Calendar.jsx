@@ -66,7 +66,7 @@ const Calendar = ({
     }
 
     return (
-      <div className="grid grid-cols-8 gap-2 h-96 overflow-x-auto">
+      <div className="grid min-w-[1180px] grid-cols-8 gap-2 h-96">
         <div className="text-sm font-semibold text-gray-600">Time</div>
         {weekDays.map((day) => (
           <div
@@ -126,8 +126,9 @@ const Calendar = ({
   };
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4 md:p-6 mb-6">
+    <div className="relative mb-6 overflow-x-auto rounded-2xl bg-white p-3 md:p-6">
       {renderCalendarGrid()}
+      <img src="/logo3.png" alt="" aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 h-10 w-10 object-contain opacity-20" />
     </div>
   );
 };

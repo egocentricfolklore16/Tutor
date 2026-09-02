@@ -48,7 +48,7 @@ function Layout({ session, needsOnboarding }) {
             "--app-sidebar-width": isSidebarExpanded ? "15rem" : "4rem",
           }}
         >
-          <DashboardHeader title={pageTitle} />
+          <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
           {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
             <Outlet />
           ) : (

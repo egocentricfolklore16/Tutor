@@ -114,7 +114,7 @@ function Overview() {
 
   useEffect(() => {
     if (!isProfileLoading && profile) {
-      setUserName(profile.full_name || profile.username || "Learner");
+      setUserName(profile.full_name || "Learner");
     }
   }, [isProfileLoading, profile]);
 

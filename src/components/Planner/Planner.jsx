@@ -4,15 +4,16 @@ import {
   ChevronLeft,
   ChevronRight,
   BookOpen,
-  Target,
-  Bell,
-  ExternalLink,
+  CalendarDays,
+  Filter,
   Loader2,
+  Timer,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import Calendar from "./Calendar";
-import SessionScheduler from "./SessionScheduler";
+import PlannerActivityModal from "./PlannerActivityModal";
 import DeadlineManager from "./DeadlineManager";
+import PlannerStatsBar from "./PlannerStatsBar";
 import RecurringSetup from "./RecurringSetup";
 import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
@@ -22,24 +23,30 @@ import LoadingCompanion from "../common/LoadingCompanion";
 const PlannerPage = () => {
   const { profile } = useProfile();
   const [currentDate, setCurrentDate] = useState(new Date());
-  const [viewMode, setViewMode] = useState("month"); // month, week, day
   const [selectedDate, setSelectedDate] = useState(new Date());
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [draggedSession, setDraggedSession] = useState(null);
   const [sessions, setSessions] = useState([]);
   const [selectedSession, setSelectedSession] = useState(null);
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
   const [fetchError, setFetchError] = useState("");
+  const [isSavingSession, setIsSavingSession] = useState(false);
+  const [activityMode, setActivityMode] = useState(null);
+  const [blockedTimes, setBlockedTimes] = useState([
+  ]);
 
   const [newSession, setNewSession] = useState({
     title: "",
     subject: "",
     type: "study",
+    status: "medium",
     date: selectedDate,
     startTime: "09:00",
     duration: 60,
     recurring: "none",
     reminder: 15,
+    purpose: "",
+    blockStart: "09:00",
+    blockEnd: "11:00",
   });
 
   const defaultSubjects = [
@@ -52,13 +59,6 @@ const PlannerPage = () => {
     "Computer Science",
   ];
   const subjects = profile?.subjects?.length ? profile.subjects : defaultSubjects;
-  const sessionTypes = [
-    { value: "study", label: "Study Session", color: "bg-blue-500" },
-    { value: "assignment", label: "Assignment", color: "bg-green-500" },
-    { value: "exam", label: "Exam", color: "bg-red-500" },
-    { value: "review", label: "Review", color: "bg-purple-500" },
-  ];
-
   useEffect(() => {
     if (!profile) return;
     const preferredStart = { Morning: "08:00", Afternoon: "13:00", Evening: "18:00" }[profile.preferred_time] || "09:00";
@@ -88,14 +88,37 @@ const PlannerPage = () => {
 
         const { data, error } = await supabase
           .from("Study")
-          .select('id,Subject,Topic,Status,Date,"Start",Duration')
+          .select('id,Subject,Topic,Status,Date,"Start",Duration,recurring,reminder_minutes,deadline,activity_type')
           .eq("user_id", user.id); // Filter by current user's ID
 
+        const { data: timeBlockData, error: timeBlockError } = await supabase
+          .from("time_blocks")
+          .select("id,block_date,start_time,end_time,purpose")
+          .eq("user_id", user.id)
+          .order("block_date", { ascending: true });
+
+        if (timeBlockError) {
+          console.error("Error fetching time blocks:", timeBlockError);
+          if (timeBlockError.code === "PGRST205") {
+            setFetchError("Planner database setup is incomplete. Run supabase/014_planner_activity_fields.sql in Supabase SQL Editor.");
+          }
+        }
+        else setBlockedTimes(timeBlockData.map((block) => ({
+          id: block.id,
+          day: new Date(block.block_date).toLocaleDateString("en-US", { weekday: "long" }),
+          start: block.start_time,
+          end: block.end_time,
+          purpose: block.purpose,
+        })));
+
         if (error) {
-          setFetchError("Error loading study sessions: " + error.message);
+          const missingPlannerFields = error.code === "42703" || error.message?.includes("column");
+          setFetchError(missingPlannerFields
+            ? "Planner database fields are missing. Run supabase/014_planner_activity_fields.sql in Supabase SQL Editor."
+            : "Error loading study sessions: " + error.message);
           console.error("Error fetching study sessions:", error);
         } else {
-          const mappedSessions = data.map((session) => {
+            const mappedSessions = data.map((session) => {
             let color = "bg-blue-500";
             switch (session.Status?.trim().toLowerCase()) {
               case "very important":
@@ -119,8 +142,11 @@ const PlannerPage = () => {
               startTime: session.Start,
               endTime: calculateEndTime(session.Start, session.Duration),
               duration: session.Duration,
-              recurring: "none",
-              color: color,
+              recurring: session.recurring || "none",
+              reminder: session.reminder_minutes ?? 15,
+              deadline: session.deadline,
+              activityType: session.activity_type || "study",
+              color,
             };
           });
           setSessions(mappedSessions);
@@ -136,89 +162,139 @@ const PlannerPage = () => {
     fetchSessions();
   }, []);
 
-  // Navigation functions
-  const navigateDate = (direction) => {
-    const newDate = new Date(currentDate);
-    if (viewMode === "month") {
-      newDate.setMonth(newDate.getMonth() + direction);
-    } else if (viewMode === "week") {
-      newDate.setDate(newDate.getDate() + direction * 7);
-    } else {
-      newDate.setDate(newDate.getDate() + direction);
-    }
-    setCurrentDate(newDate);
+  const navigateWeek = (direction) => {
+    const nextDate = new Date(currentDate);
+    nextDate.setDate(nextDate.getDate() + direction * 7);
+    setCurrentDate(nextDate);
+    setSelectedDate(nextDate);
   };
 
-  const formatDateHeader = () => {
-    if (viewMode === "month") {
-      return currentDate.toLocaleDateString("en-US", {
-        month: "long",
-        year: "numeric",
-      });
-    } else if (viewMode === "week") {
-      const startOfWeek = new Date(currentDate);
-      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(startOfWeek.getDate() + 6);
-      return `${startOfWeek.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })} - ${endOfWeek.toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-      })}`;
-    } else {
-      return currentDate.toLocaleDateString("en-US", {
-        weekday: "long",
-        month: "long",
-        day: "numeric",
-        year: "numeric",
-      });
-    }
+  const setPlannerDate = (event) => {
+    const [year, month, day] = event.target.value.split("-").map(Number);
+    const nextDate = new Date(year, month - 1, day);
+    setSelectedDate(nextDate);
+    setCurrentDate(nextDate);
   };
 
-  // Drag and drop handlers
-  const handleDragStart = (e, session) => {
-    setDraggedSession(session);
+  const formatWeekRange = () => {
+    const start = new Date(currentDate);
+    start.setDate(currentDate.getDate() - currentDate.getDay() + 1);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    const startLabel = start.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    const endLabel = end.toLocaleDateString("en-US", { month: start.getMonth() === end.getMonth() ? undefined : "short", day: "numeric", year: "numeric" });
+    return `${startLabel} - ${endLabel}`;
   };
 
-  const handleDrop = (e, targetDate) => {
-    e.preventDefault();
-    if (draggedSession) {
-      setSessions((prev) =>
-        prev.map((session) =>
-          session.id === draggedSession.id
-            ? { ...session, date: new Date(targetDate) }
-            : session
-        )
-      );
-      setDraggedSession(null);
-    }
-  };
+  const handleDragStart = (event, session) => setDraggedSession(session);
 
-  const handleCreateSession = () => {
-    const session = {
-      id: sessions.length + 1,
-      ...newSession,
-      date: selectedDate,
-      endTime: calculateEndTime(newSession.startTime, newSession.duration),
-      color:
-        sessionTypes.find((type) => type.value === newSession.type)?.color ||
-        "bg-blue-500",
-    };
-    setSessions((prev) => [...prev, session]);
-    setShowCreateModal(false);
-    setNewSession({
-      title: "",
-      subject: "",
-      type: "study",
-      date: selectedDate,
-      startTime: "09:00",
-      duration: 60,
-      recurring: "none",
-      reminder: 15,
+  const handleDrop = (event, targetDate) => {
+    event.preventDefault();
+    if (!draggedSession) return;
+    supabase.from("Study").update({ Date: targetDate }).eq("id", draggedSession.id).then(({ error }) => {
+      if (error) setFetchError("Failed to move session: " + error.message);
     });
+    setSessions((prev) => prev.map((session) => session.id === draggedSession.id ? { ...session, date: new Date(targetDate) } : session));
+    setDraggedSession(null);
+  };
+
+  const handleCreateSession = async () => {
+    if (!newSession.title.trim() || !newSession.subject || !newSession.status || !newSession.date) return;
+    setIsSavingSession(true);
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setFetchError("User not authenticated");
+      setIsSavingSession(false);
+      return;
+    }
+    const { data, error } = await supabase.from("Study").insert([{
+      Subject: newSession.subject,
+      Topic: newSession.title.trim(),
+      Status: newSession.status,
+      Date: newSession.date,
+      Start: newSession.startTime,
+      Duration: newSession.duration,
+      recurring: newSession.recurring,
+      reminder_minutes: newSession.reminder,
+      deadline: activityMode === "deadline" ? newSession.date : null,
+      activity_type: activityMode === "deadline" ? "deadline" : "study",
+      muted: false,
+      user_id: user.id,
+    }]).select("id,Subject,Topic,Status,Date,Start,Duration,recurring,reminder_minutes,deadline,activity_type").single();
+    if (error) {
+      setFetchError("Failed to create session: " + error.message);
+    } else {
+      setSessions((prev) => [...prev, {
+        id: data.id, title: data.Topic, subject: data.Subject, type: "study", status: data.Status,
+        date: new Date(data.Date), startTime: data.Start, endTime: calculateEndTime(data.Start, data.Duration),
+        duration: data.Duration, recurring: data.recurring || "none", reminder: data.reminder_minutes ?? 15,
+        deadline: data.deadline, activityType: data.activity_type || "study",
+        color: data.Status === "very important" ? "bg-red-300" : data.Status === "not so important" ? "bg-green-300" : "bg-orange-300",
+      }]);
+      setNewSession({ title: "", subject: "", status: "medium", date: selectedDate, startTime: "09:00", duration: 60, recurring: "none", reminder: 15, purpose: "", blockStart: "09:00", blockEnd: "11:00" });
+      setActivityMode(null);
+    }
+    setIsSavingSession(false);
+  };
+
+  const handleAddActivity = (date, mode = "session") => {
+    setSelectedDate(date);
+    setNewSession((current) => ({ ...current, date }));
+    setActivityMode(mode);
+  };
+
+  const handleCreateActivity = async () => {
+    if (activityMode === "session" || activityMode === "recurring") {
+      await handleCreateSession();
+      setActivityMode(null);
+      return;
+    }
+
+    if (activityMode === "deadline") {
+      await handleCreateSession();
+    } else if (activityMode === "timeblock") {
+      const { data: { user } } = await supabase.auth.getUser();
+      const { data, error } = await supabase.from("time_blocks").insert({
+        user_id: user?.id,
+        block_date: newSession.date,
+        start_time: newSession.blockStart,
+        end_time: newSession.blockEnd,
+        purpose: newSession.purpose.trim(),
+      }).select("id,block_date,start_time,end_time,purpose").single();
+
+      if (error) {
+        setFetchError("Failed to create time block: " + error.message);
+        return;
+      }
+
+      setBlockedTimes((prev) => [...prev, {
+        id: data.id,
+        day: new Date(data.block_date).toLocaleDateString("en-US", { weekday: "long" }),
+        start: data.start_time,
+        end: data.end_time,
+        purpose: data.purpose,
+      }]);
+    }
+
+    setActivityMode(null);
+  };
+
+  const handleDeleteTimeBlock = async (id) => {
+    const { error } = await supabase.from("time_blocks").delete().eq("id", id);
+    if (error) {
+      setFetchError("Failed to delete time block: " + error.message);
+      return;
+    }
+    setBlockedTimes((prev) => prev.filter((block) => block.id !== id));
+  };
+
+  const handleUpdateRecurring = async (sessionId, recurring) => {
+    const { error } = await supabase.from("Study").update({ recurring }).eq("id", sessionId);
+    if (error) {
+      setFetchError("Failed to update recurring session: " + error.message);
+      return;
+    }
+    setSessions((prev) => prev.map((session) => session.id === sessionId ? { ...session, recurring } : session));
   };
 
   const calculateEndTime = (startTime, duration) => {
@@ -250,7 +326,7 @@ const PlannerPage = () => {
           </p>
         </div>
         <button
-          onClick={() => setShowCreateModal(true)}
+          onClick={() => handleAddActivity(selectedDate)}
           className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg flex items-center space-x-2 disabled:opacity-50 disabled:cursor-not-allowed"
           disabled={isLoadingSessions}
         >
@@ -279,148 +355,57 @@ const PlannerPage = () => {
         <LoadingSpinner />
       ) : (
         <>
+          <PlannerStatsBar />
           {/* Controls */}
-          <div className="lg:flex justify-between items-center mb-6">
-            <div className="flex items-center space-x-4 mb-10 overflow-x-auto md:overflow-x-visible">
-              <button
-                onClick={() => navigateDate(-1)}
-                className="p-2 hover:bg-gray-100 rounded"
-              >
-                <ChevronLeft className="w-5 h-5" />
-              </button>
-              <h2 className="text-xl font-semibold text-gray-900 min-w-48">
-                {formatDateHeader()}
-              </h2>
-              <button
-                onClick={() => navigateDate(1)}
-                className="p-2 hover:bg-gray-100 rounded"
-              >
-                <ChevronRight className="w-5 h-5" />
-              </button>
-
-              <button
-                onClick={() => setCurrentDate(new Date())}
-                className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded"
-              >
-                Today
-              </button>
+          <DeadlineManager sessions={sessions} onAddActivity={() => handleAddActivity(selectedDate, "deadline")} />
+          <div className="mb-6 flex flex-wrap items-center gap-3 rounded-full bg-white py-2">
+            <button type="button" onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }} className="rounded-full bg-blue-50 px-5 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100">Today</button>
+            <div className="flex items-center gap-1">
+              <button type="button" onClick={() => navigateWeek(-1)} title="Previous week" aria-label="Previous week" className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={() => navigateWeek(1)} title="Next week" aria-label="Next week" className="rounded-full p-2 text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronRight className="h-5 w-5" /></button>
             </div>
-
-            <div className="flex items-center space-x-2">
-              <div className="flex bg-gray-100 rounded-lg p-1">
-                {["month", "week", "day"].map((mode) => (
-                  <button
-                    key={mode}
-                    onClick={() => setViewMode(mode)}
-                    className={`px-3 py-1 text-sm rounded capitalize ${
-                      viewMode === mode
-                        ? "bg-white shadow-sm"
-                        : "hover:bg-gray-200"
-                    }`}
-                  >
-                    {mode}
-                  </button>
-                ))}
-              </div>
-              <button className="p-2 hover:bg-gray-100 rounded">
-                <ExternalLink className="w-4 h-4" />
-              </button>
-            </div>
+            <h2 className="mr-auto text-lg font-bold text-slate-900 sm:text-xl">{formatWeekRange()}</h2>
+            <label className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm text-slate-600">
+              <CalendarDays className="h-4 w-4 text-slate-500" /><span className="sr-only">Select date</span>
+              <input type="date" value={selectedDate.toISOString().slice(0, 10)} onChange={setPlannerDate} className="w-[125px] bg-transparent font-semibold text-slate-700 outline-none" />
+            </label>
+            <button type="button" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"><Timer className="h-4 w-4" />Focus</button>
+            <button type="button" className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-600 transition-colors hover:bg-slate-50"><Filter className="h-4 w-4" />Filters</button>
           </div>
 
           {/* Calendar and Details */}
-          <div className="flex flex-col lg:flex-row gap-6">
-            <div className="flex-1">
+          <div>
               <Calendar
                 currentDate={currentDate}
-                viewMode={viewMode}
                 selectedDate={selectedDate}
                 setSelectedDate={setSelectedDate}
                 sessions={sessions}
                 handleDragStart={handleDragStart}
                 handleDrop={handleDrop}
                 setSelectedSession={setSelectedSession}
+                selectedSession={selectedSession}
+                onAddActivity={handleAddActivity}
               />
-            </div>
-            {selectedSession && (
-              <div className="w-full h-fit lg:w-80 bg-white rounded-lg border border-gray-200 p-6 shadow-lg">
-                <h3 className="text-xl font-bold text-gray-900 mb-4">
-                  Session Details
-                </h3>
-                <div className="space-y-3">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Title
-                    </label>
-                    <p className="text-gray-900">{selectedSession.title}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Subject
-                    </label>
-                    <p className="text-gray-900">{selectedSession.subject}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Date
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedSession.date.toLocaleDateString()}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Time
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedSession.startTime} - {selectedSession.endTime}
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Duration
-                    </label>
-                    <p className="text-gray-900">
-                      {selectedSession.duration} minutes
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700">
-                      Type
-                    </label>
-                    <p className="text-gray-900">{selectedSession.type}</p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setSelectedSession(null)}
-                  className="mt-4 w-full bg-gray-500 hover:bg-gray-600 text-white px-4 py-2 rounded-lg"
-                >
-                  Close
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Quick Actions */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <RecurringSetup sessions={sessions} setSessions={setSessions} />
-            <DeadlineManager sessions={sessions} />
-            <TimeBlocking />
+          <div className="mb-6 flex flex-col gap-4">
+            <RecurringSetup sessions={sessions} onUpdateRecurring={handleUpdateRecurring} onAddActivity={() => handleAddActivity(selectedDate, "recurring")} />
+            <TimeBlocking blockedTimes={blockedTimes} onAddActivity={() => handleAddActivity(selectedDate, "timeblock")} onDeleteBlock={handleDeleteTimeBlock} />
           </div>
           <ExternalCalendarSync sessions={sessions} />
         </>
       )}
 
       {/* Session Scheduler Modal */}
-      <SessionScheduler
-        showModal={showCreateModal}
-        setShowModal={setShowCreateModal}
-        newSession={newSession}
-        setNewSession={setNewSession}
-        selectedDate={selectedDate}
+      <PlannerActivityModal
+        mode={activityMode}
+        form={newSession}
+        setForm={setNewSession}
         subjects={subjects}
-        sessionTypes={sessionTypes}
-        handleCreateSession={handleCreateSession}
+        isSaving={isSavingSession}
+        onClose={() => setActivityMode(null)}
+        onSubmit={handleCreateActivity}
       />
     </div>
   );

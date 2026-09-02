@@ -47,11 +47,17 @@ function Layout({ session, needsOnboarding }) {
           }}
         >
           <DashboardHeader title={pageTitle} />
-          <Outlet />
-          {!location.pathname.startsWith("/Dashboard") && location.pathname !== "/" && (
-            <section className="mx-auto mt-6 max-w-6xl px-5 pb-8 md:px-10 lg:px-16">
-              <GlobalStudyCompanion />
-            </section>
+          {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
+            <Outlet />
+          ) : (
+            <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+              <div className="min-w-0 flex-1">
+                <Outlet />
+              </div>
+              <section className="w-full self-start px-5 pb-8 md:px-10 xl:sticky xl:top-6 xl:w-[340px] xl:shrink-0 xl:px-0">
+                <GlobalStudyCompanion />
+              </section>
+            </div>
           )}
         </div>
       </div>

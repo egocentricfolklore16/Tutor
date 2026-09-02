@@ -1,84 +1,58 @@
 import React from 'react';
+import { Plus } from 'lucide-react';
 
 const Calendar = ({
   currentDate,
-  viewMode,
   selectedDate,
   setSelectedDate,
   sessions,
   handleDrop,
-  setSelectedSession
+  setSelectedSession,
+  selectedSession,
+  onAddActivity,
 }) => {
-  const renderCalendarGrid = () => {
-    if (viewMode === 'month') {
-      return renderMonthView();
-    } else if (viewMode === 'week') {
-      return renderWeekView();
-    } else {
-      return renderDayView();
-    }
-  };
+  const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
 
-  const renderMonthView = () => {
-    const firstDay = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
-    const startDate = new Date(firstDay);
-    startDate.setDate(startDate.getDate() - firstDay.getDay());
-
-    const days = [];
-    for (let i = 0; i < 42; i++) {
-      const day = new Date(startDate);
-      day.setDate(startDate.getDate() + i);
-      days.push(day);
-    }
+  const renderSessionItem = (session, compact = false) => {
+    const deadline = isDeadline(session);
+    const isOpen = selectedSession?.id === session.id;
 
     return (
-      <div className="grid grid-cols-7 gap-1">
-        {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
-          <div key={day} className="p-2 text-sm font-semibold text-gray-600 text-center">
-            {day}
-          </div>
-        ))}
-        {days.map((day, index) => {
-          const daySession = sessions.filter(session =>
-            session.date.toDateString() === day.toDateString()
-          );
-          const isCurrentMonth = day.getMonth() === currentDate.getMonth();
-          const isToday = day.toDateString() === new Date().toDateString();
-          const isSelected = day.toDateString() === selectedDate.toDateString();
-
-          return (
-            <div
-              key={index}
-              className={`min-h-24 p-1 border rounded cursor-pointer transition-colors ${
-                isCurrentMonth ? 'bg-white hover:bg-blue-50' : 'bg-gray-50 text-gray-400'
-              } ${isToday ? 'ring-2 ring-blue-500' : ''} ${isSelected ? 'bg-blue-100' : ''}`}
-              onClick={() => setSelectedDate(new Date(day))}
-              onDrop={(e) => handleDrop(e, day)}
-              onDragOver={(e) => e.preventDefault()}
-            >
-              <div className={`text-sm font-medium ${isToday ? 'text-blue-600' : ''}`}>
-                {day.getDate()}
+      <div key={session.id} className="relative">
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation();
+            setSelectedSession?.(isOpen ? null : session);
+          }}
+          className={`w-full cursor-pointer rounded p-1 text-left text-xs text-white transition hover:brightness-95 ${deadline ? "bg-red-600" : session.color} ${compact ? "mb-1" : ""}`}
+        >
+          <span className="block truncate font-semibold">{deadline ? "Deadline" : session.title}</span>
+          {!compact && deadline && <span className="block truncate">{session.title}</span>}
+        </button>
+        {isOpen && (
+          <div className="absolute left-full top-0 z-40 ml-2 w-64 rounded-xl border border-slate-200 bg-white p-4 text-left text-slate-900 shadow-2xl">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={`text-[10px] font-bold uppercase tracking-[0.16em] ${deadline ? "text-red-600" : "text-blue-600"}`}>{deadline ? "Deadline" : "Study session"}</p>
+                <h3 className="mt-1 text-sm font-bold">{session.title}</h3>
               </div>
-              <div className="space-y-1 mt-1">
-                {daySession.slice(0, 2).map(session => (
-                  <div
-                    key={session.id}
-                    className={`text-xs p-1 rounded text-white cursor-pointer ${session.color}`}
-                    onClick={() => setSelectedSession && setSelectedSession(session)}
-                  >
-                    {session.title.substring(0, 12)}...
-                  </div>
-                ))}
-                {daySession.length > 2 && (
-                  <div className="text-xs text-gray-500">+{daySession.length - 2} more</div>
-                )}
-              </div>
+              <button type="button" onClick={() => setSelectedSession?.(null)} title="Close details" className="text-lg leading-none text-slate-400 hover:text-slate-900">&times;</button>
             </div>
-          );
-        })}
+            <dl className="mt-3 space-y-2 text-xs">
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Subject</dt><dd className="font-semibold text-right">{session.subject || "-"}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-right">{session.date.toLocaleDateString()}</dd></div>
+              {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Time</dt><dd className="font-semibold text-right">{session.startTime} - {session.endTime}</dd></div>}
+              {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{session.duration} minutes</dd></div>}
+              {session.recurring && session.recurring !== "none" && <div className="flex justify-between gap-3"><dt className="text-slate-500">Repeats</dt><dd className="font-semibold capitalize text-right">{session.recurring}</dd></div>}
+            </dl>
+          </div>
+        )}
       </div>
     );
   };
+
+  const renderCalendarGrid = () => renderWeekView();
 
   const renderWeekView = () => {
     const startOfWeek = new Date(currentDate);
@@ -109,6 +83,14 @@ const Calendar = ({
             >
               {day.getDate()}
             </div>
+            <button
+              type="button"
+              onClick={() => onAddActivity(new Date(day))}
+              className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 py-2 text-xs font-semibold text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              Add
+            </button>
           </div>
         ))}
 
@@ -121,7 +103,9 @@ const Calendar = ({
                 const daySession = sessions.filter(
                   (session) =>
                     session.date.toDateString() === day.toDateString() &&
-                    parseInt(session.startTime.split(":")[0]) === hour + 8
+                    (isDeadline(session)
+                      ? hour === 0
+                      : parseInt(session.startTime.split(":")[0]) === hour + 8)
                 );
                 return (
                   <div
@@ -130,87 +114,13 @@ const Calendar = ({
                     onDrop={(e) => handleDrop(e, day)}
                     onDragOver={(e) => e.preventDefault()}
                   >
-                    {daySession.map((session) => (
-                      <div
-                        key={session.id}
-                        className={`text-xs p-1 rounded text-white mb-1 cursor-pointer ${session.color}`}
-                        onClick={() => setSelectedSession && setSelectedSession(session)}
-                      >
-                        {session.title}
-                      </div>
-                    ))}
+                    {daySession.map((session) => renderSessionItem(session, true))}
                   </div>
                 );
               })}
             </React.Fragment>
           );
         })}
-      </div>
-    );
-  };
-
-  const renderDayView = () => {
-    const daySession = sessions.filter(session =>
-      session.date.toDateString() === currentDate.toDateString()
-    );
-
-    return (
-      <div className="space-y-2">
-        <div className="grid grid-cols-2 gap-4">
-          <div>
-            <h3 className="font-semibold text-lg mb-3">Schedule</h3>
-            <div className="space-y-2">
-              {[...Array(14)].map((_, hour) => {
-                const time = `${(hour + 6).toString().padStart(2, '0')}:00`;
-                const hourSessions = daySession.filter(session =>
-                  parseInt(session.startTime.split(':')[0]) === hour + 6
-                );
-                return (
-                  <div key={time} className="flex items-start space-x-3 min-h-12">
-                    <div className="text-sm text-gray-500 w-16">{time}</div>
-                    <div className="flex-1 space-y-1 overflow-x-hidden">
-                      {hourSessions.map(session => (
-                        <div
-                          key={session.id}
-                          className={`p-2 rounded text-white cursor-pointer ${session.color}`}
-                          onClick={() => setSelectedSession && setSelectedSession(session)}
-                        >
-                          <div className="font-medium">{session.title}</div>
-                          <div className="text-xs">{session.startTime} - {session.endTime}</div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-          <div>
-            <h3 className="font-semibold text-lg mb-3">Day Overview</h3>
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span>Total Study Time:</span>
-                  <span className="font-semibold">
-                    {daySession.reduce((acc, session) => acc + (session.duration || 60), 0)} minutes
-                  </span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span>Sessions:</span>
-                  <span className="font-semibold">{daySession.length}</span>
-                </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium">Subjects:</div>
-                  {[...new Set(daySession.map(s => s.subject))].map(subject => (
-                    <div key={subject} className="text-xs bg-white px-2 py-1 rounded">
-                      {subject}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
       </div>
     );
   };

@@ -1,33 +1,56 @@
 import React from 'react';
+import { Plus } from 'lucide-react';
 
-const DeadlineManager = ({ sessions }) => {
-  // Filter sessions with deadlines
-  const deadlines = sessions.filter(session => session.deadline);
+const DeadlineManager = ({ sessions, onAddActivity }) => {
+  const deadlines = sessions
+    .filter(session => session.deadline)
+    .sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
 
-  // Sort by nearest deadline
-  deadlines.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+  const getDaysLeft = (dateValue) => {
+    const today = new Date();
+    const deadlineDate = new Date(`${dateValue}T23:59:59`);
+    today.setHours(0, 0, 0, 0);
+    deadlineDate.setHours(0, 0, 0, 0);
+    return Math.ceil((deadlineDate - today) / (1000 * 60 * 60 * 24));
+  };
 
   return (
-    <div className="bg-green-50 p-4 rounded-lg">
-      <h3 className="font-medium text-gray-900 mb-3">Upcoming Deadlines</h3>
+    <section className="group relative mb-6 overflow-hidden rounded-3xl bg-white p-5">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-red-600">Priority view</p>
+          <h3 className="mt-1 text-lg font-bold text-red-950">Upcoming deadlines</h3>
+        </div>
+      <button
+        type="button"
+        onClick={onAddActivity}
+        title="Add deadline activity"
+        aria-label="Add deadline activity"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-red-300 bg-white text-red-600 opacity-100 shadow-sm transition-all duration-300 ease-out hover:scale-110 hover:bg-red-600 hover:text-white md:scale-75 md:opacity-0 md:group-hover:scale-100 md:group-hover:opacity-100"
+      >
+        <Plus className="h-4 w-4" />
+      </button>
+      </div>
       {deadlines.length === 0 ? (
-        <p className="text-gray-600 text-sm">No upcoming deadlines</p>
+        <p className="text-sm text-red-800">No upcoming deadlines. Your priority list is clear.</p>
       ) : (
-        <ul className="space-y-2">
+        <ul className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           {deadlines.map(deadline => (
-            <li key={deadline.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm">
-              <div>
-                <div className="font-semibold">{deadline.title}</div>
-                <div className="text-xs text-gray-500">{deadline.subject}</div>
+            <li key={deadline.id} className="relative min-h-28 rounded-2xl border border-red-100 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
+              <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-red-500 shadow-sm shadow-red-500/40" aria-hidden="true" />
+              <div className="pr-5">
+                <div className="truncate text-sm font-bold text-slate-900">{deadline.title}</div>
+                <div className="mt-2 truncate text-xs text-slate-500">{deadline.subject}</div>
+                <div className="mt-1 text-xs text-slate-500">Due {new Date(`${deadline.deadline}T00:00:00`).toLocaleDateString()}</div>
               </div>
-              <div className="text-sm font-medium text-red-600">
-                {new Date(deadline.deadline).toLocaleDateString()}
+              <div className="mt-3 text-sm font-bold text-red-600">
+                {getDaysLeft(deadline.deadline) < 0 ? `${Math.abs(getDaysLeft(deadline.deadline))} days overdue` : getDaysLeft(deadline.deadline) === 0 ? "Due today" : `${getDaysLeft(deadline.deadline)} days left`}
               </div>
             </li>
           ))}
         </ul>
       )}
-    </div>
+    </section>
   );
 };
 

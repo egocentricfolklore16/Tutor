@@ -1,93 +1,44 @@
-import React, { useState } from 'react';
-import { Clock } from 'lucide-react';
+import React from 'react';
+import { Clock, Plus } from 'lucide-react';
 
-const TimeBlocking = () => {
-  const [blockedTimes, setBlockedTimes] = useState([
-    { id: 1, day: 'Monday', start: '08:00', end: '10:00', purpose: 'Study Block' },
-    { id: 2, day: 'Wednesday', start: '14:00', end: '16:00', purpose: 'Review Session' }
-  ]);
-
-  const [newBlock, setNewBlock] = useState({
-    day: 'Monday',
-    start: '09:00',
-    end: '11:00',
-    purpose: ''
-  });
-
-  const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
-
-  const handleAddBlock = () => {
-    if (newBlock.purpose) {
-      setBlockedTimes(prev => [...prev, { ...newBlock, id: Date.now() }]);
-      setNewBlock({ day: 'Monday', start: '09:00', end: '11:00', purpose: '' });
-    }
-  };
-
-  const handleDeleteBlock = (id) => {
-    setBlockedTimes(prev => prev.filter(block => block.id !== id));
-  };
+const TimeBlocking = ({ blockedTimes, onAddActivity, onDeleteBlock }) => {
 
   return (
-    <div className="bg-blue-50 p-4 rounded-lg">
-      <div className="flex items-center space-x-2 mb-3">
-        <Clock className="w-5 h-5 text-blue-600" />
-        <h3 className="font-medium text-gray-900">Time Blocking</h3>
-      </div>
-      <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <select
-            value={newBlock.day}
-            onChange={(e) => setNewBlock(prev => ({ ...prev, day: e.target.value }))}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            {days.map(day => <option key={day} value={day}>{day}</option>)}
-          </select>
-          <input
-            type="text"
-            placeholder="Purpose"
-            value={newBlock.purpose}
-            onChange={(e) => setNewBlock(prev => ({ ...prev, purpose: e.target.value }))}
-            className="border rounded px-2 py-1 text-sm"
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <input
-            type="time"
-            value={newBlock.start}
-            onChange={(e) => setNewBlock(prev => ({ ...prev, start: e.target.value }))}
-            className="border rounded px-2 py-1 text-sm"
-          />
-          <input
-            type="time"
-            value={newBlock.end}
-            onChange={(e) => setNewBlock(prev => ({ ...prev, end: e.target.value }))}
-            className="border rounded px-2 py-1 text-sm"
-          />
+    <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5">
+      <div className="mb-4 flex items-start justify-between gap-4">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Protected time</p>
+          <h3 className="mt-1 text-lg font-bold text-blue-950">Time Blocking</h3>
         </div>
         <button
-          onClick={handleAddBlock}
-          className="w-full bg-blue-600 text-white py-1 rounded text-sm hover:bg-blue-700"
+          type="button"
+          onClick={onAddActivity}
+          title="Add time block"
+          aria-label="Add time block"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300 bg-white text-blue-600 opacity-100 shadow-sm transition-all duration-300 ease-out hover:scale-110 hover:bg-blue-600 hover:text-white md:scale-75 md:opacity-0 md:group-hover:scale-100 md:group-hover:opacity-100"
         >
-          Add Time Block
+          <Plus className="h-4 w-4" />
         </button>
       </div>
-      <div className="mt-4 space-y-2">
+      <div className="flex flex-row flex-wrap gap-3">
         {blockedTimes.map(block => (
-          <div key={block.id} className="flex justify-between items-center bg-white p-2 rounded shadow-sm">
-            <div>
-              <div className="font-semibold text-sm">{block.purpose}</div>
-              <div className="text-xs text-gray-500">{block.day} {block.start} - {block.end}</div>
+          <div key={block.id} className="relative min-w-[220px] flex-1 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md">
+            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/40" aria-hidden="true" />
+            <div className="pr-5">
+              <div className="text-sm font-bold text-slate-900">{block.purpose}</div>
+              <div className="mt-2 text-xs text-slate-500">{block.day} · {block.start} - {block.end}</div>
             </div>
             <button
-              onClick={() => handleDeleteBlock(block.id)}
-              className="text-red-500 hover:text-red-700 text-xs"
+              onClick={() => onDeleteBlock(block.id)}
+              className="mt-3 text-left text-xs text-red-500 hover:text-red-700"
             >
               Delete
             </button>
           </div>
         ))}
+        {blockedTimes.length === 0 && <p className="text-sm text-blue-800">No protected time blocks set up.</p>}
       </div>
-    </div>
+    </section>
   );
 };
 

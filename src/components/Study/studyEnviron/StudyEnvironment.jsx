@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -96,9 +96,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const durationSeconds = Math.max(1, Number.parseFloat(duration) * 60 * 60);
   const [timeLeft, setTimeLeft] = useState(durationSeconds);
   const [isStudying, setIsStudying] = useState(true);
+  const pomodoroRecorded = useRef(false);
 
   useEffect(() => {
     setTimeLeft(durationSeconds);
+    pomodoroRecorded.current = false;
   }, [durationSeconds]);
 
   useEffect(() => {
@@ -108,6 +110,14 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     }, 1000);
     return () => window.clearInterval(timer);
   }, [isStudying, timeLeft]);
+
+  useEffect(() => {
+    if (timeLeft !== 0 || pomodoroRecorded.current || !userId || !session?.id) return;
+    pomodoroRecorded.current = true;
+    supabase.from("study_pomodoros").insert({ session_id: session.id, user_id: userId }).then(({ error: pomodoroError }) => {
+      if (pomodoroError) console.error("Pomodoro completion save error:", pomodoroError);
+    });
+  }, [timeLeft, userId, session]);
 
   const user =
     incomingUser ||

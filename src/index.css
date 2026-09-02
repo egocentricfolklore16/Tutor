@@ -201,3 +201,16 @@ body {
 .performance-legend-bg:hover {
   background-size: 120%;
 }
+
+/* Semantic dark-mode surfaces take precedence over legacy utility overrides. */
+.dark .dark-surface { background: var(--bg-surface) !important; color: var(--text-primary) !important; }
+.dark .dark-session-surface { background: var(--card-red-bg) !important; color: var(--text-primary) !important; }
+.dark .dark-green-surface { background: var(--card-green-bg) !important; color: var(--text-primary) !important; }
+.dark .dark-amber-surface { background: var(--card-amber-bg) !important; color: var(--text-primary) !important; }
+.dark .dark-purple-surface { background: var(--card-purple-bg) !important; color: var(--text-primary) !important; }
+.dark .dark-primary-text { color: var(--text-primary) !important; }
+.dark .dark-secondary-text { color: var(--text-secondary) !important; }
+.dark .dark-red-text { color: var(--text-accent-red) !important; }
+.dark .dark-green-text { color: var(--text-accent-green) !important; }
+.dark .dark-amber-text { color: var(--text-accent-amber) !important; }
+.dark .dark-purple-text { color: var(--text-accent-purple) !important; }

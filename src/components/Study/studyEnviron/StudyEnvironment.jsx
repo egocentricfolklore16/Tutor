@@ -246,20 +246,20 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       <div>
         <div className="grid grid-cols-3 gap-3">
           {[
-            [formattedTime(hoursLeft), "Hours"],
-            [formattedTime(minutesLeft), "Minutes"],
-            [formattedTime(secondsLeft), "Seconds"],
-          ].map(([value, label]) => (
-            <div key={label} className={`rounded-xl p-5 text-center ${importanceTheme.accentBg}`}>
-              <div className={`text-3xl font-bold md:text-5xl ${importanceTheme.accentText}`}>{value}</div>
-              <div className={`mt-2 text-xs font-medium uppercase tracking-wide ${importanceTheme.accent}`}>{label}</div>
+            [formattedTime(hoursLeft), "Hours", "accent-card-chat"],
+            [formattedTime(minutesLeft), "Minutes", "accent-card-plan"],
+            [formattedTime(secondsLeft), "Seconds", "accent-card-track"],
+          ].map(([value, label, cardClass]) => (
+            <div key={label} className={`rounded-xl p-5 text-center ${cardClass}`}>
+              <div className="text-3xl font-bold text-white md:text-5xl">{value}</div>
+              <div className="mt-2 text-xs font-medium uppercase tracking-wide text-white/85">{label}</div>
             </div>
           ))}
         </div>
         <div className="mt-6 flex flex-wrap gap-3">
           <button
             onClick={() => setIsStudying((studying) => !studying)}
-            className={`inline-flex items-center gap-2 rounded-lg px-5 py-3 font-semibold text-white ${importanceTheme.accentButton}`}
+            className="inline-flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-semibold text-white hover:bg-slate-900"
           >
             {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {isStudying ? "Pause timer" : "Resume timer"}

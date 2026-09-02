@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 
@@ -89,28 +90,37 @@ const LoginPage = () => {
   };
 
   return (
-    <div className="w-auto flex items-center justify-center p-4">
-      <div className="w-full max-w-md">
+    <div className="w-full">
         {/* Logo and Header */}
-        <div className="text-center mb-8">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-12 h-12 rounded-lg flex items-center justify-center">
-              <img src="logo.png" alt="" />
-            </div>
-            <h1 className="text-2xl font-bold text-white">Hyper Tutor</h1>
-          </div>
-          <h2 className="text-xl font-semibold text-white mb-2">
-            Welcome Back
-          </h2>
-          <p className="text-gray-400">
-            Sign in to continue your learning journey
-          </p>
-          {error && <p className="text-red-500 text-sm">{error}</p>}
+        <div className="mb-8 text-center">
+          <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><img src="/logo3.png" alt="" className="h-10 w-10 object-contain" /></div>
+          <h1 className="text-3xl font-black tracking-tight text-slate-950">Welcome back</h1>
+          <p className="mt-2 text-sm text-slate-500">Sign in to continue your learning journey</p>
+          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
         </div>
 
         {/* Login Form */}
-        <div className="bg-[#1a2f1a] rounded-xl p-6 shadow-xl border border-emerald-900/20">
-          <div className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <button type="button" onClick={() => handleSocialLogin("Google")} className="flex w-full items-center justify-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm font-bold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50">
+            <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true"><path fill="#4285F4" d="M23.49 12.27c0-.79-.07-1.55-.2-2.27H12v4.3h6.44a5.5 5.5 0 0 1-2.39 3.61v3h3.87c2.27-2.09 3.57-5.17 3.57-8.64Z"/><path fill="#34A853" d="M12 24c3.24 0 5.95-1.07 7.93-2.9l-3.87-3A7.18 7.18 0 0 1 5.36 14.3H1.36v3.1A12 12 0 0 0 12 24Z"/><path fill="#FBBC05" d="M5.36 14.3a7.2 7.2 0 0 1 0-4.6V6.6H1.36a12 12 0 0 0 0 10.8l4-3.1Z"/><path fill="#EA4335" d="M12 4.77a6.52 6.52 0 0 1 4.6 1.8l3.45-3.45A12 12 0 0 0 1.36 6.6l4 3.1A7.18 7.18 0 0 1 12 4.77Z"/></svg>
+            Continue with Google
+          </button>
+          <div className="flex items-center gap-3 text-xs font-semibold text-slate-400"><span className="h-px flex-1 bg-slate-200" />or<span className="h-px flex-1 bg-slate-200" /></div>
+          <div>
+            <label className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+            <div className="relative"><Mail className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input type="email" name="email" value={formData.email} onChange={handleInputChange} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-4 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="you@example.com" required /></div>
+          </div>
+          <div>
+            <div className="mb-2 flex items-center justify-between"><label className="text-sm font-semibold text-slate-700">Password</label><button type="button" className="text-xs font-bold text-emerald-700 hover:text-emerald-800" onClick={handleForgotPassword}>Forgot password?</button></div>
+            <div className="relative"><Lock className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input type={showPassword ? "text" : "password"} name="password" value={formData.password} onChange={handleInputChange} className="w-full rounded-xl border border-slate-200 bg-slate-50 py-3.5 pl-11 pr-12 text-sm text-slate-900 outline-none transition focus:border-emerald-500 focus:bg-white focus:ring-4 focus:ring-emerald-100" placeholder="Enter your password" required /><button type="button" aria-label={showPassword ? "Hide password" : "Show password"} onClick={() => setShowPassword(!showPassword)} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-700">{showPassword ? <EyeOff size={17} /> : <Eye size={17} />}</button></div>
+          </div>
+          <label className="flex items-center gap-2 text-sm text-slate-500"><input type="checkbox" name="rememberMe" checked={formData.rememberMe} onChange={handleInputChange} className="h-4 w-4 rounded border-slate-300 accent-emerald-600" />Remember me</label>
+          <button type="submit" className="w-full rounded-xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Continue</button>
+          <p className="text-center text-xs leading-5 text-slate-400">By continuing you agree to <button type="button" className="font-semibold text-slate-600" onClick={() => alert("Terms of Service to be implemented!")}>Terms</button> and <button type="button" className="font-semibold text-slate-600" onClick={() => alert("Privacy Policy to be implemented!")}>Privacy Policy</button></p>
+          <p className="pt-3 text-center text-sm text-slate-500">Don&apos;t have an account? <button type="button" onClick={handleClick} className="font-bold text-emerald-700 hover:text-emerald-800">Create Account</button></p>
+        </form>
+        {/* Legacy form content removed in favor of the split-screen form above. */}
+        {false && <div className="space-y-4">
             {/* Username Field */}
             <div>
               <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -121,10 +131,10 @@ const LoginPage = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  strokeWidth="2"
                   viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   height="1em"
                   width="1em"
                   xmlns="http://www.w3.org/2000/svg"
@@ -154,7 +164,7 @@ const LoginPage = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                   stroke="currentColor"
                   fill="currentColor"
-                  stroke-width="0"
+                  strokeWidth="0"
                   viewBox="0 0 16 16"
                   height="1em"
                   width="1em"
@@ -162,9 +172,9 @@ const LoginPage = () => {
                 >
                   <rect width="11" height="9" x="2.5" y="7" rx="2"></rect>
                   <path
-                    fill-rule="evenodd"
+                    fillRule="evenodd"
                     d="M4.5 4a3.5 3.5 0 117 0v3h-1V4a2.5 2.5 0 00-5 0v3h-1V4z"
-                    clip-rule="evenodd"
+                    clipRule="evenodd"
                   ></path>
                 </svg>
                 <input
@@ -185,7 +195,7 @@ const LoginPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"
@@ -198,7 +208,7 @@ const LoginPage = () => {
                     <svg
                       stroke="currentColor"
                       fill="currentColor"
-                      stroke-width="0"
+                      strokeWidth="0"
                       viewBox="0 0 1024 1024"
                       height="1em"
                       width="1em"
@@ -295,50 +305,7 @@ const LoginPage = () => {
                 Facebook
               </button>
             </div>
-          </div>
-
-          {/* Sign Up Link */}
-          <div className="mt-6 text-center">
-            <span className="text-gray-400">Don't have an account? </span>
-            <button
-              type="button"
-              onClick={handleClick}
-              className="text-emerald-400 hover:text-emerald-300 font-medium"
-            >
-              Sign up
-            </button>
-          </div>
-        </div>
-
-        {/* Additional Links */}
-        <div className="mt-6 text-center">
-          <div className="flex items-center justify-center gap-4 text-sm text-gray-500">
-            <button
-              type="button"
-              className="hover:text-emerald-400 transition-colors"
-              onClick={() => alert("Privacy Policy to be implemented!")}
-            >
-              Privacy Policy
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              className="hover:text-emerald-400 transition-colors"
-              onClick={() => alert("Terms of Service to be implemented!")}
-            >
-              Terms of Service
-            </button>
-            <span>•</span>
-            <button
-              type="button"
-              className="hover:text-emerald-400 transition-colors"
-              onClick={() => alert("Help page to be implemented!")}
-            >
-              Help
-            </button>
-          </div>
-        </div>
-      </div>
+          </div>}
     </div>
   );
 };

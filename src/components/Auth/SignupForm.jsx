@@ -149,26 +149,26 @@ const SignupPage = () => {
           </div>
         </div>
       )}
-      <div className="w-auto flex items-center justify-center p-4">
+      <div className="auth-form w-full">
         <div className="w-full max-w-md">
           {/* Logo and Header */}
-          <div className="text-center mb-8">
+          <div className="mb-8 text-center">
             <div className="flex items-center justify-center gap-2 mb-4">
-              <div className="w-12 h-12 rounded-lg flex items-center justify-center">
-                <img src="logo.png" alt="" />
+              <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100">
+                <img src="/logo3.png" alt="Hyper Tutor logo" className="h-10 w-10 object-contain" />
               </div>
-              <h1 className="text-2xl font-bold text-white">Hyper Tutor</h1>
+              <h1 className="hidden text-2xl font-bold text-slate-950">Hyper Tutor</h1>
             </div>
-            <h2 className="text-xl font-semibold text-white mb-2">
+            <h2 className="text-3xl font-black tracking-tight text-slate-950 mb-2">
               Create Account
             </h2>
-            <p className="text-gray-400">
+            <p className="text-sm text-slate-500">
               Start your personalized learning journey today
             </p>
           </div>
 
           {/* Signup Form */}
-          <div className="bg-[#1a2f1a] rounded-xl p-6 shadow-xl border border-emerald-900/20">
+          <div className="auth-form-content rounded-xl p-0">
             <div className="space-y-4">
               {/* Name Fields */}
               <div className="w-full">
@@ -181,7 +181,7 @@ const SignupPage = () => {
                     className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                     stroke="currentColor"
                     fill="currentColor"
-                    stroke-width="0"
+                    strokeWidth="0"
                     viewBox="0 0 1024 1024"
                     height="1em"
                     width="1em"
@@ -212,10 +212,10 @@ const SignupPage = () => {
                   className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5"
                   stroke="currentColor"
                   fill="none"
-                  stroke-width="2"
+                  strokeWidth="2"
                   viewBox="0 0 24 24"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
                   height="1em"
                   width="1em"
                   xmlns="http://www.w3.org/2000/svg"

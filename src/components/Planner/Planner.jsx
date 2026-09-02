@@ -19,6 +19,7 @@ import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
+import { getNotificationPreferences, recordNotification, scheduleSessionRemindersFromSessions, scheduleStudyReminder } from "../../lib/notifications";
 
 const PlannerPage = () => {
   const { profile } = useProfile();
@@ -150,6 +151,7 @@ const PlannerPage = () => {
             };
           });
           setSessions(mappedSessions);
+          scheduleSessionRemindersFromSessions(mappedSessions, getNotificationPreferences());
           setFetchError("");
         }
       } catch (err) {
@@ -224,13 +226,26 @@ const PlannerPage = () => {
     if (error) {
       setFetchError("Failed to create session: " + error.message);
     } else {
-      setSessions((prev) => [...prev, {
+      const nextSession = {
         id: data.id, title: data.Topic, subject: data.Subject, type: "study", status: data.Status,
         date: new Date(data.Date), startTime: data.Start, endTime: calculateEndTime(data.Start, data.Duration),
         duration: data.Duration, recurring: data.recurring || "none", reminder: data.reminder_minutes ?? 15,
         deadline: data.deadline, activityType: data.activity_type || "study",
         color: data.Status === "very important" ? "bg-red-300" : data.Status === "not so important" ? "bg-green-300" : "bg-orange-300",
-      }]);
+      };
+
+      setSessions((prev) => [...prev, nextSession]);
+      scheduleStudyReminder(nextSession, getNotificationPreferences());
+
+      const preferences = getNotificationPreferences();
+      const notificationBody = `${data.Topic} is scheduled for ${new Date(data.Date).toLocaleDateString()} at ${data.Start}.`;
+      recordNotification({
+        title: "Study session saved",
+        body: notificationBody,
+        type: "studyReminders",
+        context: "planner",
+      }, preferences);
+
       setNewSession({ title: "", subject: "", status: "medium", date: selectedDate, startTime: "09:00", duration: 60, recurring: "none", reminder: 15, purpose: "", blockStart: "09:00", blockEnd: "11:00" });
       setActivityMode(null);
     }

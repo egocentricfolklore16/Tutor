@@ -25,6 +25,21 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
+.auth-form-content input {
+  background: #f8fafc !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+.auth-form-content label,
+.auth-form-content .text-gray-300,
+.auth-form-content .text-gray-400,
+.auth-form-content .text-gray-500 { color: #475569 !important; }
+
+.auth-form-content .text-emerald-400 { color: #047857 !important; }
+.auth-form-content .bg-\[\#0f1f0f\] { background: #f8fafc !important; }
+.auth-form-content .border-emerald-800\/30 { border-color: #e2e8f0 !important; }
+
 @keyframes lumo-float {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-8px); }

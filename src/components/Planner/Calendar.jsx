@@ -43,7 +43,7 @@ const Calendar = ({
               <div className="flex justify-between gap-3"><dt className="text-slate-500">Subject</dt><dd className="font-semibold text-right">{session.subject || "-"}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-right">{session.date.toLocaleDateString()}</dd></div>
               {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Time</dt><dd className="font-semibold text-right">{session.startTime} - {session.endTime}</dd></div>}
-              {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{session.duration} minutes</dd></div>}
+              {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{Number(session.duration || 0).toFixed(2).replace(/\.00$/, "")} hours</dd></div>}
               {session.recurring && session.recurring !== "none" && <div className="flex justify-between gap-3"><dt className="text-slate-500">Repeats</dt><dd className="font-semibold capitalize text-right">{session.recurring}</dd></div>}
             </dl>
           </div>

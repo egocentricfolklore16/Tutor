@@ -13,7 +13,7 @@ function NotificationCenter({ notifications = [], onDismiss, onMarkAllRead, onCl
   return (
     <div className="fixed inset-0 z-[110] bg-slate-900/30" onClick={onClose}>
       <aside
-        className="notification-pane absolute right-0 top-0 h-full w-full max-w-md border-l border-slate-200 bg-white p-6 text-black shadow-2xl"
+        className="notification-pane motion-dialog absolute right-0 top-0 h-full w-full max-w-md border-l border-slate-200 bg-white p-6 text-black shadow-2xl"
         onClick={(event) => event.stopPropagation()}
       >
         <div className="flex items-center justify-between">

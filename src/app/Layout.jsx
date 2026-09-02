@@ -49,18 +49,20 @@ function Layout({ session, needsOnboarding }) {
           }}
         >
           <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
-          {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
-            <Outlet />
-          ) : (
-            <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
-              <div className="min-w-0 flex-1">
-                <Outlet />
+          <div key={location.pathname} className="page-enter">
+            {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
+              <Outlet />
+            ) : (
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+                <div className="min-w-0 flex-1">
+                  <Outlet />
+                </div>
+                <section className="w-full self-start px-5 pb-8 md:px-10 xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
+                  <GlobalStudyCompanion />
+                </section>
               </div>
-              <section className="w-full self-start px-5 pb-8 md:px-10 xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
-                <GlobalStudyCompanion />
-              </section>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
     </ProfileProvider>

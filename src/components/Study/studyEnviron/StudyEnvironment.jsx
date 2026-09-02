@@ -11,6 +11,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
+import { updateStreakForActivity } from "../../../lib/streaks";
 import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
@@ -114,8 +115,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   useEffect(() => {
     if (timeLeft !== 0 || pomodoroRecorded.current || !userId || !session?.id) return;
     pomodoroRecorded.current = true;
-    supabase.from("study_pomodoros").insert({ session_id: session.id, user_id: userId }).then(({ error: pomodoroError }) => {
+    supabase.from("study_pomodoros").insert({ session_id: session.id, user_id: userId }).then(async ({ error: pomodoroError }) => {
       if (pomodoroError) console.error("Pomodoro completion save error:", pomodoroError);
+      else await updateStreakForActivity(userId);
     });
   }, [timeLeft, userId, session]);
 

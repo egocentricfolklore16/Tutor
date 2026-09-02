@@ -6,7 +6,7 @@ function toGoogleEvent(studySession) {
   const start = new Date(studySession.date);
   const [hours, minutes] = (studySession.startTime || "09:00").split(":").map(Number);
   start.setHours(hours || 9, minutes || 0, 0, 0);
-  const end = new Date(start.getTime() + (Number(studySession.duration) || 60) * 60000);
+  const end = new Date(start.getTime() + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   return {
     summary: studySession.title || studySession.subject || "Hyper Tutor Study Session",
     description: `Planned In Hyper Tutor${studySession.subject ? `\nSubject: ${studySession.subject}` : ""}`,

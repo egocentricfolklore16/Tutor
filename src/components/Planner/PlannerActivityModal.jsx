@@ -19,7 +19,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }} className="max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+      <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
         <div className="mb-7 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Study planner</p>
@@ -44,7 +44,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
             <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />{isDeadline ? "Due date" : "Date"}</span><input required type="date" value={dateValue} onChange={(event) => update("date", event.target.value)} className={fieldClass} /></label>
             {isDeadline ? <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="1440">1 day before</option><option value="60">1 hour before</option></select></label> : <>
               <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</span><input required type="time" value={form.startTime} onChange={(event) => update("startTime", event.target.value)} className={fieldClass} /></label>
-              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</span><input required type="number" min="15" step="15" value={form.duration} onChange={(event) => update("duration", Number(event.target.value))} className={fieldClass} /></label>
+              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</span><input required type="number" min="15" max="1440" step="15" value={form.duration || 0} onChange={(event) => update("duration", Number(event.target.value))} className={fieldClass} /></label>
               <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Repeat className="h-4 w-4 text-blue-600" />Repeat</span><select value={form.recurring} onChange={(event) => update("recurring", event.target.value)} className={fieldClass}><option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
               <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
             </>}

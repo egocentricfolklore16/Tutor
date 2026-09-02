@@ -122,6 +122,7 @@ function Onboarding({ session }) {
     }
 
     sessionStorage.setItem(`hyper-tutor-onboarding-complete:${user.id}`, "true");
+    window.dispatchEvent(new CustomEvent("hyper-tutor-onboarding-completed", { detail: { userId: user.id } }));
     navigate("/Dashboard", { replace: true });
   };
 

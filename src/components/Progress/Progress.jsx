@@ -3,6 +3,8 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BookOpen, CalendarCheck, Clock3, Library, Loader2, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
+import AchievementsCard from "../Dashboard/AchievementsCard";
+import Leaderboard from "../Dashboard/Leaderboard";
 
 const dateKey = (value) => {
   const date = new Date(value);
@@ -93,6 +95,11 @@ function Progress() {
         </div>
 
         <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-5 flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-600" /><div><h2 className="font-semibold text-slate-900">Time investment by subject</h2><p className="mt-1 text-sm text-slate-500">Where your planned study time is going</p></div></div>{analytics.topSubjects.length === 0 ? <p className="text-sm text-slate-500">Create study sessions to see subject progress.</p> : <div className="grid gap-4 md:grid-cols-2">{analytics.topSubjects.map(([subject, hours]) => <div key={subject}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-medium text-slate-700">{subject}</span><span className="shrink-0 text-slate-500">{hours.toFixed(1)}h</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-indigo-400" style={{ width: `${analytics.plannedHours ? hours / analytics.plannedHours * 100 : 0}%` }} /></div></div>)}</div>}</section>
+
+        <section className="mt-6 grid gap-6 lg:grid-cols-2" aria-label="Achievements and leaderboard">
+          <AchievementsCard />
+          <Leaderboard />
+        </section>
       </div>
     </main>
   );

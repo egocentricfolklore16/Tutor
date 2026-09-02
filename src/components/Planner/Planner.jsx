@@ -66,7 +66,7 @@ const PlannerPage = () => {
     setNewSession((current) => ({
       ...current,
       startTime: preferredStart,
-      duration: profile.weekly_hours ? Math.min(120, Math.max(30, Math.round((profile.weekly_hours * 60) / Math.max(profile.study_days?.length || 3, 3)))) : current.duration,
+      duration: profile.weekly_hours ? Math.round(Math.min(24, Math.max(0.25, Number((profile.weekly_hours / Math.max(profile.study_days?.length || 3, 3)).toFixed(2)))) * 60) : current.duration,
     }));
   }, [profile]);
 
@@ -215,7 +215,7 @@ const PlannerPage = () => {
       Status: newSession.status,
       Date: newSession.date,
       Start: newSession.startTime,
-      Duration: newSession.duration,
+      Duration: Number(newSession.duration) / 60,
       recurring: newSession.recurring,
       reminder_minutes: newSession.reminder,
       deadline: activityMode === "deadline" ? newSession.date : null,
@@ -315,7 +315,7 @@ const PlannerPage = () => {
   const calculateEndTime = (startTime, duration) => {
     const [hours, minutes] = startTime.split(":").map(Number);
     const endDate = new Date();
-    endDate.setHours(hours, minutes + duration);
+    endDate.setHours(hours, minutes + Number(duration) * 60);
     return endDate.toTimeString().slice(0, 5);
   };
 

@@ -25,6 +25,41 @@ body {
   transition: background-color 180ms ease, color 180ms ease;
 }
 
+button,
+input,
+select,
+textarea {
+  transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 160ms ease, transform 160ms ease, opacity 160ms ease;
+}
+
+button:active:not(:disabled) { transform: scale(0.98); }
+form { animation: form-enter 260ms ease-out both; }
+.motion-dialog { animation: dialog-enter 220ms ease-out both; }
+.page-enter { animation: page-enter 280ms ease-out both; }
+.faq-answer { display: grid; grid-template-rows: 0fr; opacity: 0; transition: grid-template-rows 260ms ease, opacity 220ms ease; }
+.faq-answer > p { min-height: 0; overflow: hidden; }
+.faq-answer-open { grid-template-rows: 1fr; opacity: 1; }
+
+@keyframes form-enter {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dialog-enter {
+  from { opacity: 0; transform: translateY(8px) scale(0.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes page-enter {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  button, input, select, textarea, form, .motion-dialog, .page-enter, .faq-answer { animation: none !important; transition: none !important; }
+  button:active:not(:disabled) { transform: none; }
+}
+
 .dark .notification-pane { background: #ffffff !important; color: #000000 !important; }
 .dark .notification-pane * { color: inherit; }
 

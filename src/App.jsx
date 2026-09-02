@@ -29,6 +29,14 @@ function App() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
+    const handleOnboardingCompleted = (event) => {
+      if (event.detail?.userId === session?.user?.id) {
+        setNeedsOnboarding(false);
+      }
+    };
+
+    window.addEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
+
     const fetchSession = async () => {
       const currentSession = await supabase.auth.getSession();
       const nextSession = currentSession.data?.session || null;
@@ -66,8 +74,11 @@ function App() {
         .then(({ data, error }) => setNeedsOnboarding(!completedLocally && (Boolean(error) || !data?.onboarding_completed)));
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      subscription.unsubscribe();
+      window.removeEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
+    };
+  }, [session?.user?.id]);
 
   if (loading || onboardingLoading) return null;
 

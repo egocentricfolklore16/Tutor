@@ -50,9 +50,10 @@ const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
 
 function Overview() {
   const navigate = useNavigate();
-  const { profile, isLoading: isProfileLoading } = useProfile();
+  const { profile, isLoading: isProfileLoading, streak } = useProfile();
   const [userName, setUserName] = useState("");
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
+  const [feedbackVisible, setFeedbackVisible] = useState(true);
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
@@ -86,7 +87,7 @@ function Overview() {
           <section className="rounded-2xl bg-white/70 px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />22d Streak</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />{streak?.display_current_streak || 0}d Streak</span>
             </div>
 
             <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -130,7 +131,7 @@ function Overview() {
 
         <div className="lg:col-span-2">
           <div className="row-span-6 mb-6">
-            <StudyStreak />
+            <StudyStreak streak={streak} />
           </div>
 
           <div className="lg:col-span-2 row-span-3">
@@ -138,7 +139,15 @@ function Overview() {
           </div>
         </div>
       </div>
-      <button type="button" title="Send feedback" className="fixed bottom-5 right-5 z-50 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-emerald-700"><MessageSquare className="h-4 w-4" /> Feedback</button>
+      {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+        <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
+        <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
+        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">
+          <span>Give us feedback!</span>
+          <MessageSquare className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950">×</button>
+        </div>
+      </div>}
     </>
   );
 }

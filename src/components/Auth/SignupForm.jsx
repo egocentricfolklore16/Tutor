@@ -118,7 +118,7 @@ const SignupPage = () => {
     <>
       {showConfirmDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-60">
-          <div className="bg-[#1a2f1a] rounded-xl shadow-xl p-8 max-w-md w-full text-center border border-emerald-900/20">
+          <div className="motion-dialog bg-[#1a2f1a] rounded-xl shadow-xl p-8 max-w-md w-full text-center border border-emerald-900/20">
             <div className="mb-6">
               <div className="w-16 h-16 rounded-full bg-emerald-600 flex items-center justify-center mx-auto mb-4">
                 <svg className="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">

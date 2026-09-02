@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { LogOut } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
+import FeedbackDialog from "../common/FeedbackDialog";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
   const { profile } = useProfile();
@@ -19,6 +20,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     return "User";
   });
   const [isLoading, setIsLoading] = useState(!user);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
 
   const menuItems = [
     {
@@ -171,12 +173,14 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     }
   };
 
-  const handleLogout = async () => {
+  const confirmLogout = async () => {
     const { error } = await supabase.auth.signOut();
     if (error) {
       console.error("Supabase sign out error:", error);
     }
   };
+
+  const handleLogout = () => setFeedbackOpen(true);
 
   useEffect(() => {
     // If parent provided a `user` prop, use it and skip fetching.
@@ -372,6 +376,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           )}
         </div>
       </div>
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} onLogout={confirmLogout} />
     </>
   );
 }

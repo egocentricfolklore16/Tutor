@@ -121,6 +121,7 @@ function Onboarding({ session }) {
       return;
     }
 
+    sessionStorage.setItem(`hyper-tutor-onboarding-complete:${user.id}`, "true");
     navigate("/Dashboard", { replace: true });
   };
 

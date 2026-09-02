@@ -35,12 +35,13 @@ function App() {
       setSession(nextSession);
       if (nextSession?.user) {
         setOnboardingLoading(true);
+        const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
         const { data: profile, error } = await supabase
           .from("profiles")
           .select("onboarding_completed")
           .eq("user_id", nextSession.user.id)
           .maybeSingle();
-        setNeedsOnboarding(Boolean(error) || !profile?.onboarding_completed);
+        setNeedsOnboarding(!completedLocally && (Boolean(error) || !profile?.onboarding_completed));
         setOnboardingLoading(false);
       }
       setLoading(false);
@@ -56,12 +57,13 @@ function App() {
         setNeedsOnboarding(false);
         return;
       }
+      const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${session.user.id}`) === "true";
       supabase
         .from("profiles")
         .select("onboarding_completed")
         .eq("user_id", session.user.id)
         .maybeSingle()
-        .then(({ data, error }) => setNeedsOnboarding(Boolean(error) || !data?.onboarding_completed));
+        .then(({ data, error }) => setNeedsOnboarding(!completedLocally && (Boolean(error) || !data?.onboarding_completed)));
     });
 
     return () => subscription.unsubscribe();
@@ -99,6 +101,14 @@ function App() {
             <Route path="/onboarding" element={<Onboarding />} />
             <Route
               path="/"
+              element={
+                <AuthLayout>
+                  <SignupPage />
+                </AuthLayout>
+              }
+            />
+            <Route
+              path="/signup"
               element={
                 <AuthLayout>
                   <SignupPage />

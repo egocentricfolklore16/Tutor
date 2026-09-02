@@ -8,6 +8,18 @@ export default function AuthCallback() {
   const [status, setStatus] = useState("verifying");
   const [error, setError] = useState(null);
 
+  const redirectAfterAuth = async (session) => {
+    if (!session?.user) return;
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("user_id", session.user.id)
+      .maybeSingle();
+
+    navigate(profile?.onboarding_completed ? "/Dashboard" : "/onboarding", { replace: true });
+  };
+
   useEffect(() => {
     let mounted = true;
 
@@ -32,7 +44,7 @@ export default function AuthCallback() {
 
         if (session?.user) {
           setStatus("success");
-          navigate("/onboarding", { replace: true });
+          await redirectAfterAuth(session);
         } else {
           // No session found, redirect to login
           setError("No valid session found. Please try logging in again.");
@@ -63,7 +75,7 @@ export default function AuthCallback() {
 
       if (event === "SIGNED_IN" && session) {
         setStatus("success");
-        navigate("/onboarding", { replace: true });
+        redirectAfterAuth(session);
       } else if (event === "SIGNED_OUT") {
         navigate("/login");
       }

@@ -33,6 +33,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [aiMessages, setAiMessages] = useState([]);
   const [aiMessage, setAiMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
+  const [sessionComplete, setSessionComplete] = useState(false);
   const { Studyid } = useParams();
   const navigate = useNavigate();
 
@@ -102,6 +103,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   useEffect(() => {
     setTimeLeft(durationSeconds);
     pomodoroRecorded.current = false;
+    setSessionComplete(false);
   }, [durationSeconds]);
 
   useEffect(() => {
@@ -120,6 +122,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       else await updateStreakForActivity(userId);
     });
   }, [timeLeft, userId, session]);
+
+  useEffect(() => {
+    if (timeLeft === 0) setSessionComplete(true);
+  }, [timeLeft]);
 
   const user =
     incomingUser ||
@@ -147,6 +153,23 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           Back to sessions
         </button>
       </div>
+    );
+  }
+
+  if (sessionComplete) {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-center text-slate-900">
+        <div className="motion-dialog flex w-full max-w-xl flex-col items-center">
+          <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
+          <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
+          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
+          <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
+          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
+            <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200">Back to dashboard</button>
+          </div>
+        </div>
+      </main>
     );
   }
 

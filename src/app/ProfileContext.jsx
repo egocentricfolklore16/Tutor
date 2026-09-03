@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import supabase from "../lib/supabase.js";
-import { getDisplayStreak, getUserStreak, getUserTimeZone } from "../lib/streaks";
+import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip } from "../lib/streaks";
 
 const ProfileContext = createContext(null);
 
@@ -32,6 +32,12 @@ export function ProfileProvider({ user, children }) {
     setProfile(nextProfile);
     const { data: streakData } = await getUserStreak(user.id);
     setStreak(streakData ? { ...streakData, display_current_streak: getDisplayStreak(streakData, new Date(), getUserTimeZone()) } : null);
+    
+    // Check for streak slips
+    if (streakData) {
+      await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
+    }
+    
     setDarkMode(Boolean(nextProfile?.dark_mode));
     setIsLoading(false);
   };
@@ -50,7 +56,11 @@ export function ProfileProvider({ user, children }) {
     if (!user?.id) return undefined;
     const refreshStreak = async () => {
       const { data } = await getUserStreak(user.id);
-      if (data) setStreak({ ...data, display_current_streak: getDisplayStreak(data, new Date(), getUserTimeZone()) });
+      if (data) {
+        setStreak({ ...data, display_current_streak: getDisplayStreak(data, new Date(), getUserTimeZone()) });
+        // Check for slip when streak is refreshed
+        await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
+      }
     };
     window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
     return () => window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);

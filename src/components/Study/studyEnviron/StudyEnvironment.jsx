@@ -117,10 +117,34 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   useEffect(() => {
     if (timeLeft !== 0 || pomodoroRecorded.current || !userId || !session?.id) return;
     pomodoroRecorded.current = true;
-    supabase.from("study_pomodoros").insert({ session_id: session.id, user_id: userId }).then(async ({ error: pomodoroError }) => {
-      if (pomodoroError) console.error("Pomodoro completion save error:", pomodoroError);
-      else await updateStreakForActivity(userId);
-    });
+    
+    const completeSession = async () => {
+      // Save pomodoro record
+      const { error: pomodoroError } = await supabase
+        .from("study_pomodoros")
+        .insert({ session_id: session.id, user_id: userId });
+      
+      if (pomodoroError) {
+        console.error("Pomodoro completion save error:", pomodoroError);
+      } else {
+        // Update streak
+        await updateStreakForActivity(userId);
+        
+        // Delete the study session after a short delay to allow UI to update
+        setTimeout(async () => {
+          const { error: deleteError } = await supabase
+            .from("Study")
+            .delete()
+            .eq("id", session.id);
+          
+          if (deleteError) {
+            console.error("Session deletion error:", deleteError);
+          }
+        }, 2000);
+      }
+    };
+    
+    completeSession();
   }, [timeLeft, userId, session]);
 
   useEffect(() => {

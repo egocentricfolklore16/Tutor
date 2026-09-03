@@ -4,6 +4,7 @@ import RecentActivity from "./RecentActivity";
 import PerformanceDashboard from "./AnalyticsDashboard";
 import StudyStreak from "./StudyStreak";
 import AISuggestions from "./AISuggestions";
+import KeepsSlipping from "./KeepsSlipping";
 import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
 import DashboardStatsBar from "./DashboardStatsBar";
 import QuickShortcuts from "./QuickShortcuts";
@@ -12,6 +13,7 @@ import AchievementsCard from "./AchievementsCard";
 import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
+import supabase from "../../lib/supabase";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -52,11 +54,22 @@ function Overview() {
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading, streak } = useProfile();
   const [userName, setUserName] = useState("");
+  const [userId, setUserId] = useState(null);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
+
+  useEffect(() => {
+    const getUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        setUserId(user.id);
+      }
+    };
+    getUser();
+  }, []);
 
   useEffect(() => {
     if (!isProfileLoading && userName) {
@@ -135,8 +148,12 @@ function Overview() {
           </div>
 
           <div className="lg:col-span-2 row-span-3">
-            <AISuggestions />
+            <KeepsSlipping userId={userId} />
           </div>
+        </div>
+
+        <div className="lg:col-span-3">
+          <AISuggestions />
         </div>
       </div>
       {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">

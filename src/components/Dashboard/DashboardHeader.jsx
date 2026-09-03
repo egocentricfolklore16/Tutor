@@ -118,7 +118,7 @@ function DashboardHeader({ toggleSidebar }) {
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden"><button type="button" title="Open sidebar" onClick={toggleSidebar} className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700"><Menu className="h-4 w-4" /></button><img src="/logo3.png" alt="Hyper Tutor" className="h-7 w-7 object-contain" /></span>
 
-        <p className="hidden truncate text-base font-bold text-slate-950 sm:block">{timeOfDay}, {name}!</p>
+        <p className="hidden truncate text-base text-slate-950 sm:block">{timeOfDay}, {name}!</p>
       </div>
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-slate-900 sm:gap-2">
         <span className="hidden items-center gap-1.5 rounded-full bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-sm lg:inline-flex"><Flame className="h-3.5 w-3.5 text-orange-600" />{streak?.display_current_streak || 0}d</span>

@@ -189,12 +189,18 @@ function DashboardHeader({ toggleSidebar }) {
         <p className="hidden truncate text-base text-slate-950 sm:block">{timeOfDay}, {name}!</p>
       </div>
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-slate-900 sm:gap-2">
+        <div className="relative">
+          <button type="button" title="Open AI suggestions" onClick={() => setAiSuggestionsOpen((open) => !open)} className="hidden rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 sm:inline-flex"><Menu className="h-4 w-4" /></button>
+          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-md hover:text-slate-900"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
+        </div>
+        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 sm:shadow-sm"><Search className="h-4 w-4 text-sky-700" /><span className="hidden text-xs font-semibold sm:inline">Search</span><span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex"><Command className="h-3 w-3" />K</span></button>
+
         <div
           className="relative hidden lg:block"
           onMouseEnter={openStreakDropdown}
           onMouseLeave={closeStreakDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-sm"><Flame className="h-3.5 w-3.5 text-orange-600" />{currentStreak}d</span>
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-sm"><Flame className="h-3.5 w-3.5 text-orange-600" />{currentStreak}d</span>
           {streakDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-gradient-to-br dark:from-amber-900/30 dark:to-[#18211f]">
@@ -238,7 +244,7 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openXpDropdown}
           onMouseLeave={closeXpDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-sm"><Zap className="h-3.5 w-3.5 text-amber-600" />{xpPoints} XP</span>
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-sm"><Zap className="h-3.5 w-3.5 text-amber-600" />{xpPoints} XP</span>
           {xpDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-gradient-to-br dark:from-amber-900/30 dark:to-[#18211f]">
@@ -276,14 +282,12 @@ function DashboardHeader({ toggleSidebar }) {
           )}
         </div>
 
-        <span className="hidden h-7 min-w-7 items-center justify-center rounded-full bg-violet-200 px-2 font-black text-violet-950 shadow-sm sm:flex">4</span>
-
         <div
           className="relative hidden md:block"
           onMouseEnter={openGemsDropdown}
           onMouseLeave={closeGemsDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-full bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-sm"><GemIcon className="h-3.5 w-3.5 text-cyan-600" />{gemsCount}</span>
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-sm"><GemIcon className="h-3.5 w-3.5 text-cyan-600" />{gemsCount}</span>
           {gemsDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-cyan-100 p-5 dark:bg-gradient-to-br dark:from-cyan-900/30 dark:to-[#18211f]">
@@ -312,12 +316,6 @@ function DashboardHeader({ toggleSidebar }) {
           )}
         </div>
 
-        <span className="hidden rounded-full bg-rose-200 px-3 py-1.5 font-bold text-rose-950 shadow-sm sm:inline-flex">1</span>
-        <div className="relative">
-          <button type="button" title="Open AI suggestions" onClick={() => setAiSuggestionsOpen((open) => !open)} className="hidden rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 sm:inline-flex"><Menu className="h-4 w-4" /></button>
-          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-md hover:text-slate-900"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
-        </div>
-        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 sm:shadow-sm"><Search className="h-4 w-4 text-sky-700" /><span className="hidden text-xs font-semibold sm:inline">Search</span><span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex"><Command className="h-3 w-3" />K</span></button>
         <button type="button" title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => toggleDarkMode(!darkMode)} className="hidden rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 sm:inline-flex">{darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}</button>
         <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700">
           <Bell className="h-4 w-4" />

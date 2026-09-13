@@ -27,6 +27,43 @@ export default function AuthCallback() {
       try {
         setStatus("verifying");
 
+        // Check for error parameters in URL hash or search
+        const hashParams = new URLSearchParams(window.location.hash.substring(1));
+        const searchParams = new URLSearchParams(window.location.search);
+        const errorDescription = hashParams.get("error_description") || searchParams.get("error_description");
+
+        if (errorDescription) {
+          if (!mounted) return;
+          setError(decodeURIComponent(errorDescription.replace(/\+/g, " ")));
+          setStatus("error");
+          return;
+        }
+
+        // Handle access_token and refresh_token in hash if present
+        const accessToken = hashParams.get("access_token");
+        const refreshToken = hashParams.get("refresh_token");
+
+        if (accessToken && refreshToken) {
+          const { data, error: setSessionError } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken,
+          });
+
+          if (!mounted) return;
+
+          if (setSessionError) {
+            setError(setSessionError.message || "Failed to establish session from magic link.");
+            setStatus("error");
+            return;
+          }
+
+          if (data?.session) {
+            setStatus("success");
+            await redirectAfterAuth(data.session);
+            return;
+          }
+        }
+
         // Get the current session to see if user is authenticated
         const {
           data: { session },

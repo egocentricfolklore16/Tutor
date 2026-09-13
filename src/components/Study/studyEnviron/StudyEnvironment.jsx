@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
+import { awardUserRewards } from "../../../lib/gamification";
 import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
@@ -127,8 +128,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       if (pomodoroError) {
         console.error("Pomodoro completion save error:", pomodoroError);
       } else {
-        // Update streak
-        await updateStreakForActivity(userId);
+        // Update streak & award rewards (e.g. 50 XP and 5 Gems)
+        await Promise.all([
+          updateStreakForActivity(userId),
+          awardUserRewards(userId, { xp: 50, gems: 5 }),
+        ]);
         
         // Delete the study session after a short delay to allow UI to update
         setTimeout(async () => {

@@ -10,6 +10,7 @@ import {
   getStoredNotifications,
   markAllNotificationsRead,
 } from "../../lib/notifications";
+import { calculateXpLevel } from "../../lib/gamification";
 
 const WEEK_DAYS = ["S", "M", "T", "W", "T", "F", "S"];
 
@@ -50,13 +51,12 @@ function DashboardHeader({ toggleSidebar }) {
   const activeFriendStreaks = streak?.active_friend_streaks || 0;
   const todayIndex = new Date().getDay();
 
-  // TODO: replace with real XP data once backend exposes it
   const xpPoints = profile?.xp_points ?? 0;
-  const xpLevel = profile?.xp_level ?? 1;
-  const xpToNextLevel = profile?.xp_to_next_level ?? 100;
-  const xpProgressPercent = profile?.xp_progress_percent ?? 40;
+  const xpInfo = calculateXpLevel(xpPoints);
+  const xpLevel = xpInfo.level;
+  const xpToNextLevel = xpInfo.xpToNextLevel;
+  const xpProgressPercent = xpInfo.xpProgressPercent;
 
-  // TODO: replace with real gems data once backend exposes it
   const gemsCount = profile?.gems ?? 0;
 
   useEffect(() => {

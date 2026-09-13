@@ -62,8 +62,16 @@ export function ProfileProvider({ user, children }) {
         await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
       }
     };
+    const refreshRewards = () => {
+      loadProfile();
+    };
+
     window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
-    return () => window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
+    window.addEventListener("hyper-tutor-rewards-updated", refreshRewards);
+    return () => {
+      window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
+      window.removeEventListener("hyper-tutor-rewards-updated", refreshRewards);
+    };
   }, [user?.id]);
 
   const toggleDarkMode = async (enabled) => {

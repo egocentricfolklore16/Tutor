@@ -5,8 +5,8 @@ security definer
 set search_path = public
 as $$
 begin
-  insert into public.profiles (user_id, username)
-  values (new.id, new.raw_user_meta_data->>'userName');
+  insert into public.profiles (user_id, full_name)
+  values (new.id, coalesce(new.raw_user_meta_data->>'full_name', new.raw_user_meta_data->>'userName'));
   return new;
 end;
 $$;

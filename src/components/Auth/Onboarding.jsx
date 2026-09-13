@@ -95,7 +95,6 @@ function Onboarding({ session }) {
 
     const profile = {
       user_id: user.id,
-      username: user.user_metadata?.userName || user.user_metadata?.username || user.email?.split("@")[0] || "Learner",
       full_name: form.fullName.trim(),
       learner_type: form.learnerType,
       education_level: form.educationLevel,
@@ -112,7 +111,7 @@ function Onboarding({ session }) {
 
     const [{ error: profileError }, { error: metadataError }] = await Promise.all([
       supabase.from("profiles").upsert(profile, { onConflict: "user_id" }),
-      supabase.auth.updateUser({ data: { ...profile, username: profile.username } }),
+      supabase.auth.updateUser({ data: { ...profile, full_name: profile.full_name } }),
     ]);
 
     if (profileError || metadataError) {

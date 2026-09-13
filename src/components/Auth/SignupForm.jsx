@@ -109,8 +109,7 @@ const SignupPage = () => {
       password: formData.password,
       options: {
         data: {
-          userName: formData.userName.trim(),
-          username: formData.userName.trim(),
+          full_name: formData.userName.trim(),
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }

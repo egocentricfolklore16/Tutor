@@ -76,7 +76,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
       const { data, error: profileError } = await supabase
         .from("profiles")
-        .select("username")
+        .select("full_name")
         .eq("user_id", authUser.id)
         .single();
 
@@ -85,7 +85,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       }
 
       setProfile({
-        name: data?.username || authUser.user_metadata?.userName || "User",
+        name: data?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.userName || "User",
         email: authUser.email || "",
         avatar: authUser.user_metadata?.avatar_url || "",
       });

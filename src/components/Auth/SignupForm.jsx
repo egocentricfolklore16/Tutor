@@ -225,7 +225,7 @@ const SignupPage = () => {
               <div className="w-full">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Username *
+                  Full Name *
                 </label>
                 <div className="relative">
                   <svg
@@ -246,7 +246,7 @@ const SignupPage = () => {
                     value={formData.userName}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 bg-[#0f1f0f] border border-emerald-800/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    placeholder="Username"
+                    placeholder="Full Name"
                     required
                   />
                 </div>

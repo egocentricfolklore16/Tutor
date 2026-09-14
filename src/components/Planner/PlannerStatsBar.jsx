@@ -9,7 +9,7 @@ const cards = [
     subtext: "tasks done",
     icon: CalendarCheck2,
     color: "blue",
-    background: "bg-blue-50 dark:bg-gradient-to-br dark:from-blue-500/10 dark:to-[#18211f]",
+    background: "bg-blue-50 dark:bg-blue-500/10",
     iconColor: "text-blue-600 dark:text-blue-400",
   },
   {
@@ -18,7 +18,7 @@ const cards = [
     subtext: "pomodoros",
     icon: Flame,
     color: "pink",
-    background: "bg-pink-50 dark:bg-gradient-to-br dark:from-pink-500/10 dark:to-[#18211f]",
+    background: "bg-pink-50 dark:bg-pink-500/10",
     iconColor: "text-pink-600 dark:text-pink-400",
   },
   {
@@ -27,7 +27,7 @@ const cards = [
     subtext: "exams",
     icon: GraduationCap,
     color: "purple",
-    background: "bg-purple-50 dark:bg-gradient-to-br dark:from-purple-500/10 dark:to-[#18211f]",
+    background: "bg-purple-50 dark:bg-purple-500/10",
     iconColor: "text-purple-600 dark:text-purple-400",
   },
 ];

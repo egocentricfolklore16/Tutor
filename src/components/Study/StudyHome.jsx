@@ -29,14 +29,15 @@ function Study() {
     hours: "",
   });
   const [sessions, setSessions] = useState([]);
+  const [sessionHistory, setSessionHistory] = useState([]);
   const [fetchError, setFetchError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Fetch sessions from Supabase on mount
+  // Fetch sessions and history from Supabase on mount
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessionsAndHistory = async () => {
       try {
         setIsLoadingSessions(true);
         setFetchError("");
@@ -53,19 +54,34 @@ function Study() {
           return;
         }
 
-        const { data, error } = await supabase
-          .from("Study")
-          .select("*")
-          .eq("user_id", user.id); // Filter by current user's ID
+        const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] =
+          await Promise.all([
+            supabase.from("Study").select("*").eq("user_id", user.id),
+            supabase.from("study_history").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
+          ]);
 
-        if (error) {
+        if (activeError) {
           setFetchError(
-            "An error occurred while loading study sessions: " + error.message
+            "An error occurred while loading study sessions: " + activeError.message
           );
-          console.error("Supabase fetch error:", error);
+          console.error("Supabase fetch error:", activeError);
         } else {
-          setFetchError("");
-          setSessions(data || []);
+          setSessions(activeData || []);
+        }
+
+        if (!historyError && historyData) {
+          setSessionHistory(
+            historyData.map((item) => ({
+              id: item.id,
+              subject: item.subject,
+              topic: item.topic,
+              durationMinutes: item.duration_minutes,
+              startedAt: item.started_at,
+              completedAt: item.completed_at,
+              status: item.status,
+              xpEarned: item.xp_earned,
+            }))
+          );
         }
       } catch (err) {
         setFetchError("An unexpected error occurred while loading sessions");
@@ -74,7 +90,31 @@ function Study() {
         setIsLoadingSessions(false);
       }
     };
-    fetchSessions();
+    fetchSessionsAndHistory();
+  }, []);
+
+  useEffect(() => {
+    const handleSessionCompleted = (event) => {
+      const entry = event.detail;
+      if (!entry) return;
+      setSessionHistory((prev) => [
+        {
+          id: entry.id,
+          subject: entry.subject,
+          topic: entry.topic,
+          durationMinutes: entry.duration_minutes,
+          startedAt: entry.started_at,
+          completedAt: entry.completed_at,
+          status: entry.status,
+          xpEarned: entry.xp_earned,
+        },
+        ...prev,
+      ]);
+      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.id)));
+    };
+
+    window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);
+    return () => window.removeEventListener("hyper-tutor-session-completed", handleSessionCompleted);
   }, []);
 
   const [dropdownIndex, setDropdownIndex] = useState(null);
@@ -492,6 +532,61 @@ function Study() {
             })}
           </div>
         )}
+
+        {/* Session History Section */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+            Session History
+          </h2>
+          {sessionHistory.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-[#18211f] p-8 text-center text-gray-500 dark:text-slate-400">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
+              <p className="font-medium text-sm">No completed study sessions yet.</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                Completed study sessions will appear here in your history.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sessionHistory.map((item) => {
+                const dateStr = item.completedAt ? new Date(item.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently";
+                return (
+                  <div
+                    key={item.id}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-gray-900 dark:text-white text-base">
+                          {toTitleCase(item.subject)}
+                        </span>
+                        <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                          {item.status || "completed"}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-slate-300 truncate">
+                        {toTitleCase(item.topic)}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                        {dateStr}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
+                          {item.durationMinutes} min
+                        </p>
+                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                          +{item.xpEarned || 50} XP
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fixed Overlay Modal */}

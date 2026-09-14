@@ -120,32 +120,36 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     pomodoroRecorded.current = true;
     
     const completeSession = async () => {
-      // Save pomodoro record
+      // Always update streak & award rewards regardless of pomodoro table insert status
+      try {
+        await Promise.all([
+          updateStreakForActivity(userId),
+          awardUserRewards(userId, { xp: 50, gems: 5 }),
+        ]);
+      } catch (err) {
+        console.error("Error updating streak or awarding rewards:", err);
+      }
+
+      // Try saving pomodoro record
       const { error: pomodoroError } = await supabase
         .from("study_pomodoros")
         .insert({ session_id: session.id, user_id: userId });
       
       if (pomodoroError) {
         console.error("Pomodoro completion save error:", pomodoroError);
-      } else {
-        // Update streak & award rewards (e.g. 50 XP and 5 Gems)
-        await Promise.all([
-          updateStreakForActivity(userId),
-          awardUserRewards(userId, { xp: 50, gems: 5 }),
-        ]);
-        
-        // Delete the study session after a short delay to allow UI to update
-        setTimeout(async () => {
-          const { error: deleteError } = await supabase
-            .from("Study")
-            .delete()
-            .eq("id", session.id);
-          
-          if (deleteError) {
-            console.error("Session deletion error:", deleteError);
-          }
-        }, 2000);
       }
+
+      // Delete the study session after a short delay to allow UI to update
+      setTimeout(async () => {
+        const { error: deleteError } = await supabase
+          .from("Study")
+          .delete()
+          .eq("id", session.id);
+
+        if (deleteError) {
+          console.error("Session deletion error:", deleteError);
+        }
+      }, 2000);
     };
     
     completeSession();

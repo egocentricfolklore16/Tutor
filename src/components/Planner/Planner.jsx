@@ -342,7 +342,7 @@ const PlannerPage = () => {
           disabled={isLoadingSessions}
         >
           <Plus className="w-4 h-4" />
-          <span>Create new</span>
+          <span>+ Create new</span>
         </button>
       </div>
       <button type="button" onClick={() => handleAddActivity(selectedDate)} disabled={isLoadingSessions} className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 sm:hidden"><Plus className="h-4 w-4" />+ Create new</button>

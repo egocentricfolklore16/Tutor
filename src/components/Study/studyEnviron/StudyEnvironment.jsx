@@ -116,27 +116,35 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   }, [isStudying, timeLeft]);
 
   useEffect(() => {
-    if (timeLeft !== 0 || pomodoroRecorded.current || !userId || !session?.id) return;
+    if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
     pomodoroRecorded.current = true;
     
     const completeSession = async () => {
-      // Always update streak & award rewards regardless of pomodoro table insert status
-      try {
-        await Promise.all([
-          updateStreakForActivity(userId),
-          awardUserRewards(userId, { xp: 50, gems: 5 }),
-        ]);
-      } catch (err) {
-        console.error("Error updating streak or awarding rewards:", err);
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        activeUserId = authUser?.id || null;
       }
 
-      // Try saving pomodoro record
-      const { error: pomodoroError } = await supabase
-        .from("study_pomodoros")
-        .insert({ session_id: session.id, user_id: userId });
-      
-      if (pomodoroError) {
-        console.error("Pomodoro completion save error:", pomodoroError);
+      if (activeUserId) {
+        // Always update streak & award rewards regardless of pomodoro table insert status
+        try {
+          await Promise.all([
+            updateStreakForActivity(activeUserId),
+            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
+          ]);
+        } catch (err) {
+          console.error("Error updating streak or awarding rewards:", err);
+        }
+
+        // Try saving pomodoro record
+        const { error: pomodoroError } = await supabase
+          .from("study_pomodoros")
+          .insert({ session_id: session.id, user_id: activeUserId });
+
+        if (pomodoroError) {
+          console.error("Pomodoro completion save error:", pomodoroError);
+        }
       }
 
       // Delete the study session after a short delay to allow UI to update

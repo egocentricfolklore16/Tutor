@@ -316,7 +316,14 @@ function DashboardHeader({ toggleSidebar }) {
           )}
         </div>
 
-        <button type="button" title={darkMode ? "Switch to light mode" : "Switch to dark mode"} onClick={() => toggleDarkMode(!darkMode)} className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700">{darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" /></button>
+        <button
+          type="button"
+          title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          onClick={() => toggleDarkMode(!darkMode)}
+          className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700"
+        >
+          {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+        </button>
         <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700">
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(unreadCount, 9)}</span>}

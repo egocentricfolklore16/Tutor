@@ -19,6 +19,7 @@ import Onboarding from "./components/Auth/Onboarding.jsx";
 import AuthCallback from "./components/Auth/callback/page.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
+import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -93,6 +94,7 @@ function App() {
               <Route index element={<Overview />} />
               <Route path="Dashboard" element={<Overview />} />
               <Route path="Study" element={<Study />} />
+              <Route path="Study/history/:historyId" element={<StudyHistoryDetail />} />
               <Route path="Study/:Studyid" element={<StudyEnvironment />} />
               <Route path="Study/:Studyid/notes/:noteId" element={<NoteDetail />} />
               <Route path="signup" element={<SignupPage />} />

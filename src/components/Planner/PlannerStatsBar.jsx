@@ -3,9 +3,9 @@ import { useEffect, useState } from "react";
 import supabase from "../../lib/supabase";
 
 const cards = [
-  { key: "tasks", label: "THIS WEEK", subtext: "tasks done", icon: CalendarCheck2, color: "blue", background: "bg-blue-50", iconColor: "text-blue-600" },
-  { key: "pomodoros", label: "THIS WEEK", subtext: "pomodoros", icon: Flame, color: "pink", background: "bg-pink-50", iconColor: "text-pink-600" },
-  { key: "exams", label: "THIS WEEK", subtext: "exams", icon: GraduationCap, color: "purple", background: "bg-purple-50", iconColor: "text-purple-600" },
+  { key: "tasks", subtext: "tasks done", icon: CalendarCheck2, accentBg: "bg-sky-400/15", accentText: "text-sky-300" },
+  { key: "pomodoros", subtext: "pomodoros", icon: Flame, accentBg: "bg-pink-400/15", accentText: "text-pink-300" },
+  { key: "exams", subtext: "exams", icon: GraduationCap, accentBg: "bg-violet-400/15", accentText: "text-violet-300" },
 ];
 
 function getWeekRange() {
@@ -54,15 +54,22 @@ function PlannerStatsBar() {
   };
 
   return (
-    <section className="mb-6 grid grid-cols-3 gap-2 sm:gap-4" aria-label="This week planner statistics">
-      {cards.map(({ key, label, subtext, icon: Icon, background, iconColor }) => (
-        <div key={key} className={`relative min-h-32 min-w-0 rounded-2xl ${background} p-3 sm:p-5`}>
-          <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white sm:right-4 sm:top-4 sm:h-9 sm:w-9 ${iconColor}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
-          <p className={`text-xs font-bold uppercase tracking-[0.18em] ${iconColor}`}>{label}</p>
-          <p className="mt-8 truncate text-2xl font-bold leading-none text-slate-950 sm:mt-5 sm:text-3xl">{values[key]}</p>
-          <p className="mt-2 truncate text-[11px] font-medium text-slate-600 sm:text-sm">{subtext}</p>
-        </div>
-      ))}
+    <section className="mb-6" aria-label="This week planner statistics">
+      <p className="mb-3 text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">This week</p>
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {cards.map(({ key, subtext, icon: Icon, accentBg, accentText }) => (
+          <div
+            key={key}
+            className="relative min-h-32 min-w-0 rounded-2xl border border-white/10 bg-white/[0.04] p-3 shadow-lg shadow-black/20 transition-colors hover:border-white/15 sm:p-5"
+          >
+            <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full sm:right-4 sm:top-4 sm:h-9 sm:w-9 ${accentBg} ${accentText}`}>
+              <Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </div>
+            <p className="mt-9 truncate text-3xl font-bold leading-none text-white sm:mt-6 sm:text-4xl">{values[key]}</p>
+            <p className="mt-2 truncate text-[11px] font-medium text-slate-400 sm:text-sm">{subtext}</p>
+          </div>
+        ))}
+      </div>
     </section>
   );
 }

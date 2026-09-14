@@ -101,6 +101,12 @@ function Onboarding({ session }) {
       return;
     }
 
+    // `username` is a handle-style identifier (from sign-up metadata or the
+    // email prefix) that lives in auth user_metadata, which is schemaless.
+    // The `profiles` table has no `username` column, so it must NOT be part
+    // of the object sent to `.from("profiles").upsert(...)` below.
+    const username = user.user_metadata?.userName || user.user_metadata?.username || user.email?.split("@")[0] || "Learner";
+
     const profile = {
       user_id: user.id,
       full_name: form.fullName.trim(),
@@ -120,6 +126,7 @@ function Onboarding({ session }) {
     const [{ error: profileError }, { error: metadataError }] = await Promise.all([
       supabase.from("profiles").upsert(profile, { onConflict: "user_id" }),
       supabase.auth.updateUser({ data: { ...profile, full_name: profile.full_name } }),
+      supabase.auth.updateUser({ data: { ...profile, username } }),
     ]);
 
     if (profileError || metadataError) {

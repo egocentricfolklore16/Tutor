@@ -137,13 +137,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           console.error("Error updating streak or awarding rewards:", err);
         }
 
-        // Try saving pomodoro record
+        // Save pomodoro record
         const { error: pomodoroError } = await supabase
           .from("study_pomodoros")
           .insert({ session_id: session.id, user_id: activeUserId });
 
         if (pomodoroError) {
-          console.error("Pomodoro completion save error:", pomodoroError);
+          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
         }
       }
 

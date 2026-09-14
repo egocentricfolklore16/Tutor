@@ -4,7 +4,7 @@ import supabase from "../../../lib/supabase";
 
 const emptyQuestion = { concept: "", question: "", correctAnswer: "" };
 
-function PracticeQuestions({ theme, studyId, userId, topic }) {
+function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
   const [questions, setQuestions] = useState([]);
   const [draft, setDraft] = useState(emptyQuestion);
   const [answer, setAnswer] = useState({});
@@ -68,8 +68,20 @@ function PracticeQuestions({ theme, studyId, userId, topic }) {
       .select("id, concept, question, correct_answer, outcome, is_correct, created_at")
       .single();
 
-    if (insertError) setError(insertError.message);
-    else setQuestions((current) => current.map((item) => item.id === question.id ? data : item));
+    if (insertError) {
+      setError(insertError.message);
+    } else {
+      if (onTimelineEvent && data) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "quiz",
+          refId: String(data.id),
+          title: data.concept ? `Practiced: ${data.concept}` : "Practice question answered",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      setQuestions((current) => current.map((item) => item.id === question.id ? data : item));
+    }
     setSavingId(null);
   };
 

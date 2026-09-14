@@ -553,7 +553,8 @@ function Study() {
                 return (
                   <div
                     key={item.id}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm"
+                    onClick={() => navigate(`/Study/history/${item.id}`)}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
@@ -683,6 +684,7 @@ function Study() {
                     <input
                       required
                       type="date"
+                      min={new Date().toISOString().slice(0, 10)}
                       name="date"
                       value={session.date}
                       onChange={handleChange}
@@ -720,7 +722,7 @@ function Study() {
                     placeholder="1"
                     min="0.5"
                     step="0.5"
-                    max="12"
+                    max="100"
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
                     disabled={loadingStates.form_submit}
                   />

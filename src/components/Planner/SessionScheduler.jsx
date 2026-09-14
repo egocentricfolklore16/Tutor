@@ -68,7 +68,7 @@ const SessionScheduler = ({
           </div>
           <div>
             <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />Date</label>
-            <input required type="date" value={dateValue} onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+            <input required type="date" min={new Date().toISOString().slice(0, 10)} value={dateValue} onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </div>
           <div>
             <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</label>
@@ -77,7 +77,7 @@ const SessionScheduler = ({
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</label>
             <div className="flex gap-2">
-              <input required type="number" value={newSession.duration || 0} onChange={(e) => { const minutes = Number(e.target.value); setNewSession(prev => ({ ...prev, duration: Number.isFinite(minutes) ? minutes : 0 })); }} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" min="15" max="1440" step="15" />
+              <input required type="number" value={newSession.duration || 0} onChange={(e) => { const minutes = Number(e.target.value); setNewSession(prev => ({ ...prev, duration: Number.isFinite(minutes) ? minutes : 0 })); }} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" min="15" max="6000" step="15" />
               <span className="flex items-center rounded-xl bg-slate-100 px-3 text-sm text-slate-500">minutes</span>
             </div>
           </div>

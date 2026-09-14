@@ -35,6 +35,12 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [aiMessage, setAiMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [timeline, setTimeline] = useState([]);
+
+  const handleTimelineEvent = (eventItem) => {
+    if (!eventItem) return;
+    setTimeline((prev) => [...prev, eventItem]);
+  };
   const { Studyid } = useParams();
   const navigate = useNavigate();
 
@@ -137,6 +143,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           completed_at: new Date().toISOString(),
           status: "completed",
           xp_earned: 50,
+          timeline: timeline,
         };
 
         // Always update streak, award rewards, and save history entry
@@ -322,11 +329,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const renderTool = () => {
     if (activeTool === "notes") {
-      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
+      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     }
-    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} />;
-    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
+    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
       <div>
         <div className="grid grid-cols-3 gap-3">
@@ -378,8 +385,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 ${
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
           isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
+        } ${
+          isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >
         <div className="mx-auto w-full max-w-[1500px]">
@@ -443,7 +452,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         AI Tutor
       </button>
       <div
-        className={`fixed inset-y-0 right-0 z-20 ${
+        className={`fixed inset-y-0 right-0 z-[50] transition-transform duration-300 ${
           isAIOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

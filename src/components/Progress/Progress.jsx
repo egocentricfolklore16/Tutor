@@ -21,12 +21,24 @@ function Progress() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus("unauthenticated"); return; }
 
-      const [{ data: sessionData, error: sessionError }, { count, error: resourceError }] = await Promise.all([
+      const [{ data: sessionData, error: sessionError }, { data: historyData }, { count, error: resourceError }] = await Promise.all([
         supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id),
+        supabase.from("study_history").select("id, subject, topic, completed_at, duration_minutes").eq("user_id", user.id),
         supabase.from("resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       if (sessionError || resourceError) { setStatus("error"); return; }
-      setSessions(sessionData || []);
+
+      // Merge active and historical study sessions into progress computation
+      const historicalAsSessions = (historyData || []).map((h) => ({
+        id: h.id,
+        Subject: h.subject,
+        Topic: h.topic,
+        Date: h.completed_at,
+        Duration: (h.duration_minutes || 0) / 60,
+        isCompleted: true,
+      }));
+
+      setSessions([...(sessionData || []), ...historicalAsSessions]);
       setResourceCount(count || 0);
       setStatus("ready");
     };

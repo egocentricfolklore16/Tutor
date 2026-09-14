@@ -684,6 +684,7 @@ function Study() {
                     <input
                       required
                       type="date"
+                      min={new Date().toISOString().slice(0, 10)}
                       name="date"
                       value={session.date}
                       onChange={handleChange}
@@ -721,7 +722,7 @@ function Study() {
                     placeholder="1"
                     min="0.5"
                     step="0.5"
-                    max="12"
+                    max="100"
                     className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
                     disabled={loadingStates.form_submit}
                   />

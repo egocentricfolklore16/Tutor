@@ -385,8 +385,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 ${
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
           isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
+        } ${
+          isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >
         <div className="mx-auto w-full max-w-[1500px]">
@@ -450,7 +452,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         AI Tutor
       </button>
       <div
-        className={`fixed inset-y-0 right-0 z-20 ${
+        className={`fixed inset-y-0 right-0 z-[50] transition-transform duration-300 ${
           isAIOpen ? "translate-x-0" : "translate-x-full"
         }`}
       >

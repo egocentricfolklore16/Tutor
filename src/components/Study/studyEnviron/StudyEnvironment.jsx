@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
+import { awardUserRewards } from "../../../lib/gamification";
 import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
@@ -76,7 +77,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
       const { data, error: profileError } = await supabase
         .from("profiles")
-        .select("username")
+        .select("full_name")
         .eq("user_id", authUser.id)
         .single();
 
@@ -85,7 +86,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       }
 
       setProfile({
-        name: data?.username || authUser.user_metadata?.userName || "User",
+        name: data?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.userName || "User",
         email: authUser.email || "",
         avatar: authUser.user_metadata?.avatar_url || "",
       });
@@ -127,8 +128,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       if (pomodoroError) {
         console.error("Pomodoro completion save error:", pomodoroError);
       } else {
-        // Update streak
-        await updateStreakForActivity(userId);
+        // Update streak & award rewards (e.g. 50 XP and 5 Gems)
+        await Promise.all([
+          updateStreakForActivity(userId),
+          awardUserRewards(userId, { xp: 50, gems: 5 }),
+        ]);
         
         // Delete the study session after a short delay to allow UI to update
         setTimeout(async () => {
@@ -187,6 +191,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
           <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
+          <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
+            <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
+          </div>
           <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>

@@ -17,6 +17,10 @@ const SignupPage = () => {
 
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
+  const [formError, setFormError] = useState("");
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
+  const [resendError, setResendError] = useState("");
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -55,46 +59,75 @@ const SignupPage = () => {
     return "Strong";
   };
 
+  const handleResendEmail = async () => {
+    if (!formData.email) return;
+    setResendLoading(true);
+    setResendMessage("");
+    setResendError("");
+
+    try {
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email: formData.email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (error) {
+        setResendError(error.message || "Failed to resend confirmation email.");
+      } else {
+        setResendMessage("Confirmation email has been resent successfully!");
+      }
+    } catch (err) {
+      setResendError(err.message || "An unexpected error occurred.");
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const handleSubmit = async () => {
+    setFormError("");
     // Basic validation
     if (!formData.userName || !formData.email || !formData.password) {
-      alert("Please fill in all required fields");
+      setFormError("Please fill in all required fields.");
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setFormError("Passwords do not match.");
       return;
     }
 
     if (!formData.agreeToTerms) {
-      alert("Please agree to the Terms of Service and Privacy Policy");
+      setFormError("Please agree to the Terms of Service and Privacy Policy.");
       return;
     }
 
-    console.log("Signup attempt:", formData);
     const { error } = await supabase.auth.signUp({
       email: formData.email,
       password: formData.password,
       options: {
         data: {
-          userName: formData.userName.trim(),
-          username: formData.userName.trim(),
+          full_name: formData.userName.trim(),
         },
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       }
     });
     if (error) {
       console.error("Error signing Up:", error.message);
-      alert(error.message || "Signup failed.");
+      setFormError(error.message || "Signup failed.");
       return;
     }
 
     // Show confirmation dialog
+    setResendMessage("");
+    setResendError("");
     setShowConfirmDialog(true);
   }
 
   const handleSocialSignup = async (provider) => {
+    setFormError("");
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider.toLowerCase(),
@@ -104,10 +137,10 @@ const SignupPage = () => {
         },
       });
       if (error) {
-        alert(`Error signing up with ${provider}: ${error.message}`);
+        setFormError(`Error signing up with ${provider}: ${error.message}`);
       }
     } catch (err) {
-      alert(`Error signing up with ${provider}: ${err.message}`);
+      setFormError(`Error signing up with ${provider}: ${err.message}`);
     }
   };
 
@@ -133,6 +166,8 @@ const SignupPage = () => {
               <p className="text-sm text-gray-400 mb-6">
                 Click the link in the email to verify your account and complete the signup process.
               </p>
+              {resendMessage && <p className="text-sm font-medium text-emerald-400 mb-4 bg-emerald-950/50 p-2.5 rounded-lg border border-emerald-800/40">{resendMessage}</p>}
+              {resendError && <p className="text-sm font-medium text-red-400 mb-4 bg-red-950/50 p-2.5 rounded-lg border border-red-800/40">{resendError}</p>}
             </div>
 
             <div className="space-y-3">
@@ -143,7 +178,15 @@ const SignupPage = () => {
                 I've confirmed my email
               </button>
               <button
-                className="w-full bg-transparent border border-emerald-600 text-emerald-400 hover:bg-emerald-600 hover:text-white font-semibold py-3 px-6 rounded-lg transition-colors duration-200"
+                type="button"
+                disabled={resendLoading}
+                className="w-full bg-emerald-950/40 border border-emerald-700/50 text-emerald-300 hover:bg-emerald-900/50 font-semibold py-2.5 px-6 rounded-lg transition-colors duration-200 text-sm disabled:opacity-50"
+                onClick={handleResendEmail}
+              >
+                {resendLoading ? "Resending..." : "Resend confirmation email"}
+              </button>
+              <button
+                className="w-full bg-transparent border border-emerald-600/40 text-gray-400 hover:bg-emerald-950/30 hover:text-white font-semibold py-2.5 px-6 rounded-lg transition-colors duration-200 text-sm"
                 onClick={() => setShowConfirmDialog(false)}
               >
                 Back to signup
@@ -168,6 +211,11 @@ const SignupPage = () => {
             <p className="text-sm text-slate-500">
               Start your personalized learning journey today
             </p>
+            {formError && (
+              <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm font-medium text-red-400 text-center">
+                {formError}
+              </div>
+            )}
           </div>
 
           {/* Signup Form */}
@@ -177,7 +225,7 @@ const SignupPage = () => {
               <div className="w-full">
                 <div>
                   <label className="block text-sm font-medium text-gray-300 mb-2">
-                  Username *
+                  Full Name *
                 </label>
                 <div className="relative">
                   <svg
@@ -198,7 +246,7 @@ const SignupPage = () => {
                     value={formData.userName}
                     onChange={handleInputChange}
                     className="w-full pl-10 pr-4 py-3 bg-[#0f1f0f] border border-emerald-800/30 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
-                    placeholder="Username"
+                    placeholder="Full Name"
                     required
                   />
                 </div>

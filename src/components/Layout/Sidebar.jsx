@@ -12,7 +12,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
   const [username, setUsername] = useState(() => {
     if (user)
       return (
-        user.user_metadata?.username ||
+        user.user_metadata?.full_name ||
         user.user_metadata?.userName ||
         user.email?.split("@")[0] ||
         "User"
@@ -204,7 +204,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
 
         const { data, error } = await supabase
           .from("profiles")
-          .select("username")
+          .select("full_name")
           .eq("user_id", currentUser.id)
           .single();
 
@@ -212,7 +212,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           console.error("Supabase fetch error:", error);
           setUsername(currentUser.email || "User");
         } else {
-          setUsername(data?.username || currentUser.email || "User");
+          setUsername(data?.full_name || currentUser.user_metadata?.full_name || currentUser.email || "User");
         }
       } catch (err) {
         console.error("Unexpected error:", err);

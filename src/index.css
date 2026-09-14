@@ -60,15 +60,20 @@ form { animation: form-enter 260ms ease-out both; }
   button:active:not(:disabled) { transform: none; }
 }
 
-.dark .notification-pane { background: #ffffff !important; color: #000000 !important; }
+.dark .notification-pane { background: var(--bg-surface) !important; color: var(--text-primary) !important; border-color: #26332e !important; }
 .dark .notification-pane * { color: inherit; }
 
 .settings-page { background: #eef3f8; }
+.dark .settings-page { background: var(--bg-base); }
 .settings-card { border-radius: 1rem; background: #ffffff; padding: 2rem; }
+.dark .settings-card { background: var(--bg-surface); color: var(--text-primary); }
 .settings-section { border: 0; background: transparent; }
 .settings-field,
 .settings-card input:not([type="checkbox"]):not([type="file"]),
 .settings-card select { border: 0 !important; border-radius: 9999px; background: #f1f5f9 !important; padding: 0.85rem 1.1rem; color: #1e293b; outline: none; }
+.dark .settings-field,
+.dark .settings-card input:not([type="checkbox"]):not([type="file"]),
+.dark .settings-card select { background: #18211f !important; color: #e5eee9 !important; border: 1px solid #26332e !important; }
 .settings-card input:focus,
 .settings-card select:focus { box-shadow: 0 0 0 4px rgb(16 185 129 / 0.12); }
 
@@ -90,6 +95,7 @@ form { animation: form-enter 260ms ease-out both; }
 
 .auth-form-content .text-emerald-400 { color: #047857 !important; }
 .auth-form-content .bg-\[\#0f1f0f\] { background: #f8fafc !important; }
+.auth-form-content .bg-\[\#1a2f1a\] { background: #ffffff !important; }
 .auth-form-content .border-emerald-800\/30 { border-color: #e2e8f0 !important; }
 
 @keyframes lumo-float {
@@ -140,7 +146,7 @@ form { animation: form-enter 260ms ease-out both; }
 .dark body,
 .dark .mainapp {
   background: var(--bg-base);
-  color: #e5eee9;
+  color: #f2f0ec;
 }
 
 .dark .dark-surface { background: var(--bg-surface); color: var(--text-primary); }
@@ -155,37 +161,45 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .dark-amber-text { color: var(--text-accent-amber); }
 .dark .dark-purple-text { color: var(--text-accent-purple); }
 
-.dark .bg-white { background-color: var(--bg-surface); }
+.dark .bg-white,
+.dark .bg-white\/70 { background-color: var(--bg-surface); }
 .dark .bg-gray-50,
-.dark .bg-slate-50 { background-color: #101615; }
+.dark .bg-slate-50 { background-color: #14171c; }
 .dark .bg-gray-100,
-.dark .bg-slate-100 { background-color: #22302c; }
+.dark .bg-slate-100,
+.dark .bg-slate-200\/80 { background-color: #1a1e24; }
+.dark .bg-amber-50 { background-color: #241D12; }
+.dark .text-amber-800,
+.dark .text-amber-900,
+.dark .text-amber-700 { color: #E0B96B; }
+.dark .border-amber-200 { border-color: #382c1b; }
 .dark .text-gray-900,
 .dark .text-slate-950,
-.dark .text-slate-900 { color: #f0f7f3; }
+.dark .text-slate-900 { color: #f8fafc; }
 .dark .text-gray-800,
-.dark .text-slate-800,
-.dark .text-slate-700 { color: #d5e2dc; }
+.dark .text-slate-800 { color: #f1f5f9; }
+.dark .text-gray-700,
+.dark .text-slate-700 { color: #e2e8f0; }
 .dark .text-gray-600,
 .dark .text-gray-500,
 .dark .text-slate-600,
-.dark .text-slate-500 { color: #9fb1a8; }
+.dark .text-slate-500 { color: #cbd5e1; }
 .dark .text-gray-400,
-.dark .text-slate-400 { color: #7f9389; }
+.dark .text-slate-400 { color: #94a3b8; }
 .dark .border-gray-100,
 .dark .border-gray-200,
 .dark .border-gray-300,
 .dark .border-slate-100,
 .dark .border-slate-200,
-.dark .border-slate-300 { border-color: #30413b; }
+.dark .border-slate-300 { border-color: #262a32; }
 .dark input,
 .dark textarea,
-.dark select { background-color: #18211f; color: #e5eee9; border-color: #30413b; }
+.dark select { background-color: #14171c; color: #f2f0ec; border-color: #262a32; }
 .dark input::placeholder,
-.dark textarea::placeholder { color: #7f9389; }
+.dark textarea::placeholder { color: #8e8a82; }
 .dark .hover\:bg-gray-50:hover,
 .dark .hover\:bg-gray-100:hover,
-.dark .hover\:bg-slate-50:hover { background-color: #22302c; }
+.dark .hover\:bg-slate-50:hover { background-color: #222730; }
 .dark .shadow-sm,
 .dark .shadow-lg,
 .dark .shadow-xl,

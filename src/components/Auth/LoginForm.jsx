@@ -7,6 +7,7 @@ const LoginPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [successMessage, setSuccessMessage] = useState("");
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -28,6 +29,7 @@ const LoginPage = () => {
   const handleSubmit = async (e) => {
     e?.preventDefault?.();
     setError("");
+    setSuccessMessage("");
     if (!formData.email || !formData.password) {
       setError("Please enter both email and password.");
       return;
@@ -52,6 +54,8 @@ const LoginPage = () => {
   };
 
   const handleSocialLogin = async (provider) => {
+    setError("");
+    setSuccessMessage("");
     try {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: provider.toLowerCase(),
@@ -69,6 +73,8 @@ const LoginPage = () => {
   };
 
   const handleForgotPassword = async () => {
+    setError("");
+    setSuccessMessage("");
     if (!formData.email) {
       setError("Please enter your email address first.");
       return;
@@ -82,7 +88,7 @@ const LoginPage = () => {
       if (error) {
         setError(`Error sending reset email: ${error.message}`);
       } else {
-        alert("Password reset email sent! Please check your inbox.");
+        setSuccessMessage("Password reset email sent! Please check your inbox.");
       }
     } catch (err) {
       setError(`Error sending reset email: ${err.message}`);
@@ -96,7 +102,8 @@ const LoginPage = () => {
           <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-700"><img src="/logo3.png" alt="" className="h-10 w-10 object-contain" /></div>
           <h1 className="text-3xl font-black tracking-tight text-slate-950">Welcome back</h1>
           <p className="mt-2 text-sm text-slate-500">Sign in to continue your learning journey</p>
-          {error && <p className="mt-3 text-sm text-red-600">{error}</p>}
+          {error && <p className="mt-3 text-sm font-medium text-red-600 bg-red-50 p-3 rounded-lg border border-red-200">{error}</p>}
+          {successMessage && <p className="mt-3 text-sm font-medium text-emerald-700 bg-emerald-50 p-3 rounded-lg border border-emerald-200">{successMessage}</p>}
         </div>
 
         {/* Login Form */}

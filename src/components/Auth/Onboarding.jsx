@@ -69,8 +69,16 @@ function Onboarding({ session }) {
   useEffect(() => {
     if (!session) {
       supabase.auth.getSession().then(({ data }) => {
-        if (!data?.session) navigate("/login", { replace: true });
+        if (!data?.session) {
+          navigate("/login", { replace: true });
+        } else if (data.session.user) {
+          const name = data.session.user.user_metadata?.full_name || data.session.user.user_metadata?.userName || "";
+          if (name) setForm((current) => ({ ...current, fullName: name }));
+        }
       });
+    } else if (session.user) {
+      const name = session.user.user_metadata?.full_name || session.user.user_metadata?.userName || "";
+      if (name) setForm((current) => ({ ...current, fullName: name }));
     }
   }, [navigate, session]);
 
@@ -117,6 +125,7 @@ function Onboarding({ session }) {
 
     const [{ error: profileError }, { error: metadataError }] = await Promise.all([
       supabase.from("profiles").upsert(profile, { onConflict: "user_id" }),
+      supabase.auth.updateUser({ data: { ...profile, full_name: profile.full_name } }),
       supabase.auth.updateUser({ data: { ...profile, username } }),
     ]);
 

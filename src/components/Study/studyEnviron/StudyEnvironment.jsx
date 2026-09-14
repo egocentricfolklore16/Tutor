@@ -127,14 +127,31 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       }
 
       if (activeUserId) {
-        // Always update streak & award rewards regardless of pomodoro table insert status
+        const historyEntry = {
+          id: crypto.randomUUID(),
+          user_id: activeUserId,
+          subject: session.Subject || session.subject || "Untitled subject",
+          topic: session.Topic || session.topic || "No topic provided",
+          duration_minutes: Math.round(durationSeconds / 60),
+          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+          completed_at: new Date().toISOString(),
+          status: "completed",
+          xp_earned: 50,
+        };
+
+        // Always update streak, award rewards, and save history entry
         try {
           await Promise.all([
             updateStreakForActivity(activeUserId),
             awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
+            supabase.from("study_history").insert(historyEntry),
           ]);
         } catch (err) {
-          console.error("Error updating streak or awarding rewards:", err);
+          console.error("Error updating streak, rewards, or study history:", err);
+        }
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
         }
 
         // Save pomodoro record

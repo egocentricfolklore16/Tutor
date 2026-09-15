@@ -12,13 +12,35 @@ const SessionScheduler = ({
 }) => {
   if (!showCreateModal) return null;
 
+  const [validationError, setValidationError] = React.useState("");
+
   const dateValue = newSession.date instanceof Date
     ? newSession.date.toISOString().slice(0, 10)
     : newSession.date;
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setValidationError("");
+
+    if (dateValue && newSession.startTime && newSession.recurring === "none") {
+      const selectedTimestamp = new Date(`${dateValue}T${newSession.startTime}`);
+      if (selectedTimestamp.getTime() < Date.now()) {
+        setValidationError("You can't schedule a session in the past");
+        return;
+      }
+    }
+
+    handleCreateSession();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={(event) => { event.preventDefault(); handleCreateSession(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+        {validationError && (
+          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+            {validationError}
+          </div>
+        )}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Planner</p>

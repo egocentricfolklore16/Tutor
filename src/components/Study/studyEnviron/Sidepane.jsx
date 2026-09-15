@@ -93,5 +93,3 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
 };
 
 export default Sidepane;
-
-AFTER THE PROMPT IT IS STILL NOT WORKING SO FIX IT

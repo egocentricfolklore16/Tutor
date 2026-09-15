@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
@@ -598,185 +599,190 @@ function Study() {
       </div>
 
       {/* Fixed Overlay Modal */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-          onClick={(e) => {
-            if (formRef.current && !formRef.current.contains(e.target)) {
-              setIsOpen(false);
-            }
-          }}
-        >
-          <div className="w-full max-w-md" ref={formRef}>
-            <form
-              className="bg-white p-6 rounded-lg shadow-xl"
-              onSubmit={addSession}
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Create Study Session
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={loadingStates.form_submit}
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Subject */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="subject"
-                    value={session.subject}
-                    onChange={handleChange}
-                    placeholder="e.g., Mathematics, Biology"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Topic */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Topic *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="topic"
-                    value={session.topic}
-                    onChange={handleChange}
-                    placeholder="e.g., Calculus, Cell Division"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status *
-                  </label>
-                  <select
-                    required
-                    name="status"
-                    value={session.status}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+      {isOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (formRef.current && !formRef.current.contains(e.target)) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-[#18211f]" ref={formRef}>
+              <form
+                className="p-6 text-slate-800 dark:text-slate-100"
+                onSubmit={addSession}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    Create Study Session
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors dark:hover:text-gray-200"
                     disabled={loadingStates.form_submit}
                   >
-                    <option value="">Select status</option>
-                    <option value="Very Important">Very Important</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Not so Important">Not so Important</option>
-                  </select>
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
 
-                {/* Date */}
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date *
+                <div className="space-y-4">
+                  {/* Subject */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Subject *
                     </label>
                     <input
                       required
-                      type="date"
-                      min={new Date().toISOString().slice(0, 10)}
-                      name="date"
-                      value={session.date}
+                      type="text"
+                      name="subject"
+                      value={session.subject}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Mathematics, Biology"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time *
+
+                  {/* Topic */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Topic *
                     </label>
                     <input
                       required
-                      type="time"
-                      name="time"
-                      value={session.time}
+                      type="text"
+                      name="topic"
+                      value={session.topic}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Calculus, Cell Division"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Status *
+                    </label>
+                    <select
+                      required
+                      name="status"
+                      value={session.status}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    >
+                      <option value="">Select status</option>
+                      <option value="Very Important">Very Important</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Not so Important">Not so Important</option>
+                    </select>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Date *
+                      </label>
+                      <input
+                        required
+                        type="date"
+                        min={new Date().toISOString().slice(0, 10)}
+                        name="date"
+                        value={session.date}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Start Time *
+                      </label>
+                      <input
+                        required
+                        type="time"
+                        name="time"
+                        value={session.time}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Study Duration (hours) *
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      name="hours"
+                      value={session.hours}
+                      onChange={handleChange}
+                      placeholder="1"
+                      min="0.5"
+                      step="0.5"
+                      max="100"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
                 </div>
 
-                {/* Hours */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Study Duration (hours) *
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    name="hours"
-                    value={session.hours}
-                    onChange={handleChange}
-                    placeholder="1"
-                    min="0.5"
-                    step="0.5"
-                    max="100"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loadingStates.form_submit}
-              >
-                {loadingStates.form_submit ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating Session...
-                  </>
-                ) : (
-                  "Create Session"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loadingStates.form_submit}
+                >
+                  {loadingStates.form_submit ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Session...
+                    </>
+                  ) : (
+                    "Create Session"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Floating Action Button */}
-      <button
-        onClick={toggleShow}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-110 z-40"
-        title="Create New Session"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
-      </button>
+      {!activeSession &&
+        createPortal(
+          <button
+            onClick={toggleShow}
+            className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-8 sm:right-8"
+            title="Create New Session"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          </button>,
+          document.body
+        )}
     </div>
   );
 }

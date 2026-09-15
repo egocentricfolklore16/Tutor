@@ -61,7 +61,10 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
 
       <div
         className="fixed inset-y-0 left-0 z-[1005] flex flex-col overflow-hidden border-r border-gray-200 bg-white transition-all duration-300"
-        style={{ width: isOpen ? `${width}px` : "64px", left: "var(--app-sidebar-width, 0px)" }}
+        style={{ 
+  width: isOpen ? `${width}px` : "64px", 
+  left: "250px" /* Replace with your actual main sidebar width */
+}}
       >
         {isOpen && <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <div className="flex items-center gap-2">

@@ -107,15 +107,70 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const duration = session?.Duration || session?.hours || 0;
   const durationSeconds = Math.max(1, Number.parseFloat(duration) * 60 * 60);
-  const [timeLeft, setTimeLeft] = useState(durationSeconds);
+
+  // Initialize remaining time from session.time_left if valid and paused, else full duration
+  const initialTimeLeft =
+    session?.time_left !== undefined && session?.time_left !== null && Number(session.time_left) > 0
+      ? Number(session.time_left)
+      : durationSeconds;
+
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isStudying, setIsStudying] = useState(true);
   const pomodoroRecorded = useRef(false);
+  const timeLeftRef = useRef(timeLeft);
 
   useEffect(() => {
-    setTimeLeft(durationSeconds);
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  useEffect(() => {
+    const nextTime =
+      session?.time_left !== undefined && session?.time_left !== null && Number(session.time_left) > 0
+        ? Number(session.time_left)
+        : durationSeconds;
+    setTimeLeft(nextTime);
     pomodoroRecorded.current = false;
     setSessionComplete(false);
-  }, [durationSeconds]);
+  }, [durationSeconds, session?.time_left]);
+
+  // Persist paused state on navigation away, tab close, or unmount
+  const savePausedState = async () => {
+    if (!session?.id || pomodoroRecorded.current || timeLeftRef.current <= 0) return;
+    try {
+      await supabase
+        .from("Study")
+        .update({
+          session_status: "paused",
+          time_left: timeLeftRef.current,
+        })
+        .eq("id", session.id);
+    } catch (err) {
+      console.error("Error saving paused study state:", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (session?.id && !pomodoroRecorded.current && timeLeftRef.current > 0) {
+        savePausedState();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        savePausedState();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      savePausedState();
+    };
+  }, [session?.id]);
 
   useEffect(() => {
     if (!isStudying || timeLeft <= 0) return undefined;
@@ -175,15 +230,18 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         }
       }
 
-      // Delete the study session after a short delay to allow UI to update
+      // Mark the study session as completed instead of deleting it
       setTimeout(async () => {
-        const { error: deleteError } = await supabase
+        const { error: updateError } = await supabase
           .from("Study")
-          .delete()
+          .update({
+            session_status: "completed",
+            time_left: 0,
+          })
           .eq("id", session.id);
 
-        if (deleteError) {
-          console.error("Session deletion error:", deleteError);
+        if (updateError) {
+          console.error("Session update error on completion:", updateError);
         }
       }, 2000);
     };

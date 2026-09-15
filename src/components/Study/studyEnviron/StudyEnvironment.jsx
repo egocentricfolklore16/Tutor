@@ -386,9 +386,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-3 py-4 pb-24 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
-          isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
-        } ${
+       className={`min-w-0 px-3 py-4 pb-24 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
+  isToolsOpen 
+    ? "xl:ml-[calc(var(--app-sidebar-width,0px)+300px)]" 
+    : "xl:ml-[calc(var(--app-sidebar-width,0px)+64px)]"
+}`} ${
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >

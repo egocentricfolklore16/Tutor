@@ -121,6 +121,14 @@ function Study() {
   const [dropdownIndex, setDropdownIndex] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [activeSession, setActiveSession] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
   const formRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();

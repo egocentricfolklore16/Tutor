@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { ArrowLeft, FileText, Loader2, MessageCircle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
@@ -85,10 +86,15 @@ function NoteDetail() {
         </article>
       </div>
       </main>
-      <button type="button" title="Open AI tutor" onClick={() => setIsAIOpen((open) => !open)} className={`fixed bottom-6 right-6 z-10 inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white shadow-lg ${theme.button}`}><MessageCircle className="h-5 w-5" /> AI Tutor</button>
-      <div className={`fixed inset-y-0 right-0 z-20 transition-transform ${isAIOpen ? "translate-x-0" : "translate-x-full"}`}>
-        <AITutorChat isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} messages={aiMessages} currentMessage={aiMessage} onMessageChange={setAiMessage} onSendMessage={sendAiMessage} onClear={() => { setAiMessages([]); setAiMessage(""); }} isTyping={isAiTyping} width={360} theme={{ accentButton: theme.button, accentBg: theme.page }} />
-      </div>
+      {createPortal(
+        <>
+          <button type="button" title="Open AI tutor" onClick={() => setIsAIOpen((open) => !open)} className={`fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl ${theme.button}`}><MessageCircle className="h-5 w-5" /> AI Tutor</button>
+          <div className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ${isAIOpen ? "translate-x-0" : "translate-x-full"}`}>
+            <AITutorChat isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} messages={aiMessages} currentMessage={aiMessage} onMessageChange={setAiMessage} onSendMessage={sendAiMessage} onClear={() => { setAiMessages([]); setAiMessage(""); }} isTyping={isAiTyping} width={360} theme={{ accentButton: theme.button, accentBg: theme.page }} />
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 }

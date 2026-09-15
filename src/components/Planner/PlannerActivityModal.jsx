@@ -1,9 +1,12 @@
+import { useState } from "react";
 import { CalendarDays, Clock3, Repeat, Save, X } from "lucide-react";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose, onSubmit }) {
   if (!mode) return null;
+
+  const [validationError, setValidationError] = useState("");
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const titles = {
@@ -17,9 +20,30 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
   const isDeadline = mode === "deadline";
   const dateValue = form.date instanceof Date ? form.date.toISOString().slice(0, 10) : form.date;
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setValidationError("");
+
+    const startTime = isTimeBlock ? form.blockStart : form.startTime;
+    if (dateValue && startTime && form.recurring === "none") {
+      const selectedTimestamp = new Date(`${dateValue}T${startTime}`);
+      if (selectedTimestamp.getTime() < Date.now()) {
+        setValidationError("You can't schedule a session in the past");
+        return;
+      }
+    }
+
+    onSubmit();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+        {validationError && (
+          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+            {validationError}
+          </div>
+        )}
         <div className="mb-7 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Study planner</p>
@@ -41,10 +65,10 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
             <label className="sm:col-span-2"><span className="mb-1 block text-sm font-semibold text-slate-700">{isDeadline ? "Deadline title" : "Topic or session title"}</span><input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder={isDeadline ? "e.g. Submit research essay" : "e.g. Calculus review"} className={fieldClass} /></label>
             <label><span className="mb-1 block text-sm font-semibold text-slate-700">Subject</span><select required value={form.subject} onChange={(event) => update("subject", event.target.value)} className={fieldClass}><option value="">Select subject</option>{subjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
             <label><span className="mb-1 block text-sm font-semibold text-slate-700">Importance</span><select required value={form.status} onChange={(event) => update("status", event.target.value)} className={fieldClass}><option value="very important">Very important</option><option value="medium">Medium</option><option value="not so important">Not so important</option></select></label>
-            <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />{isDeadline ? "Due date" : "Date"}</span><input required type="date" value={dateValue} onChange={(event) => update("date", event.target.value)} className={fieldClass} /></label>
+            <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />{isDeadline ? "Due date" : "Date"}</span><input required type="date" min={new Date().toISOString().slice(0, 10)} value={dateValue} onChange={(event) => update("date", event.target.value)} className={fieldClass} /></label>
             {isDeadline ? <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="1440">1 day before</option><option value="60">1 hour before</option></select></label> : <>
               <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</span><input required type="time" value={form.startTime} onChange={(event) => update("startTime", event.target.value)} className={fieldClass} /></label>
-              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</span><input required type="number" min="15" max="1440" step="15" value={form.duration || 0} onChange={(event) => update("duration", Number(event.target.value))} className={fieldClass} /></label>
+              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</span><input required type="number" min="15" max="6000" step="15" value={form.duration || 0} onChange={(event) => update("duration", Number(event.target.value))} className={fieldClass} /></label>
               <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Repeat className="h-4 w-4 text-blue-600" />Repeat</span><select value={form.recurring} onChange={(event) => update("recurring", event.target.value)} className={fieldClass}><option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
               <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
             </>}

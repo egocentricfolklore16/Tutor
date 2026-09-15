@@ -12,13 +12,35 @@ const SessionScheduler = ({
 }) => {
   if (!showCreateModal) return null;
 
+  const [validationError, setValidationError] = React.useState("");
+
   const dateValue = newSession.date instanceof Date
     ? newSession.date.toISOString().slice(0, 10)
     : newSession.date;
 
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setValidationError("");
+
+    if (dateValue && newSession.startTime && newSession.recurring === "none") {
+      const selectedTimestamp = new Date(`${dateValue}T${newSession.startTime}`);
+      if (selectedTimestamp.getTime() < Date.now()) {
+        setValidationError("You can't schedule a session in the past");
+        return;
+      }
+    }
+
+    handleCreateSession();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={(event) => { event.preventDefault(); handleCreateSession(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+        {validationError && (
+          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+            {validationError}
+          </div>
+        )}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Planner</p>
@@ -68,7 +90,7 @@ const SessionScheduler = ({
           </div>
           <div>
             <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />Date</label>
-            <input required type="date" value={dateValue} onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
+            <input required type="date" min={new Date().toISOString().slice(0, 10)} value={dateValue} onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
           </div>
           <div>
             <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</label>
@@ -77,7 +99,7 @@ const SessionScheduler = ({
           <div>
             <label className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</label>
             <div className="flex gap-2">
-              <input required type="number" value={newSession.duration || 0} onChange={(e) => { const minutes = Number(e.target.value); setNewSession(prev => ({ ...prev, duration: Number.isFinite(minutes) ? minutes : 0 })); }} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" min="15" max="1440" step="15" />
+              <input required type="number" value={newSession.duration || 0} onChange={(e) => { const minutes = Number(e.target.value); setNewSession(prev => ({ ...prev, duration: Number.isFinite(minutes) ? minutes : 0 })); }} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" min="15" max="6000" step="15" />
               <span className="flex items-center rounded-xl bg-slate-100 px-3 text-sm text-slate-500">minutes</span>
             </div>
           </div>

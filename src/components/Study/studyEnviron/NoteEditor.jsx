@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { FileText, Pencil, Plus, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 
-const NoteEditor = ({ studyId, theme }) => {
+const NoteEditor = ({ studyId, theme, onTimelineEvent }) => {
   const noteThemes = ["accent-card-chat", "accent-card-plan", "accent-card-read", "accent-card-track"];
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
@@ -35,6 +35,15 @@ const NoteEditor = ({ studyId, theme }) => {
       setError(error.message);
     } else {
       setError("");
+      if (!editingId && onTimelineEvent && data) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "note",
+          refId: String(data.id),
+          title: data.title || "Note created",
+          timestamp: new Date().toISOString(),
+        });
+      }
       setNotes((current) => editingId ? current.map((note) => note.id === editingId ? data : note) : [data, ...current]);
       setForm({ title: "", content: "" }); setEditingId(null);
     }

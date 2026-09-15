@@ -9,12 +9,62 @@ export function getUserTimeZone() {
 
 export async function updateStreakForActivity(userId, options = {}) {
   if (!userId) return { data: null, error: new Error("Missing user id") };
-  const result = await supabase.rpc("update_user_streak", {
-    activity_user_id: userId,
-    user_timezone: options.timeZone || getUserTimeZone(),
-    cutoff_hour: options.cutoffHour ?? 3,
-  });
-  if (!result.error && typeof window !== "undefined") window.dispatchEvent(new Event("hyper-tutor-streak-updated"));
+  const timeZone = options.timeZone || getUserTimeZone();
+  const cutoffHour = options.cutoffHour ?? 3;
+
+  let result = null;
+  try {
+    result = await supabase.rpc("update_user_streak", {
+      activity_user_id: userId,
+      user_timezone: timeZone,
+      cutoff_hour: cutoffHour,
+    });
+  } catch (err) {
+    result = { data: null, error: err };
+  }
+
+  // Fallback: if RPC failed or returned error, query users_streaks and update directly
+  if (result?.error || !result?.data) {
+    try {
+      const activityDate = getActivityDate(new Date(), timeZone, cutoffHour);
+      const { data: existingStreak } = await getUserStreak(userId);
+
+      const prev = existingStreak
+        ? {
+            currentStreak: existingStreak.current_streak,
+            longestStreak: existingStreak.longest_streak,
+            lastActiveDate: existingStreak.last_active_date,
+            freezeTokensAvailable: existingStreak.freeze_tokens_available,
+          }
+        : null;
+
+      const { calculateStreakUpdate } = await import("./streaksCore");
+      const next = calculateStreakUpdate(prev, activityDate);
+
+      const { data: updatedStreak, error: upsertError } = await supabase
+        .from("users_streaks")
+        .upsert({
+          user_id: userId,
+          current_streak: next.currentStreak,
+          longest_streak: next.longestStreak,
+          last_active_date: next.lastActiveDate,
+          freeze_tokens_available: next.freezeTokensAvailable,
+        })
+        .select()
+        .maybeSingle();
+
+      if (!upsertError) {
+        result = { data: updatedStreak, error: null };
+      }
+    } catch (fallbackErr) {
+      console.error("Fallback updateStreakForActivity error:", fallbackErr);
+    }
+  }
+
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(new Event("hyper-tutor-streak-updated"));
+  }
+
   return result;
 }
 

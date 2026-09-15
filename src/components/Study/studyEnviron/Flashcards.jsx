@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ArrowLeft, Layers3, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 
-const Flashcards = ({ studyId, theme }) => {
+const Flashcards = ({ studyId, theme, onTimelineEvent }) => {
   const cardThemes = ["accent-card-chat", "accent-card-plan", "accent-card-read", "accent-card-track"];
   const [cards, setCards] = useState([]);
   const [form, setForm] = useState({ question: "", answer: "" });
@@ -41,6 +41,15 @@ const Flashcards = ({ studyId, theme }) => {
     if (saveError) setError(saveError.message);
     else {
       setError("");
+      if (!editingId && onTimelineEvent && data) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "flashcard",
+          refId: String(data.id),
+          title: data.question || "Flashcard created",
+          timestamp: new Date().toISOString(),
+        });
+      }
       setCards((current) => editingId ? current.map((card) => card.id === editingId ? data : card) : [...current, data]);
       setForm({ question: "", answer: "" });
       setEditingId(null);

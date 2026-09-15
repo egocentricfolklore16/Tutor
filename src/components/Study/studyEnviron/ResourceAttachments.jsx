@@ -6,7 +6,7 @@ const STORAGE_BUCKET = "resources";
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 
-const ResourceAttachments = ({ studyId, userId, theme }) => {
+const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const [resources, setResources] = useState([]);
   const [selectedFile, setSelectedFile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -75,6 +75,15 @@ const ResourceAttachments = ({ studyId, userId, theme }) => {
       await supabase.storage.from(STORAGE_BUCKET).remove([filePath]);
       setError(`The file uploaded, but its resource record could not be saved: ${insertError.message}`);
     } else {
+      if (onTimelineEvent && data) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "resource",
+          refId: String(data.id),
+          title: data.file_name || "Resource attached",
+          timestamp: new Date().toISOString(),
+        });
+      }
       setResources((current) => [data, ...current]);
       setSelectedFile(null);
       event.target.reset();

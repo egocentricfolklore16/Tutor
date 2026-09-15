@@ -62,8 +62,49 @@ export function ProfileProvider({ user, children }) {
         await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
       }
     };
+
+    const handleRewardsUpdated = (event) => {
+      const { xp = 0, gems = 0 } = event.detail || {};
+      setProfile((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          xp_points: (prev.xp_points || 0) + xp,
+          gems: (prev.gems || 0) + gems,
+        };
+      });
+      loadProfile();
+    };
+
+    // Realtime channel for profile changes
+    const channel = supabase
+      .channel(`profile-updates-${user.id}`)
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
+        (payload) => {
+          if (payload.new) {
+            setProfile((prev) => ({ ...prev, ...payload.new }));
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users_streaks", filter: `user_id=eq.${user.id}` },
+        () => {
+          refreshStreak();
+        }
+      )
+      .subscribe();
+
     window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
-    return () => window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
+    window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+
+    return () => {
+      supabase.removeChannel(channel);
+      window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
+      window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+    };
   }, [user?.id]);
 
   const toggleDarkMode = async (enabled) => {

@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
@@ -29,14 +30,15 @@ function Study() {
     hours: "",
   });
   const [sessions, setSessions] = useState([]);
+  const [sessionHistory, setSessionHistory] = useState([]);
   const [fetchError, setFetchError] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // Fetch sessions from Supabase on mount
+  // Fetch sessions and history from Supabase on mount
   useEffect(() => {
-    const fetchSessions = async () => {
+    const fetchSessionsAndHistory = async () => {
       try {
         setIsLoadingSessions(true);
         setFetchError("");
@@ -53,19 +55,34 @@ function Study() {
           return;
         }
 
-        const { data, error } = await supabase
-          .from("Study")
-          .select("*")
-          .eq("user_id", user.id); // Filter by current user's ID
+        const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] =
+          await Promise.all([
+            supabase.from("Study").select("*").eq("user_id", user.id),
+            supabase.from("study_history").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
+          ]);
 
-        if (error) {
+        if (activeError) {
           setFetchError(
-            "An error occurred while loading study sessions: " + error.message
+            "An error occurred while loading study sessions: " + activeError.message
           );
-          console.error("Supabase fetch error:", error);
+          console.error("Supabase fetch error:", activeError);
         } else {
-          setFetchError("");
-          setSessions(data || []);
+          setSessions(activeData || []);
+        }
+
+        if (!historyError && historyData) {
+          setSessionHistory(
+            historyData.map((item) => ({
+              id: item.id,
+              subject: item.subject,
+              topic: item.topic,
+              durationMinutes: item.duration_minutes,
+              startedAt: item.started_at,
+              completedAt: item.completed_at,
+              status: item.status,
+              xpEarned: item.xp_earned,
+            }))
+          );
         }
       } catch (err) {
         setFetchError("An unexpected error occurred while loading sessions");
@@ -74,7 +91,31 @@ function Study() {
         setIsLoadingSessions(false);
       }
     };
-    fetchSessions();
+    fetchSessionsAndHistory();
+  }, []);
+
+  useEffect(() => {
+    const handleSessionCompleted = (event) => {
+      const entry = event.detail;
+      if (!entry) return;
+      setSessionHistory((prev) => [
+        {
+          id: entry.id,
+          subject: entry.subject,
+          topic: entry.topic,
+          durationMinutes: entry.duration_minutes,
+          startedAt: entry.started_at,
+          completedAt: entry.completed_at,
+          status: entry.status,
+          xpEarned: entry.xp_earned,
+        },
+        ...prev,
+      ]);
+      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.id)));
+    };
+
+    window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);
+    return () => window.removeEventListener("hyper-tutor-session-completed", handleSessionCompleted);
   }, []);
 
   const [dropdownIndex, setDropdownIndex] = useState(null);
@@ -159,6 +200,13 @@ function Study() {
       session.time &&
       session.hours
     ) {
+      // Validate past timestamp against current Date.now()
+      const selectedTimestamp = new Date(`${session.date}T${session.time}`);
+      if (selectedTimestamp.getTime() < Date.now()) {
+        setFetchError("You can't schedule a session in the past");
+        return;
+      }
+
       try {
         setLoadingState("form", "submit", true);
 
@@ -363,7 +411,7 @@ function Study() {
             </p>
           </div>
         ) : (
-          <div className="grid w-full grid-cols-1 gap-4 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid w-full grid-cols-1 gap-4 p-2 sm:grid-cols-2 xl:grid-cols-3">
             {sessions.map((sessionItem, index) => {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];
@@ -492,187 +540,249 @@ function Study() {
             })}
           </div>
         )}
+
+        {/* Session History Section */}
+        <div className="mt-12">
+          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
+            Session History
+          </h2>
+          {sessionHistory.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-[#18211f] p-8 text-center text-gray-500 dark:text-slate-400">
+              <BookOpen className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
+              <p className="font-medium text-sm">No completed study sessions yet.</p>
+              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                Completed study sessions will appear here in your history.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {sessionHistory.map((item) => {
+                const dateStr = item.completedAt ? new Date(item.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently";
+                return (
+                  <div
+                    key={item.id}
+                    onClick={() => navigate(`/Study/history/${item.id}`)}
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-bold text-gray-900 dark:text-white text-base">
+                          {toTitleCase(item.subject)}
+                        </span>
+                        <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                          {item.status || "completed"}
+                        </span>
+                      </div>
+                      <p className="text-sm font-medium text-gray-600 dark:text-slate-300 truncate">
+                        {toTitleCase(item.topic)}
+                      </p>
+                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                        {dateStr}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
+                        <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
+                          {item.durationMinutes} min
+                        </p>
+                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                          +{item.xpEarned || 50} XP
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Fixed Overlay Modal */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-          onClick={(e) => {
-            if (formRef.current && !formRef.current.contains(e.target)) {
-              setIsOpen(false);
-            }
-          }}
-        >
-          <div className="w-full max-w-md" ref={formRef}>
-            <form
-              className="bg-white p-6 rounded-lg shadow-xl"
-              onSubmit={addSession}
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Create Study Session
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={loadingStates.form_submit}
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Subject */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="subject"
-                    value={session.subject}
-                    onChange={handleChange}
-                    placeholder="e.g., Mathematics, Biology"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Topic */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Topic *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="topic"
-                    value={session.topic}
-                    onChange={handleChange}
-                    placeholder="e.g., Calculus, Cell Division"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status *
-                  </label>
-                  <select
-                    required
-                    name="status"
-                    value={session.status}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+      {isOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (formRef.current && !formRef.current.contains(e.target)) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-[#18211f]" ref={formRef}>
+              <form
+                className="p-6 text-slate-800 dark:text-slate-100"
+                onSubmit={addSession}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    Create Study Session
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors dark:hover:text-gray-200"
                     disabled={loadingStates.form_submit}
                   >
-                    <option value="">Select status</option>
-                    <option value="Very Important">Very Important</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Not so Important">Not so Important</option>
-                  </select>
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
 
-                {/* Date */}
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date *
+                <div className="space-y-4">
+                  {/* Subject */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Subject *
                     </label>
                     <input
                       required
-                      type="date"
-                      name="date"
-                      value={session.date}
+                      type="text"
+                      name="subject"
+                      value={session.subject}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Mathematics, Biology"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time *
+
+                  {/* Topic */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Topic *
                     </label>
                     <input
                       required
-                      type="time"
-                      name="time"
-                      value={session.time}
+                      type="text"
+                      name="topic"
+                      value={session.topic}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Calculus, Cell Division"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    />
+                  </div>
+
+                  {/* Status */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Status *
+                    </label>
+                    <select
+                      required
+                      name="status"
+                      value={session.status}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    >
+                      <option value="">Select status</option>
+                      <option value="Very Important">Very Important</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Not so Important">Not so Important</option>
+                    </select>
+                  </div>
+
+                  {/* Date */}
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Date *
+                      </label>
+                      <input
+                        required
+                        type="date"
+                        min={new Date().toISOString().slice(0, 10)}
+                        name="date"
+                        value={session.date}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Start Time *
+                      </label>
+                      <input
+                        required
+                        type="time"
+                        name="time"
+                        value={session.time}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Hours */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Study Duration (hours) *
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      name="hours"
+                      value={session.hours}
+                      onChange={handleChange}
+                      placeholder="1"
+                      min="0.5"
+                      step="0.5"
+                      max="100"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
                 </div>
 
-                {/* Hours */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Study Duration (hours) *
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    name="hours"
-                    value={session.hours}
-                    onChange={handleChange}
-                    placeholder="1"
-                    min="0.5"
-                    step="0.5"
-                    max="12"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loadingStates.form_submit}
-              >
-                {loadingStates.form_submit ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating Session...
-                  </>
-                ) : (
-                  "Create Session"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                {/* Submit Button */}
+                <button
+                  type="submit"
+                  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loadingStates.form_submit}
+                >
+                  {loadingStates.form_submit ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Session...
+                    </>
+                  ) : (
+                    "Create Session"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Floating Action Button */}
-      <button
-        onClick={toggleShow}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-110 z-40"
-        title="Create New Session"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
-      </button>
+      {!activeSession &&
+        createPortal(
+          <button
+            onClick={toggleShow}
+            className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-8 sm:right-8"
+            title="Create New Session"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          </button>,
+          document.body
+        )}
     </div>
   );
 }

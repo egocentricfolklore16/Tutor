@@ -4,7 +4,7 @@ import supabase from "../../lib/supabase.js";
 
 function toGoogleEvent(studySession) {
   const start = new Date(studySession.date);
-  const [hours, minutes] = (studySession.startTime || "09:00").split(":").map(Number);
+  const [hours, minutes] = (studySession?.startTime || "09:00").split(":").map(Number);
   start.setHours(hours || 9, minutes || 0, 0, 0);
   const end = new Date(start.getTime() + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   return {

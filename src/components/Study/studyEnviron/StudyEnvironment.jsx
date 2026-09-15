@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -12,6 +13,7 @@ import {
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
+import { awardUserRewards } from "../../../lib/gamification";
 import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
@@ -34,6 +36,12 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [aiMessage, setAiMessage] = useState("");
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
+  const [timeline, setTimeline] = useState([]);
+
+  const handleTimelineEvent = (eventItem) => {
+    if (!eventItem) return;
+    setTimeline((prev) => [...prev, eventItem]);
+  };
   const { Studyid } = useParams();
   const navigate = useNavigate();
 
@@ -76,7 +84,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
       const { data, error: profileError } = await supabase
         .from("profiles")
-        .select("username")
+        .select("full_name")
         .eq("user_id", authUser.id)
         .single();
 
@@ -85,7 +93,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       }
 
       setProfile({
-        name: data?.username || authUser.user_metadata?.userName || "User",
+        name: data?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.userName || "User",
         email: authUser.email || "",
         avatar: authUser.user_metadata?.avatar_url || "",
       });
@@ -115,33 +123,66 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   }, [isStudying, timeLeft]);
 
   useEffect(() => {
-    if (timeLeft !== 0 || pomodoroRecorded.current || !userId || !session?.id) return;
+    if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
     pomodoroRecorded.current = true;
     
     const completeSession = async () => {
-      // Save pomodoro record
-      const { error: pomodoroError } = await supabase
-        .from("study_pomodoros")
-        .insert({ session_id: session.id, user_id: userId });
-      
-      if (pomodoroError) {
-        console.error("Pomodoro completion save error:", pomodoroError);
-      } else {
-        // Update streak
-        await updateStreakForActivity(userId);
-        
-        // Delete the study session after a short delay to allow UI to update
-        setTimeout(async () => {
-          const { error: deleteError } = await supabase
-            .from("Study")
-            .delete()
-            .eq("id", session.id);
-          
-          if (deleteError) {
-            console.error("Session deletion error:", deleteError);
-          }
-        }, 2000);
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const { data: { user: authUser } } = await supabase.auth.getUser();
+        activeUserId = authUser?.id || null;
       }
+
+      if (activeUserId) {
+        const historyEntry = {
+          id: crypto.randomUUID(),
+          user_id: activeUserId,
+          subject: session.Subject || session.subject || "Untitled subject",
+          topic: session.Topic || session.topic || "No topic provided",
+          duration_minutes: Math.round(durationSeconds / 60),
+          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+          completed_at: new Date().toISOString(),
+          status: "completed",
+          xp_earned: 50,
+          timeline: timeline,
+        };
+
+        // Always update streak, award rewards, and save history entry
+        try {
+          await Promise.all([
+            updateStreakForActivity(activeUserId),
+            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
+            supabase.from("study_history").insert(historyEntry),
+          ]);
+        } catch (err) {
+          console.error("Error updating streak, rewards, or study history:", err);
+        }
+
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
+        }
+
+        // Save pomodoro record
+        const { error: pomodoroError } = await supabase
+          .from("study_pomodoros")
+          .insert({ session_id: session.id, user_id: activeUserId });
+
+        if (pomodoroError) {
+          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
+        }
+      }
+
+      // Delete the study session after a short delay to allow UI to update
+      setTimeout(async () => {
+        const { error: deleteError } = await supabase
+          .from("Study")
+          .delete()
+          .eq("id", session.id);
+
+        if (deleteError) {
+          console.error("Session deletion error:", deleteError);
+        }
+      }, 2000);
     };
     
     completeSession();
@@ -187,6 +228,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
           <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
+          <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
+            <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
+          </div>
           <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
@@ -286,11 +330,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const renderTool = () => {
     if (activeTool === "notes") {
-      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
+      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     }
-    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} />;
-    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} />;
+    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
       <div>
         <div className="grid grid-cols-3 gap-3">
@@ -342,11 +386,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 ${
-          isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
-        }`}
+        className={`min-w-0 px-3 py-4 pb-24 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
+          isToolsOpen
+            ? "xl:ml-[calc(var(--app-sidebar-width,0px)+300px)]"
+            : "xl:ml-[calc(var(--app-sidebar-width,0px)+64px)]"
+        } ${isAIOpen ? "xl:mr-[370px]" : "mr-0"}`}
       >
-        <div className="mx-auto w-full max-w-[1500px]">
+        <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
           <div className="mb-6 flex min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
             <button
@@ -398,36 +444,41 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         </div>
       </main>
 
-      <button
-        title="Open AI tutor"
-        onClick={() => setIsAIOpen((isOpen) => !isOpen)}
-        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 sm:right-6 sm:px-5 sm:text-base ${importanceTheme.accentButton}`}
-      >
-        <MessageCircle className="h-5 w-5" />
-        AI Tutor
-      </button>
-      <div
-        className={`fixed inset-y-0 right-0 z-20 ${
-          isAIOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <AITutorChat
-          isOpen={isAIOpen}
-          onClose={() => setIsAIOpen(false)}
-          messages={aiMessages}
-          currentMessage={aiMessage}
-          onMessageChange={setAiMessage}
-          onSendMessage={sendAiMessage}
-          onClear={() => {
-            setAiMessages([]);
-            setAiMessage("");
-          }}
-          isTyping={isAiTyping}
-          width={360}
-          user={user}
-          theme={importanceTheme}
-        />
-      </div>
+      {createPortal(
+        <>
+          <button
+            title="Open AI tutor"
+            onClick={() => setIsAIOpen((isOpen) => !isOpen)}
+            className={`fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full p-4 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl sm:bottom-8 sm:right-8 sm:px-5 sm:py-3.5 sm:text-base ${importanceTheme.accentButton}`}
+          >
+            <MessageCircle className="h-5 w-5" />
+            <span className="hidden sm:inline">AI Tutor</span>
+          </button>
+          <div
+            className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ${
+              isAIOpen ? "translate-x-0" : "translate-x-full"
+            }`}
+          >
+            <AITutorChat
+              isOpen={isAIOpen}
+              onClose={() => setIsAIOpen(false)}
+              messages={aiMessages}
+              currentMessage={aiMessage}
+              onMessageChange={setAiMessage}
+              onSendMessage={sendAiMessage}
+              onClear={() => {
+                setAiMessages([]);
+                setAiMessage("");
+              }}
+              isTyping={isAiTyping}
+              width={360}
+              user={user}
+              theme={importanceTheme}
+            />
+          </div>
+        </>,
+        document.body
+      )}
     </div>
   );
 };

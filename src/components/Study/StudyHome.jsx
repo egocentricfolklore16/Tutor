@@ -200,6 +200,13 @@ function Study() {
       session.time &&
       session.hours
     ) {
+      // Validate past timestamp against current Date.now()
+      const selectedTimestamp = new Date(`${session.date}T${session.time}`);
+      if (selectedTimestamp.getTime() < Date.now()) {
+        setFetchError("You can't schedule a session in the past");
+        return;
+      }
+
       try {
         setLoadingState("form", "submit", true);
 

@@ -593,17 +593,16 @@ function Study() {
       {/* Fixed Overlay Modal */}
       {isOpen && (
         <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
-          style={{ background: "rgba(255,255,255,0.05)" }}
+          className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
           onClick={(e) => {
             if (formRef.current && !formRef.current.contains(e.target)) {
               setIsOpen(false);
             }
           }}
         >
-          <div className="w-full max-w-md" ref={formRef}>
+          <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-[#18211f]" ref={formRef}>
             <form
-              className="bg-white p-6 rounded-lg shadow-xl"
+              className="p-6 text-slate-800 dark:text-slate-100"
               onSubmit={addSession}
             >
               <div className="flex justify-between items-center mb-6">
@@ -750,26 +749,28 @@ function Study() {
       )}
 
       {/* Floating Action Button */}
-      <button
-        onClick={toggleShow}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-110 z-40"
-        title="Create New Session"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
+      {!activeSession && (
+        <button
+          onClick={toggleShow}
+          className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-8 sm:right-8"
+          title="Create New Session"
         >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
-      </button>
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+            />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }

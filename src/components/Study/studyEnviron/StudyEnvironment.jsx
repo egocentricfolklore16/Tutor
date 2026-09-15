@@ -385,7 +385,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       />
 
       <main
-        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
+        className={`min-w-0 px-3 py-4 pb-24 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
           isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
         } ${
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
@@ -446,10 +446,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       <button
         title="Open AI tutor"
         onClick={() => setIsAIOpen((isOpen) => !isOpen)}
-        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 sm:right-6 sm:px-5 sm:text-base ${importanceTheme.accentButton}`}
+        className={`fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full p-4 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl sm:bottom-8 sm:right-8 sm:px-5 sm:py-3.5 sm:text-base ${importanceTheme.accentButton}`}
       >
         <MessageCircle className="h-5 w-5" />
-        AI Tutor
+        <span className="hidden sm:inline">AI Tutor</span>
       </button>
       <div
         className={`fixed inset-y-0 right-0 z-[50] transition-transform duration-300 ${

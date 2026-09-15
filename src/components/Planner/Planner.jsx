@@ -202,17 +202,6 @@ const PlannerPage = () => {
 
   const handleCreateSession = async () => {
     if (!newSession.title.trim() || !newSession.subject || !newSession.status || !newSession.date) return;
-
-    // Validate past date/time for non-recurring sessions
-    if (newSession.recurring === "none") {
-      const dateStr = newSession.date instanceof Date ? newSession.date.toISOString().slice(0, 10) : newSession.date;
-      const selectedTimestamp = new Date(`${dateStr}T${newSession.startTime}`);
-      if (selectedTimestamp.getTime() < Date.now()) {
-        setFetchError("You can't schedule a session in the past");
-        return;
-      }
-    }
-
     setIsSavingSession(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {

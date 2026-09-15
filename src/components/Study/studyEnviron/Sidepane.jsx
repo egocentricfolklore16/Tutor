@@ -12,7 +12,7 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
 
   const UserCard = ({ user }) => (
     <div className="flex items-center justify-center py-6">
-      <div className={`rounded-lg bg-white p-4 text-center ${isOpen ? "w-48 shadow" : "w-12"}`}>
+    <div className={`rounded-lg bg-white p-4 text-center ${isOpen ? "w-48 shadow" : "w-12"}`}>
         <div className="w-16 h-16 rounded-full bg-gray-200 mx-auto mb-3 flex items-center justify-center">
           {user?.avatar ? (
             <img
@@ -52,24 +52,18 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
 
   return (
     <>
-      {/* Mobile backdrop — click to collapse. Was dead code before (referenced a
-          nonexistent onClose prop and was fully commented out). Now wired to onToggle. */}
-      {isOpen && (
+      {/* {isOpen && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-[1004] lg:hidden"
-          onClick={onToggle}
+          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
+          onClick={onClose}
         />
-      )}
+      )} */}
 
       <div
         className="fixed inset-y-0 left-0 z-[1005] flex flex-col overflow-hidden border-r border-gray-200 bg-white transition-all duration-300"
         style={{ width: isOpen ? `${width}px` : "64px", left: "var(--app-sidebar-width, 0px)" }}
       >
-        {/* FIX: this header (and the toggle button inside it) used to be wrapped in
-            `{isOpen && ...}`, so collapsing the panel deleted the only way to reopen it.
-            The internal `{isOpen ? <X/> : <BookOpen/>}` swap was already correct — it just
-            never got a chance to render. Removed the outer gate; header always renders now. */}
-        <div className={`flex items-center border-b border-gray-200 ${isOpen ? "justify-between p-6" : "justify-center p-3"}`}>
+        {isOpen && <div className="flex items-center justify-between border-b border-gray-200 p-6">
           <div className="flex items-center gap-2">
             <BookOpen className={`w-6 h-6 ${theme?.accent || "text-red-600"}`} />
             {isOpen && <span className="text-sm font-bold text-gray-900">StudyBuddy</span>}
@@ -81,7 +75,7 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
           >
             {isOpen ? <X className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
           </button>
-        </div>
+        </div>}
 
         {/* center area: show user card */}
         {isOpen && user && <UserCard user={user} />}
@@ -99,3 +93,5 @@ const Sidepane = ({ isOpen, onToggle, width, user, activeTool, onToolSelect, the
 };
 
 export default Sidepane;
+
+AFTER THE PROMPT IT IS STILL NOT WORKING SO FIX IT

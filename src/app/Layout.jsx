@@ -57,7 +57,7 @@ function Layout({ session, needsOnboarding }) {
                 <div className="min-w-0 flex-1">
                   <Outlet />
                 </div>
-                <section className="hidden w-full self-start px-5 pb-8 md:px-10 lg:block xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
+                <section className="hidden w-full self-start px-5 pb-8 md:px-10 lg:block lg:sticky lg:top-20 xl:w-[320px] xl:shrink-0 xl:px-0">
                   <GlobalStudyCompanion />
                 </section>
               </div>

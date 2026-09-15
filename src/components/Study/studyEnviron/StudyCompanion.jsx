@@ -33,9 +33,9 @@ function StudyCompanion({ theme, topic }) {
   const riddle = riddles[riddleIndex];
 
   return (
-    <aside className="w-full self-start lg:sticky lg:top-6">
+    <aside className="w-full self-start">
       <div className="flex flex-col gap-4 lg:items-stretch">
-        <div className="mt-[30px] flex min-h-[19rem] w-full flex-1 flex-col overflow-hidden rounded-2xl border border-green-200/50 bg-transparent p-5 shadow-none dark:border-slate-700/50">
+        <div className="flex min-h-[19rem] w-full flex-1 flex-col overflow-hidden rounded-2xl border border-green-200/50 bg-transparent p-5 shadow-none dark:border-slate-700/50">
           <div className="relative flex justify-center px-5 pt-4">
             <div className="absolute right-5 top-5 rounded-full bg-white/80 dark:bg-slate-800/80 p-2 text-amber-500 shadow-sm"><Sparkles className="h-4 w-4" /></div>
             <img src="/logo3.png" alt="Lumo, your study companion" className="lumo-float h-44 w-auto object-contain drop-shadow-md" />

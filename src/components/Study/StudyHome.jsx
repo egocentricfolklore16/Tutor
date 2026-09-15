@@ -411,7 +411,7 @@ function Study() {
             </p>
           </div>
         ) : (
-          <div className="grid w-full grid-cols-1 gap-4 p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset] sm:grid-cols-2 xl:grid-cols-3">
+          <div className="grid w-full grid-cols-1 gap-4 p-2 sm:grid-cols-2 xl:grid-cols-3">
             {sessions.map((sessionItem, index) => {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];

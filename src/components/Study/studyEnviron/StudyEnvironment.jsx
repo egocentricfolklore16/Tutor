@@ -390,7 +390,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >
-        <div className="mx-auto w-full max-w-[1500px]">
+        <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
           <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
             <button

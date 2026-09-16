@@ -133,19 +133,19 @@ function Study() {
   }, [location, navigate]);
 
   const getTypeIcon = () => {
-    return <BookOpen className="h-4 w-4" />;
+    return <BookOpen className="h-4 w-4 text-slate-400" />;
   };
 
   const getPriorityColor = (status) => {
     switch (normalizeStatus(status)) {
       case "very important":
-        return "border-l-red-300 bg-red-50";
+        return "border border-red-900/50 bg-red-950/40 rounded-2xl";
       case "not so important":
-        return "border-l-green-300 bg-green-50";
+        return "border border-emerald-900/50 bg-emerald-950/40 rounded-2xl";
       case "medium":
-        return "border-l-orange-300 bg-orange-50";
+        return "border border-amber-900/50 bg-amber-950/40 rounded-2xl";
       default:
-        return "border-l-gray-300 bg-gray-50";
+        return "border border-slate-800 bg-slate-900 rounded-2xl";
     }
   };
 
@@ -153,26 +153,26 @@ function Study() {
     switch (normalizeStatus(status)) {
       case "very important":
         return (
-            <span className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-full flex items-center gap-1">
+          <span className="px-2.5 py-1 text-xs font-medium bg-red-950/60 text-red-400 rounded-full border border-red-800/50 flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Very Important
           </span>
         );
       case "not so important":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
             Not so Important
           </span>
         );
       case "medium":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-orange-50 text-orange-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-amber-950/60 text-amber-400 rounded-full border border-amber-800/50">
             Medium
           </span>
         );
       default:
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-slate-800 text-slate-300 rounded-full border border-slate-700">
             {status}
           </span>
         );
@@ -413,62 +413,23 @@ function Study() {
               return (
                 <div
                   key={sessionItem.id || index}
-                  className={`relative w-full min-w-0 rounded-r-lg border-l-4 p-4 transition-all hover:shadow-md cursor-pointer ${
+                  className={`relative w-full min-w-0 p-5 transition-all hover:shadow-md cursor-pointer ${
                     isMuted
-                      ? "bg-gray-200 border-l-gray-400"
+                      ? "bg-slate-900/60 border border-slate-800 rounded-2xl"
                       : getPriorityColor(sessionItem.Status)
                   } ${isDeleting ? "opacity-50" : ""}`}
                   style={
                     isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
                   }
                 >
-                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          {getTypeIcon()}
-                        </div>
-                        {!isMuted && getStatusBadge(sessionItem.Status)}
-                      </div>
-
-                      <h2
-                        className={`font-semibold mb-1 ${
-                          isMuted ? "text-gray-500" : "text-gray-800"
-                        }`}
-                      >
-                        {toTitleCase(sessionItem.Subject || "")}
-                      </h2>
-                      <h3
-                        className={`mb-1 ${
-                          isMuted ? "text-gray-400" : "text-gray-600"
-                        }`}
-                      >
-                        {toTitleCase(sessionItem.Topic || "")}
-                      </h3>
-                      <p
-                        className={`text-sm mb-1 ${
-                          isMuted ? "text-gray-400" : "text-gray-500"
-                        }`}
-                      >
-                        {sessionItem.Date}{" "}
-                        {sessionItem.Start && (
-                          <span className="ml-2 text-gray-400">
-                            at {sessionItem.Start}
-                          </span>
-                        )}
-                      </p>
-                      <p
-                        className={`text-sm font-medium ${
-                          isMuted ? "text-gray-400" : "text-gray-700"
-                        }`}
-                      >
-                        {sessionItem.Duration} hour(s)
-                      </p>
+                  <div className="flex items-center justify-between mb-3">
+                    <div className="flex items-center gap-2.5">
+                      {getTypeIcon()}
+                      {!isMuted && getStatusBadge(sessionItem.Status)}
                     </div>
-
-                    <div className="relative flex shrink-0 flex-row items-center gap-2 sm:ml-4 sm:flex-col dropdown-container">
+                    <div className="relative flex items-center gap-2 dropdown-container">
                       <button
-                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-400 text-slate-950 text-xs font-semibold rounded-full hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`
@@ -476,12 +437,12 @@ function Study() {
                         }
                         disabled={isDeleting || isMuting}
                       >
-                        <Play className="h-3 w-3" />
+                        <Play className="h-3 w-3 fill-current" />
                         Start
                       </button>
 
                       <button
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                        className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-50 rounded-lg"
                         onClick={() => handleDropdown(index)}
                         disabled={isDeleting || isMuting}
                       >
@@ -493,9 +454,9 @@ function Study() {
                       </button>
 
                       {dropdownIndex === index && !isDeleting && !isMuting && (
-                        <div className="absolute right-0 top-10 bg-white border rounded shadow-lg z-10 min-w-[120px]">
+                        <div className="absolute right-0 top-9 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 min-w-[120px] overflow-hidden py-1">
                           <button
-                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                            className="block w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleMuteToggle(sessionItem.id)}
                             disabled={isMuting}
                           >
@@ -511,7 +472,7 @@ function Study() {
                             )}
                           </button>
                           <button
-                            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 disabled:opacity-50"
+                            className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleDelete(sessionItem.id)}
                             disabled={isDeleting}
                           >
@@ -526,6 +487,30 @@ function Study() {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2
+                      className={`font-bold text-lg mb-0.5 ${
+                        isMuted ? "text-slate-500" : "text-white"
+                      }`}
+                    >
+                      {toTitleCase(sessionItem.Subject || "")}
+                    </h2>
+                    <h3
+                      className={`text-sm mb-3 ${
+                        isMuted ? "text-slate-600" : "text-slate-400"
+                      }`}
+                    >
+                      {toTitleCase(sessionItem.Topic || "")}
+                    </h3>
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>
+                        {sessionItem.Date}
+                        {sessionItem.Start && ` at ${sessionItem.Start}`}
+                      </span>
+                      <span>{sessionItem.Duration} hour(s)</span>
                     </div>
                   </div>
                 </div>
@@ -555,30 +540,30 @@ function Study() {
                   <div
                     key={item.id}
                     onClick={() => navigate(`/Study/history/${item.id}`)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-gray-900 dark:text-white text-base">
+                        <span className="font-bold text-white text-base">
                           {toTitleCase(item.subject)}
                         </span>
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
                           {item.status || "completed"}
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-slate-300 truncate">
+                      <p className="text-sm font-medium text-slate-400 truncate">
                         {toTitleCase(item.topic)}
                       </p>
-                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         {dateStr}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-right">
                       <div>
-                        <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
+                        <p className="text-sm font-bold text-white">
                           {item.durationMinutes} min
                         </p>
-                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                        <p className="text-xs font-bold text-amber-400 mt-0.5">
                           +{item.xpEarned || 50} XP
                         </p>
                       </div>

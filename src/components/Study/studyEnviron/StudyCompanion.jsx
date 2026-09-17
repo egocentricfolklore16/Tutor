@@ -47,7 +47,7 @@ function StudyCompanion({ theme, topic }) {
           </div>
         </div>
 
-        <div className="flex min-h-[19rem] w-full flex-col rounded-2xl border border-amber-200/50 dark:border-amber-900/30 bg-transparent p-5 shadow-none">
+        <div className="flex min-h-[19rem] w-full flex-col rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-5 shadow-sm">
           <div className="flex items-center justify-between gap-3">
             <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400"><Lightbulb className="h-5 w-5" /><h2 className="font-bold">Quick riddle</h2></div>
             <button title="New riddle" onClick={nextRiddle} className="rounded-lg p-2 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40"><RefreshCw className="h-4 w-4" /></button>

@@ -97,7 +97,7 @@ function Overview() {
     <>
       <div>
         <div className="px-3 sm:px-4 md:px-6">
-          <section className="rounded-2xl bg-transparent px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
+          <section className="rounded-2xl bg-white/70 px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />{streak?.display_current_streak || 0}d Streak</span>
@@ -114,21 +114,10 @@ function Overview() {
             <p className="mt-2 truncate pl-14 text-sm text-slate-600">{greeting.paragraph}</p>
             {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500">Focus: <span className="font-semibold text-slate-700">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
 
-           <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
-  <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-    <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500 dark:bg-amber-500" />
-    <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-500" />
-    <strong className="truncate text-slate-800 dark:text-amber-400">
-      {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
-    </strong>
-    <span className="hidden truncate text-slate-500 dark:text-amber-500/70 sm:inline">
-      {knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}
-    </span>
-  </div>
-  <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-amber-400 dark:hover:text-amber-300 sm:ml-auto">
-    Review now <ArrowRight className="h-4 w-4" />
-  </button>
-</div>
+            <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full bg-slate-50 px-3 py-2.5">
+              <div className="flex min-w-0 flex-1 items-center gap-2 text-sm"><span className="h-2 w-2 shrink-0 rounded-full bg-orange-500" /><CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500" /><strong className="truncate text-slate-800">{knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}</strong><span className="hidden truncate text-slate-500 sm:inline">{knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}</span></div>
+              <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 sm:ml-auto">Review now <ArrowRight className="h-4 w-4" /></button>
+            </div>
           </section>
           <DashboardStatsBar />
           <QuickShortcuts />

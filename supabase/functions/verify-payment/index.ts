@@ -1,124 +1,88 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.38.4";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { processVerifiedPayment } from "../_shared/payment-processor.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers":
+    "authorization, x-client-info, apikey, content-type",
 };
 
-serve(async (req) => {
+Deno.serve(async (req) => {
+  // Handle CORS preflight request
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-    const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY") || "";
-
+    const paystackSecretKey = Deno.env.get("PAYSTACK_SECRET_KEY");
     if (!paystackSecretKey) {
-      throw new Error("PAYSTACK_SECRET_KEY is not configured");
+      throw new Error("Missing PAYSTACK_SECRET_KEY environment variable");
     }
 
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+    if (!supabaseUrl || !supabaseServiceRoleKey) {
+      throw new Error("Missing Supabase configuration environment variables");
     }
 
-    // Authenticate user via JWT
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    const token = authHeader.replace("Bearer ", "");
-    const { data: { user }, error: authError } = await supabaseAdmin.auth.getUser(token);
+    const body = await req.json();
+    const { reference } = body || {};
 
-    if (authError || !user) {
-      return new Response(JSON.stringify({ error: "Unauthorized user session" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!reference) {
+      return new Response(
+        JSON.stringify({ error: "Missing reference in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const { reference, purpose = null } = await req.json();
-
-    if (!reference || typeof reference !== "string") {
-      return new Response(JSON.stringify({ error: "Invalid payment reference" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
-
-    // Call Paystack API to verify transaction
-    const paystackResponse = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${paystackSecretKey}`,
-        "Content-Type": "application/json",
-      },
-    });
-
-    if (!paystackResponse.ok) {
-      const errorText = await paystackResponse.text();
-      return new Response(JSON.stringify({ error: `Paystack verification failed: ${errorText}` }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // 1. Fetch transaction status directly from Paystack API
+    const paystackResponse = await fetch(
+      `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
+      {
+        method: "GET",
+        headers: {
+          Authorization: `Bearer ${paystackSecretKey}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     const paystackData = await paystackResponse.json();
 
-    if (!paystackData.status || paystackData.data?.status !== "success") {
-      return new Response(JSON.stringify({ error: "Transaction verification status was not successful" }), {
-        status: 400,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (!paystackResponse.ok || !paystackData.status) {
+      return new Response(
+        JSON.stringify({
+          error: paystackData.message || "Failed to verify transaction with Paystack",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const transactionData = paystackData.data;
-    const verifiedAmount = transactionData.amount; // amount in kobo from Paystack server
-    const currency = transactionData.currency || "NGN";
+    // 2. Initialize Supabase Service Role client to bypass RLS for write actions
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // Idempotent upsert into public.payments keyed on reference using service role client
-    const { data: paymentRecord, error: dbError } = await supabaseAdmin
-      .from("payments")
-      .upsert(
-        {
-          user_id: user.id,
-          reference: reference,
-          amount: verifiedAmount,
-          currency: currency,
-          status: "success",
-          purpose: purpose,
-          verified_at: new Date().toISOString(),
-        },
-        { onConflict: "reference" }
-      )
-      .select()
-      .single();
-
-    if (dbError) {
-      return new Response(JSON.stringify({ error: `Failed to record payment: ${dbError.message}` }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // 3. Process payment, re-verifying plan & price server-side
+    const result = await processVerifiedPayment({
+      supabaseClient,
+      reference,
+      paystackData: paystackData.data,
+    });
 
     return new Response(
       JSON.stringify({
         success: true,
-        message: "Payment verified successfully",
-        payment: paymentRecord,
+        payment: result.payment,
+        subscription: result.subscription,
+        plan: result.plan,
       }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
-  } catch (err: any) {
-    return new Response(JSON.stringify({ error: err.message || "Internal server error" }), {
-      status: 500,
-      headers: { ...corsHeaders, "Content-Type": "application/json" },
-    });
+  } catch (error: any) {
+    console.error("Error in verify-payment Edge Function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 });

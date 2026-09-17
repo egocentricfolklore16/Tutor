@@ -75,6 +75,19 @@ export default function PaystackCheckoutButton({
       const amountKobo = planData.price_kobo;
       const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
+      // Diagnostic logging to inspect PaystackPop SDK availability
+      console.log(
+        "PaystackPop type:",
+        typeof window.PaystackPop,
+        typeof window.PaystackPop?.setup
+      );
+
+      if (typeof window.PaystackPop?.setup !== "function") {
+        throw new Error(
+          "Paystack Inline SDK setup function not available. Check for ad-blockers or script loading issues."
+        );
+      }
+
       // 3. Trigger Paystack Inline Popup
       const handler = window.PaystackPop.setup({
         key: publicKey,

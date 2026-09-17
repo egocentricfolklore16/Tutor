@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect } from "react";
-import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
@@ -147,19 +146,19 @@ function Study() {
   }, [location, navigate]);
 
   const getTypeIcon = () => {
-    return <BookOpen className="h-4 w-4" />;
+    return <BookOpen className="h-4 w-4 text-slate-400" />;
   };
 
   const getPriorityColor = (status) => {
     switch (normalizeStatus(status)) {
       case "very important":
-        return "border-l-red-300 bg-red-50";
+        return "border border-red-900/50 bg-red-950/40 rounded-2xl";
       case "not so important":
-        return "border-l-green-300 bg-green-50";
+        return "border border-emerald-900/50 bg-emerald-950/40 rounded-2xl";
       case "medium":
-        return "border-l-orange-300 bg-orange-50";
+        return "border border-amber-900/50 bg-amber-950/40 rounded-2xl";
       default:
-        return "border-l-gray-300 bg-gray-50";
+        return "border border-slate-800 bg-slate-900 rounded-2xl";
     }
   };
 
@@ -167,26 +166,26 @@ function Study() {
     switch (normalizeStatus(status)) {
       case "very important":
         return (
-            <span className="px-2 py-1 text-xs font-medium bg-red-50 text-red-700 rounded-full flex items-center gap-1">
+          <span className="px-2.5 py-1 text-xs font-medium bg-red-950/60 text-red-400 rounded-full border border-red-800/50 flex items-center gap-1">
             <AlertCircle className="h-3 w-3" />
             Very Important
           </span>
         );
       case "not so important":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-green-50 text-green-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
             Not so Important
           </span>
         );
       case "medium":
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-orange-50 text-orange-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-amber-950/60 text-amber-400 rounded-full border border-amber-800/50">
             Medium
           </span>
         );
       default:
         return (
-          <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-700 rounded-full">
+          <span className="px-2.5 py-1 text-xs font-medium bg-slate-800 text-slate-300 rounded-full border border-slate-700">
             {status}
           </span>
         );
@@ -214,13 +213,6 @@ function Study() {
       session.time &&
       session.hours
     ) {
-      // Validate past timestamp against current Date.now()
-      const selectedTimestamp = new Date(`${session.date}T${session.time}`);
-      if (selectedTimestamp.getTime() < Date.now()) {
-        setFetchError("You can't schedule a session in the past");
-        return;
-      }
-
       try {
         setLoadingState("form", "submit", true);
 
@@ -485,9 +477,9 @@ function Study() {
               return (
                 <div
                   key={sessionItem.id || index}
-                  className={`relative w-full min-w-0 rounded-r-lg border-l-4 p-4 transition-all hover:shadow-md cursor-pointer ${
+                  className={`relative w-full min-w-0 p-5 transition-all hover:shadow-md cursor-pointer ${
                     isMuted
-                      ? "bg-gray-200 border-l-gray-400"
+                      ? "bg-slate-900/60 border border-slate-800 rounded-2xl"
                       : getPriorityColor(sessionItem.Status)
                   } ${isDeleting ? "opacity-50" : ""}`}
                   style={
@@ -496,16 +488,11 @@ function Study() {
                 >
                   <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                      <div className="flex items-center gap-3 mb-2">
                         <div className="flex items-center gap-2 text-gray-600">
                           {getTypeIcon()}
                         </div>
                         {!isMuted && getStatusBadge(sessionItem.Status)}
-                        {isPaused && (
-                          <span className="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full border border-amber-300">
-                            Paused
-                          </span>
-                        )}
                       </div>
 
                       <h2
@@ -542,14 +529,9 @@ function Study() {
                         {sessionItem.Duration} hour(s)
                       </p>
                     </div>
-
-                    <div className="relative flex shrink-0 flex-row items-center gap-2 sm:ml-4 sm:flex-col dropdown-container">
+                    <div className="relative flex items-center gap-2 dropdown-container">
                       <button
-                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
-                          isPaused
-                            ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
-                            : "bg-green-200 text-black hover:bg-green-300"
-                        }`}
+                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`
@@ -558,11 +540,11 @@ function Study() {
                         disabled={isDeleting || isMuting}
                       >
                         <Play className="h-3 w-3" />
-                        {isPaused ? "Resume" : "Start"}
+                        Start
                       </button>
 
                       <button
-                        className="p-2 text-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                        className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-50 rounded-lg"
                         onClick={() => handleDropdown(index)}
                         disabled={isDeleting || isMuting}
                       >
@@ -574,9 +556,9 @@ function Study() {
                       </button>
 
                       {dropdownIndex === index && !isDeleting && !isMuting && (
-                        <div className="absolute right-0 top-10 bg-white border rounded shadow-lg z-10 min-w-[120px]">
+                        <div className="absolute right-0 top-9 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 min-w-[120px] overflow-hidden py-1">
                           <button
-                            className="block w-full text-left px-4 py-2 text-gray-700 hover:bg-gray-100 disabled:opacity-50"
+                            className="block w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleMuteToggle(sessionItem.id)}
                             disabled={isMuting}
                           >
@@ -592,7 +574,7 @@ function Study() {
                             )}
                           </button>
                           <button
-                            className="block w-full text-left px-4 py-2 text-red-600 hover:bg-gray-100 disabled:opacity-50"
+                            className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleDelete(sessionItem.id)}
                             disabled={isDeleting}
                           >
@@ -607,6 +589,30 @@ function Study() {
                           </button>
                         </div>
                       )}
+                    </div>
+                  </div>
+
+                  <div>
+                    <h2
+                      className={`font-bold text-lg mb-0.5 ${
+                        isMuted ? "text-slate-500" : "text-white"
+                      }`}
+                    >
+                      {toTitleCase(sessionItem.Subject || "")}
+                    </h2>
+                    <h3
+                      className={`text-sm mb-3 ${
+                        isMuted ? "text-slate-600" : "text-slate-400"
+                      }`}
+                    >
+                      {toTitleCase(sessionItem.Topic || "")}
+                    </h3>
+                    <div className="flex items-center justify-between text-xs text-slate-400">
+                      <span>
+                        {sessionItem.Date}
+                        {sessionItem.Start && ` at ${sessionItem.Start}`}
+                      </span>
+                      <span>{sessionItem.Duration} hour(s)</span>
                     </div>
                   </div>
                 </div>
@@ -682,30 +688,30 @@ function Study() {
                   <div
                     key={item.id}
                     onClick={() => navigate(`/Study/history/${item.id}`)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-xl border border-gray-200 dark:border-slate-700 bg-white dark:bg-[#18211f] p-4 shadow-sm cursor-pointer hover:border-emerald-400 dark:hover:border-emerald-500 transition-colors"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-gray-900 dark:text-white text-base">
+                        <span className="font-bold text-white text-base">
                           {toTitleCase(item.subject)}
                         </span>
-                        <span className="px-2 py-0.5 text-xs font-semibold bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 rounded-full border border-emerald-200 dark:border-emerald-800/40">
+                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
                           {item.status || "completed"}
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-gray-600 dark:text-slate-300 truncate">
+                      <p className="text-sm font-medium text-slate-400 truncate">
                         {toTitleCase(item.topic)}
                       </p>
-                      <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
+                      <p className="text-xs text-slate-500 mt-1">
                         {dateStr}
                       </p>
                     </div>
                     <div className="flex items-center gap-4 text-right">
                       <div>
-                        <p className="text-sm font-bold text-gray-800 dark:text-slate-200">
+                        <p className="text-sm font-bold text-white">
                           {item.durationMinutes} min
                         </p>
-                        <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mt-0.5">
+                        <p className="text-xs font-bold text-amber-400 mt-0.5">
                           +{item.xpEarned || 50} XP
                         </p>
                       </div>
@@ -734,190 +740,185 @@ function Study() {
       </div>
 
       {/* Fixed Overlay Modal */}
-      {isOpen &&
-        createPortal(
-          <div
-            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
-            onClick={(e) => {
-              if (formRef.current && !formRef.current.contains(e.target)) {
-                setIsOpen(false);
-              }
-            }}
-          >
-            <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-[#18211f]" ref={formRef}>
-              <form
-                className="p-6 text-slate-800 dark:text-slate-100"
-                onSubmit={addSession}
-              >
-                <div className="flex justify-between items-center mb-6">
-                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-                    Create Study Session
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setIsOpen(false)}
-                    className="text-gray-400 hover:text-gray-600 transition-colors dark:hover:text-gray-200"
-                    disabled={loadingStates.form_submit}
-                  >
-                    <X className="h-6 w-6" />
-                  </button>
-                </div>
-
-                <div className="space-y-4">
-                  {/* Subject */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Subject *
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      name="subject"
-                      value={session.subject}
-                      onChange={handleChange}
-                      placeholder="e.g., Mathematics, Biology"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                      disabled={loadingStates.form_submit}
-                    />
-                  </div>
-
-                  {/* Topic */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Topic *
-                    </label>
-                    <input
-                      required
-                      type="text"
-                      name="topic"
-                      value={session.topic}
-                      onChange={handleChange}
-                      placeholder="e.g., Calculus, Cell Division"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                      disabled={loadingStates.form_submit}
-                    />
-                  </div>
-
-                  {/* Status */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Status *
-                    </label>
-                    <select
-                      required
-                      name="status"
-                      value={session.status}
-                      onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                      disabled={loadingStates.form_submit}
-                    >
-                      <option value="">Select status</option>
-                      <option value="Very Important">Very Important</option>
-                      <option value="Medium">Medium</option>
-                      <option value="Not so Important">Not so Important</option>
-                    </select>
-                  </div>
-
-                  {/* Date */}
-                  <div className="flex gap-2">
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                        Date *
-                      </label>
-                      <input
-                        required
-                        type="date"
-                        min={new Date().toISOString().slice(0, 10)}
-                        name="date"
-                        value={session.date}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        disabled={loadingStates.form_submit}
-                      />
-                    </div>
-                    <div className="flex-1">
-                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                        Start Time *
-                      </label>
-                      <input
-                        required
-                        type="time"
-                        name="time"
-                        value={session.time}
-                        onChange={handleChange}
-                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                        disabled={loadingStates.form_submit}
-                      />
-                    </div>
-                  </div>
-
-                  {/* Hours */}
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                      Study Duration (hours) *
-                    </label>
-                    <input
-                      required
-                      type="number"
-                      name="hours"
-                      value={session.hours}
-                      onChange={handleChange}
-                      placeholder="1"
-                      min="0.5"
-                      step="0.5"
-                      max="100"
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
-                      disabled={loadingStates.form_submit}
-                    />
-                  </div>
-                </div>
-
-                {/* Submit Button */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
+          style={{ background: "rgba(255,255,255,0.05)" }}
+          onClick={(e) => {
+            if (formRef.current && !formRef.current.contains(e.target)) {
+              setIsOpen(false);
+            }
+          }}
+        >
+          <div className="w-full max-w-md" ref={formRef}>
+            <form
+              className="bg-white p-6 rounded-lg shadow-xl"
+              onSubmit={addSession}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h2 className="text-xl font-bold text-gray-800">
+                  Create Study Session
+                </h2>
                 <button
-                  type="submit"
-                  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  type="button"
+                  onClick={() => setIsOpen(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
                   disabled={loadingStates.form_submit}
                 >
-                  {loadingStates.form_submit ? (
-                    <>
-                      <Loader2 className="h-4 w-4 animate-spin" />
-                      Creating Session...
-                    </>
-                  ) : (
-                    "Create Session"
-                  )}
+                  <X className="h-6 w-6" />
                 </button>
-              </form>
-            </div>
-          </div>,
-          document.body
-        )}
+              </div>
+
+              <div className="space-y-4">
+                {/* Subject */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Subject *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    name="subject"
+                    value={session.subject}
+                    onChange={handleChange}
+                    placeholder="e.g., Mathematics, Biology"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
+                  />
+                </div>
+
+                {/* Topic */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Topic *
+                  </label>
+                  <input
+                    required
+                    type="text"
+                    name="topic"
+                    value={session.topic}
+                    onChange={handleChange}
+                    placeholder="e.g., Calculus, Cell Division"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
+                  />
+                </div>
+
+                {/* Status */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Status *
+                  </label>
+                  <select
+                    required
+                    name="status"
+                    value={session.status}
+                    onChange={handleChange}
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
+                  >
+                    <option value="">Select status</option>
+                    <option value="Very Important">Very Important</option>
+                    <option value="Medium">Medium</option>
+                    <option value="Not so Important">Not so Important</option>
+                  </select>
+                </div>
+
+                {/* Date */}
+                <div className="flex gap-2">
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date *
+                    </label>
+                    <input
+                      required
+                      type="date"
+                      min={new Date().toISOString().slice(0, 10)}
+                      name="date"
+                      value={session.date}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      disabled={loadingStates.form_submit}
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Start Time *
+                    </label>
+                    <input
+                      required
+                      type="time"
+                      name="time"
+                      value={session.time}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      disabled={loadingStates.form_submit}
+                    />
+                  </div>
+                </div>
+
+                {/* Hours */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Study Duration (hours) *
+                  </label>
+                  <input
+                    required
+                    type="number"
+                    name="hours"
+                    value={session.hours}
+                    onChange={handleChange}
+                    placeholder="1"
+                    min="0.5"
+                    step="0.5"
+                    max="100"
+                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                    disabled={loadingStates.form_submit}
+                  />
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                disabled={loadingStates.form_submit}
+              >
+                {loadingStates.form_submit ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Creating Session...
+                  </>
+                ) : (
+                  "Create Session"
+                )}
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Floating Action Button */}
-      {!activeSession &&
-        createPortal(
-          <button
-            onClick={toggleShow}
-            className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-8 sm:right-8"
-            title="Create New Session"
-          >
-            <svg
-              className="w-6 h-6"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
-            </svg>
-          </button>,
-          document.body
-        )}
+      <button
+        onClick={toggleShow}
+        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-110 z-40"
+        title="Create New Session"
+      >
+        <svg
+          className="w-6 h-6"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+          />
+        </svg>
+      </button>
     </div>
   );
 }

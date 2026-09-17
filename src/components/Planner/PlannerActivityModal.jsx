@@ -1,21 +1,12 @@
-import { useState, useEffect } from "react";
-import { createPortal } from "react-dom";
+import { useState } from "react";
 import { CalendarDays, Clock3, Repeat, Save, X } from "lucide-react";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose, onSubmit }) {
-  const [validationError, setValidationError] = useState("");
-
-  useEffect(() => {
-    if (!mode) return;
-    document.body.style.overflow = "hidden";
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mode]);
-
   if (!mode) return null;
+
+  const [validationError, setValidationError] = useState("");
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const titles = {
@@ -29,24 +20,8 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
   const isDeadline = mode === "deadline";
   const dateValue = form.date instanceof Date ? form.date.toISOString().slice(0, 10) : form.date;
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    setValidationError("");
-
-    const startTime = isTimeBlock ? form.blockStart : form.startTime;
-    if (dateValue && startTime && form.recurring === "none") {
-      const selectedTimestamp = new Date(`${dateValue}T${startTime}`);
-      if (selectedTimestamp.getTime() < Date.now()) {
-        setValidationError("You can't schedule a session in the past");
-        return;
-      }
-    }
-
-    onSubmit();
-  };
-
-  return createPortal(
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
       <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
         {validationError && (
           <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">

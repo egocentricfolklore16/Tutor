@@ -3,34 +3,11 @@ import { useEffect, useState } from "react";
 import supabase from "../../lib/supabase";
 
 const cards = [
-  {
-    key: "tasks",
-    label: "THIS WEEK",
-    subtext: "tasks done",
-    icon: CalendarCheck2,
-    color: "blue",
-    background: "bg-blue-50 dark:bg-blue-500/10",
-    iconColor: "text-blue-600 dark:text-blue-400",
-  },
-  {
-    key: "pomodoros",
-    label: "THIS WEEK",
-    subtext: "pomodoros",
-    icon: Flame,
-    color: "pink",
-    background: "bg-pink-50 dark:bg-pink-500/10",
-    iconColor: "text-pink-600 dark:text-pink-400",
-  },
-  {
-    key: "exams",
-    label: "THIS WEEK",
-    subtext: "exams",
-    icon: GraduationCap,
-    color: "purple",
-    background: "bg-purple-50 dark:bg-purple-500/10",
-    iconColor: "text-purple-600 dark:text-purple-400",
-  },
+  { key: "tasks", label: "THIS WEEK", subtext: "tasks done", icon: CalendarCheck2, color: "blue", background: "bg-blue-50", iconColor: "text-blue-600" },
+  { key: "pomodoros", label: "THIS WEEK", subtext: "pomodoros", icon: Flame, color: "pink", background: "bg-pink-50", iconColor: "text-pink-600" },
+  { key: "exams", label: "THIS WEEK", subtext: "exams", icon: GraduationCap, color: "purple", background: "bg-purple-50", iconColor: "text-purple-600" },
 ];
+
 function getWeekRange() {
   const today = new Date();
   const day = today.getDay();

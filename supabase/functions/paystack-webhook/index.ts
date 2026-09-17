@@ -40,7 +40,7 @@ Deno.serve(async (req) => {
     }
 
     const signature = req.headers.get("x-paystack-signature");
-    const rawBody = await req.text();
+    const rawBody = await req.text(); // Read raw request body before parsing JSON
 
     // Verify webhook signature on raw body BEFORE parsing JSON
     const isValidSignature = await verifyPaystackSignature(
@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
     );
 
     if (!isValidSignature) {
-      console.warn("Invalid Paystack webhook signature");
+      console.warn("Invalid or missing Paystack webhook signature");
       return new Response("Unauthorized signature mismatch", { status: 401 });
     }
 
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Error processing Paystack webhook:", error);
-    // Respond with 200 to acknowledge webhook receipt even if processing error occurs, preventing infinite retries
+    // Respond with 200 to acknowledge webhook receipt even if processing error occurs
     return new Response(JSON.stringify({ status: "error", message: error.message }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

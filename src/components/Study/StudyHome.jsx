@@ -36,6 +36,12 @@ function Study() {
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
+  // History Filter states
+  const [historySubjectFilter, setHistorySubjectFilter] = useState("all");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
+  const [historyDateFilter, setHistoryDateFilter] = useState("all");
+  const [deletingHistoryId, setDeletingHistoryId] = useState(null);
+
   // Fetch sessions and history from Supabase on mount
   useEffect(() => {
     const fetchSessionsAndHistory = async () => {
@@ -57,7 +63,7 @@ function Study() {
 
         const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] =
           await Promise.all([
-            supabase.from("Study").select("*").eq("user_id", user.id),
+            supabase.from("Study").select("*").eq("user_id", user.id).neq("session_status", "completed"),
             supabase.from("study_history").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
           ]);
 
@@ -121,6 +127,14 @@ function Study() {
   const [dropdownIndex, setDropdownIndex] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [activeSession, setActiveSession] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
   const formRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -354,6 +368,56 @@ function Study() {
     }
   };
 
+  // Delete individual session history entry (does not touch Library resources)
+  const handleDeleteHistoryItem = async (historyId, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this session history record? Attached resources will not be deleted.")) {
+      return;
+    }
+
+    try {
+      setDeletingHistoryId(historyId);
+      const { error } = await supabase.from("study_history").delete().eq("id", historyId);
+      if (error) {
+        setFetchError("Failed to delete session history record: " + error.message);
+      } else {
+        setSessionHistory((prev) => prev.filter((item) => item.id !== historyId));
+      }
+    } catch (err) {
+      console.error("Error deleting session history:", err);
+      setFetchError("An error occurred while deleting session history");
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  };
+
+  // Computed unique subjects for filter
+  const uniqueSubjects = Array.from(
+    new Set(sessionHistory.map((item) => item.subject).filter(Boolean))
+  );
+
+  // Filtered session history items
+  const filteredSessionHistory = sessionHistory.filter((item) => {
+    if (historySubjectFilter !== "all" && item.subject?.toLowerCase() !== historySubjectFilter.toLowerCase()) {
+      return false;
+    }
+    if (historyStatusFilter !== "all" && item.status?.toLowerCase() !== historyStatusFilter.toLowerCase()) {
+      return false;
+    }
+    if (historyDateFilter !== "all" && item.completedAt) {
+      const completedDate = new Date(item.completedAt);
+      const now = new Date();
+      if (historyDateFilter === "7days") {
+        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+        if (diff > 7) return false;
+      } else if (historyDateFilter === "30days") {
+        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+        if (diff > 30) return false;
+      }
+    }
+    return true;
+  });
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -409,6 +473,7 @@ function Study() {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];
               const isMuting = loadingStates[`${sessionItem.id}_mute`];
+              const isPaused = sessionItem.session_status === "paused";
 
               return (
                 <div
@@ -422,14 +487,61 @@ function Study() {
                     isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
                   }
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      {getTypeIcon()}
-                      {!isMuted && getStatusBadge(sessionItem.Status)}
+                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          {getTypeIcon()}
+                        </div>
+                        {!isMuted && getStatusBadge(sessionItem.Status)}
+                        {isPaused && (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full border border-amber-300">
+                            Paused
+                          </span>
+                        )}
+                      </div>
+
+                      <h2
+                        className={`font-semibold mb-1 ${
+                          isMuted ? "text-gray-500" : "text-gray-800"
+                        }`}
+                      >
+                        {toTitleCase(sessionItem.Subject || "")}
+                      </h2>
+                      <h3
+                        className={`mb-1 ${
+                          isMuted ? "text-gray-400" : "text-gray-600"
+                        }`}
+                      >
+                        {toTitleCase(sessionItem.Topic || "")}
+                      </h3>
+                      <p
+                        className={`text-sm mb-1 ${
+                          isMuted ? "text-gray-400" : "text-gray-500"
+                        }`}
+                      >
+                        {sessionItem.Date}{" "}
+                        {sessionItem.Start && (
+                          <span className="ml-2 text-gray-400">
+                            at {sessionItem.Start}
+                          </span>
+                        )}
+                      </p>
+                      <p
+                        className={`text-sm font-medium ${
+                          isMuted ? "text-gray-400" : "text-gray-700"
+                        }`}
+                      >
+                        {sessionItem.Duration} hour(s)
+                      </p>
                     </div>
                     <div className="relative flex items-center gap-2 dropdown-container">
                       <button
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-400 text-slate-950 text-xs font-semibold rounded-full hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isPaused
+                            ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                            : "bg-green-200 text-black hover:bg-green-300"
+                        }`}
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`
@@ -437,8 +549,8 @@ function Study() {
                         }
                         disabled={isDeleting || isMuting}
                       >
-                        <Play className="h-3 w-3 fill-current" />
-                        Start
+                        <Play className="h-3 w-3" />
+                        {isPaused ? "Resume" : "Start"}
                       </button>
 
                       <button
@@ -521,21 +633,67 @@ function Study() {
 
         {/* Session History Section */}
         <div className="mt-12">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-            Session History
-          </h2>
-          {sessionHistory.length === 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+              Session History
+            </h2>
+
+            {/* Filter Bar */}
+            {sessionHistory.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                {/* Subject Filter */}
+                <select
+                  value={historySubjectFilter}
+                  onChange={(e) => setHistorySubjectFilter(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none"
+                >
+                  <option value="all">All Subjects</option>
+                  {uniqueSubjects.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {toTitleCase(sub)}
+                    </option>
+                  ))}
+                </select>
+
+                {/* Status Filter */}
+                <select
+                  value={historyStatusFilter}
+                  onChange={(e) => setHistoryStatusFilter(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none"
+                >
+                  <option value="all">All Statuses</option>
+                  <option value="completed">Completed</option>
+                  <option value="paused">Paused / Incomplete</option>
+                </select>
+
+                {/* Date Filter */}
+                <select
+                  value={historyDateFilter}
+                  onChange={(e) => setHistoryDateFilter(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none"
+                >
+                  <option value="all">All Time</option>
+                  <option value="7days">Last 7 Days</option>
+                  <option value="30days">Last 30 Days</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {filteredSessionHistory.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-[#18211f] p-8 text-center text-gray-500 dark:text-slate-400">
               <BookOpen className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
-              <p className="font-medium text-sm">No completed study sessions yet.</p>
+              <p className="font-medium text-sm">No session history records match filters.</p>
               <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                Completed study sessions will appear here in your history.
+                Try clearing or adjusting your filters above.
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {sessionHistory.map((item) => {
+              {filteredSessionHistory.map((item) => {
                 const dateStr = item.completedAt ? new Date(item.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently";
+                const isDeletingThis = deletingHistoryId === item.id;
+
                 return (
                   <div
                     key={item.id}
@@ -567,6 +725,21 @@ function Study() {
                           +{item.xpEarned || 50} XP
                         </p>
                       </div>
+
+                      {/* Per-item Delete Button */}
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+                        disabled={isDeletingThis}
+                        title="Delete this history entry"
+                        className="rounded-lg p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                      >
+                        {isDeletingThis ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 );

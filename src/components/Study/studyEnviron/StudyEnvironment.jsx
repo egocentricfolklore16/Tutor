@@ -4,7 +4,11 @@ import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
-  Menu,
+  Clock,
+  FileText,
+  HelpCircle,
+  Library,
+  ChevronDown,
   MessageCircle,
   Loader2,
   Play,
@@ -14,7 +18,6 @@ import {
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
 import { awardUserRewards } from "../../../lib/gamification";
-import Sidepane from "./Sidepane";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
@@ -22,10 +25,10 @@ import PracticeQuestions from "./PracticeQuestions";
 import ResourceAttachments from "./ResourceAttachments";
 import LoadingCompanion from "../../common/LoadingCompanion";
 
-// StudyEnvironment: orchestrates the study workspace, sidepane and AI pane.
+// StudyEnvironment: orchestrates the study workspace, tool navigation and AI pane.
 const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isToolsOpen, setIsToolsOpen] = useState(true);
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
   const [isLoading, setIsLoading] = useState(!incomingSession);
@@ -104,15 +107,70 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const duration = session?.Duration || session?.hours || 0;
   const durationSeconds = Math.max(1, Number.parseFloat(duration) * 60 * 60);
-  const [timeLeft, setTimeLeft] = useState(durationSeconds);
+
+  // Initialize remaining time from session.time_left if valid and paused, else full duration
+  const initialTimeLeft =
+    session?.time_left !== undefined && session?.time_left !== null && Number(session.time_left) > 0
+      ? Number(session.time_left)
+      : durationSeconds;
+
+  const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isStudying, setIsStudying] = useState(true);
   const pomodoroRecorded = useRef(false);
+  const timeLeftRef = useRef(timeLeft);
 
   useEffect(() => {
-    setTimeLeft(durationSeconds);
+    timeLeftRef.current = timeLeft;
+  }, [timeLeft]);
+
+  useEffect(() => {
+    const nextTime =
+      session?.time_left !== undefined && session?.time_left !== null && Number(session.time_left) > 0
+        ? Number(session.time_left)
+        : durationSeconds;
+    setTimeLeft(nextTime);
     pomodoroRecorded.current = false;
     setSessionComplete(false);
-  }, [durationSeconds]);
+  }, [durationSeconds, session?.time_left]);
+
+  // Persist paused state on navigation away, tab close, or unmount
+  const savePausedState = async () => {
+    if (!session?.id || pomodoroRecorded.current || timeLeftRef.current <= 0) return;
+    try {
+      await supabase
+        .from("Study")
+        .update({
+          session_status: "paused",
+          time_left: timeLeftRef.current,
+        })
+        .eq("id", session.id);
+    } catch (err) {
+      console.error("Error saving paused study state:", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (session?.id && !pomodoroRecorded.current && timeLeftRef.current > 0) {
+        savePausedState();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        savePausedState();
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+      savePausedState();
+    };
+  }, [session?.id]);
 
   useEffect(() => {
     if (!isStudying || timeLeft <= 0) return undefined;
@@ -172,15 +230,18 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         }
       }
 
-      // Delete the study session after a short delay to allow UI to update
+      // Mark the study session as completed instead of deleting it
       setTimeout(async () => {
-        const { error: deleteError } = await supabase
+        const { error: updateError } = await supabase
           .from("Study")
-          .delete()
+          .update({
+            session_status: "completed",
+            time_left: 0,
+          })
           .eq("id", session.id);
 
-        if (deleteError) {
-          console.error("Session deletion error:", deleteError);
+        if (updateError) {
+          console.error("Session update error on completion:", updateError);
         }
       }, 2000);
     };
@@ -372,44 +433,101 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     );
   };
 
+  const toolsList = [
+    { id: "pomodoro", label: "Pomodoro Timer", Icon: Clock },
+    { id: "notes", label: "Notes", Icon: FileText },
+    { id: "flashcards", label: "Flashcards", Icon: Library },
+    { id: "quizzicle", label: "Quizicle", Icon: HelpCircle },
+    { id: "resources", label: "Resources", Icon: BookOpen },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <Sidepane
-        isOpen={isToolsOpen}
-        onToggle={() => setIsToolsOpen((open) => !open)}
-        onClose={() => setIsToolsOpen(false)}
-        width={300}
-        user={profile || user}
-        theme={importanceTheme}
-        activeTool={activeTool}
-        onToolSelect={setActiveTool}
-      />
-
       <main
-        className={`min-w-0 px-3 py-4 pb-24 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
-          isToolsOpen
-            ? "xl:ml-[calc(var(--app-sidebar-width,0px)+300px)]"
-            : "xl:ml-[calc(var(--app-sidebar-width,0px)+64px)]"
-        } ${isAIOpen ? "xl:mr-[370px]" : "mr-0"}`}
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
+          isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
+        } ${
+          isAIOpen ? "xl:mr-[370px]" : "mr-0"
+        }`}
       >
         <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
-          <div className="mb-6 flex min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <button
-              title="Open study menu"
-              onClick={() => setIsToolsOpen((isOpen) => !isOpen)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm hover:bg-slate-100"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="hidden text-sm font-semibold sm:inline">Study tools</span>
-            </button>
+          <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
             <button
               onClick={() => navigate("/Study")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-red-700"
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-100"
             >
               <ArrowLeft className="h-4 w-4" />
-              All sessions
+              Back to all sessions
             </button>
+
+            {/* Desktop Tools Bar */}
+            <div className="hidden md:flex items-center gap-1.5 overflow-x-auto py-1">
+              {toolsList.map(({ id, label, Icon }) => {
+                const isActive = activeTool === id;
+                return (
+                  <button
+                    key={id}
+                    onClick={() => setActiveTool(id)}
+                    className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                      isActive
+                        ? `${importanceTheme.accentBg} ${importanceTheme.accentText} border ${importanceTheme.accentBorder || "border-red-200"}`
+                        : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    <span>{label}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Mobile Tools Dropdown */}
+            <div className="relative md:hidden">
+              <button
+                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+              >
+                {(() => {
+                  const current = toolsList.find((t) => t.id === activeTool) || toolsList[0];
+                  const ActiveIcon = current.Icon;
+                  return (
+                    <>
+                      <ActiveIcon className="h-4 w-4" />
+                      <span>{current.label}</span>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                    </>
+                  );
+                })()}
+              </button>
+
+              {isDropdownOpen && (
+                <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
+                  <div className="flex flex-col gap-1">
+                    {toolsList.map(({ id, label, Icon }) => {
+                      const isActive = activeTool === id;
+                      return (
+                        <button
+                          key={id}
+                          onClick={() => {
+                            setActiveTool(id);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                            isActive
+                              ? `${importanceTheme.accentBg} ${importanceTheme.accentText}`
+                              : "text-slate-700 hover:bg-slate-100"
+                          }`}
+                        >
+                          <Icon className="h-4 w-4" />
+                          <span>{label}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
           <section className={`rounded-2xl p-6 shadow-lg md:p-10 ${importanceTheme.header}`}>

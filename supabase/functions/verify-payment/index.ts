@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     // 2. Initialize Supabase Service Role client to bypass RLS for write actions
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // 3. Process payment, ignoring client amount and re-verifying expected amount server-side
+    // 3. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
     const result = await processVerifiedPayment({
       supabaseClient,
       reference,

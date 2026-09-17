@@ -488,11 +488,16 @@ function Study() {
                 >
                   <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
                         <div className="flex items-center gap-2 text-gray-600">
                           {getTypeIcon()}
                         </div>
                         {!isMuted && getStatusBadge(sessionItem.Status)}
+                        {isPaused && (
+                          <span className="px-2 py-0.5 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full border border-amber-300">
+                            Paused
+                          </span>
+                        )}
                       </div>
 
                       <h2
@@ -531,7 +536,11 @@ function Study() {
                     </div>
                     <div className="relative flex items-center gap-2 dropdown-container">
                       <button
-                        className="flex items-center gap-1 px-3 py-2 bg-green-200 text-black text-sm font-medium rounded-lg hover:bg-green-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed ${
+                          isPaused
+                            ? "bg-amber-500 text-white hover:bg-amber-600 shadow-sm"
+                            : "bg-green-200 text-black hover:bg-green-300"
+                        }`}
                         onClick={() =>
                           navigate(
                             `/Study/${encodeURIComponent(sessionItem.id)}`
@@ -540,7 +549,7 @@ function Study() {
                         disabled={isDeleting || isMuting}
                       >
                         <Play className="h-3 w-3" />
-                        Start
+                        {isPaused ? "Resume" : "Start"}
                       </button>
 
                       <button

@@ -1,23 +1,28 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Loader2, CreditCard } from "lucide-react";
 import supabase from "../../lib/supabase.js";
 
+const PAYSTACK_V2_SCRIPT_URL = "https://js.paystack.co/v2/inline.js";
+const SCRIPT_ID = "paystack-inline-v2-script";
+
 function loadPaystackScript() {
   return new Promise((resolve, reject) => {
-    if (window.PaystackPop) {
+    if (typeof window.PaystackPop === "function") {
       resolve(true);
       return;
     }
-    const existingScript = document.getElementById("paystack-inline-script");
+    const existingScript = document.getElementById(SCRIPT_ID);
     if (existingScript) {
       existingScript.addEventListener("load", () => resolve(true));
-      existingScript.addEventListener("error", () => reject(new Error("Failed to load Paystack SDK")));
+      existingScript.addEventListener("error", () =>
+        reject(new Error("Failed to load Paystack SDK"))
+      );
       return;
     }
 
     const script = document.createElement("script");
-    script.id = "paystack-inline-script";
-    script.src = "https://js.paystack.co/v1/inline.js";
+    script.id = SCRIPT_ID;
+    script.src = PAYSTACK_V2_SCRIPT_URL;
     script.async = true;
     script.onload = () => resolve(true);
     script.onerror = () => reject(new Error("Failed to load Paystack SDK"));
@@ -46,7 +51,9 @@ export default function PaystackCheckoutButton({
 
     try {
       if (!userId || !userEmail) {
-        throw new Error("User account information is missing. Please sign in again.");
+        throw new Error(
+          "User account information is missing. Please sign in again."
+        );
       }
 
       const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
@@ -54,11 +61,16 @@ export default function PaystackCheckoutButton({
         throw new Error("Paystack public key is not configured.");
       }
 
-      // 1. Load Paystack inline SDK
+      // 1. Load Paystack inline V2 SDK
       await loadPaystackScript();
 
-      if (!window.PaystackPop) {
-        throw new Error("Paystack SDK could not be initialized.");
+      console.log("PaystackPop:", window.PaystackPop);
+      console.log("PaystackPop type:", typeof window.PaystackPop);
+
+      if (typeof window.PaystackPop !== "function") {
+        throw new Error(
+          "Paystack Inline V2 SDK constructor is not available. Please check network/ad-blocker settings."
+        );
       }
 
       // 2. Fetch plan's price_kobo from `plans` table for display in Paystack popup
@@ -75,38 +87,28 @@ export default function PaystackCheckoutButton({
       const amountKobo = planData.price_kobo;
       const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-      // Diagnostic logging to inspect PaystackPop SDK availability
-      console.log(
-        "PaystackPop type:",
-        typeof window.PaystackPop,
-        typeof window.PaystackPop?.setup
-      );
+      // 3. Initialize Paystack V2 Inline Popup
+      const paystack = new window.PaystackPop();
 
-      if (typeof window.PaystackPop?.setup !== "function") {
-        throw new Error(
-          "Paystack Inline SDK setup function not available. Check for ad-blockers or script loading issues."
-        );
-      }
-
-      // 3. Trigger Paystack Inline Popup
-      const handler = window.PaystackPop.setup({
+      paystack.newTransaction({
         key: publicKey,
         email: userEmail,
         amount: amountKobo,
-        ref: reference,
+        reference: reference,
+        currency: "NGN",
         metadata: {
           planId: planId,
           userId: userId,
         },
-        callback: async function (response) {
-          // onSuccess handler
+        onSuccess: async (transaction) => {
           setLoading(true);
           try {
+            const returnedRef = transaction?.reference || reference;
             // POST { reference } to verify-payment Edge Function
             const { data, error: verifyError } = await supabase.functions.invoke(
               "verify-payment",
               {
-                body: { reference: response.reference || reference },
+                body: { reference: returnedRef },
               }
             );
 
@@ -122,7 +124,7 @@ export default function PaystackCheckoutButton({
 
             // Server-side verification succeeded. Trigger parent refetch from DB.
             setLoading(false);
-            if (onPaymentSuccess) {
+            if (typeof onPaymentSuccess === "function") {
               onPaymentSuccess(data);
             }
           } catch (err) {
@@ -131,12 +133,18 @@ export default function PaystackCheckoutButton({
             setLoading(false);
           }
         },
-        onClose: function () {
+        onCancel: () => {
+          setLoading(false);
+        },
+        onError: (transactionError) => {
+          console.error("Paystack transaction error:", transactionError);
+          setError(
+            transactionError?.message ||
+              "An error occurred during Paystack checkout."
+          );
           setLoading(false);
         },
       });
-
-      handler.openIframe();
     } catch (err) {
       console.error("Checkout initialization failed:", err);
       setError(err.message || "Failed to launch Paystack payment.");

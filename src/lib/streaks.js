@@ -101,13 +101,32 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
   
   // If more than 1 day since last activity, user is slipping
   if (daysSinceActivity > 1) {
-    const { error: slipError } = await supabase.from("streak_slipping").insert({
-      user_id: userId,
-      reason: daysSinceActivity === 2 && streakData.freeze_tokens_available === 0 ? "streak_broken" : "missed_day",
-      slip_date: lastActiveDate,
-    });
+    const slipReason =
+      daysSinceActivity === 2 && streakData.freeze_tokens_available === 0
+        ? "streak_broken"
+        : "missed_day";
+
+    const { error: slipError } = await supabase.from("streak_slipping").upsert(
+      {
+        user_id: userId,
+        reason: slipReason,
+        slip_date: lastActiveDate,
+      },
+      {
+        onConflict: "user_id,slip_date,reason",
+        ignoreDuplicates: true,
+      }
+    );
     
-    if (slipError) console.error("Error logging streak slip:", slipError);
+    if (slipError) {
+      console.error("Error logging streak slip:", {
+        message: slipError.message,
+        details: slipError.details,
+        hint: slipError.hint,
+        code: slipError.code,
+        error: slipError,
+      });
+    }
     return { data: { reason: "streak_broken", daysMissed: daysSinceActivity }, wasSlipping: true };
   }
   

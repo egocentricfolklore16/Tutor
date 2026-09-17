@@ -43,10 +43,14 @@ function Settings() {
   const [notificationSettings, setNotificationSettings] = useState(() => getNotificationPreferences());
   const [activeTab, setActiveTab] = useState("Profile");
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeletingHistory, setIsDeletingHistory] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setCurrentUser(user);
+    });
+  }, []);
 
   useEffect(() => {
     if (!profile) return;
@@ -153,7 +157,8 @@ function Settings() {
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];
 
   return <main className="settings-page min-h-screen px-5 pb-14 pt-20 text-slate-900 md:px-10"><div className="mx-auto max-w-5xl"><header className="mb-7"><h1 className="text-4xl font-black tracking-tight">Settings</h1><p className="mt-2 text-base text-slate-500">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-1 overflow-x-auto rounded-full bg-slate-200/80 p-1" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 active:scale-95 ${activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white/50 hover:text-slate-800"}`}>{tab}</button>)}</nav><div className="settings-card">
-    {activeTab === "Billing" || activeTab === "Privacy" ? <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900">{activeTab}</h2><p className="mt-2 text-sm text-slate-500">{activeTab} settings are not available yet.</p></div> : null}
+    {activeTab === "Billing" && <Billing user={currentUser} />}
+    {activeTab === "Privacy" && <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900">Privacy</h2><p className="mt-2 text-sm text-slate-500">Privacy settings are not available yet.</p></div>}
     {activeTab === "Profile" && <div className="space-y-10"><div><h2 className="text-2xl font-bold text-slate-900">Profile</h2><p className="mt-1 text-sm text-slate-500">Your personal details</p></div>
     <Section title="Change Profile Picture" description="Choose The Image You Want To Show In Your Sidebar." open={true} onToggle={() => {}}><div className="flex flex-col gap-5 sm:flex-row sm:items-center"><button type="button" onClick={() => fileInputRef.current?.click()} className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-emerald-100 text-emerald-800">{image ? <img src={image} alt={`${name} profile`} className="h-full w-full object-cover" /> : <span className="text-3xl font-bold">{name.charAt(0).toUpperCase()}</span>}<span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition group-hover:opacity-100"><Camera size={22} /></span></button><div><p className="font-semibold">{name}</p><p className="mt-1 text-sm text-slate-500">Use A JPG, PNG, Or Other Image Up To 5 MB.</p><button type="button" onClick={() => fileInputRef.current?.click()} className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Choose Image</button><input ref={fileInputRef} type="file" accept="image/*" onChange={chooseFile} className="hidden" /></div></div></Section>
     <Section title="Profile & Curriculum" description="Tell Hyper Tutor What You Are Learning And Where You Are Starting." open={openSections[0]} onToggle={() => toggleSection(0)}><div className="grid gap-5 md:grid-cols-2"><SelectField label="Student Level" value={settings.studentLevel} onChange={(value) => update("studentLevel", value)} options={levels} /><SelectField label="Subject" value={settings.subject} onChange={(value) => update("subject", value)} options={subjectOptions} /><label className="block text-sm font-semibold text-slate-700">Current Topic<input value={settings.currentTopic} onChange={(event) => update("currentTopic", event.target.value)} placeholder="E.g. Cell Division" className={`mt-2 w-full ${fieldClass}`} /></label><SelectField label="Curriculum Standard" value={settings.curriculumStandard} onChange={(value) => update("curriculumStandard", value)} options={["AP Biology", "Common Core Algebra II", "IB Math SL", "None/General"]} /></div><div className="mt-5"><p className="mb-3 text-sm font-semibold text-slate-700">Learning Style</p><ChoiceRow options={styles} value={settings.learningStyle} onChange={(value) => update("learningStyle", value)} /></div></Section>

@@ -1,12 +1,9 @@
-import { useState } from "react";
 import { CalendarDays, Clock3, Repeat, Save, X } from "lucide-react";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose, onSubmit }) {
   if (!mode) return null;
-
-  const [validationError, setValidationError] = useState("");
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const titles = {
@@ -22,12 +19,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
-        {validationError && (
-          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
-            {validationError}
-          </div>
-        )}
+      <form onSubmit={(event) => { event.preventDefault(); onSubmit(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
         <div className="mb-7 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Study planner</p>
@@ -64,8 +56,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
           <button type="submit" disabled={isSaving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"><Save className="h-4 w-4" />{isSaving ? "Saving..." : isDeadline ? "Add deadline" : isTimeBlock ? "Add time block" : "Add session"}</button>
         </div>
       </form>
-    </div>,
-    document.body
+    </div>
   );
 }
 

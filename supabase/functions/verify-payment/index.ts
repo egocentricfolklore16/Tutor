@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Fetch transaction status directly from Paystack API
+    // 1. Fetch transaction status directly from Paystack API using server-side secret key
     const paystackResponse = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {

@@ -55,14 +55,16 @@ export async function processVerifiedPayment({
     throw new Error(`Plan not found: ${planId}`);
   }
 
-  // 2. Re-verify transaction status and amount against server-side plan.price_kobo
+  // 2. Re-verify transaction status and recomputed expected amount server-side (ignore client amount)
   if (paystackData.status !== "success") {
     throw new Error(`Payment verification failed: status is ${paystackData.status}`);
   }
 
-  if (paystackData.amount !== plan.price_kobo) {
+  const expectedAmountKobo = plan.price_kobo ?? (plan.price_naira * 100);
+
+  if (paystackData.amount !== expectedAmountKobo) {
     throw new Error(
-      `Amount mismatch: expected ${plan.price_kobo} kobo, received ${paystackData.amount} kobo`
+      `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
     );
   }
 

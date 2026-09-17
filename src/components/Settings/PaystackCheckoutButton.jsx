@@ -2,12 +2,12 @@ import { useState } from "react";
 import { Loader2, CreditCard } from "lucide-react";
 import supabase from "../../lib/supabase.js";
 
-const PAYSTACK_V2_SCRIPT_URL = "https://js.paystack.co/v2/inline.js";
-const SCRIPT_ID = "paystack-inline-v2-script";
+const PAYSTACK_INLINE_SCRIPT_URL = "https://js.paystack.co/v1/inline.js";
+const SCRIPT_ID = "paystack-inline-v1-script";
 
 function loadPaystackScript() {
   return new Promise((resolve, reject) => {
-    if (typeof window.PaystackPop === "function") {
+    if (typeof window.PaystackPop !== "undefined") {
       resolve(true);
       return;
     }
@@ -22,7 +22,7 @@ function loadPaystackScript() {
 
     const script = document.createElement("script");
     script.id = SCRIPT_ID;
-    script.src = PAYSTACK_V2_SCRIPT_URL;
+    script.src = PAYSTACK_INLINE_SCRIPT_URL;
     script.async = true;
     script.onload = () => resolve(true);
     script.onerror = () => reject(new Error("Failed to load Paystack SDK"));
@@ -61,22 +61,19 @@ export default function PaystackCheckoutButton({
         throw new Error("Paystack public key is not configured.");
       }
 
-      // 1. Load Paystack inline V2 SDK
+      // 1. Load Paystack inline SDK
       await loadPaystackScript();
 
-      console.log("PaystackPop:", window.PaystackPop);
-      console.log("PaystackPop type:", typeof window.PaystackPop);
-
-      if (typeof window.PaystackPop !== "function") {
+      if (typeof window.PaystackPop === "undefined" || !window.PaystackPop.setup) {
         throw new Error(
-          "Paystack Inline V2 SDK constructor is not available. Please check network/ad-blocker settings."
+          "Paystack Inline SDK is not available. Please check network or ad-blocker settings."
         );
       }
 
-      // 2. Fetch plan's price_kobo from `plans` table for display in Paystack popup
+      // 2. Fetch plan's price_kobo from `plans` table for amount calculation
       const { data: planData, error: planError } = await supabase
         .from("plans")
-        .select("price_kobo")
+        .select("price_kobo, price_naira")
         .eq("id", planId)
         .single();
 
@@ -84,27 +81,29 @@ export default function PaystackCheckoutButton({
         throw new Error("Unable to fetch plan details for checkout.");
       }
 
-      const amountKobo = planData.price_kobo;
+      // Calculate amount in kobo (multiplying Naira amount by 100)
+      const amountKobo = planData.price_kobo || planData.price_naira * 100;
       const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
-      // 3. Initialize Paystack V2 Inline Popup
-      const paystack = new window.PaystackPop();
-
-      paystack.newTransaction({
+      // 3. Initialize Paystack Inline Popup via PaystackPop.setup()
+      const handler = window.PaystackPop.setup({
         key: publicKey,
         email: userEmail,
         amount: amountKobo,
-        reference: reference,
+        ref: reference,
         currency: "NGN",
         metadata: {
           planId: planId,
           userId: userId,
         },
-        onSuccess: async (transaction) => {
+        callback: async (response) => {
+          // onSuccess handler: receive reference from Paystack response
           setLoading(true);
           try {
-            const returnedRef = transaction?.reference || reference;
-            // POST { reference } to verify-payment Edge Function
+            const returnedRef = response?.reference || reference;
+
+            // POST response.reference to verify-payment Edge Function
+            // Do NOT mark anything as "paid" in UI until server verify call returns success
             const { data, error: verifyError } = await supabase.functions.invoke(
               "verify-payment",
               {
@@ -122,29 +121,23 @@ export default function PaystackCheckoutButton({
               return;
             }
 
-            // Server-side verification succeeded. Trigger parent refetch from DB.
+            // Server verification succeeded
             setLoading(false);
             if (typeof onPaymentSuccess === "function") {
               onPaymentSuccess(data);
             }
           } catch (err) {
-            console.error("Error calling verify-payment:", err);
+            console.error("Error calling verify-payment Edge Function:", err);
             setError("Server error during payment verification.");
             setLoading(false);
           }
         },
-        onCancel: () => {
-          setLoading(false);
-        },
-        onError: (transactionError) => {
-          console.error("Paystack transaction error:", transactionError);
-          setError(
-            transactionError?.message ||
-              "An error occurred during Paystack checkout."
-          );
+        onClose: () => {
           setLoading(false);
         },
       });
+
+      handler.openIframe();
     } catch (err) {
       console.error("Checkout initialization failed:", err);
       setError(err.message || "Failed to launch Paystack payment.");

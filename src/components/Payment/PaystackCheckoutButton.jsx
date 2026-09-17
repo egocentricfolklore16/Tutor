@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Loader2, ShieldCheck } from "lucide-react";
 import supabase from "../../lib/supabase";
 
-const PAYSTACK_INLINE_URL = "https://js.paystack.co/v1/inline.js";
+const PAYSTACK_INLINE_URL = "https://js.paystack.co/v2/inline.js";
 
 /**
  * PaystackCheckoutButton
@@ -49,14 +49,95 @@ export default function PaystackCheckoutButton({
     document.body.appendChild(script);
   }, []);
 
-  const handlePaystackCheckout = () => {
-    setError("");
-    setSuccess(false);
+ const handlePaystackCheckout = () => {
+  setError("");
+  setSuccess(false);
 
-    if (!window.PaystackPop) {
-      setError("Paystack inline library is not available.");
-      return;
+  if (!window.PaystackPop) {
+    setError("Paystack inline library is not available.");
+    return;
+  }
+
+  const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
+
+  if (!publicKey) {
+    setError("Public key (VITE_PAYSTACK_PUBLIC_KEY) is missing.");
+    return;
+  }
+
+  if (!email || !userId) {
+    setError("User email and ID are required to initiate payment.");
+    return;
+  }
+
+  const amountInKobo = Math.round(Number(amountNaira) * 100);
+
+  const reference = `ht_${Date.now()}_${Math.random()
+    .toString(36)
+    .slice(2, 9)}`;
+
+  try {
+    const paystack = new window.PaystackPop();
+
+    paystack.newTransaction({
+      key: publicKey,
+      email,
+      amount: amountInKobo,
+      currency: "NGN",
+      reference,
+
+      metadata: {
+        user_id: userId,
+        purpose,
+        custom_fields: [
+          {
+            display_name: "User ID",
+            variable_name: "user_id",
+            value: userId,
+          },
+        ],
+      },
+
+      onSuccess: (transaction) => {
+        console.log("Paystack payment successful:", transaction);
+
+        setVerifying(true);
+
+        verifyPaymentServerSide(transaction.reference);
+      },
+
+      onCancel: () => {
+        console.log("Paystack payment cancelled.");
+
+        if (!verifying && !success) {
+          setError("Payment window closed.");
+        }
+      },
+
+      onError: (error) => {
+        console.error("Paystack checkout error:", error);
+
+        setError(
+          error?.message || "Unable to initialize Paystack payment."
+        );
+
+        if (onPaymentError) {
+          onPaymentError(error);
+        }
+      },
+    });
+  } catch (err) {
+    console.error("Paystack initialization error:", err);
+
+    setError(
+      err?.message || "Unable to initialize Paystack payment."
+    );
+
+    if (onPaymentError) {
+      onPaymentError(err);
     }
+  }
+};
 
     const publicKey = import.meta.env.VITE_PAYSTACK_PUBLIC_KEY;
     if (!publicKey) {

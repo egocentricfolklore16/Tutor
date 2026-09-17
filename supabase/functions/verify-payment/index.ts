@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Fetch transaction status directly from Paystack API
+    // 1. Fetch transaction status directly from Paystack API using server-side secret key
     const paystackResponse = await fetch(
       `https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`,
       {
@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
     // 2. Initialize Supabase Service Role client to bypass RLS for write actions
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // 3. Process payment, re-verifying plan & price server-side
+    // 3. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
     const result = await processVerifiedPayment({
       supabaseClient,
       reference,

@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Error processing Paystack webhook:", error);
-    // Respond with 200 to acknowledge webhook receipt even if error occurs, preventing infinite retries
+    // Respond with 200 to acknowledge webhook receipt even if processing error occurs, preventing infinite retries
     return new Response(JSON.stringify({ status: "error", message: error.message }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

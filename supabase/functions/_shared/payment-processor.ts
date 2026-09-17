@@ -60,9 +60,14 @@ export async function processVerifiedPayment({
     throw new Error(`Payment verification failed: status is ${paystackData.status}`);
   }
 
-  if (paystackData.amount !== plan.price_kobo) {
+  const expectedAmountKobo =
+    typeof plan.price_kobo === "number"
+      ? plan.price_kobo
+      : plan.price_naira * 100;
+
+  if (paystackData.amount !== expectedAmountKobo) {
     throw new Error(
-      `Amount mismatch: expected ${plan.price_kobo} kobo, received ${paystackData.amount} kobo`
+      `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
     );
   }
 

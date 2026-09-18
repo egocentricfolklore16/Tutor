@@ -5,6 +5,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import AITutorChat from "./studyEnviron/AITutorChat";
 import LoadingCompanion from "../common/LoadingCompanion";
+import { sendAiTutorMessage } from "../../lib/aiTutor";
 
 function NoteDetail() {
   const { Studyid, noteId } = useParams();
@@ -40,19 +41,45 @@ function NoteDetail() {
     loadNote();
   }, [Studyid, noteId]);
 
-  const sendAiMessage = () => {
+  const sendAiMessage = async () => {
     const text = aiMessage.trim();
     if (!text || isAiTyping || !note) return;
-    setAiMessages((messages) => [...messages, { sender: "user", text }]);
+
+    const userMsg = { sender: "user", text };
+    const updatedMessages = [...aiMessages, userMsg];
+
+    setAiMessages(updatedMessages);
     setAiMessage("");
     setIsAiTyping(true);
-    window.setTimeout(() => {
-      setAiMessages((messages) => [...messages, {
-        sender: "ai",
-        text: `For your note "${note.title}", ${text.toLowerCase().includes("summar") ? "focus on the main idea, supporting points, and one practical example." : "use the note's key ideas to explain the topic in your own words, then test yourself with one example."}`,
-      }]);
+
+    try {
+      const { reply, actions_taken } = await sendAiTutorMessage({
+        message: text,
+        history: updatedMessages,
+      });
+
+      setAiMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "ai",
+          text: reply,
+          actions: actions_taken,
+        },
+      ]);
+    } catch (err) {
+      console.error("Error calling AI tutor in NoteDetail:", err);
+      setAiMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "ai",
+          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
+          actions: [],
+          isError: true,
+        },
+      ]);
+    } finally {
       setIsAiTyping(false);
-    }, 700);
+    }
   };
 
   const theme = {

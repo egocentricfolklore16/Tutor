@@ -2,9 +2,9 @@ import React, { useState } from "react";
 import { createPortal } from "react-dom";
 import { useLocation } from "react-router";
 import { MessageCircle, Sparkles } from "lucide-react";
-import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
+import { sendAiTutorMessage } from "../../lib/aiTutor";
 
 const GlobalAITutorFab = ({ session }) => {
   const [isOpen, setIsOpen] = useState(false);
@@ -38,41 +38,32 @@ const GlobalAITutorFab = ({ session }) => {
     const userId = session?.user?.id || profile?.user_id;
 
     try {
-      const { data, error } = await supabase.functions.invoke("ai-tutor-chat", {
-        body: {
-          student_id: userId,
-          student_message: text,
-          student_level: studentLevel,
-          curriculum_standard: curriculumStandard,
-          knowledge_gaps: knowledgeGaps,
-          conversation_history: updatedMessages,
-        },
+      const { reply, actions_taken } = await sendAiTutorMessage({
+        message: text,
+        history: updatedMessages,
+        studentLevel,
+        curriculumStandard,
+        knowledgeGaps,
+        studentId: userId,
       });
 
-      if (error || !data?.success) {
-        console.warn("Edge function response error/fallback:", error || data?.error);
-        // Fallback response if Edge Function is unavailable
-        const topic = profile?.current_topic || location.pathname.replace("/", "") || "your current subject";
-        const fallbackReply = `Let's work through this together for ${topic}! What specific part of this question would you like to start with?`;
-        setMessages((msgs) => [...msgs, { sender: "ai", text: data?.reply || fallbackReply, actions: data?.actions_taken || [] }]);
-      } else {
-        setMessages((msgs) => [
-          ...msgs,
-          {
-            sender: "ai",
-            text: data.reply || "I'm here to help you study!",
-            actions: data.actions_taken || [],
-          },
-        ]);
-      }
+      setMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "ai",
+          text: reply,
+          actions: actions_taken,
+        },
+      ]);
     } catch (err) {
       console.error("Failed to communicate with AI Tutor:", err);
       setMessages((msgs) => [
         ...msgs,
         {
           sender: "ai",
-          text: "I experienced a temporary connection issue. Let's try breaking that down again!",
+          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
           actions: [],
+          isError: true,
         },
       ]);
     } finally {

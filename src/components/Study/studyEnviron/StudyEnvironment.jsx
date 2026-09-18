@@ -18,6 +18,7 @@ import {
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
 import { awardUserRewards } from "../../../lib/gamification";
+import { sendAiTutorMessage } from "../../../lib/aiTutor";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
@@ -371,22 +372,49 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
   const secondsLeft = timeLeft % 60;
 
-  const sendAiMessage = () => {
+  const sendAiMessage = async () => {
     const text = aiMessage.trim();
     if (!text || isAiTyping) return;
-    setAiMessages((messages) => [...messages, { sender: "user", text }]);
+
+    const userMsg = { sender: "user", text };
+    const updatedMessages = [...aiMessages, userMsg];
+
+    setAiMessages(updatedMessages);
     setAiMessage("");
     setIsAiTyping(true);
-    window.setTimeout(() => {
-      setAiMessages((messages) => [
-        ...messages,
+
+    try {
+      const { reply, actions_taken } = await sendAiTutorMessage({
+        message: text,
+        history: updatedMessages,
+        studentLevel: profile?.education_level || "High School",
+        curriculumStandard: profile?.curriculum_standard || "None/General",
+        knowledgeGaps: Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [],
+        studentId: userId,
+      });
+
+      setAiMessages((msgs) => [
+        ...msgs,
         {
           sender: "ai",
-          text: `For ${subject} - ${topic}, ${text.toLowerCase().includes("plan") ? "try a focused cycle: review the concept, practise one example, then explain it in your own words." : "break that question into one small step at a time and write down what you already know before solving it."}`,
+          text: reply,
+          actions: actions_taken,
         },
       ]);
+    } catch (err) {
+      console.error("Error calling AI tutor in StudyEnvironment:", err);
+      setAiMessages((msgs) => [
+        ...msgs,
+        {
+          sender: "ai",
+          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
+          actions: [],
+          isError: true,
+        },
+      ]);
+    } finally {
       setIsAiTyping(false);
-    }, 700);
+    }
   };
 
   const renderTool = () => {

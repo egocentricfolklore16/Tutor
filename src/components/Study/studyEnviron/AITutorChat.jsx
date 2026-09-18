@@ -12,6 +12,7 @@ const AITutorChat = ({
   width = 380,
   theme,
   isTyping,
+  user,
 }) => {
   const MessageBubble = ({ message }) => {
     if (message.sender === "ai") {
@@ -52,8 +53,14 @@ const AITutorChat = ({
               {message.text}
             </div>
           </div>
-          <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center">
-            <Bot className="h-4 w-4 text-gray-500" />
+          <div className="h-8 w-8 flex-shrink-0 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
+            {user?.avatar ? (
+              <img src={user.avatar} alt={user?.name || "You"} className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-xs font-semibold text-gray-600">
+                {user?.name?.[0]?.toUpperCase() || "U"}
+              </span>
+            )}
           </div>
         </div>
       );

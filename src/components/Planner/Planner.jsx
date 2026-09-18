@@ -19,6 +19,7 @@ import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
+import NotificationPromptCard from "../Notifications/NotificationPromptCard";
 import { getNotificationPreferences, recordNotification, scheduleSessionRemindersFromSessions, scheduleStudyReminder } from "../../lib/notifications";
 
 const PlannerPage = () => {
@@ -32,8 +33,7 @@ const PlannerPage = () => {
   const [fetchError, setFetchError] = useState("");
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [activityMode, setActivityMode] = useState(null);
-  const [blockedTimes, setBlockedTimes] = useState([
-  ]);
+  const [blockedTimes, setBlockedTimes] = useState([]);
 
   const [newSession, setNewSession] = useState({
     title: "",
@@ -346,6 +346,11 @@ const PlannerPage = () => {
         </button>
       </div>
       <button type="button" onClick={() => handleAddActivity(selectedDate)} disabled={isLoadingSessions} className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 sm:hidden"><Plus className="h-4 w-4" />+ Create new</button>
+
+      {/* Notification prompt card */}
+      <div className="mb-6">
+        <NotificationPromptCard userId={profile?.user_id} />
+      </div>
 
       {/* Error Message */}
       {fetchError && (

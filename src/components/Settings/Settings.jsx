@@ -1,13 +1,13 @@
 import { useEffect, useRef, useState } from "react";
-import { Bell, Camera, ChevronDown, Loader2, Plus, Save, Trash2 } from "lucide-react";
+import { Bell, Camera, ChevronDown, Loader2, Plus, Save, Send, ShieldAlert, Smartphone, Trash2 } from "lucide-react";
 import { useProfile } from "../../app/ProfileContext";
 import supabase from "../../lib/supabase.js";
 import Billing from "./Billing";
+import { useNotifications } from "../../hooks/useNotifications";
 import {
   getNotificationPreferences,
   persistNotificationPreferences,
   recordNotification,
-  requestBrowserNotificationPermission,
 } from "../../lib/notifications";
 
 const STORAGE_BUCKET = "user-images";
@@ -45,6 +45,8 @@ function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [testSending, setTestSending] = useState(false);
+  const [testResult, setTestResult] = useState("");
 
   useEffect(() => {
     async function loadUser() {
@@ -55,6 +57,9 @@ function Settings() {
     }
     loadUser();
   }, []);
+
+  const resolvedUser = currentUser || (profile?.user_id ? { id: profile.user_id, email: profile.email } : null);
+  const pushHooks = useNotifications(resolvedUser?.id);
 
   useEffect(() => {
     if (!profile) return;
@@ -94,26 +99,6 @@ function Settings() {
     if (saveError) { if (selectedFile) await supabase.storage.from(STORAGE_BUCKET).remove([userImg]); setError(saveError.message); setIsSaving(false); return; }
 
     const persistedPreferences = persistNotificationPreferences(notificationSettings);
-    try {
-      await supabase.from("notification_preferences").upsert({
-        user_id: user.id,
-        browser_push: persistedPreferences.browserPush,
-        in_app: persistedPreferences.inApp,
-        study_reminders: persistedPreferences.studyReminders,
-        deadline_reminders: persistedPreferences.deadlineReminders,
-        progress_milestones: persistedPreferences.progressMilestones,
-        ai_suggestions: persistedPreferences.aiSuggestions,
-        community: persistedPreferences.community,
-        system_alerts: persistedPreferences.systemAlerts,
-        digest: persistedPreferences.digest,
-        quiet_hours_enabled: persistedPreferences.quietHours?.enabled,
-        quiet_hours_start: persistedPreferences.quietHours?.start,
-        quiet_hours_end: persistedPreferences.quietHours?.end,
-        auto_prompt: persistedPreferences.autoPrompt,
-      }, { onConflict: "user_id" });
-    } catch (supabaseError) {
-      console.warn("Notification preferences were saved locally only:", supabaseError);
-    }
 
     await refreshProfile();
     setSelectedFile(null);
@@ -127,6 +112,19 @@ function Settings() {
     setIsSaving(false);
   };
 
+  const handleSendTestNotification = async () => {
+    setTestSending(true);
+    setTestResult("");
+    try {
+      const res = await pushHooks.sendTest();
+      setTestResult(res?.message || "Test notification triggered.");
+    } catch (err) {
+      setTestResult(err.message || "Failed to send test notification.");
+    } finally {
+      setTestSending(false);
+    }
+  };
+
   const image = preview || profile?.avatar_url;
   const name = profile?.full_name || profile?.username || "Learner";
   const subjectOptions = settings.studentLevel.includes("Grade") ? [...generalSubjects, ...schoolSubjects] : generalSubjects;
@@ -138,28 +136,7 @@ function Settings() {
     persistNotificationPreferences(next);
   };
 
-  const enableBrowserNotifications = async () => {
-    const permission = await requestBrowserNotificationPermission();
-    const next = {
-      ...notificationSettings,
-      browserPush: permission === "granted",
-      autoPrompt: false,
-    };
-    setNotificationSettings(next);
-    persistNotificationPreferences(next);
-
-    if (permission === "granted") {
-      recordNotification({
-        title: "Notifications enabled",
-        body: "You’ll receive reminders and updates from Hyper Tutor.",
-        type: "systemAlerts",
-        context: "settings",
-      }, next);
-    }
-  };
-
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];
-  const resolvedUser = currentUser || (profile?.user_id ? { id: profile.user_id, email: profile.email } : null);
 
   return <main className="settings-page min-h-screen px-5 pb-14 pt-20 text-slate-900 md:px-10"><div className="mx-auto max-w-5xl"><header className="mb-7"><h1 className="text-4xl font-black tracking-tight">Settings</h1><p className="mt-2 text-base text-slate-500">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-1 overflow-x-auto rounded-full bg-slate-200/80 p-1" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`shrink-0 rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 active:scale-95 ${activeTab === tab ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:bg-white/50 hover:text-slate-800"}`}>{tab}</button>)}</nav><div className="settings-card">
     {activeTab === "Privacy" ? <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900">Privacy</h2><p className="mt-2 text-sm text-slate-500">Privacy settings are not available yet.</p></div> : null}
@@ -173,58 +150,155 @@ function Settings() {
     </div>}
     {activeTab === "Appearance" && <div className="space-y-10"><Section title="Appearance" description="Make Hyper Tutor more comfortable and useful for you." open={true} onToggle={() => {}}><div className="grid gap-5 md:grid-cols-2"><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Reduce Motion<input type="checkbox" checked={settings.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Dark Mode<input type="checkbox" checked={darkMode} onChange={(event) => toggleDarkMode(event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label></div></Section></div>}
     {activeTab === "Notifications" && <Section title="Notifications" description="Control when and how Hyper Tutor reaches you." open={true} onToggle={() => {}}>
-      <div className="space-y-5">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className="text-base font-bold text-slate-900">Browser notifications</p>
-            <p className="text-sm text-slate-500">Send reminders and updates even when the app is open in another tab.</p>
+      <div className="space-y-6">
+        {/* Master Web Push Switch & Browser Status */}
+        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/50">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-lg font-bold text-slate-900 dark:text-white">Web Push Notifications</p>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                Receive background alerts for study sessions and streak warnings even when the browser tab is closed.
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 shrink-0">
+              {pushHooks.permissionState === "granted" ? (
+                <button
+                  type="button"
+                  onClick={pushHooks.preferences.push_enabled ? pushHooks.disable : pushHooks.enable}
+                  disabled={pushHooks.loading}
+                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${
+                    pushHooks.preferences.push_enabled
+                      ? "bg-emerald-600 hover:bg-emerald-700"
+                      : "bg-slate-600 hover:bg-slate-700"
+                  } disabled:opacity-50`}
+                >
+                  <Bell className="h-4 w-4" />
+                  {pushHooks.preferences.push_enabled ? "Enabled" : "Disabled"}
+                </button>
+              ) : pushHooks.permissionState === "denied" ? (
+                <div className="flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
+                  <ShieldAlert className="h-4 w-4 shrink-0" />
+                  <span>Blocked in browser settings. Re-enable in site settings.</span>
+                </div>
+              ) : pushHooks.permissionState === "ios-install-needed" ? (
+                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
+                  <Smartphone className="h-4 w-4 shrink-0" />
+                  <span>Add to Home Screen on iOS to enable Web Push.</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={pushHooks.enable}
+                  disabled={pushHooks.loading}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  <Bell className="h-4 w-4" />
+                  {pushHooks.loading ? "Enabling..." : "Enable Push Alerts"}
+                </button>
+              )}
+            </div>
           </div>
-          <button type="button" onClick={enableBrowserNotifications} className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700">
-            <Bell className="h-4 w-4" />
-            {notificationSettings.browserPush ? "Refresh permission" : "Enable alerts"}
-          </button>
+
+          {/* Test Notification Action */}
+          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Test Push Delivery</p>
+              <p className="text-xs text-slate-500">Send an immediate test notification to your active push subscription.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleSendTestNotification}
+              disabled={testSending || !pushHooks.enabled}
+              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+            >
+              <Send className="h-3.5 w-3.5" />
+              {testSending ? "Sending test..." : "Send test notification"}
+            </button>
+          </div>
+          {testResult && <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">{testResult}</p>}
         </div>
 
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            ["inApp", "In-app notifications"],
-            ["studyReminders", "Study reminders"],
-            ["deadlineReminders", "Deadline reminders"],
-            ["progressMilestones", "Progress milestones"],
-            ["aiSuggestions", "AI suggestions"],
-            ["community", "Community updates"],
-            ["systemAlerts", "System alerts"],
-          ].map(([key, label]) => (
-            <label key={key} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700">
-              <span>{label}</span>
-              <input type="checkbox" checked={Boolean(notificationSettings[key])} onChange={() => toggleNotificationCategory(key)} className="h-4 w-4 accent-emerald-600" />
+        {/* Master Toggles for Push Kinds */}
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">Push Notification Types</h3>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <span>Session reminders</span>
+              <input
+                type="checkbox"
+                checked={Boolean(pushHooks.preferences.session_reminders)}
+                onChange={(e) => pushHooks.updatePreference("session_reminders", e.target.checked)}
+                className="h-4 w-4 accent-emerald-600"
+              />
             </label>
-          ))}
+
+            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <span>Streak alerts</span>
+              <input
+                type="checkbox"
+                checked={Boolean(pushHooks.preferences.streak_alerts)}
+                onChange={(e) => pushHooks.updatePreference("streak_alerts", e.target.checked)}
+                className="h-4 w-4 accent-emerald-600"
+              />
+            </label>
+
+            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+              <span>Inactivity nudges</span>
+              <input
+                type="checkbox"
+                checked={Boolean(pushHooks.preferences.inactivity_nudges)}
+                onChange={(e) => pushHooks.updatePreference("inactivity_nudges", e.target.checked)}
+                className="h-4 w-4 accent-emerald-600"
+              />
+            </label>
+          </div>
+        </div>
+
+        {/* In-app & Local preferences */}
+        <div>
+          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">In-app Categories</h3>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {[
+              ["inApp", "In-app notifications"],
+              ["studyReminders", "Study reminders"],
+              ["deadlineReminders", "Deadline reminders"],
+              ["progressMilestones", "Progress milestones"],
+              ["aiSuggestions", "AI suggestions"],
+              ["community", "Community updates"],
+              ["systemAlerts", "System alerts"],
+            ].map(([key, label]) => (
+              <label key={key} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
+                <span>{label}</span>
+                <input type="checkbox" checked={Boolean(notificationSettings[key])} onChange={() => toggleNotificationCategory(key)} className="h-4 w-4 accent-emerald-600" />
+              </label>
+            ))}
+          </div>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
             Digest cadence
-            <select value={notificationSettings.digest} onChange={(event) => setNotificationSettings((current) => ({ ...current, digest: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100">
+            <select value={notificationSettings.digest} onChange={(event) => setNotificationSettings((current) => ({ ...current, digest: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900">
               <option value="low">Low</option>
               <option value="normal">Normal</option>
               <option value="high">High</option>
             </select>
           </label>
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
             Quiet hours
             <input type="checkbox" checked={Boolean(notificationSettings.quietHours?.enabled)} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, enabled: event.target.checked } }))} className="mt-2 h-4 w-4 accent-emerald-600" />
           </label>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
             Start time
-            <input type="time" value={notificationSettings.quietHours?.start || "22:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, start: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+            <input type="time" value={notificationSettings.quietHours?.start || "22:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, start: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900" />
           </label>
-          <label className="block text-sm font-semibold text-slate-700">
+          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
             End time
-            <input type="time" value={notificationSettings.quietHours?.end || "08:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, end: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" />
+            <input type="time" value={notificationSettings.quietHours?.end || "08:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, end: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900" />
           </label>
         </div>
       </div>

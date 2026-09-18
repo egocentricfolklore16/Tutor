@@ -3,6 +3,7 @@ import { Navigate, Outlet, useLocation } from "react-router";
 import Sidebar from "../components/Layout/Sidebar";
 import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
+import GlobalAITutorFab from "../components/common/GlobalAITutorFab";
 import { ProfileProvider, useProfile } from "./ProfileContext";
 
 function GlobalStudyCompanion() {
@@ -64,6 +65,9 @@ function Layout({ session, needsOnboarding }) {
             )}
           </div>
         </div>
+
+        {/* Global Persistent AI Tutor FAB & Portal Drawer */}
+        <GlobalAITutorFab session={session} />
       </div>
     </ProfileProvider>
   );

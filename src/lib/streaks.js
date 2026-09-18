@@ -153,6 +153,63 @@ export async function getUserSlippingData(userId, limit = 10) {
 }
 
 /**
+ * Calculates a 7-element boolean array for current Sunday-Saturday week completion.
+ *
+ * @param {string} userId - User ID
+ * @param {object} streakData - Streak record containing display_current_streak / current_streak
+ * @returns {Promise<boolean[]>} Array of 7 booleans for [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
+ */
+export async function getWeekActivity(userId, streakData) {
+  const defaultWeek = [false, false, false, false, false, false, false];
+  if (!userId) return defaultWeek;
+
+  const currentStreak = streakData?.display_current_streak ?? streakData?.current_streak ?? 0;
+  if (currentStreak <= 0) {
+    return defaultWeek;
+  }
+
+  const now = new Date();
+  const currentDayIndex = now.getDay(); // 0 = Sun, 6 = Sat
+
+  // Calculate start of current week (Sunday)
+  const sunday = new Date(now);
+  sunday.setDate(now.getDate() - currentDayIndex);
+
+  const sundayStr = sunday.toISOString().split("T")[0];
+  const todayStr = now.toISOString().split("T")[0];
+
+  const { data: records } = await supabase
+    .from("daily_session_tracking")
+    .select("activity_date, met_daily_goal")
+    .eq("user_id", userId)
+    .gte("activity_date", sundayStr)
+    .lte("activity_date", todayStr);
+
+  const activeDates = new Set(
+    (records || [])
+      .filter((r) => r.met_daily_goal !== false)
+      .map((r) => r.activity_date)
+  );
+
+  // If user has a streak but no daily_session_tracking entry for today (e.g. updated via RPC), fallback last_active_date
+  if (streakData?.last_active_date) {
+    activeDates.add(streakData.last_active_date);
+  }
+
+  const result = [false, false, false, false, false, false, false];
+  for (let i = 0; i <= currentDayIndex; i++) {
+    const d = new Date(sunday);
+    d.setDate(sunday.getDate() + i);
+    const dateStr = d.toISOString().split("T")[0];
+    if (activeDates.has(dateStr)) {
+      result[i] = true;
+    }
+  }
+
+  return result;
+}
+
+/**
  * Get daily session tracking for analysis
  * @param {string} userId - User ID
  * @param {number} days - Number of days to analyze

@@ -210,12 +210,20 @@ function DashboardHeader({ toggleSidebar }) {
           {currentStreak === 0 ? "Do a lesson today to start a new streak!" : "Keep it going!"}
         </p>
         <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-sm dark:bg-white/5">
-          {WEEK_DAYS.map((day, index) => (
-            <div key={`${day}-${index}`} className="flex flex-col items-center gap-1.5">
-              <span className={`text-[11px] font-bold ${index === todayIndex ? "text-orange-500 dark:text-orange-400" : "text-slate-400 dark:text-slate-500"}`}>{day}</span>
-              <span className={`h-6 w-6 rounded-full ${weekActivity[index] ? "bg-orange-400 dark:bg-orange-500/70" : "bg-slate-200 dark:bg-white/10"}`} />
-            </div>
-          ))}
+          {WEEK_DAYS.map((day, index) => {
+            const isCompleted = currentStreak > 0 && Boolean(weekActivity[index]);
+            return (
+              <div key={`${day}-${index}`} className="flex flex-col items-center gap-1.5">
+                <span className={`text-[11px] font-bold ${index === todayIndex ? "text-orange-500 dark:text-orange-400" : "text-slate-400 dark:text-slate-500"}`}>{day}</span>
+                {isCompleted ? (
+                  <img src="/streak.svg" alt="Streak completed" className="h-6 w-6 object-contain" />
+                ) : (
+                  <span className="h-6 w-6 rounded-full bg-slate-200 dark:bg-white/10" />
+                )}
+                <span className="sr-only">{isCompleted ? "Streak completed" : "Streak incomplete"}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

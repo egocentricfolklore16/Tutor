@@ -914,7 +914,7 @@ function Study() {
         createPortal(
           <button
             onClick={toggleShow}
-            className="fixed bottom-6 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-8 sm:right-8"
+            className="fixed bottom-20 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:right-8"
             title="Create New Session"
           >
             <svg

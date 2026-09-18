@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import { BookOpen, Bot, CheckCircle2, Eraser, Send, Sparkles, X } from "lucide-react";
 
 const AITutorChat = ({
@@ -13,6 +13,14 @@ const AITutorChat = ({
   theme,
   isTyping,
 }) => {
+  const messagesEndRef = useRef(null);
+
+  useEffect(() => {
+    if (messages.length > 0 || isTyping) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages, isTyping]);
+
   const MessageBubble = ({ message }) => {
     if (message.sender === "ai") {
       return (
@@ -120,6 +128,7 @@ const AITutorChat = ({
             Hyper Tutor is thinking...
           </div>
         )}
+        <div ref={messagesEndRef} />
       </div>
 
       <div className="border-t border-gray-200 bg-gray-50 p-4">

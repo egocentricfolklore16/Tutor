@@ -1,5 +1,7 @@
 import { useState } from "react";
-import { CalendarDays, Clock3, Repeat, Save, X } from "lucide-react";
+import { createPortal } from "react-dom";
+import { Bell, CalendarDays, Clock3, Repeat, Save, X } from "lucide-react";
+import { getPermissionState } from "../../lib/push";
 
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
@@ -7,6 +9,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
   if (!mode) return null;
 
   const [validationError, setValidationError] = useState("");
+  const permission = getPermissionState();
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
   const titles = {
@@ -20,7 +23,24 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
   const isDeadline = mode === "deadline";
   const dateValue = form.date instanceof Date ? form.date.toISOString().slice(0, 10) : form.date;
 
-  return (
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    setValidationError("");
+
+    if (!isTimeBlock && !isDeadline) {
+      if (form.date && form.startTime) {
+        const selectedDateTime = new Date(`${dateValue}T${form.startTime}`);
+        if (selectedDateTime.getTime() < Date.now()) {
+          setValidationError("Cannot schedule a session in the past.");
+          return;
+        }
+      }
+    }
+
+    onSubmit();
+  };
+
+  return createPortal(
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
       <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
         {validationError && (
@@ -56,6 +76,20 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
               <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Repeat className="h-4 w-4 text-blue-600" />Repeat</span><select value={form.recurring} onChange={(event) => update("recurring", event.target.value)} className={fieldClass}><option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
               <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
             </>}
+          </div>
+        )}
+
+        {/* Push Notification subtle hint if reminder > 0 and push permission not granted */}
+        {form.reminder > 0 && permission !== "granted" && (
+          <div className="mt-5 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs text-blue-800 border border-blue-200">
+            <Bell className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>
+              Push notifications are not enabled. Enable them in{" "}
+              <a href="/Settings" className="font-bold underline hover:text-blue-900">
+                Settings
+              </a>{" "}
+              to receive alerts even when the tab is closed.
+            </span>
           </div>
         )}
 

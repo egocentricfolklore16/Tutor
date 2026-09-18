@@ -1,5 +1,6 @@
-import React from 'react';
-import { CalendarDays, Clock3, Repeat, Save, X } from 'lucide-react';
+import React, { useState } from 'react';
+import { Bell, CalendarDays, Clock3, Repeat, Save, X } from 'lucide-react';
+import { getPermissionState } from '../../lib/push';
 
 const SessionScheduler = ({
   showCreateModal,
@@ -12,13 +13,36 @@ const SessionScheduler = ({
 }) => {
   if (!showCreateModal) return null;
 
+  const [validationError, setValidationError] = useState("");
+  const permission = getPermissionState();
+
   const dateValue = newSession.date instanceof Date
     ? newSession.date.toISOString().slice(0, 10)
     : newSession.date;
 
+  const handleSubmit = (e) => {
+    e.preventDefault();
+    setValidationError("");
+
+    if (newSession.date && newSession.startTime) {
+      const selectedDateTime = new Date(`${dateValue}T${newSession.startTime}`);
+      if (selectedDateTime.getTime() < Date.now()) {
+        setValidationError("Cannot schedule a session in the past.");
+        return;
+      }
+    }
+
+    handleCreateSession();
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={(event) => { event.preventDefault(); handleCreateSession(); }} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+        {validationError && (
+          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+            {validationError}
+          </div>
+        )}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Planner</p>
@@ -94,6 +118,21 @@ const SessionScheduler = ({
             </select>
           </div>
         </div>
+
+        {/* Push Notification subtle hint if reminder > 0 and push permission not granted */}
+        {newSession.reminder > 0 && permission !== "granted" && (
+          <div className="mt-5 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs text-blue-800 border border-blue-200">
+            <Bell className="h-4 w-4 shrink-0 text-blue-600" />
+            <span>
+              Push notifications are not enabled. Enable them in{" "}
+              <a href="/Settings" className="font-bold underline hover:text-blue-900">
+                Settings
+              </a>{" "}
+              to receive alerts even when the tab is closed.
+            </span>
+          </div>
+        )}
+
         <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
           <button
             type="button"

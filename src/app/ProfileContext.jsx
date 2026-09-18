@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import supabase from "../lib/supabase.js";
 import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
 
@@ -9,11 +9,24 @@ export function ProfileProvider({ user, children }) {
   const [isLoading, setIsLoading] = useState(true);
   const [darkMode, setDarkMode] = useState(() => localStorage.getItem("hyper-tutor-dark-mode") === "true");
   const [streak, setStreak] = useState(null);
+  const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
   }, [darkMode]);
+
+  const touchLastSeenThrottled = async () => {
+    if (!user?.id) return;
+    const now = Date.now();
+    if (now - lastTouchTimeRef.current < 5 * 60 * 1000) return;
+    lastTouchTimeRef.current = now;
+    try {
+      await supabase.rpc("touch_last_seen");
+    } catch (err) {
+      // Fail silently
+    }
+  };
 
   const loadProfile = async () => {
     if (!user?.id) {
@@ -30,6 +43,18 @@ export function ProfileProvider({ user, children }) {
       nextProfile = { ...nextProfile, avatar_url: signedImage?.signedUrl || "" };
     }
     setProfile(nextProfile);
+
+    // Sync timezone if different
+    const browserTz = getUserTimeZone();
+    if (nextProfile && nextProfile.timezone !== browserTz) {
+      supabase.from("profiles").update({ timezone: browserTz }).eq("user_id", user.id).then(({ error: tzErr }) => {
+        if (tzErr) console.warn("Unable to sync timezone:", tzErr);
+      });
+    }
+
+    // Touch last seen throttled
+    touchLastSeenThrottled();
+
     const { data: streakData } = await getUserStreak(user.id);
     if (streakData) {
       const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
@@ -60,6 +85,15 @@ export function ProfileProvider({ user, children }) {
 
   useEffect(() => {
     if (!user?.id) return undefined;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        touchLastSeenThrottled();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const refreshStreak = async () => {
       const { data } = await getUserStreak(user.id);
       if (data) {
@@ -109,6 +143,7 @@ export function ProfileProvider({ user, children }) {
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
 
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
       window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);

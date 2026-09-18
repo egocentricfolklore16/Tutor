@@ -136,27 +136,42 @@ export function recordNotification(notification, preferences = null) {
     return notificationRecord;
   }
 
-  if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted" && mergedPreferences.browserPush) {
-    new Notification(notificationRecord.title, {
-      body: notificationRecord.body,
-      tag: notificationRecord.id,
-    });
-  }
-
   return notificationRecord;
 }
 
-export function scheduleStudyReminder(session, preferences = null) {
+export async function hasActivePushSubscription() {
+  if (typeof window === "undefined" || !("serviceWorker" in navigator)) return false;
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    const subscription = await registration.pushManager.getSubscription();
+    return Boolean(subscription);
+  } catch (e) {
+    return false;
+  }
+}
+
+export async function scheduleStudyReminder(session, preferences = null) {
   if (!session || !session.id) return null;
 
+  // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
+  if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
+    return null;
+  }
+
+  const pushActive = await hasActivePushSubscription();
+  if (pushActive) {
+    // Web Push is handling reminders; disable local in-tab fallback timer to avoid duplicate notifications
+    return null;
+  }
+
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  if (!mergedPreferences.inApp && !mergedPreferences.browserPush) return null;
   if (!mergedPreferences.studyReminders) return null;
 
   const scheduledAt = resolveSessionDateTime(session);
   if (!scheduledAt) return null;
 
-  const reminderTime = new Date(scheduledAt.getTime() - 15 * 60 * 1000);
+  const reminderMins = Number(session.reminder ?? session.reminder_minutes ?? 15);
+  const reminderTime = new Date(scheduledAt.getTime() - reminderMins * 60 * 1000);
   const delayMs = reminderTime.getTime() - Date.now();
 
   if (delayMs <= 0) return null;
@@ -165,15 +180,32 @@ export function scheduleStudyReminder(session, preferences = null) {
     clearTimeout(reminderTimers.get(session.id));
   }
 
-  const timer = setTimeout(() => {
-    const title = session.Title || session.Topic || "Study reminder";
-    const body = `Your ${session.Subject || "study"} session starts in 15 minutes.`;
+  const timer = setTimeout(async () => {
+    const title = "Study session starting soon";
+    const sessionTopic = session.Topic || session.title || "Session";
+    const sessionSubject = session.Subject || session.subject || "Study";
+    const body = reminderMins === 0 ? `${sessionSubject} - ${sessionTopic} starts now` : `${sessionSubject} - ${sessionTopic} starts in ${reminderMins} minutes`;
+    const dateStr = scheduledAt.toISOString().slice(0, 10);
+    const tagStr = `session-${session.id}-${dateStr}`;
+
     recordNotification({
-      title: "Study reminder",
-      body: `${title}: ${body}`,
+      title,
+      body,
       type: "studyReminders",
       context: "study",
     }, mergedPreferences);
+
+    if ("serviceWorker" in navigator) {
+      const reg = await navigator.serviceWorker.ready;
+      reg.showNotification(title, {
+        body,
+        icon: "/icons/icon-192.png",
+        badge: "/icons/badge-72.png",
+        tag: tagStr,
+        data: { url: `/Study/${session.id}` },
+      });
+    }
+
     reminderTimers.delete(session.id);
   }, delayMs);
 

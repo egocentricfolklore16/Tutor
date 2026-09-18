@@ -29,7 +29,7 @@ import LoadingCompanion from "../../common/LoadingCompanion";
 // StudyEnvironment: orchestrates the study workspace, tool navigation and AI pane.
 const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
   const [isLoading, setIsLoading] = useState(!incomingSession);
@@ -511,7 +511,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
             {/* Mobile Tools Dropdown */}
             <div className="relative md:hidden">
               <button
-                onClick={() => setIsDropdownOpen((prev) => !prev)}
+                onClick={() => setIsToolsOpen((prev) => !prev)}
                 className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
               >
                 {(() => {
@@ -521,13 +521,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                     <>
                       <ActiveIcon className="h-4 w-4" />
                       <span>{current.label}</span>
-                      <ChevronDown className={`h-4 w-4 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`} />
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isToolsOpen ? "rotate-180" : ""}`} />
                     </>
                   );
                 })()}
               </button>
 
-              {isDropdownOpen && (
+              {isToolsOpen && (
                 <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
                   <div className="flex flex-col gap-1">
                     {toolsList.map(({ id, label, Icon }) => {
@@ -537,7 +537,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                           key={id}
                           onClick={() => {
                             setActiveTool(id);
-                            setIsDropdownOpen(false);
+                            setIsToolsOpen(false);
                           }}
                           className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                             isActive

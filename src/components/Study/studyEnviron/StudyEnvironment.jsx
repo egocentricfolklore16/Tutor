@@ -472,7 +472,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <main
-        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 xl:ml-[calc(var(--app-sidebar-width)+64px)] ${
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >

@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import supabase from "../lib/supabase.js";
-import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip } from "../lib/streaks";
+import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
 
 const ProfileContext = createContext(null);
 
@@ -31,7 +31,13 @@ export function ProfileProvider({ user, children }) {
     }
     setProfile(nextProfile);
     const { data: streakData } = await getUserStreak(user.id);
-    setStreak(streakData ? { ...streakData, display_current_streak: getDisplayStreak(streakData, new Date(), getUserTimeZone()) } : null);
+    if (streakData) {
+      const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
+      const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
+      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity });
+    } else {
+      setStreak(null);
+    }
     
     // Check for streak slips
     if (streakData) {
@@ -57,7 +63,9 @@ export function ProfileProvider({ user, children }) {
     const refreshStreak = async () => {
       const { data } = await getUserStreak(user.id);
       if (data) {
-        setStreak({ ...data, display_current_streak: getDisplayStreak(data, new Date(), getUserTimeZone()) });
+        const displayStreak = getDisplayStreak(data, new Date(), getUserTimeZone());
+        const weekActivity = await getWeekActivity(user.id, { ...data, display_current_streak: displayStreak });
+        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity });
         // Check for slip when streak is refreshed
         await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
       }

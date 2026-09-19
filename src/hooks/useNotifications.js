@@ -3,6 +3,7 @@ import supabase from "../lib/supabase";
 import {
   disablePush,
   enablePush,
+  formatPushError,
   getPermissionState,
   syncSubscription,
 } from "../lib/push";
@@ -87,7 +88,8 @@ export function useNotifications(userId) {
       refreshPermission();
       setPreferences((prev) => ({ ...prev, push_enabled: true }));
     } catch (err) {
-      setError(err.message || "Failed to enable notifications");
+      const formatted = formatPushError(err);
+      setError(formatted);
       throw err;
     } finally {
       setLoading(false);
@@ -103,7 +105,8 @@ export function useNotifications(userId) {
       refreshPermission();
       setPreferences((prev) => ({ ...prev, push_enabled: false }));
     } catch (err) {
-      setError(err.message || "Failed to disable notifications");
+      const formatted = formatPushError(err);
+      setError(formatted);
       throw err;
     } finally {
       setLoading(false);
@@ -142,7 +145,8 @@ export function useNotifications(userId) {
       if (fnErr) throw new Error(fnErr.message);
       return data;
     } catch (err) {
-      setError(err.message || "Failed to send test notification");
+      const formatted = formatPushError(err);
+      setError(formatted);
       throw err;
     }
   };

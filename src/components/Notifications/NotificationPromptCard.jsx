@@ -88,7 +88,7 @@ export default function NotificationPromptCard({ userId, onDismiss }) {
               </div>
             ) : permissionState === "unsupported" ? (
               <span className="text-xs text-emerald-700 dark:text-emerald-400">
-                Push notifications are not supported in this browser.
+                This browser doesn't support push notifications.
               </span>
             ) : (
               <button

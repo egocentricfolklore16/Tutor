@@ -1,72 +1,80 @@
 import supabase from "./supabase";
 
 /**
- * Sends a student message to the Groq-backed ai-tutor-chat Edge Function.
+ * Invokes the secure server-side Groq 'ai-tutor' Edge Function.
  *
  * @param {Object} params
- * @param {string} params.message - Current user message text
- * @param {Array} [params.history=[]] - Conversation history
- * @param {string} [params.studentLevel='High School'] - Student education level
- * @param {string} [params.curriculumStandard='None/General'] - Curriculum standard
- * @param {Array} [params.knowledgeGaps=[]] - Array of known knowledge gap strings
- * @param {string} [params.studentId] - Explicit student ID if known
- * @returns {Promise<{ reply: string, actions_taken: Array }>}
+ * @param {number} params.sessionId - Current session ID from "Study" table
+ * @param {Array} params.messages - Array of { role: 'user'|'assistant', content: string } (max 20)
+ * @param {Object} params.clientState - { focus_mode, pomodoro_state, minutes_remaining }
+ * @returns {Promise<{ reply: string, actions: Array, error?: Object }>}
  */
-export async function sendAiTutorMessage({
-  message,
-  history = [],
-  studentLevel = "High School",
-  curriculumStandard = "None/General",
-  knowledgeGaps = [],
-  studentId = null,
-}) {
-  const {
-    data: { session },
-  } = await supabase.auth.getSession();
-  const userId = studentId || session?.user?.id;
+export async function invokeAiTutor({ sessionId, messages = [], clientState = {} }) {
+  // Format messages: max 20, content capped at 4000
+  const formattedMessages = (messages || [])
+    .slice(-20)
+    .map((msg) => ({
+      role: msg.role || (msg.sender === "user" ? "user" : "assistant"),
+      content: (msg.content || msg.text || "").slice(0, 4000),
+    }));
 
-  // Format history array into standard OpenAI role/content objects
-  const formattedHistory = (history || []).map((msg) => {
-    if (msg.role && msg.content) {
-      return { role: msg.role, content: msg.content };
-    }
-    return {
-      role: msg.sender === "user" ? "user" : "assistant",
-      content: msg.text || msg.content || "",
-    };
-  });
-
-  const { data, error } = await supabase.functions.invoke("ai-tutor-chat", {
+  const { data, error } = await supabase.functions.invoke("ai-tutor", {
     body: {
-      student_id: userId,
-      student_message: message,
-      student_level: studentLevel,
-      curriculum_standard: curriculumStandard,
-      knowledge_gaps: knowledgeGaps,
-      conversation_history: formattedHistory,
+      session_id: Number(sessionId),
+      messages: formattedMessages,
+      client_state: clientState,
     },
   });
 
   if (error) {
-    let errorMessage = error.message || "Failed to communicate with AI Tutor.";
-    if (error.status === 401) {
-      errorMessage = "Authentication failed. Please log in to continue using AI Tutor.";
-    }
-    throw new Error(errorMessage);
+    let message = "An error occurred while connecting to the AI Tutor.";
+    if (error.status === 401) message = "Please sign in again.";
+    else if (error.status === 404) message = "This session no longer exists.";
+    else if (error.status === 429) message = "You've reached the request limit. Please take a short break.";
+    else if (error.status === 502 || error.status === 503) message = "The tutor is busy, try again shortly.";
+    return { error: { code: "HTTP_ERROR", message } };
   }
 
-  if (data && data.error) {
-    throw new Error(data.error);
-  }
-
-  if (!data || typeof data.reply !== "string") {
-    throw new Error("Invalid response received from AI Tutor Edge Function.");
+  if (data?.error) {
+    return { error: data.error };
   }
 
   return {
-    reply: data.reply,
-    actions_taken: Array.isArray(data.actions_taken) ? data.actions_taken : [],
+    reply: data?.reply || "",
+    actions: Array.isArray(data?.actions) ? data.actions : [],
   };
 }
 
-export default sendAiTutorMessage;
+/**
+ * Backward compatibility wrapper for existing components.
+ */
+export async function sendAiTutorMessage({
+  message,
+  history = [],
+  sessionId = null,
+}) {
+  const formattedMessages = [
+    ...history.map((m) => ({
+      role: m.role || (m.sender === "user" ? "user" : "assistant"),
+      content: m.text || m.content || "",
+    })),
+    { role: "user", content: message },
+  ];
+
+  const res = await invokeAiTutor({
+    sessionId: sessionId || 1,
+    messages: formattedMessages,
+    clientState: {},
+  });
+
+  if (res.error) {
+    throw new Error(res.error.message || "Failed to communicate with AI Tutor.");
+  }
+
+  return {
+    reply: res.reply,
+    actions_taken: res.actions || [],
+  };
+}
+
+export default invokeAiTutor;

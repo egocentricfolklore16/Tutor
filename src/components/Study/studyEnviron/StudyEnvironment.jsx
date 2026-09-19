@@ -18,7 +18,7 @@ import {
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
 import { awardUserRewards } from "../../../lib/gamification";
-import { sendAiTutorMessage } from "../../../lib/aiTutor";
+import { invokeAiTutor } from "../../../lib/aiTutor";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
@@ -41,6 +41,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [isAiTyping, setIsAiTyping] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [timeline, setTimeline] = useState([]);
+  const [flashcardRefreshKey, setFlashcardRefreshKey] = useState(0);
+
+  const initialGreetingFetched = useRef(false);
 
   const handleTimelineEvent = (eventItem) => {
     if (!eventItem) return;
@@ -88,7 +91,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
       const { data, error: profileError } = await supabase
         .from("profiles")
-        .select("full_name")
+        .select("*")
         .eq("user_id", authUser.id)
         .single();
 
@@ -96,20 +99,44 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         console.error("Supabase profile fetch error:", profileError);
       }
 
-      setProfile({
-        name: data?.full_name || authUser.user_metadata?.full_name || authUser.user_metadata?.userName || "User",
-        email: authUser.email || "",
-        avatar: authUser.user_metadata?.avatar_url || "",
-      });
+      setProfile(data || {});
     };
 
     fetchProfile();
   }, []);
 
-  const duration = session?.Duration || session?.hours || 0;
-  const durationSeconds = Math.max(1, Number.parseFloat(duration) * 60 * 60);
+  const currentSessionId = session?.id || Studyid;
 
-  // Initialize remaining time from session.time_left if valid and paused, else full duration
+  // Restore chat messages from sessionStorage for this session
+  useEffect(() => {
+    if (!currentSessionId) return;
+    try {
+      const stored = sessionStorage.getItem(`ai_chat_${currentSessionId}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setAiMessages(parsed);
+          initialGreetingFetched.current = true;
+        }
+      }
+    } catch (e) {
+      console.error("Failed to restore AI chat session storage:", e);
+    }
+  }, [currentSessionId]);
+
+  // Save chat messages to sessionStorage on update
+  useEffect(() => {
+    if (!currentSessionId || aiMessages.length === 0) return;
+    try {
+      sessionStorage.setItem(`ai_chat_${currentSessionId}`, JSON.stringify(aiMessages));
+    } catch (e) {
+      console.error("Failed to save AI chat session storage:", e);
+    }
+  }, [currentSessionId, aiMessages]);
+
+  const durationHours = session?.Duration ? Number(session.Duration) : 1;
+  const durationSeconds = Math.round(durationHours * 3600);
+
   const initialTimeLeft =
     session?.time_left !== undefined && session?.time_left !== null && Number(session.time_left) > 0
       ? Number(session.time_left)
@@ -158,7 +185,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     };
 
     const handleVisibilityChange = () => {
-      if (document.visibilityState === "hidden") {
+      if (document.visibilityState === "hidden" && session?.id && !pomodoroRecorded.current && timeLeftRef.current > 0) {
         savePausedState();
       }
     };
@@ -189,60 +216,46 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       let activeUserId = userId;
       if (!activeUserId) {
         const { data: { user: authUser } } = await supabase.auth.getUser();
-        activeUserId = authUser?.id || null;
+        activeUserId = authUser?.id;
       }
 
-      if (activeUserId) {
-        const historyEntry = {
-          id: crypto.randomUUID(),
-          user_id: activeUserId,
-          subject: session.Subject || session.subject || "Untitled subject",
-          topic: session.Topic || session.topic || "No topic provided",
-          duration_minutes: Math.round(durationSeconds / 60),
-          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
-          completed_at: new Date().toISOString(),
-          status: "completed",
-          xp_earned: 50,
-          timeline: timeline,
-        };
+      if (!activeUserId) return;
 
-        // Always update streak, award rewards, and save history entry
-        try {
-          await Promise.all([
-            updateStreakForActivity(activeUserId),
-            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
-            supabase.from("study_history").insert(historyEntry),
-          ]);
-        } catch (err) {
-          console.error("Error updating streak, rewards, or study history:", err);
-        }
-
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
-        }
-
-        // Save pomodoro record
-        const { error: pomodoroError } = await supabase
-          .from("study_pomodoros")
-          .insert({ session_id: session.id, user_id: activeUserId });
-
-        if (pomodoroError) {
-          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
-        }
-      }
-
-      // Mark the study session as completed instead of deleting it
-      setTimeout(async () => {
-        const { error: updateError } = await supabase
+      try {
+        await supabase
           .from("Study")
-          .update({
-            session_status: "completed",
-            time_left: 0,
-          })
+          .update({ completed: true, session_status: "completed", time_left: 0 })
           .eq("id", session.id);
 
-        if (updateError) {
-          console.error("Session update error on completion:", updateError);
+        await awardUserRewards(activeUserId, 50, 10, "Completed study session");
+
+        const streakResult = await updateStreakForActivity(activeUserId);
+
+        const currentSubject = session.Subject || "General";
+        const currentTopic = session.Topic || "Study Session";
+        const currentDuration = session.Duration ? Number(session.Duration) : 1;
+
+        await supabase.from("study_history").insert({
+          user_id: activeUserId,
+          session_id: session.id,
+          subject: currentSubject,
+          topic: currentTopic,
+          duration_hours: currentDuration,
+          xp_earned: 50,
+          gems_earned: 10,
+          completed_at: new Date().toISOString(),
+          notes_count: 0,
+          flashcards_count: 0,
+          timeline: timeline,
+        });
+
+      } catch (err) {
+        console.error("Error completing session in StudyEnvironment:", err);
+      }
+
+      setTimeout(() => {
+        if (window.confirm("Congratulations! You completed your study session. Return to study dashboard?")) {
+          navigate("/Study");
         }
       }, 2000);
     };
@@ -258,95 +271,79 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     incomingUser ||
     (session
       ? {
-          name: session.host || "Guest User",
-          email: session.ownerEmail || "guest@example.com",
-          avatar: "",
+          name: profile?.full_name || "User",
+          avatar: profile?.user_img || "",
         }
-      : { name: "Guest User", email: "guest@example.com", avatar: "" });
+      : null);
 
   if (isLoading) {
-    return <LoadingCompanion message="Loading your study environment..." />;
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <LoadingCompanion message="Preparing your study workspace..." />
+      </div>
+    );
   }
 
   if (error || !session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
-        <p className="text-red-600 mb-4">{error || "Study session not found."}</p>
+      <div className="min-h-screen bg-slate-50 p-8 flex flex-col items-center justify-center">
+        <p className="text-red-600 font-semibold mb-4">{error || "Session not found."}</p>
         <button
           onClick={() => navigate("/Study")}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-black px-4 py-2 text-sm font-semibold text-white"
         >
-          <ArrowLeft className="h-4 w-4" />
-          Back to sessions
+          <ArrowLeft className="h-4 w-4" /> Back to Study
         </button>
       </div>
     );
   }
 
-  if (sessionComplete) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-center text-slate-900">
-        <div className="motion-dialog flex w-full max-w-xl flex-col items-center">
-          <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
-          <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
-          <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
-          <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
-            <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
-          </div>
-          <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
-            <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200">Back to dashboard</button>
-          </div>
-        </div>
-      </main>
-    );
-  }
+  const subject = session.Subject || "General Subject";
+  const topic = session.Topic || "General Topic";
+  const date = session.Date || "Today";
+  const start = session.Start ? session.Start.slice(0, 5) : "Flexible";
+  const duration = session.Duration || 1;
+  const status = toTitleCase(session.Status || "Important");
+  const normalizedStatus = status.toLowerCase();
 
-  const subject = toTitleCase(session.Subject || session.subject || "Untitled subject");
-  const topic = toTitleCase(session.Topic || session.topic || "No topic provided");
-  const date = session.Date || session.date || "Date not set";
-  const start = session.Start || session.time || "Time not set";
-  const status = session.Status || session.status || "Planned";
-  const normalizedStatus = String(status).trim().toLowerCase();
   const importanceTheme = {
     "very important": {
-      header: "bg-red-100 text-red-950",
-      eyebrow: "text-red-700",
-      topic: "text-red-900",
-      divider: "border-red-200",
-      detail: "text-red-800",
-      pill: "bg-red-200 text-red-900",
+      header: "accent-card-plan text-white",
+      eyebrow: "text-red-100",
+      topic: "text-red-50",
+      divider: "border-red-400/30",
+      detail: "text-red-100",
+      pill: "bg-white/20 text-white",
       accent: "text-red-600",
-      accentText: "text-red-700",
+      accentText: "text-red-800",
       accentBg: "bg-red-50",
       accentButton: "bg-red-600 hover:bg-red-700",
       focus: "focus:border-red-500 focus:ring-red-100",
       accentBorder: "hover:border-red-300",
     },
-    medium: {
-      header: "bg-orange-100 text-orange-950",
-      eyebrow: "text-orange-700",
-      topic: "text-orange-900",
-      divider: "border-orange-200",
-      detail: "text-orange-800",
-      pill: "bg-orange-200 text-orange-900",
-      accent: "text-orange-600",
-      accentText: "text-orange-700",
-      accentBg: "bg-orange-50",
-      accentButton: "bg-orange-600 hover:bg-orange-700",
-      focus: "focus:border-orange-500 focus:ring-orange-100",
-      accentBorder: "hover:border-orange-300",
+    important: {
+      header: "accent-card-chat text-white",
+      eyebrow: "text-amber-100",
+      topic: "text-amber-50",
+      divider: "border-amber-400/30",
+      detail: "text-amber-100",
+      pill: "bg-white/20 text-white",
+      accent: "text-amber-600",
+      accentText: "text-amber-800",
+      accentBg: "bg-amber-50",
+      accentButton: "bg-amber-600 hover:bg-amber-700",
+      focus: "focus:border-amber-500 focus:ring-amber-100",
+      accentBorder: "hover:border-amber-300",
     },
     "not so important": {
-      header: "bg-green-100 text-green-950",
-      eyebrow: "text-green-700",
-      topic: "text-green-900",
-      divider: "border-green-200",
-      detail: "text-green-800",
-      pill: "bg-green-200 text-green-900",
+      header: "accent-card-track text-white",
+      eyebrow: "text-green-100",
+      topic: "text-green-50",
+      divider: "border-green-400/30",
+      detail: "text-green-100",
+      pill: "bg-white/20 text-white",
       accent: "text-green-600",
-      accentText: "text-green-700",
+      accentText: "text-green-800",
       accentBg: "bg-green-50",
       accentButton: "bg-green-600 hover:bg-green-700",
       focus: "focus:border-green-500 focus:ring-green-100",
@@ -372,35 +369,104 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
   const secondsLeft = timeLeft % 60;
 
-  const sendAiMessage = async () => {
-    const text = aiMessage.trim();
-    if (!text || isAiTyping) return;
+  const getClientState = () => ({
+    focus_mode: "Deep work",
+    pomodoro_state: isStudying ? "focus" : "idle",
+    minutes_remaining: Math.ceil(timeLeft / 60),
+  });
+
+  // Fetch initial greeting on first AI drawer open
+  useEffect(() => {
+    if (!isAIOpen || initialGreetingFetched.current || !session?.id) return;
+    initialGreetingFetched.current = true;
+
+    const fetchGreeting = async () => {
+      setIsAiTyping(true);
+      const res = await invokeAiTutor({
+        sessionId: session.id,
+        messages: [],
+        clientState: getClientState(),
+      });
+      setIsAiTyping(false);
+
+      if (res.error) {
+        setAiMessages([
+          {
+            sender: "ai",
+            text: res.error.message || "Failed to initialize AI Tutor.",
+            isError: true,
+          },
+        ]);
+      } else if (res.reply) {
+        setAiMessages([
+          {
+            sender: "ai",
+            text: res.reply,
+            actions: res.actions,
+          },
+        ]);
+      }
+    };
+
+    fetchGreeting();
+  }, [isAIOpen, session?.id]);
+
+  const sendAiMessage = async (customText) => {
+    const text = (customText !== undefined ? customText : aiMessage).trim();
+    if (!text || isAiTyping || !session?.id) return;
 
     const userMsg = { sender: "user", text };
     const updatedMessages = [...aiMessages, userMsg];
 
     setAiMessages(updatedMessages);
-    setAiMessage("");
+    if (customText === undefined) setAiMessage("");
     setIsAiTyping(true);
 
     try {
-      const { reply, actions_taken } = await sendAiTutorMessage({
-        message: text,
-        history: updatedMessages,
-        studentLevel: profile?.education_level || "High School",
-        curriculumStandard: profile?.curriculum_standard || "None/General",
-        knowledgeGaps: Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [],
-        studentId: userId,
+      const formattedHistory = updatedMessages.map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+
+      const res = await invokeAiTutor({
+        sessionId: session.id,
+        messages: formattedHistory,
+        clientState: getClientState(),
       });
 
-      setAiMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: reply,
-          actions: actions_taken,
-        },
-      ]);
+      if (res.error) {
+        setAiMessages((msgs) => [
+          ...msgs,
+          {
+            sender: "ai",
+            text: res.error.message || "Failed to reach AI Tutor.",
+            actions: [],
+            isError: true,
+          },
+        ]);
+      } else {
+        setAiMessages((msgs) => [
+          ...msgs,
+          {
+            sender: "ai",
+            text: res.reply,
+            actions: res.actions,
+          },
+        ]);
+
+        // Process tool side-effects on the UI
+        if (Array.isArray(res.actions)) {
+          for (const act of res.actions) {
+            if (act.status === "success") {
+              if (act.type === "flashcards") {
+                setFlashcardRefreshKey((k) => k + 1);
+              } else if (act.type === "quiz") {
+                setActiveTool("quizzicle");
+              }
+            }
+          }
+        }
+      }
     } catch (err) {
       console.error("Error calling AI tutor in StudyEnvironment:", err);
       setAiMessages((msgs) => [
@@ -417,11 +483,19 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     }
   };
 
+  const handleActionExecute = (actionEvent) => {
+    if (actionEvent.type === "open_flashcards") {
+      setActiveTool("flashcards");
+    } else if (actionEvent.type === "open_quiz") {
+      setActiveTool("quizzicle");
+    }
+  };
+
   const renderTool = () => {
     if (activeTool === "notes") {
       return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     }
-    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "flashcards") return <Flashcards key={flashcardRefreshKey} studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
@@ -609,15 +683,26 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               messages={aiMessages}
               currentMessage={aiMessage}
               onMessageChange={setAiMessage}
-              onSendMessage={sendAiMessage}
+              onSendMessage={() => sendAiMessage()}
               onClear={() => {
                 setAiMessages([]);
                 setAiMessage("");
+                if (currentSessionId) {
+                  sessionStorage.removeItem(`ai_chat_${currentSessionId}`);
+                }
               }}
+              onRetry={() => {
+                const lastUserMsg = [...aiMessages].reverse().find((m) => m.sender === "user");
+                if (lastUserMsg) {
+                  sendAiMessage(lastUserMsg.text);
+                }
+              }}
+              onActionExecute={handleActionExecute}
               isTyping={isAiTyping}
               width={360}
               user={user}
               theme={importanceTheme}
+              reducedMotion={profile?.reduced_motion}
             />
           </div>
         </>,

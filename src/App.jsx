@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
 import AuthLayout from "./components/Auth/AuthLayout.jsx";
@@ -30,56 +30,106 @@ function App() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
     const handleOnboardingCompleted = (event) => {
-      if (event.detail?.userId === session?.user?.id) {
+      if (event.detail?.userId && session?.user?.id === event.detail.userId) {
         setNeedsOnboarding(false);
       }
     };
 
     window.addEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
 
-    const fetchSession = async () => {
-      const currentSession = await supabase.auth.getSession();
-      const nextSession = currentSession.data?.session || null;
-      setSession(nextSession);
-      if (nextSession?.user) {
-        setOnboardingLoading(true);
-        const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("user_id", nextSession.user.id)
-          .maybeSingle();
-        setNeedsOnboarding(!completedLocally && (Boolean(error) || !profile?.onboarding_completed));
-        setOnboardingLoading(false);
+    const bootstrapAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          const errMsg = error.message || "";
+          const errCode = error.code || "";
+          if (
+            errMsg.toLowerCase().includes("refresh token") ||
+            errCode === "refresh_token_not_found" ||
+            errCode === "session_not_found" ||
+            errCode === "invalid_grant"
+          ) {
+            await supabase.auth.signOut({ scope: "local" });
+            if (!mounted) return;
+            setSession(null);
+            setNeedsOnboarding(false);
+            setLoading(false);
+            return;
+          }
+        }
+
+        const currentSession = data?.session || null;
+        if (!mounted) return;
+        setSession(currentSession);
+
+        if (currentSession?.user) {
+          setOnboardingLoading(true);
+          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("user_id", currentSession.user.id)
+            .maybeSingle();
+
+          if (mounted) {
+            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            setOnboardingLoading(false);
+          }
+        }
+      } catch (err) {
+        // Quietly catch errors on bootstrap
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     };
 
-    fetchSession();
+    bootstrapAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      if (!mounted) return;
+
+      if (event === "SIGNED_OUT") {
+        setSession(null);
         setNeedsOnboarding(false);
+        const publicPaths = ["/login", "/signup", "/auth/callback", "/"];
+        const currentPath = window.location.pathname;
+        if (!publicPaths.includes(currentPath)) {
+          window.location.href = "/login";
+        }
         return;
       }
-      const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${session.user.id}`) === "true";
-      supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("user_id", session.user.id)
-        .maybeSingle()
-        .then(({ data, error }) => setNeedsOnboarding(!completedLocally && (Boolean(error) || !data?.onboarding_completed)));
+
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        setSession(nextSession);
+        if (nextSession?.user) {
+          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
+          const { data: profile, error: profileError } = await supabase
+            .from("profiles")
+            .select("onboarding_completed")
+            .eq("user_id", nextSession.user.id)
+            .maybeSingle();
+
+          if (mounted) {
+            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+          }
+        }
+      }
     });
 
     return () => {
+      mounted = false;
       subscription.unsubscribe();
       window.removeEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
     };
-  }, [session?.user?.id]);
+  }, []);
 
   if (loading || onboardingLoading) return null;
 
@@ -136,6 +186,7 @@ function App() {
                 </AuthLayout>
               }
             />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         )}
       </BrowserRouter>

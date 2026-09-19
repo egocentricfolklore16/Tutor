@@ -174,9 +174,13 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
   };
 
   const confirmLogout = async () => {
-    const { error } = await supabase.auth.signOut();
-    if (error) {
-      console.error("Supabase sign out error:", error);
+    try {
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        await supabase.auth.signOut({ scope: "local" });
+      }
+    } catch (err) {
+      await supabase.auth.signOut({ scope: "local" });
     }
   };
 

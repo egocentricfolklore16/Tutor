@@ -24,7 +24,7 @@ function Progress() {
       const [{ data: sessionData, error: sessionError }, { data: historyData }, { count, error: resourceError }] = await Promise.all([
         supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id),
         supabase.from("study_history").select("id, subject, topic, completed_at, duration_minutes").eq("user_id", user.id),
-        supabase.from("resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("session_resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       if (sessionError || resourceError) { setStatus("error"); return; }
 

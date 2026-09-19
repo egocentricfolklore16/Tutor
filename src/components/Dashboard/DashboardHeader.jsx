@@ -163,9 +163,9 @@ function DashboardHeader({ toggleSidebar }) {
     setSearching(true);
     const pattern = `%${query}%`;
     const [{ data: notes }, { data: flashcards }, { data: resources }] = await Promise.all([
-      supabase.from("notes").select("id,session_id,title,content").or(`title.ilike.${pattern},content.ilike.${pattern}`).limit(8),
-      supabase.from("flashcards").select("id,session_id,question,answer").or(`question.ilike.${pattern},answer.ilike.${pattern}`).limit(8),
-      supabase.from("resources").select("id,session_id,file_name,file_type").or(`file_name.ilike.${pattern},file_type.ilike.${pattern}`).limit(8),
+      supabase.from("session_notes").select("id,session_id,title,content").or(`title.ilike.${pattern},content.ilike.${pattern}`).limit(8),
+      supabase.from("session_flashcards").select("id,session_id,question,answer").or(`question.ilike.${pattern},answer.ilike.${pattern}`).limit(8),
+      supabase.from("session_resources").select("id,session_id,title,mime_type").or(`file_name.ilike.${pattern},file_type.ilike.${pattern}`).limit(8),
     ]);
     setSearchResults([
       ...(notes || []).map((item) => ({ ...item, kind: "Note", label: item.title || "Untitled note", detail: item.content })),

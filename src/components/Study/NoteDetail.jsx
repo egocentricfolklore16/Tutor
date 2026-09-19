@@ -1,11 +1,11 @@
 import React, { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
-import { ArrowLeft, FileText, Loader2, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileText, MessageCircle } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import AITutorChat from "./studyEnviron/AITutorChat";
 import LoadingCompanion from "../common/LoadingCompanion";
-import { sendAiTutorMessage } from "../../lib/aiTutor";
+import { invokeAiTutor } from "../../lib/aiTutor";
 
 function NoteDetail() {
   const { Studyid, noteId } = useParams();
@@ -22,10 +22,9 @@ function NoteDetail() {
     const loadNote = async () => {
       const [{ data, error }, { data: study }] = await Promise.all([
         supabase
-          .from("notes")
+          .from("session_notes")
           .select("id, session_id, title, content, created_at")
           .eq("id", noteId)
-          .eq("session_id", Studyid)
           .single(),
         supabase.from("Study").select("Status").eq("id", Studyid).single(),
       ]);
@@ -53,19 +52,36 @@ function NoteDetail() {
     setIsAiTyping(true);
 
     try {
-      const { reply, actions_taken } = await sendAiTutorMessage({
-        message: text,
-        history: updatedMessages,
+      const formattedHistory = updatedMessages.map((m) => ({
+        role: m.sender === "user" ? "user" : "assistant",
+        content: m.text,
+      }));
+
+      const res = await invokeAiTutor({
+        sessionId: Number(Studyid),
+        messages: formattedHistory,
       });
 
-      setAiMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: reply,
-          actions: actions_taken,
-        },
-      ]);
+      if (res.error) {
+        setAiMessages((msgs) => [
+          ...msgs,
+          {
+            sender: "ai",
+            text: res.error.message || "Failed to reach AI Tutor.",
+            actions: [],
+            isError: true,
+          },
+        ]);
+      } else {
+        setAiMessages((msgs) => [
+          ...msgs,
+          {
+            sender: "ai",
+            text: res.reply,
+            actions: res.actions,
+          },
+        ]);
+      }
     } catch (err) {
       console.error("Error calling AI tutor in NoteDetail:", err);
       setAiMessages((msgs) => [

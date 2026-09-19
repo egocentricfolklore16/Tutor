@@ -18,7 +18,7 @@ import {
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
 import { awardUserRewards } from "../../../lib/gamification";
-import { sendAiTutorMessage } from "../../../lib/aiTutor";
+import { useAITutor } from "../../../app/AITutorContext";
 import AITutorChat from "./AITutorChat";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
@@ -28,7 +28,24 @@ import LoadingCompanion from "../../common/LoadingCompanion";
 
 // StudyEnvironment: orchestrates the study workspace, tool navigation and AI pane.
 const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
-  const [isAIOpen, setIsAIOpen] = useState(false);
+  const {
+    isOpen: isAIOpen,
+    handleToggle: toggleAI,
+    setIsOpen: setIsAIOpen,
+    messages: aiMessages,
+    currentMessage: aiMessage,
+    setCurrentMessage: setAiMessage,
+    sendMessage: sendAiMessage,
+    sendTutorEvent,
+    clearMessages: clearAiMessages,
+    isTyping: isAiTyping,
+    setActiveSessionId,
+    setFocusMode,
+    setPomodoroState,
+    setMinutesRemaining,
+    setPanel,
+  } = useAITutor();
+
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
@@ -36,9 +53,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiMessage, setAiMessage] = useState("");
-  const [isAiTyping, setIsAiTyping] = useState(false);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [timeline, setTimeline] = useState([]);
 
@@ -122,7 +136,22 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   useEffect(() => {
     timeLeftRef.current = timeLeft;
-  }, [timeLeft]);
+    setMinutesRemaining(Math.max(0, Math.floor(timeLeft / 60)));
+  }, [timeLeft, setMinutesRemaining]);
+
+  useEffect(() => {
+    setFocusMode("Deep work");
+    setPomodoroState(isStudying ? "focus" : "idle");
+  }, [isStudying, setFocusMode, setPomodoroState]);
+
+  useEffect(() => {
+    if (session?.id) setActiveSessionId(session.id);
+  }, [session?.id, setActiveSessionId]);
+
+  useEffect(() => {
+    const mappedPanel = activeTool === "quizzicle" ? "quizzes" : activeTool;
+    setPanel(mappedPanel);
+  }, [activeTool, setPanel]);
 
   useEffect(() => {
     const nextTime =
@@ -184,6 +213,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   useEffect(() => {
     if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
     pomodoroRecorded.current = true;
+    sendTutorEvent("timer_ended");
     
     const completeSession = async () => {
       let activeUserId = userId;
@@ -371,51 +401,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const hoursLeft = Math.floor(timeLeft / 3600);
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
   const secondsLeft = timeLeft % 60;
-
-  const sendAiMessage = async () => {
-    const text = aiMessage.trim();
-    if (!text || isAiTyping) return;
-
-    const userMsg = { sender: "user", text };
-    const updatedMessages = [...aiMessages, userMsg];
-
-    setAiMessages(updatedMessages);
-    setAiMessage("");
-    setIsAiTyping(true);
-
-    try {
-      const { reply, actions_taken } = await sendAiTutorMessage({
-        message: text,
-        history: updatedMessages,
-        studentLevel: profile?.education_level || "High School",
-        curriculumStandard: profile?.curriculum_standard || "None/General",
-        knowledgeGaps: Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [],
-        studentId: userId,
-      });
-
-      setAiMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: reply,
-          actions: actions_taken,
-        },
-      ]);
-    } catch (err) {
-      console.error("Error calling AI tutor in StudyEnvironment:", err);
-      setAiMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
-          actions: [],
-          isError: true,
-        },
-      ]);
-    } finally {
-      setIsAiTyping(false);
-    }
-  };
 
   const renderTool = () => {
     if (activeTool === "notes") {

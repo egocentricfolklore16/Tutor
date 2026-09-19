@@ -212,6 +212,25 @@ const AITutorChat = ({
                 ))}
               </div>
             )}
+
+            {/* Quiz Review Shortcut button */}
+            {message.eventType === "quiz_finished" && (
+              <div className="mt-2.5">
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onMessageChange && onSendMessage) {
+                      onMessageChange("Let's go through the questions I missed.");
+                      setTimeout(() => onSendMessage("Let's go through the questions I missed."), 50);
+                    }
+                  }}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-purple-200 bg-purple-50 px-3 py-1.5 text-xs font-bold text-purple-800 shadow-sm hover:bg-purple-100 dark:border-purple-800 dark:bg-purple-950/60 dark:text-purple-200 transition"
+                >
+                  <HelpCircle className="h-3.5 w-3.5 text-purple-600 dark:text-purple-400" />
+                  Review my mistakes
+                </button>
+              </div>
+            )}
           </div>
         </div>
       );

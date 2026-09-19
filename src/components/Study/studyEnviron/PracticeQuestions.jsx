@@ -1,6 +1,7 @@
 import { Check, CircleAlert, HelpCircle, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import supabase from "../../../lib/supabase";
+import { useAITutor } from "../../../app/AITutorContext";
 
 const emptyQuizDraft = {
   title: "",
@@ -14,6 +15,7 @@ const emptyQuizDraft = {
 };
 
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
+  const { setQuizInProgress, sendTutorEvent } = useAITutor();
   const [quizzes, setQuizzes] = useState([]);
   const [draft, setDraft] = useState(emptyQuizDraft);
   const [, setUserAnswers] = useState({});
@@ -202,6 +204,8 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
         [quiz.id]: { isCorrect, score, total, selectedIndex },
       }));
 
+      setQuizInProgress(null);
+
       if (onTimelineEvent && attempt) {
         onTimelineEvent({
           id: crypto.randomUUID(),
@@ -211,6 +215,13 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
           timestamp: new Date().toISOString(),
         });
       }
+
+      // Fire quiz_finished event
+      sendTutorEvent("quiz_finished", {
+        quiz_id: quiz.id,
+        score,
+        total,
+      });
     }
     setSavingId(null);
   };
@@ -375,6 +386,12 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
                                 disabled={savingId === quiz.id}
                                 onClick={() => {
                                   setUserAnswers((prev) => ({ ...prev, [quiz.id]: idx }));
+                                  setQuizInProgress({
+                                    quiz_id: quiz.id,
+                                    title: quiz.title,
+                                    question_number: 1,
+                                    total: 1,
+                                  });
                                   recordQuizAttempt(quiz, idx);
                                 }}
                                 className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"

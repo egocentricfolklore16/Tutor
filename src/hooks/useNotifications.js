@@ -14,6 +14,43 @@ const defaultPreferences = {
   inactivity_nudges: true,
 };
 
+export function formatPushError(err) {
+  const msg = typeof err === "string" ? err : err?.message || "";
+
+  if (msg === "UNSUPPORTED") {
+    return "This browser doesn't support push notifications.";
+  }
+  if (msg === "PERMISSION_DENIED") {
+    return "Notifications are blocked. Click the padlock in the address bar and set Notifications to Allow.";
+  }
+  if (msg.startsWith("PERMISSION_")) {
+    return "Notification permission was not granted.";
+  }
+  if (msg === "SW_NOT_ACTIVE") {
+    return "The notification service didn't start. Refresh the page and try again.";
+  }
+  if (msg === "VAPID_KEY_MISSING" || msg === "VAPID_KEY_INVALID") {
+    return "Notifications are misconfigured. Please contact support.";
+  }
+  if (msg === "PUSH_AbortError" || msg.startsWith("PUSH_AbortError")) {
+    return "Your browser couldn't reach its push service. Check your network, VPN or ad-blocker; in Brave, enable Google services for push messaging.";
+  }
+
+  console.error("Push notification error:", err);
+
+  const isDev = Boolean(
+    typeof import.meta !== "undefined" &&
+      import.meta.env &&
+      (import.meta.env.DEV || import.meta.env.MODE === "development")
+  );
+
+  if (isDev) {
+    return msg || "An error occurred enabling push notifications.";
+  }
+
+  return "Could not enable notifications. Please try again.";
+}
+
 export function useNotifications(userId) {
   const [permissionState, setPermissionState] = useState(() => getPermissionState());
   const [preferences, setPreferences] = useState(defaultPreferences);
@@ -65,7 +102,7 @@ export function useNotifications(userId) {
           await syncSubscription(userId);
         }
       } catch (err) {
-        if (active) setError(err.message || "Failed to load notification settings");
+        if (active) setError(formatPushError(err));
       } finally {
         if (active) setLoading(false);
       }
@@ -87,8 +124,9 @@ export function useNotifications(userId) {
       refreshPermission();
       setPreferences((prev) => ({ ...prev, push_enabled: true }));
     } catch (err) {
-      setError(err.message || "Failed to enable notifications");
-      throw err;
+      const formatted = formatPushError(err);
+      setError(formatted);
+      throw new Error(formatted);
     } finally {
       setLoading(false);
     }
@@ -103,8 +141,9 @@ export function useNotifications(userId) {
       refreshPermission();
       setPreferences((prev) => ({ ...prev, push_enabled: false }));
     } catch (err) {
-      setError(err.message || "Failed to disable notifications");
-      throw err;
+      const formatted = formatPushError(err);
+      setError(formatted);
+      throw new Error(formatted);
     } finally {
       setLoading(false);
     }
@@ -142,8 +181,9 @@ export function useNotifications(userId) {
       if (fnErr) throw new Error(fnErr.message);
       return data;
     } catch (err) {
-      setError(err.message || "Failed to send test notification");
-      throw err;
+      const formatted = formatPushError(err);
+      setError(formatted);
+      throw new Error(formatted);
     }
   };
 

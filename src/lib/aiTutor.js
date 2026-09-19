@@ -46,6 +46,32 @@ export async function invokeAiTutor({ sessionId, messages = [], clientState = {}
 }
 
 /**
+ * Refetches all session-scoped materials (notes, flashcards, resources, quizzes).
+ * @param {number|string} sessionId
+ */
+export async function refreshSessionMaterials(sessionId) {
+  if (!sessionId) return { notes: [], flashcards: [], resources: [], quizzes: [] };
+  const [
+    { data: notes },
+    { data: flashcards },
+    { data: resources },
+    { data: quizzes },
+  ] = await Promise.all([
+    supabase.from("session_notes").select("*").eq("session_id", sessionId),
+    supabase.from("session_flashcards").select("*").eq("session_id", sessionId),
+    supabase.from("session_resources").select("*").eq("session_id", sessionId),
+    supabase.from("session_quizzes").select("*, questions:session_quiz_questions(*)").eq("session_id", sessionId),
+  ]);
+
+  return {
+    notes: notes || [],
+    flashcards: flashcards || [],
+    resources: resources || [],
+    quizzes: quizzes || [],
+  };
+}
+
+/**
  * Backward compatibility wrapper for existing components.
  */
 export async function sendAiTutorMessage({

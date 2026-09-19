@@ -1,137 +1,395 @@
-import { Check, CircleAlert, Loader2, Plus, X } from "lucide-react";
+import { Check, CircleAlert, HelpCircle, Loader2, Plus, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import supabase from "../../../lib/supabase";
 
-const emptyQuestion = { concept: "", question: "", correctAnswer: "" };
+const emptyQuizDraft = {
+  title: "",
+  question: "",
+  optionA: "",
+  optionB: "",
+  optionC: "",
+  optionD: "",
+  correctIndex: 0,
+  explanation: "",
+};
 
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
-  const [questions, setQuestions] = useState([]);
-  const [draft, setDraft] = useState(emptyQuestion);
-  const [answer, setAnswer] = useState({});
+  const [quizzes, setQuizzes] = useState([]);
+  const [draft, setDraft] = useState(emptyQuizDraft);
+  const [, setUserAnswers] = useState({});
+  const [attempts, setAttempts] = useState({});
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
 
-  useEffect(() => {
+  const loadQuizzes = async () => {
     if (!studyId) return;
-    const loadQuestions = async () => {
-      const { data, error: fetchError } = await supabase
-        .from("study_session_logs")
-        .select("id, concept, question, correct_answer, outcome, is_correct, created_at")
+    setIsLoading(true);
+    try {
+      const { data: quizData, error: quizError } = await supabase
+        .from("session_quizzes")
+        .select(`
+          id, session_id, user_id, title, source, created_at,
+          questions:session_quiz_questions(id, quiz_id, position, question, options, correct_index, explanation)
+        `)
         .eq("session_id", studyId)
-        .order("created_at", { ascending: false })
-        .limit(10);
+        .order("created_at", { ascending: false });
 
-      if (fetchError) setError(fetchError.message);
-      else setQuestions(data || []);
+      if (quizError) {
+        setError(quizError.message);
+      } else {
+        setQuizzes(quizData || []);
+      }
+    } catch (err) {
+      setError(err.message || "Failed to load quizzes.");
+    } finally {
       setIsLoading(false);
-    };
-    loadQuestions();
-  }, [studyId]);
-
-  const addQuestion = (event) => {
-    event.preventDefault();
-    if (!draft.concept.trim() || !draft.question.trim() || !draft.correctAnswer.trim()) return;
-    setQuestions((current) => [{
-      id: `draft-${Date.now()}`,
-      concept: draft.concept.trim(),
-      question: draft.question.trim(),
-      correct_answer: draft.correctAnswer.trim(),
-      outcome: null,
-      is_correct: null,
-    }, ...current]);
-    setDraft(emptyQuestion);
-    setIsAdding(false);
-    setError("");
+    }
   };
 
-  const recordOutcome = async (question, isCorrect) => {
-    if (!userId || !studyId || savingId) return;
-    setSavingId(question.id);
+  useEffect(() => {
+    if (studyId) {
+      loadQuizzes();
+    }
+  }, [studyId]);
+
+  const createQuizWithQuestion = async (event) => {
+    event.preventDefault();
+    if (!studyId) {
+      setError("Active study session required to create practice quizzes.");
+      return;
+    }
+    if (!draft.title.trim() || !draft.question.trim() || !draft.optionA.trim() || !draft.optionB.trim()) {
+      setError("Please provide a quiz title, question, and at least two options.");
+      return;
+    }
+
+    setIsLoading(true);
     setError("");
-    const submittedAnswer = (answer[question.id] || "").trim();
-    const { data, error: insertError } = await supabase
-      .from("study_session_logs")
+
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id;
+    }
+
+    if (!activeUserId) {
+      setError("User session invalid.");
+      setIsLoading(false);
+      return;
+    }
+
+    // 1. Insert session_quizzes row
+    const { data: quiz, error: quizErr } = await supabase
+      .from("session_quizzes")
       .insert({
         session_id: studyId,
-        user_id: userId,
-        topic: topic || "",
-        concept: question.concept,
-        question: question.question,
-        submitted_answer: submittedAnswer,
-        correct_answer: question.correct_answer,
-        is_correct: isCorrect,
-        outcome: isCorrect ? "correct" : "missed",
-        answered_at: new Date().toISOString(),
+        user_id: activeUserId,
+        title: draft.title.trim(),
+        source: "user",
       })
-      .select("id, concept, question, correct_answer, outcome, is_correct, created_at")
+      .select("id, title")
       .single();
 
-    if (insertError) {
-      setError(insertError.message);
+    if (quizErr || !quiz) {
+      setError(`Failed to create quiz: ${quizErr?.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    // 2. Insert session_quiz_questions row
+    const optionsArray = [draft.optionA.trim(), draft.optionB.trim()];
+    if (draft.optionC.trim()) optionsArray.push(draft.optionC.trim());
+    if (draft.optionD.trim()) optionsArray.push(draft.optionD.trim());
+
+    const { error: questionErr } = await supabase
+      .from("session_quiz_questions")
+      .insert({
+        quiz_id: quiz.id,
+        user_id: activeUserId,
+        position: 1,
+        question: draft.question.trim(),
+        options: optionsArray,
+        correct_index: Number(draft.correctIndex),
+        explanation: draft.explanation.trim() || null,
+      });
+
+    if (questionErr) {
+      // Compensate: delete orphaned quiz
+      await supabase.from("session_quizzes").delete().eq("id", quiz.id);
+      setError(`Failed to create quiz question: ${questionErr.message}`);
+      setIsLoading(false);
+      return;
+    }
+
+    // Legacy analytics log write
+    await supabase.from("study_session_logs").insert({
+      session_id: studyId,
+      user_id: activeUserId,
+      topic: topic || "",
+      concept: draft.title.trim(),
+      question: draft.question.trim(),
+      submitted_answer: "",
+      correct_answer: optionsArray[Number(draft.correctIndex)],
+      is_correct: false,
+      outcome: "created",
+      answered_at: new Date().toISOString(),
+    }).catch(() => {});
+
+    if (onTimelineEvent) {
+      onTimelineEvent({
+        id: crypto.randomUUID(),
+        type: "quiz",
+        refId: String(quiz.id),
+        title: `Quiz created: ${quiz.title}`,
+        timestamp: new Date().toISOString(),
+      });
+    }
+
+    setDraft(emptyQuizDraft);
+    setIsAdding(false);
+    await loadQuizzes();
+  };
+
+  const recordQuizAttempt = async (quiz, selectedIndex) => {
+    if (!userId || !studyId || savingId) return;
+    setSavingId(quiz.id);
+    setError("");
+
+    const questionsList = quiz.questions || [];
+    const firstQuestion = questionsList[0];
+    if (!firstQuestion) {
+      setError("No questions found in this quiz.");
+      setSavingId(null);
+      return;
+    }
+
+    const isCorrect = selectedIndex === firstQuestion.correct_index;
+    const score = isCorrect ? 1 : 0;
+    const total = 1;
+    const answersPayload = [
+      {
+        question_id: firstQuestion.id,
+        selected_index: selectedIndex,
+        correct: isCorrect,
+      },
+    ];
+
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id;
+    }
+
+    const { data: attempt, error: attemptErr } = await supabase
+      .from("session_quiz_attempts")
+      .insert({
+        quiz_id: quiz.id,
+        user_id: activeUserId,
+        score,
+        total,
+        answers: answersPayload,
+      })
+      .select()
+      .single();
+
+    if (attemptErr) {
+      setError(`Failed to save attempt: ${attemptErr.message}`);
     } else {
-      if (onTimelineEvent && data) {
+      setAttempts((prev) => ({
+        ...prev,
+        [quiz.id]: { isCorrect, score, total, selectedIndex },
+      }));
+
+      if (onTimelineEvent && attempt) {
         onTimelineEvent({
           id: crypto.randomUUID(),
           type: "quiz",
-          refId: String(data.id),
-          title: data.concept ? `Practiced: ${data.concept}` : "Practice question answered",
+          refId: String(quiz.id),
+          title: `Quiz attempted: ${quiz.title} (${isCorrect ? "Correct" : "Incorrect"})`,
           timestamp: new Date().toISOString(),
         });
       }
-      setQuestions((current) => current.map((item) => item.id === question.id ? data : item));
     }
     setSavingId(null);
   };
 
   return (
-    <div className="mb-8">
-      <div className="mb-4 flex items-center justify-between gap-4">
+    <div className="mb-8 space-y-6">
+      <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div>
-          <h3 className="text-lg font-semibold text-gray-900">Practice Questions</h3>
-          <p className="mt-1 text-sm text-gray-500">Record what you know so your dashboard can find concepts to revisit.</p>
+          <h3 className="text-lg font-bold text-slate-900">Practice Quizzes</h3>
+          <p className="mt-1 text-xs text-slate-500">Test your knowledge with session-scoped quizzes and track your attempts.</p>
         </div>
-        <button title="Add practice question" onClick={() => setIsAdding((current) => !current)} className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold text-white ${theme?.accentButton || "bg-green-600"}`}>
+        <button
+          title="Add practice quiz"
+          disabled={!studyId}
+          onClick={() => setIsAdding((current) => !current)}
+          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-white transition disabled:opacity-50 ${theme?.accentButton || "bg-purple-600 hover:bg-purple-700"}`}
+        >
           {isAdding ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {isAdding ? "Cancel" : "Add question"}
+          {isAdding ? "Cancel" : "Create quiz"}
         </button>
       </div>
 
       {isAdding && (
-        <form onSubmit={addQuestion} className="mb-5 grid gap-3 rounded-xl border border-gray-200 bg-gray-50 p-4">
-          <input value={draft.concept} onChange={(event) => setDraft({ ...draft, concept: event.target.value })} placeholder="Concept" className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" required />
-          <textarea value={draft.question} onChange={(event) => setDraft({ ...draft, question: event.target.value })} placeholder="Original Socratic question" className="min-h-20 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" required />
-          <input value={draft.correctAnswer} onChange={(event) => setDraft({ ...draft, correctAnswer: event.target.value })} placeholder="Expected answer" className="rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm" required />
-          <button type="submit" className="inline-flex w-fit items-center gap-2 rounded-lg bg-gray-900 px-4 py-2 text-sm font-semibold text-white"><Plus className="h-4 w-4" /> Add to practice</button>
+        <form onSubmit={createQuizWithQuestion} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-sm">
+          <h4 className="font-bold text-slate-900">Create New Session Quiz</h4>
+          <input
+            value={draft.title}
+            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+            placeholder="Quiz Title / Topic (e.g., Cellular Respiration)"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-200"
+            required
+            disabled={!studyId}
+          />
+          <textarea
+            value={draft.question}
+            onChange={(e) => setDraft({ ...draft, question: e.target.value })}
+            placeholder="Question"
+            className="min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-200"
+            required
+            disabled={!studyId}
+          />
+
+          <div className="grid gap-2 sm:grid-cols-2">
+            <input
+              value={draft.optionA}
+              onChange={(e) => setDraft({ ...draft, optionA: e.target.value })}
+              placeholder="Option A (required)"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
+              required
+              disabled={!studyId}
+            />
+            <input
+              value={draft.optionB}
+              onChange={(e) => setDraft({ ...draft, optionB: e.target.value })}
+              placeholder="Option B (required)"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
+              required
+              disabled={!studyId}
+            />
+            <input
+              value={draft.optionC}
+              onChange={(e) => setDraft({ ...draft, optionC: e.target.value })}
+              placeholder="Option C (optional)"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
+              disabled={!studyId}
+            />
+            <input
+              value={draft.optionD}
+              onChange={(e) => setDraft({ ...draft, optionD: e.target.value })}
+              placeholder="Option D (optional)"
+              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
+              disabled={!studyId}
+            />
+          </div>
+
+          <label className="block text-xs font-bold text-slate-700">
+            Correct Option
+            <select
+              value={draft.correctIndex}
+              onChange={(e) => setDraft({ ...draft, correctIndex: Number(e.target.value) })}
+              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
+              disabled={!studyId}
+            >
+              <option value={0}>Option A</option>
+              <option value={1}>Option B</option>
+              {draft.optionC.trim() && <option value={2}>Option C</option>}
+              {draft.optionD.trim() && <option value={3}>Option D</option>}
+            </select>
+          </label>
+
+          <input
+            value={draft.explanation}
+            onChange={(e) => setDraft({ ...draft, explanation: e.target.value })}
+            placeholder="Explanation for correct answer (optional)"
+            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
+            disabled={!studyId}
+          />
+
+          <button
+            type="submit"
+            disabled={!studyId}
+            className="inline-flex w-fit items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 disabled:opacity-50"
+          >
+            <Plus className="h-4 w-4" /> Save Practice Quiz
+          </button>
         </form>
       )}
 
-      {error && <p className="mb-4 rounded-lg bg-red-50 p-3 text-sm text-red-700">Unable to save practice result: {error}</p>}
-      {isLoading ? <Loader2 className="h-5 w-5 animate-spin text-gray-500" /> : questions.length === 0 ? (
-        <div className="rounded-lg border border-dashed border-gray-300 p-5 text-sm text-gray-500">No practice questions have been added for this session.</div>
+      {error && <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
+
+      {isLoading ? (
+        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
+      ) : quizzes.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
+          <HelpCircle className="mx-auto mb-2 h-8 w-8 text-slate-300" />
+          <p className="text-sm font-medium">No practice quizzes saved for this session.</p>
+        </div>
       ) : (
         <div className="space-y-4">
-          {questions.map((question) => (
-            <div key={question.id} className="rounded-lg border border-gray-200 p-4">
-              <p className="text-xs font-semibold uppercase tracking-wide text-gray-500">{question.concept}</p>
-              <p className="mt-2 font-medium text-gray-900">{question.question}</p>
-              {question.outcome ? (
-                <p className={`mt-3 inline-flex items-center gap-2 text-sm font-semibold ${question.is_correct ? "text-green-700" : "text-red-700"}`}>
-                  {question.is_correct ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-                  {question.is_correct ? "Correct" : "Needs another attempt"}
-                </p>
-              ) : (
-                <div className="mt-4 space-y-3">
-                  <input value={answer[question.id] || ""} onChange={(event) => setAnswer({ ...answer, [question.id]: event.target.value })} placeholder="Your answer" className="w-full rounded-lg border border-gray-200 px-3 py-2 text-sm" />
-                  <div className="flex flex-wrap gap-2">
-                    <button disabled={savingId === question.id} onClick={() => recordOutcome(question, true)} className="inline-flex items-center gap-2 rounded-lg bg-green-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"><Check className="h-4 w-4" /> Mark correct</button>
-                    <button disabled={savingId === question.id} onClick={() => recordOutcome(question, false)} className="inline-flex items-center gap-2 rounded-lg border border-red-200 px-3 py-2 text-sm font-semibold text-red-700 disabled:opacity-50"><CircleAlert className="h-4 w-4" /> Mark missed</button>
-                  </div>
+          {quizzes.map((quiz) => {
+            const question = quiz.questions?.[0];
+            const attempt = attempts[quiz.id];
+
+            return (
+              <div key={quiz.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
+                <div className="flex items-center justify-between gap-2">
+                  <h4 className="font-bold text-slate-900">{quiz.title}</h4>
+                  <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-purple-700 uppercase">Quiz</span>
                 </div>
-              )}
-            </div>
-          ))}
+
+                {question && (
+                  <div className="space-y-3 pt-2">
+                    <p className="text-sm font-semibold text-slate-800">{question.question}</p>
+
+                    {attempt ? (
+                      <div className="space-y-2 rounded-xl bg-slate-50 p-3.5 text-xs">
+                        <div className={`flex items-center gap-2 font-bold ${attempt.isCorrect ? "text-emerald-700" : "text-rose-700"}`}>
+                          {attempt.isCorrect ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
+                          {attempt.isCorrect ? "Correct answer!" : "Needs another review"}
+                        </div>
+                        <p className="text-slate-600">
+                          Your answer: {question.options?.[attempt.selectedIndex]}
+                        </p>
+                        {!attempt.isCorrect && (
+                          <p className="text-slate-600">
+                            Correct answer: {question.options?.[question.correct_index]}
+                          </p>
+                        )}
+                        {question.explanation && (
+                          <p className="italic text-slate-500 border-t border-slate-200 pt-2 mt-2">
+                            Explanation: {question.explanation}
+                          </p>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          {Array.isArray(question.options) &&
+                            question.options.map((opt, idx) => (
+                              <button
+                                key={idx}
+                                disabled={savingId === quiz.id}
+                                onClick={() => {
+                                  setUserAnswers((prev) => ({ ...prev, [quiz.id]: idx }));
+                                  recordQuizAttempt(quiz, idx);
+                                }}
+                                className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"
+                              >
+                                <strong>{String.fromCharCode(65 + idx)}.</strong> {opt}
+                              </button>
+                            ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
     </div>

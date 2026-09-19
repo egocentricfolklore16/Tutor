@@ -26,8 +26,8 @@ function Library({ session }) {
 
       const [{ data: resourceData, error: resourceError }, { data: studyData, error: studyError }] = await Promise.all([
         supabase
-          .from("resources")
-          .select("id, session_id, file_name, file_path, file_type, created_at")
+          .from("session_resources")
+          .select("id, session_id, title, kind, file_path, url, mime_type, created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
         supabase
@@ -79,7 +79,7 @@ function Library({ session }) {
 
     return resources.filter((resource) => {
       const study = studyById.get(resource.session_id);
-      return [resource.file_name, resource.file_path, resource.file_type, study?.Subject, study?.Topic]
+      return [resource.title, resource.file_path, (resource.mime_type || resource.kind), study?.Subject, study?.Topic]
         .filter(Boolean)
         .some((value) => value.toLowerCase().includes(query));
     });
@@ -104,7 +104,7 @@ function Library({ session }) {
 
   const resourceAnalytics = useMemo(() => {
     const typeTotals = resources.reduce((totals, resource) => {
-      const type = resource.file_type?.split("/").pop()?.toUpperCase() || "FILE";
+      const type = (resource.mime_type || resource.kind)?.split("/").pop()?.toUpperCase() || "FILE";
       totals[type] = (totals[type] || 0) + 1;
       return totals;
     }, {});
@@ -140,7 +140,7 @@ function Library({ session }) {
   const removeResource = async (resourceId) => {
     setDeletingId(resourceId);
     const { error: deleteError } = await supabase
-      .from("resources")
+      .from("session_resources")
       .delete()
       .eq("id", resourceId);
 
@@ -293,15 +293,15 @@ function Library({ session }) {
                           onClick={() => previewResource(resource)}
                           className="block max-w-full break-words text-left font-semibold text-indigo-700 hover:text-indigo-900"
                         >
-                          {resource.file_name}
+                          {resource.title}
                           <ExternalLink className="ml-2 inline h-3.5 w-3.5" />
                         </button>
-                        <p className="mt-1 break-words text-xs text-slate-400">{resource.file_type}</p>
+                        <p className="mt-1 break-words text-xs text-slate-400">{(resource.mime_type || resource.kind)}</p>
                       </div>
                       <button
                         type="button"
                         title="Delete Library Item"
-                        aria-label={`Delete ${resource.file_name}`}
+                        aria-label={`Delete ${resource.title}`}
                         disabled={deletingId === resource.id}
                         onClick={() => removeResource(resource.id)}
                         className="shrink-0 rounded-md p-2 text-slate-400 transition hover:bg-red-50 hover:text-red-600 disabled:opacity-50"

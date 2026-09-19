@@ -335,16 +335,18 @@ function Study() {
     try {
       setLoadingState(id, "delete", true);
 
-      const [{ error: notesError }, { error: flashcardsError }, { error: resourcesError }] = await Promise.all([
-        supabase.from("notes").delete().eq("session_id", id),
-        supabase.from("flashcards").delete().eq("session_id", id),
-        supabase.from("resources").delete().eq("session_id", id),
-      ]);
+      // 1. Fetch file_paths for resources to remove from storage bucket
+      const { data: resourceFiles } = await supabase
+        .from("session_resources")
+        .select("file_path")
+        .eq("session_id", id)
+        .eq("kind", "file");
 
-      if (notesError || flashcardsError || resourcesError) {
-        const childError = notesError || flashcardsError || resourcesError;
-        setFetchError("Failed to delete session items: " + childError.message);
-        return;
+      if (Array.isArray(resourceFiles) && resourceFiles.length > 0) {
+        const paths = resourceFiles.map((r) => r.file_path).filter(Boolean);
+        if (paths.length > 0) {
+          await supabase.storage.from("resources").remove(paths);
+        }
       }
 
       const { error } = await supabase.from("Study").delete().eq("id", id);

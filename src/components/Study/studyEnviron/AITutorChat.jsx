@@ -3,7 +3,6 @@ import {
   AlertCircle,
   BookOpen,
   Calendar,
-  CheckCircle2,
   Clock,
   Eraser,
   HelpCircle,
@@ -96,7 +95,6 @@ const AITutorChat = ({
     }
 
     if (action.type === "flashcards") {
-      const data = action.data || {};
       return (
         <div className={`mt-2.5 rounded-xl border p-3.5 text-xs shadow-sm ${isSuccess ? "border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"}`}>
           <div className="flex items-center justify-between gap-2">
@@ -171,7 +169,7 @@ const AITutorChat = ({
                   ol: ({ children }) => <ol className="mb-2 list-decimal pl-4 space-y-1">{children}</ol>,
                   li: ({ children }) => <li>{children}</li>,
                   strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
-                  code: ({ inline, className, children, ...props }) => {
+                  code: ({ inline, children }) => {
                     return inline ? (
                       <code className="rounded bg-slate-200/70 dark:bg-slate-800 px-1.5 py-0.5 text-xs font-mono">{children}</code>
                     ) : (

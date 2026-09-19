@@ -11,9 +11,10 @@ const SessionScheduler = ({
   subjects,
   isSaving
 }) => {
+  const [validationError, setValidationError] = useState("");
+
   if (!showCreateModal) return null;
 
-  const [validationError, setValidationError] = useState("");
   const permission = getPermissionState();
 
   const dateValue = newSession.date instanceof Date
@@ -24,10 +25,11 @@ const SessionScheduler = ({
     e.preventDefault();
     setValidationError("");
 
+    // Validate that date + startTime is not in the past
     if (newSession.date && newSession.startTime) {
-      const selectedDateTime = new Date(`${dateValue}T${newSession.startTime}`);
-      if (selectedDateTime.getTime() < Date.now()) {
-        setValidationError("Cannot schedule a session in the past.");
+      const selectedDateTime = new Date(`${dateValue}T${newSession.startTime}:00`);
+      if (selectedDateTime < new Date()) {
+        setValidationError("Cannot schedule a study session in the past.");
         return;
       }
     }
@@ -36,121 +38,157 @@ const SessionScheduler = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-2xl bg-white p-6 shadow-2xl md:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">Schedule Study Session</h2>
+            <p className="text-xs text-slate-500">Plan a focused learning block for your schedule.</p>
+          </div>
+          <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X size={18} />
+          </button>
+        </div>
+
         {validationError && (
-          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
             {validationError}
           </div>
         )}
-        <div className="mb-6 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Planner</p>
-            <h3 className="mt-1 text-2xl font-bold text-slate-900">Add study session</h3>
-            <p className="mt-1 text-sm text-slate-500">Set the focus, timing, and repeat pattern for this activity.</p>
-          </div>
-          <button type="button" onClick={() => setShowCreateModal(false)} title="Close" className="rounded-full p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-5 w-5" /></button>
-        </div>
-        <div className="grid gap-5 md:grid-cols-2">
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Topic or session title</label>
-            <input
-              required
-              type="text"
-              value={newSession.title}
-              onChange={(e) => setNewSession(prev => ({
-                ...prev,
-                title: e.target.value
-                  .toLowerCase()
-                  .replace(/\b\w/g, (character) => character.toUpperCase()),
-              }))}
-              className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
-              placeholder="e.g. Calculus review"
-            />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Subject</label>
+
+        <form onSubmit={handleSubmit} className="space-y-4 text-sm">
+          <label className="block text-xs font-bold text-slate-700">
+            Subject
             <select
-              required
               value={newSession.subject}
-              onChange={(e) => setNewSession(prev => ({ ...prev, subject: e.target.value }))}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+              onChange={(e) => setNewSession({ ...newSession, subject: e.target.value })}
+              required
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
             >
-              <option value="">Select Subject</option>
-              {subjects.map(subject => (
-                <option key={subject} value={subject}>{subject}</option>
+              <option value="">Select subject</option>
+              {subjects.map((sub) => (
+                <option key={sub} value={sub}>{sub}</option>
               ))}
             </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Importance</label>
-            <select required value={newSession.status} onChange={(e) => setNewSession(prev => ({ ...prev, status: e.target.value }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
-              <option value="very important">Very important</option>
-              <option value="medium">Medium</option>
-              <option value="not so important">Not so important</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />Date</label>
-            <input required type="date" min={new Date().toISOString().slice(0, 10)} value={dateValue} onChange={(e) => setNewSession(prev => ({ ...prev, date: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
-          </div>
-          <div>
-            <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</label>
-            <input required type="time" value={newSession.startTime} onChange={(e) => setNewSession(prev => ({ ...prev, startTime: e.target.value }))} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" />
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</label>
-            <div className="flex gap-2">
-              <input required type="number" value={newSession.duration || 0} onChange={(e) => { const minutes = Number(e.target.value); setNewSession(prev => ({ ...prev, duration: Number.isFinite(minutes) ? minutes : 0 })); }} className="min-w-0 flex-1 rounded-xl border border-slate-200 px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100" min="15" max="6000" step="15" />
-              <span className="flex items-center rounded-xl bg-slate-100 px-3 text-sm text-slate-500">minutes</span>
-            </div>
-          </div>
-          <div>
-            <label className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Repeat className="h-4 w-4 text-blue-600" />Repeat</label>
-            <select value={newSession.recurring} onChange={(e) => setNewSession(prev => ({ ...prev, recurring: e.target.value }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
-              <option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option>
-            </select>
-          </div>
-          <div>
-            <label className="mb-1 block text-sm font-semibold text-slate-700">Reminder</label>
-            <select value={newSession.reminder} onChange={(e) => setNewSession(prev => ({ ...prev, reminder: Number(e.target.value) }))} className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100">
-              <option value="0">No reminder</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option>
-            </select>
-          </div>
-        </div>
+          </label>
 
-        {/* Push Notification subtle hint if reminder > 0 and push permission not granted */}
-        {newSession.reminder > 0 && permission !== "granted" && (
-          <div className="mt-5 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs text-blue-800 border border-blue-200">
-            <Bell className="h-4 w-4 shrink-0 text-blue-600" />
-            <span>
-              Push notifications are not enabled. Enable them in{" "}
-              <a href="/Settings" className="font-bold underline hover:text-blue-900">
-                Settings
-              </a>{" "}
-              to receive alerts even when the tab is closed.
-            </span>
-          </div>
-        )}
+          <label className="block text-xs font-bold text-slate-700">
+            Title / Topic
+            <input
+              type="text"
+              value={newSession.title}
+              onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
+              required
+              placeholder="e.g. Chapter 4 Integration"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            />
+          </label>
 
-        <div className="mt-7 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button
-            type="button"
-            onClick={() => setShowCreateModal(false)}
-            className="rounded-xl border border-slate-200 px-5 py-2.5 font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            Cancel
-          </button>
-          <button
-            type="submit"
-            disabled={isSaving}
-            className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"
-          >
-            <Save className="h-4 w-4" />
-            {isSaving ? "Saving..." : "Add session"}
-          </button>
-        </div>
-      </form>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-bold text-slate-700">
+              <span className="flex items-center gap-1.5 mb-1.5"><CalendarDays size={14} /> Date</span>
+              <input
+                type="date"
+                value={dateValue}
+                onChange={(e) => setNewSession({ ...newSession, date: e.target.value })}
+                required
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+
+            <label className="block text-xs font-bold text-slate-700">
+              <span className="flex items-center gap-1.5 mb-1.5"><Clock3 size={14} /> Start time</span>
+              <input
+                type="time"
+                value={newSession.startTime}
+                onChange={(e) => setNewSession({ ...newSession, startTime: e.target.value })}
+                required
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-bold text-slate-700">
+              Duration (mins)
+              <input
+                type="number"
+                min="15"
+                step="15"
+                value={newSession.duration}
+                onChange={(e) => setNewSession({ ...newSession, duration: e.target.value })}
+                required
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              />
+            </label>
+
+            <label className="block text-xs font-bold text-slate-700">
+              Priority / Status
+              <select
+                value={newSession.status}
+                onChange={(e) => setNewSession({ ...newSession, status: e.target.value })}
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              >
+                <option value="important">Important</option>
+                <option value="very important">Very Important</option>
+                <option value="not so important">Not So Important</option>
+              </select>
+            </label>
+          </div>
+
+          <label className="block text-xs font-bold text-slate-700">
+            <span className="flex items-center gap-1.5 mb-1.5"><Repeat size={14} /> Recurring</span>
+            <select
+              value={newSession.recurring}
+              onChange={(e) => setNewSession({ ...newSession, recurring: e.target.value })}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value="none">None (One-time)</option>
+              <option value="daily">Daily</option>
+              <option value="weekly">Weekly</option>
+              <option value="weekdays">Mon - Fri</option>
+            </select>
+          </label>
+
+          <label className="block text-xs font-bold text-slate-700">
+            <span className="flex items-center gap-1.5 mb-1.5"><Bell size={14} /> Reminder</span>
+            <select
+              value={newSession.reminder}
+              onChange={(e) => setNewSession({ ...newSession, reminder: Number(e.target.value) })}
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+            >
+              <option value={0}>At time of event</option>
+              <option value={15}>15 minutes before</option>
+              <option value={30}>30 minutes before</option>
+              <option value={60}>1 hour before</option>
+            </select>
+          </label>
+
+          {permission !== "granted" && (
+            <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+              Browser push notifications are disabled. You will receive in-app alerts when signed in.
+            </p>
+          )}
+
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+            <button
+              type="button"
+              onClick={() => setShowCreateModal(false)}
+              className="rounded-xl px-4 py-2.5 font-bold text-slate-600 hover:bg-slate-100"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={isSaving}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 font-bold text-white shadow-md hover:bg-emerald-700 disabled:opacity-50"
+            >
+              <Save size={16} />
+              {isSaving ? "Scheduling..." : "Schedule session"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
   );
 };

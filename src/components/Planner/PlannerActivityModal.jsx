@@ -6,9 +6,10 @@ import { getPermissionState } from "../../lib/push";
 const fieldClass = "w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100";
 
 function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose, onSubmit }) {
+  const [validationError, setValidationError] = useState("");
+
   if (!mode) return null;
 
-  const [validationError, setValidationError] = useState("");
   const permission = getPermissionState();
 
   const update = (key, value) => setForm((current) => ({ ...current, [key]: value }));
@@ -23,81 +24,131 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
   const isDeadline = mode === "deadline";
   const dateValue = form.date instanceof Date ? form.date.toISOString().slice(0, 10) : form.date;
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const validateAndSubmit = (e) => {
+    e.preventDefault();
     setValidationError("");
 
-    if (!isTimeBlock && !isDeadline) {
-      if (form.date && form.startTime) {
-        const selectedDateTime = new Date(`${dateValue}T${form.startTime}`);
-        if (selectedDateTime.getTime() < Date.now()) {
-          setValidationError("Cannot schedule a session in the past.");
-          return;
-        }
+    // Validate that date + startTime is not in the past
+    if (form.date && form.startTime) {
+      const selectedDateTime = new Date(`${dateValue}T${form.startTime}:00`);
+      if (selectedDateTime < new Date()) {
+        setValidationError("Cannot schedule a session or deadline in the past.");
+        return;
       }
     }
 
-    onSubmit();
+    onSubmit(e);
   };
 
   return createPortal(
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-sm">
-      <form onSubmit={handleSubmit} className="motion-dialog max-h-[90vh] w-full max-w-xl overflow-y-auto rounded-3xl bg-white p-6 shadow-2xl md:p-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
+      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
+        <div className="mb-5 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">{title}</h2>
+            <p className="text-xs text-slate-500">{subtitle}</p>
+          </div>
+          <button type="button" onClick={onClose} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
+            <X size={18} />
+          </button>
+        </div>
+
         {validationError && (
-          <div className="mb-4 rounded-xl bg-red-50 p-3 text-sm font-semibold text-red-700 border border-red-200">
+          <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
             {validationError}
           </div>
         )}
-        <div className="mb-7 flex items-start justify-between gap-4">
-          <div>
-            <p className="text-xs font-bold uppercase tracking-[0.2em] text-blue-600">Study planner</p>
-            <h2 className="mt-2 text-2xl font-bold tracking-tight text-slate-950">{title}</h2>
-            <p className="mt-1 text-sm text-slate-500">{subtitle}</p>
-          </div>
-          <button type="button" onClick={onClose} title="Close" className="rounded-full p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-900"><X className="h-5 w-5" /></button>
-        </div>
 
-        {isTimeBlock ? (
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="sm:col-span-2"><span className="mb-1 block text-sm font-semibold text-slate-700">Block purpose</span><input required value={form.purpose} onChange={(event) => update("purpose", event.target.value)} placeholder="e.g. Deep work" className={fieldClass} /></label>
-            <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />Day</span><input required type="date" value={dateValue} onChange={(event) => update("date", event.target.value)} className={fieldClass} /></label>
-            <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</span><input required type="time" value={form.blockStart} onChange={(event) => update("blockStart", event.target.value)} className={fieldClass} /></label>
-            <label><span className="mb-1 block text-sm font-semibold text-slate-700">End time</span><input required type="time" value={form.blockEnd} onChange={(event) => update("blockEnd", event.target.value)} className={fieldClass} /></label>
-          </div>
-        ) : (
-          <div className="grid gap-5 sm:grid-cols-2">
-            <label className="sm:col-span-2"><span className="mb-1 block text-sm font-semibold text-slate-700">{isDeadline ? "Deadline title" : "Topic or session title"}</span><input required value={form.title} onChange={(event) => update("title", event.target.value)} placeholder={isDeadline ? "e.g. Submit research essay" : "e.g. Calculus review"} className={fieldClass} /></label>
-            <label><span className="mb-1 block text-sm font-semibold text-slate-700">Subject</span><select required value={form.subject} onChange={(event) => update("subject", event.target.value)} className={fieldClass}><option value="">Select subject</option>{subjects.map((subject) => <option key={subject} value={subject}>{subject}</option>)}</select></label>
-            <label><span className="mb-1 block text-sm font-semibold text-slate-700">Importance</span><select required value={form.status} onChange={(event) => update("status", event.target.value)} className={fieldClass}><option value="very important">Very important</option><option value="medium">Medium</option><option value="not so important">Not so important</option></select></label>
-            <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><CalendarDays className="h-4 w-4 text-blue-600" />{isDeadline ? "Due date" : "Date"}</span><input required type="date" min={new Date().toISOString().slice(0, 10)} value={dateValue} onChange={(event) => update("date", event.target.value)} className={fieldClass} /></label>
-            {isDeadline ? <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="1440">1 day before</option><option value="60">1 hour before</option></select></label> : <>
-              <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Clock3 className="h-4 w-4 text-blue-600" />Start time</span><input required type="time" value={form.startTime} onChange={(event) => update("startTime", event.target.value)} className={fieldClass} /></label>
-              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Duration (minutes)</span><input required type="number" min="15" max="6000" step="15" value={form.duration || 0} onChange={(event) => update("duration", Number(event.target.value))} className={fieldClass} /></label>
-              <label><span className="mb-1 flex items-center gap-2 text-sm font-semibold text-slate-700"><Repeat className="h-4 w-4 text-blue-600" />Repeat</span><select value={form.recurring} onChange={(event) => update("recurring", event.target.value)} className={fieldClass}><option value="none">Does not repeat</option><option value="daily">Daily</option><option value="weekly">Weekly</option><option value="monthly">Monthly</option></select></label>
-              <label><span className="mb-1 block text-sm font-semibold text-slate-700">Reminder</span><select value={form.reminder} onChange={(event) => update("reminder", Number(event.target.value))} className={fieldClass}><option value="0">No reminder</option><option value="15">15 minutes before</option><option value="30">30 minutes before</option><option value="60">1 hour before</option></select></label>
-            </>}
-          </div>
-        )}
+        <form onSubmit={validateAndSubmit} className="space-y-4 text-sm">
+          {!isTimeBlock && (
+            <label className="block text-xs font-bold text-slate-700">
+              Subject
+              <select value={form.subject} onChange={(e) => update("subject", e.target.value)} required className={`mt-1.5 ${fieldClass}`}>
+                <option value="">Select subject</option>
+                {subjects.map((sub) => (
+                  <option key={sub} value={sub}>{sub}</option>
+                ))}
+              </select>
+            </label>
+          )}
 
-        {/* Push Notification subtle hint if reminder > 0 and push permission not granted */}
-        {form.reminder > 0 && permission !== "granted" && (
-          <div className="mt-5 flex items-center gap-2 rounded-xl bg-blue-50 px-4 py-3 text-xs text-blue-800 border border-blue-200">
-            <Bell className="h-4 w-4 shrink-0 text-blue-600" />
-            <span>
-              Push notifications are not enabled. Enable them in{" "}
-              <a href="/Settings" className="font-bold underline hover:text-blue-900">
-                Settings
-              </a>{" "}
-              to receive alerts even when the tab is closed.
-            </span>
-          </div>
-        )}
+          <label className="block text-xs font-bold text-slate-700">
+            Title
+            <input value={form.title} onChange={(e) => update("title", e.target.value)} required placeholder={isDeadline ? "Assignment due" : "Session topic"} className={`mt-1.5 ${fieldClass}`} />
+          </label>
 
-        <div className="mt-8 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-          <button type="button" onClick={onClose} className="rounded-xl border border-slate-200 px-5 py-2.5 font-semibold text-slate-600 transition hover:bg-slate-50">Cancel</button>
-          <button type="submit" disabled={isSaving} className="inline-flex items-center justify-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-semibold text-white shadow-lg shadow-blue-600/20 transition hover:bg-blue-700 disabled:cursor-wait disabled:opacity-60"><Save className="h-4 w-4" />{isSaving ? "Saving..." : isDeadline ? "Add deadline" : isTimeBlock ? "Add time block" : "Add session"}</button>
-        </div>
-      </form>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <label className="block text-xs font-bold text-slate-700">
+              <span className="flex items-center gap-1.5 mb-1.5"><CalendarDays size={14} /> Date</span>
+              <input type="date" value={dateValue} onChange={(e) => update("date", e.target.value)} required className={fieldClass} />
+            </label>
+
+            {!isDeadline && (
+              <label className="block text-xs font-bold text-slate-700">
+                <span className="flex items-center gap-1.5 mb-1.5"><Clock3 size={14} /> Start time</span>
+                <input type="time" value={form.startTime} onChange={(e) => update("startTime", e.target.value)} required className={fieldClass} />
+              </label>
+            )}
+          </div>
+
+          {!isDeadline && (
+            <div className="grid gap-3 sm:grid-cols-2">
+              <label className="block text-xs font-bold text-slate-700">
+                Duration (mins)
+                <input type="number" min="15" step="15" value={form.duration} onChange={(e) => update("duration", e.target.value)} required className={`mt-1.5 ${fieldClass}`} />
+              </label>
+
+              {!isTimeBlock && (
+                <label className="block text-xs font-bold text-slate-700">
+                  Priority
+                  <select value={form.status} onChange={(e) => update("status", e.target.value)} className={`mt-1.5 ${fieldClass}`}>
+                    <option value="important">Important</option>
+                    <option value="very important">Very Important</option>
+                    <option value="not so important">Not So Important</option>
+                  </select>
+                </label>
+              )}
+            </div>
+          )}
+
+          {mode === "recurring" && (
+            <label className="block text-xs font-bold text-slate-700">
+              <span className="flex items-center gap-1.5 mb-1.5"><Repeat size={14} /> Repeat rhythm</span>
+              <select value={form.recurring} onChange={(e) => update("recurring", e.target.value)} className={fieldClass}>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="weekdays">Mon - Fri</option>
+              </select>
+            </label>
+          )}
+
+          <label className="block text-xs font-bold text-slate-700">
+            <span className="flex items-center gap-1.5 mb-1.5"><Bell size={14} /> Reminder</span>
+            <select value={form.reminder} onChange={(e) => update("reminder", Number(e.target.value))} className={fieldClass}>
+              <option value={0}>At time of event</option>
+              <option value={15}>15 minutes before</option>
+              <option value={30}>30 minutes before</option>
+              <option value={60}>1 hour before</option>
+            </select>
+          </label>
+
+          {permission !== "granted" && (
+            <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+              Browser push notifications are disabled. You will receive in-app alerts when signed in.
+            </p>
+          )}
+
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+            <button type="button" onClick={onClose} className="rounded-xl px-4 py-2.5 font-bold text-slate-600 hover:bg-slate-100">
+              Cancel
+            </button>
+            <button type="submit" disabled={isSaving} className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50">
+              <Save size={16} />
+              {isSaving ? "Saving..." : "Save activity"}
+            </button>
+          </div>
+        </form>
+      </div>
     </div>,
     document.body
   );

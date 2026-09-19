@@ -5,6 +5,7 @@ import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import GlobalAITutorFab from "../components/common/GlobalAITutorFab";
 import { ProfileProvider, useProfile } from "./ProfileContext";
+import { AITutorProvider } from "./AITutorContext";
 
 function GlobalStudyCompanion() {
   const { profile } = useProfile();
@@ -38,7 +39,8 @@ function Layout({ session, needsOnboarding }) {
 
   return (
     <ProfileProvider user={user}>
-      <div className="mainapp">
+      <AITutorProvider session={session}>
+        <div className="mainapp">
         <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
 
         <div
@@ -68,7 +70,8 @@ function Layout({ session, needsOnboarding }) {
 
         {/* Global Persistent AI Tutor FAB & Portal Drawer */}
         <GlobalAITutorFab session={session} />
-      </div>
+        </div>
+      </AITutorProvider>
     </ProfileProvider>
   );
 }

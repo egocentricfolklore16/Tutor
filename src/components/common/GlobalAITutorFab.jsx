@@ -1,74 +1,27 @@
-import React, { useState } from "react";
+import React from "react";
 import { createPortal } from "react-dom";
-import { useLocation } from "react-router";
-import { MessageCircle, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import { useProfile } from "../../app/ProfileContext";
+import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
-import { sendAiTutorMessage } from "../../lib/aiTutor";
 
 const GlobalAITutorFab = ({ session }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([]);
-  const [currentMessage, setCurrentMessage] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
-  const [hasNudge, setHasNudge] = useState(true);
+  const {
+    isOpen,
+    handleToggle,
+    hasUnread,
+    messages,
+    currentMessage,
+    setCurrentMessage,
+    sendMessage,
+    clearMessages,
+    isTyping,
+  } = useAITutor();
 
   const { profile } = useProfile();
-  const location = useLocation();
 
-  const handleToggle = () => {
-    setIsOpen((prev) => !prev);
-    if (hasNudge) setHasNudge(false);
-  };
-
-  const handleSendMessage = async () => {
-    const text = currentMessage.trim();
-    if (!text || isTyping) return;
-
-    const userMsg = { sender: "user", text };
-    const updatedMessages = [...messages, userMsg];
-
-    setMessages(updatedMessages);
-    setCurrentMessage("");
-    setIsTyping(true);
-
-    const studentLevel = profile?.education_level || "High School";
-    const curriculumStandard = profile?.curriculum_standard || "None/General";
-    const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
-    const userId = session?.user?.id || profile?.user_id;
-
-    try {
-      const { reply, actions_taken } = await sendAiTutorMessage({
-        message: text,
-        history: updatedMessages,
-        studentLevel,
-        curriculumStandard,
-        knowledgeGaps,
-        studentId: userId,
-      });
-
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: reply,
-          actions: actions_taken,
-        },
-      ]);
-    } catch (err) {
-      console.error("Failed to communicate with AI Tutor:", err);
-      setMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
-          actions: [],
-          isError: true,
-        },
-      ]);
-    } finally {
-      setIsTyping(false);
-    }
+  const handleSendMessage = () => {
+    sendMessage();
   };
 
   return (
@@ -84,7 +37,7 @@ const GlobalAITutorFab = ({ session }) => {
         >
           <div className="relative">
             <Sparkles className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
-            {hasNudge && (
+            {hasUnread && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
@@ -104,15 +57,12 @@ const GlobalAITutorFab = ({ session }) => {
         >
           <AITutorChat
             isOpen={isOpen}
-            onClose={() => setIsOpen(false)}
+            onClose={handleToggle}
             messages={messages}
             currentMessage={currentMessage}
             onMessageChange={setCurrentMessage}
             onSendMessage={handleSendMessage}
-            onClear={() => {
-              setMessages([]);
-              setCurrentMessage("");
-            }}
+            onClear={clearMessages}
             isTyping={isTyping}
             width={380}
             theme={{ accentButton: "bg-indigo-600 hover:bg-indigo-700", accentBg: "bg-indigo-100" }}

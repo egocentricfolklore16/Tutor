@@ -41,6 +41,7 @@ const UpcomingSessions = () => {
           .from("Study")
           .select("*")
           .eq("user_id", user.id)
+          .neq("session_status", "completed")
           .eq("muted", false) // Don't show muted sessions
           .or(
             `Date.gt.${today},and(Date.eq.${today},"Start".gt.${currentTime})`

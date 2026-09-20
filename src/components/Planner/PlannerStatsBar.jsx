@@ -51,7 +51,7 @@ function PlannerStatsBar() {
       if (!user) return;
       const { start, end } = getWeekRange();
       const [{ data: sessions, error: sessionError }, { count: pomodoros, error: pomodoroError }] = await Promise.all([
-        supabase.from("Study").select("Date,completed,activity_type").eq("user_id", user.id).gte("Date", start).lt("Date", end),
+        supabase.from("Study").select("Date,completed,activity_type").eq("user_id", user.id).neq("session_status", "completed").gte("Date", start).lt("Date", end),
         supabase.from("study_pomodoros").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("completed_at", `${start}T00:00:00`).lt("completed_at", `${end}T00:00:00`),
       ]);
 

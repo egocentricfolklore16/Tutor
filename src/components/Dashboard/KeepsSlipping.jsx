@@ -39,6 +39,7 @@ function KeepsSlipping({ userId }) {
           .from("Study")
           .select("Subject, Topic, Status, Date")
           .eq("user_id", userId)
+          .neq("session_status", "completed")
           .order("Date", { ascending: false })
           .limit(10);
 

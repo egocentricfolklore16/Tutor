@@ -90,7 +90,8 @@ const PlannerPage = () => {
         const { data, error } = await supabase
           .from("Study")
           .select('id,Subject,Topic,Status,Date,"Start",Duration,recurring,reminder_minutes,deadline,activity_type')
-          .eq("user_id", user.id); // Filter by current user's ID
+          .eq("user_id", user.id)
+          .neq("session_status", "completed"); // Filter by current user's ID and incomplete sessions
 
         const { data: timeBlockData, error: timeBlockError } = await supabase
           .from("time_blocks")

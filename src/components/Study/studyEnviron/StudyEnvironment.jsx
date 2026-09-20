@@ -250,18 +250,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         }
       }
 
-      // Mark the study session as completed instead of deleting it
+      // Delete the finished study session from backend
       setTimeout(async () => {
-        const { error: updateError } = await supabase
+        const { error: deleteError } = await supabase
           .from("Study")
-          .update({
-            session_status: "completed",
-            time_left: 0,
-          })
+          .delete()
           .eq("id", session.id);
 
-        if (updateError) {
-          console.error("Session update error on completion:", updateError);
+        if (deleteError) {
+          console.error("Session delete error on completion:", deleteError);
         }
       }, 2000);
     };

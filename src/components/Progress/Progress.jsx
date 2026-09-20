@@ -22,7 +22,7 @@ function Progress() {
       if (!user) { setStatus("unauthenticated"); return; }
 
       const [{ data: sessionData, error: sessionError }, { data: historyData }, { count, error: resourceError }] = await Promise.all([
-        supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id),
+        supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id).neq("session_status", "completed"),
         supabase.from("study_history").select("id, subject, topic, completed_at, duration_minutes").eq("user_id", user.id),
         supabase.from("session_resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);

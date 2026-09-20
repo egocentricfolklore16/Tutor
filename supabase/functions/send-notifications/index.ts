@@ -12,7 +12,8 @@ function timingSafeEqualStr(a: string, b: string): boolean {
 }
 
 Deno.serve(async (req: Request) => {
-  // 1. Verify cron secret header
+  try {
+    // 1. Verify cron secret header
   const cronSecret = Deno.env.get("CRON_SECRET") || "";
   const headerSecret = req.headers.get("x-cron-secret") || "";
 
@@ -173,4 +174,11 @@ Deno.serve(async (req: Request) => {
     }),
     { status: 200, headers: { "Content-Type": "application/json" } }
   );
+  } catch (error: any) {
+    console.error("Error in send-notifications Edge Function:", error);
+    return new Response(
+      JSON.stringify({ error: error.message || "Internal server error" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 });

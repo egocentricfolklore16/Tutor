@@ -28,12 +28,12 @@ Deno.serve(async (req: Request) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const groqApiKey = Deno.env.get("GROQ_API_KEY");
-    const groqModel = Deno.env.get("GROQ_MODEL");
+    const groqModel = Deno.env.get("GROQ_MODEL") || "llama-3.3-70b-versatile";
 
-    if (!groqApiKey || !groqModel) {
-      console.error("GROQ_API_KEY or GROQ_MODEL secret missing");
+    if (!groqApiKey) {
+      console.error("GROQ_API_KEY secret missing");
       return new Response(
-        JSON.stringify({ error: { code: "CONFIG_ERROR", message: "AI service misconfigured" } }),
+        JSON.stringify({ error: { code: "CONFIG_ERROR", message: "GROQ_API_KEY not set" } }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

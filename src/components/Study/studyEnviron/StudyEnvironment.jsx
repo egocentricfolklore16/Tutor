@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
@@ -12,6 +12,7 @@ import {
   Play,
   Pause,
   RotateCcw,
+  CheckCircle,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { updateStreakForActivity } from "../../../lib/streaks";
@@ -62,15 +63,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
     const fetchSession = async () => {
       setIsLoading(true);
-      const { data, error: fetchError } = await supabase
+      const { data, fetchErr } = await supabase
         .from("Study")
         .select("*")
         .eq("id", Studyid)
         .single();
 
-      if (fetchError) {
+      if (fetchErr) {
         setError("Unable to load this study session.");
-        console.error("Supabase session fetch error:", fetchError);
+        console.error("Supabase session fetch error:", fetchErr);
       } else {
         setSession(data);
       }
@@ -89,7 +90,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       if (!authUser) return;
       setUserId(authUser.id);
 
-      const { data, error: profileError } = await supabase
+      const { data, profileError } = await supabase
         .from("profiles")
         .select("full_name")
         .eq("user_id", authUser.id)
@@ -121,7 +122,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [timeLeft, setTimeLeft] = useState(initialTimeLeft);
   const [isStudying, setIsStudying] = useState(true);
   const pomodoroRecorded = useRef(false);
+  const isCompletingRef = useRef(false);
   const timeLeftRef = useRef(timeLeft);
+  const sessionIdRef = useRef(session?.id);
+
+  useEffect(() => {
+    sessionIdRef.current = session?.id;
+  }, [session?.id]);
 
   useEffect(() => {
     timeLeftRef.current = timeLeft;
@@ -149,35 +156,69 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         : durationSeconds;
     setTimeLeft(nextTime);
     pomodoroRecorded.current = false;
+    isCompletingRef.current = false;
     setSessionComplete(false);
   }, [durationSeconds, session?.time_left]);
 
-  // Persist paused state on navigation away, tab close, or unmount
-  const savePausedState = async () => {
-    if (!session?.id || pomodoroRecorded.current || timeLeftRef.current <= 0) return;
+  // Always pause on leave / unmount / unload — NEVER set completed when leaving
+  const pauseSession = useCallback(async (explicitSessionId) => {
+    const targetId = explicitSessionId || sessionIdRef.current;
+    if (!targetId || pomodoroRecorded.current || isCompletingRef.current) return;
     try {
       await supabase
         .from("Study")
         .update({
           session_status: "paused",
-          time_left: timeLeftRef.current,
+          time_left: Math.max(0, timeLeftRef.current),
+          last_active_at: new Date().toISOString(),
         })
-        .eq("id", session.id);
+        .eq("id", targetId);
     } catch (err) {
-      console.error("Error saving paused study state:", err);
+      console.error("Error pausing study session:", err);
     }
-  };
+  }, []);
+
+  const sendPauseBeacon = useCallback((explicitSessionId, remaining) => {
+    const targetId = explicitSessionId || sessionIdRef.current;
+    if (!targetId || pomodoroRecorded.current || isCompletingRef.current) return;
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+    const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+    if (!supabaseUrl || !supabaseAnonKey) return;
+
+    const endpoint = `${supabaseUrl}/rest/v1/Study?id=eq.${targetId}`;
+    const body = JSON.stringify({
+      session_status: "paused",
+      time_left: Math.max(0, remaining),
+      last_active_at: new Date().toISOString(),
+    });
+
+    try {
+      if (typeof fetch === "function") {
+        fetch(endpoint, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            "apikey": supabaseAnonKey,
+            "Authorization": `Bearer ${supabaseAnonKey}`,
+            "Prefer": "return=minimal",
+          },
+          body,
+          keepalive: true,
+        }).catch(() => {});
+      }
+    } catch (err) {
+      // ignore unload errors
+    }
+  }, []);
 
   useEffect(() => {
     const handleBeforeUnload = () => {
-      if (session?.id && !pomodoroRecorded.current && timeLeftRef.current > 0) {
-        savePausedState();
-      }
+      sendPauseBeacon(sessionIdRef.current, timeLeftRef.current);
     };
 
     const handleVisibilityChange = () => {
       if (document.visibilityState === "hidden") {
-        savePausedState();
+        pauseSession(sessionIdRef.current);
       }
     };
 
@@ -187,9 +228,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      savePausedState();
+      pauseSession(sessionIdRef.current);
     };
-  }, [session?.id]);
+  }, [pauseSession, sendPauseBeacon]);
 
   useEffect(() => {
     if (!isStudying || timeLeft <= 0) return undefined;
@@ -199,79 +240,86 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     return () => window.clearInterval(timer);
   }, [isStudying, timeLeft]);
 
-  useEffect(() => {
-    if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
+  // Complete session ONLY called explicitly by Finish button or when timer naturally finishes
+  const completeSession = useCallback(async () => {
+    const targetId = sessionIdRef.current;
+    if (!targetId || pomodoroRecorded.current || isCompletingRef.current) return;
+
+    isCompletingRef.current = true;
     pomodoroRecorded.current = true;
     sendTutorEvent("timer_ended");
-    
-    const completeSession = async () => {
-      let activeUserId = userId;
-      if (!activeUserId) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        activeUserId = authUser?.id || null;
+
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user: authUser } } = await supabase.auth.getUser();
+      activeUserId = authUser?.id || null;
+    }
+
+    const nowIso = new Date().toISOString();
+
+    if (activeUserId) {
+      const historyEntry = {
+        id: crypto.randomUUID(),
+        user_id: activeUserId,
+        subject: session?.Subject || session?.subject || "Untitled subject",
+        topic: session?.Topic || session?.topic || "No topic provided",
+        duration_minutes: Math.round(durationSeconds / 60),
+        started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
+        completed_at: nowIso,
+        status: "completed",
+        xp_earned: 50,
+        timeline: timeline,
+      };
+
+      try {
+        await Promise.all([
+          updateStreakForActivity(activeUserId),
+          awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
+          supabase.from("study_history").insert(historyEntry),
+        ]);
+      } catch (err) {
+        console.error("Error updating streak, rewards, or study history:", err);
       }
 
-      if (activeUserId) {
-        const historyEntry = {
-          id: crypto.randomUUID(),
-          user_id: activeUserId,
-          subject: session.Subject || session.subject || "Untitled subject",
-          topic: session.Topic || session.topic || "No topic provided",
-          duration_minutes: Math.round(durationSeconds / 60),
-          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
-          completed_at: new Date().toISOString(),
-          status: "completed",
-          xp_earned: 50,
-          timeline: timeline,
-        };
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
+      }
 
-        // Always update streak, award rewards, and save history entry
-        try {
-          await Promise.all([
-            updateStreakForActivity(activeUserId),
-            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
-            supabase.from("study_history").insert(historyEntry),
-          ]);
-        } catch (err) {
-          console.error("Error updating streak, rewards, or study history:", err);
-        }
-
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
-        }
-
-        // Save pomodoro record
-        const { error: pomodoroError } = await supabase
+      try {
+        await supabase
           .from("study_pomodoros")
-          .insert({ session_id: session.id, user_id: activeUserId });
-
-        if (pomodoroError) {
-          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
-        }
+          .insert({ session_id: targetId, user_id: activeUserId });
+      } catch (err) {
+        console.error("Pomodoro completion save error:", err);
       }
+    }
 
-      // Mark the study session as completed instead of deleting it
-      setTimeout(async () => {
-        const { error: updateError } = await supabase
-          .from("Study")
-          .update({
-            session_status: "completed",
-            time_left: 0,
-          })
-          .eq("id", session.id);
+    try {
+      const { error: updateError } = await supabase
+        .from("Study")
+        .update({
+          session_status: "completed",
+          time_left: 0,
+          ended_at: nowIso,
+        })
+        .eq("id", targetId);
 
-        if (updateError) {
-          console.error("Session update error on completion:", updateError);
-        }
-      }, 2000);
-    };
-    
-    completeSession();
-  }, [timeLeft, userId, session]);
+      if (updateError) {
+        console.error("Session update error on completion:", updateError);
+      }
+    } catch (err) {
+      console.error("Error updating session completion:", err);
+    }
 
+    setSessionComplete(true);
+  }, [durationSeconds, sendTutorEvent, session, timeline, userId]);
+
+  // Legitimate timer end trigger
   useEffect(() => {
-    if (timeLeft === 0) setSessionComplete(true);
-  }, [timeLeft]);
+    if (timeLeft === 0 && !pomodoroRecorded.current && !isCompletingRef.current && session?.id) {
+      completeSession();
+    }
+  }, [timeLeft, completeSession, session?.id]);
 
   const user =
     incomingUser ||
@@ -292,7 +340,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
         <p className="text-red-600 mb-4">{error || "Study session not found."}</p>
         <button
-          onClick={() => navigate("/Study")}
+          onClick={() => {
+            pauseSession();
+            navigate("/Study");
+          }}
           className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
         >
           <ArrowLeft className="h-4 w-4" />
@@ -314,7 +365,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           </div>
           <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
+            <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); pomodoroRecorded.current = false; isCompletingRef.current = false; }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
             <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200">Back to dashboard</button>
           </div>
         </div>
@@ -412,23 +463,32 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
             </div>
           ))}
         </div>
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap gap-3">
+            <button
+              onClick={() => setIsStudying((studying) => !studying)}
+              className="inline-flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-semibold text-white hover:bg-slate-900"
+            >
+              {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
+              {isStudying ? "Pause timer" : "Resume timer"}
+            </button>
+            <button
+              onClick={() => {
+                setTimeLeft(durationSeconds);
+                setIsStudying(true);
+              }}
+              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+            >
+              <RotateCcw className="h-4 w-4" />
+              Reset
+            </button>
+          </div>
           <button
-            onClick={() => setIsStudying((studying) => !studying)}
-            className="inline-flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-semibold text-white hover:bg-slate-900"
+            onClick={() => completeSession()}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white shadow-sm hover:bg-emerald-700"
           >
-            {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
-            {isStudying ? "Pause timer" : "Resume timer"}
-          </button>
-          <button
-            onClick={() => {
-              setTimeLeft(durationSeconds);
-              setIsStudying(true);
-            }}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-600 hover:bg-slate-50"
-          >
-            <RotateCcw className="h-4 w-4" />
-            Reset
+            <CheckCircle className="h-4 w-4" />
+            Finish session
           </button>
         </div>
       </div>
@@ -453,13 +513,25 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
           <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <button
-              onClick={() => navigate("/Study")}
-              className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-100"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to all sessions
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => {
+                  pauseSession();
+                  navigate("/Study");
+                }}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to all sessions
+              </button>
+              <button
+                onClick={() => completeSession()}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700"
+              >
+                <CheckCircle className="h-4 w-4" />
+                Finish session
+              </button>
+            </div>
 
             {/* Desktop Tools Bar */}
             <div className="hidden md:flex items-center gap-1.5 overflow-x-auto py-1">

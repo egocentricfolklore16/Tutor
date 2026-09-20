@@ -9,7 +9,7 @@ function DashboardStatsBar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const [{ data: sessions }, { data: profile }] = await Promise.all([
-        supabase.from("Study").select("Duration").eq("user_id", user.id),
+        supabase.from("Study").select("Duration").eq("user_id", user.id).neq("session_status", "completed"),
         supabase.from("profiles").select("knowledge_gaps").eq("user_id", user.id).maybeSingle(),
       ]);
       setStats({

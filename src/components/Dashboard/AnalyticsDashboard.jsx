@@ -16,7 +16,7 @@ const AnalyticsDashboard = () => {
     const loadSessions = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus("unauthenticated"); return; }
-      const { data, error } = await supabase.from("Study").select("id,Subject,Date,Duration,Status").eq("user_id", user.id);
+      const { data, error } = await supabase.from("Study").select("id,Subject,Date,Duration,Status").eq("user_id", user.id).neq("session_status", "completed");
       if (error) { setStatus("error"); console.error("Analytics fetch error:", error); return; }
       setSessions(data || []);
       setStatus("ready");

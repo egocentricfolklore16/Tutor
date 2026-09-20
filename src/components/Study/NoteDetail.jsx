@@ -1,11 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { ArrowLeft, FileText, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
-import AITutorChat from "./studyEnviron/AITutorChat";
 import LoadingCompanion from "../common/LoadingCompanion";
-import { invokeAiTutor } from "../../lib/aiTutor";
 
 function NoteDetail() {
   const { Studyid, noteId } = useParams();
@@ -13,10 +10,6 @@ function NoteDetail() {
   const [note, setNote] = useState(null);
   const [sessionStatus, setSessionStatus] = useState("");
   const [status, setStatus] = useState("loading");
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiMessage, setAiMessage] = useState("");
-  const [isAiTyping, setIsAiTyping] = useState(false);
 
   useEffect(() => {
     const loadNote = async () => {
@@ -39,64 +32,6 @@ function NoteDetail() {
 
     loadNote();
   }, [Studyid, noteId]);
-
-  const sendAiMessage = async () => {
-    const text = aiMessage.trim();
-    if (!text || isAiTyping || !note) return;
-
-    const userMsg = { sender: "user", text };
-    const updatedMessages = [...aiMessages, userMsg];
-
-    setAiMessages(updatedMessages);
-    setAiMessage("");
-    setIsAiTyping(true);
-
-    try {
-      const formattedHistory = updatedMessages.map((m) => ({
-        role: m.sender === "user" ? "user" : "assistant",
-        content: m.text,
-      }));
-
-      const res = await invokeAiTutor({
-        sessionId: Number(Studyid),
-        messages: formattedHistory,
-      });
-
-      if (res.error) {
-        setAiMessages((msgs) => [
-          ...msgs,
-          {
-            sender: "ai",
-            text: res.error.message || "Failed to reach AI Tutor.",
-            actions: [],
-            isError: true,
-          },
-        ]);
-      } else {
-        setAiMessages((msgs) => [
-          ...msgs,
-          {
-            sender: "ai",
-            text: res.reply,
-            actions: res.actions,
-          },
-        ]);
-      }
-    } catch (err) {
-      console.error("Error calling AI tutor in NoteDetail:", err);
-      setAiMessages((msgs) => [
-        ...msgs,
-        {
-          sender: "ai",
-          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
-          actions: [],
-          isError: true,
-        },
-      ]);
-    } finally {
-      setIsAiTyping(false);
-    }
-  };
 
   const theme = {
     "very important": { page: "bg-red-50", accent: "text-red-700", button: "bg-red-600 hover:bg-red-700", border: "border-red-200", soft: "border-red-100" },
@@ -129,15 +64,6 @@ function NoteDetail() {
         </article>
       </div>
       </main>
-      {createPortal(
-        <>
-          <button type="button" title="Open AI tutor" onClick={() => setIsAIOpen((open) => !open)} className={`fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl ${theme.button}`}><MessageCircle className="h-5 w-5" /> AI Tutor</button>
-          <div className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ${isAIOpen ? "translate-x-0" : "translate-x-full"}`}>
-            <AITutorChat isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} messages={aiMessages} currentMessage={aiMessage} onMessageChange={setAiMessage} onSendMessage={sendAiMessage} onClear={() => { setAiMessages([]); setAiMessage(""); }} isTyping={isAiTyping} width={360} theme={{ accentButton: theme.button, accentBg: theme.page }} />
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   );
 }

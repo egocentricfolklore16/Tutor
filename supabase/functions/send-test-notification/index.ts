@@ -17,7 +17,8 @@ Deno.serve(async (req: Request) => {
     "Content-Type": "application/json",
   };
 
-  const authHeader = req.headers.get("Authorization");
+  try {
+    const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
     return new Response(JSON.stringify({ success: false, message: "Missing Authorization header" }), {
       status: 401,
@@ -103,4 +104,11 @@ Deno.serve(async (req: Request) => {
     }),
     { status: 200, headers: corsHeaders }
   );
+  } catch (error: any) {
+    console.error("Error in send-test-notification Edge Function:", error);
+    return new Response(
+      JSON.stringify({ success: false, message: error.message || "Internal server error" }),
+      { status: 500, headers: corsHeaders }
+    );
+  }
 });

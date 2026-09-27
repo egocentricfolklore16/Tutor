@@ -89,22 +89,34 @@ export const NOTIFICATION_STORAGE_KEY = "hyper-tutor-notifications-v1";
 export function getStoredNotifications() {
   try {
     const raw = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.error("Stored notifications in localStorage is not an array, clearing key:", NOTIFICATION_STORAGE_KEY);
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+      return [];
+    }
     return parsed;
   } catch (error) {
-    console.warn("Could not read notifications from local storage:", error);
+    console.error("Could not read notifications from local storage, clearing key:", error);
+    try {
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+    } catch (_) {}
     return [];
   }
 }
 
 export function saveStoredNotifications(notifications) {
-  localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifications));
+  try {
+    localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifications));
 
-  if (typeof window !== "undefined") {
-    window.dispatchEvent(new CustomEvent("hyper-tutor-notifications-updated", {
-      detail: notifications,
-    }));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("hyper-tutor-notifications-updated", {
+        detail: notifications,
+      }));
+    }
+  } catch (error) {
+    console.error("Could not save notifications to local storage:", error);
   }
 }
 
@@ -126,7 +138,7 @@ export function writeNotification(notification) {
 }
 
 export function recordNotification(notification, preferences = null) {
-  const mergedPreferences = normalizeNotificationPreferences(preferences || JSON.parse(localStorage.getItem("hyper-tutor-notification-preferences") || "null"));
+  const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
   const notificationRecord = writeNotification(notification);
 
@@ -247,15 +259,30 @@ export async function requestBrowserNotificationPermission() {
 
 export function persistNotificationPreferences(preferences) {
   const next = normalizeNotificationPreferences(preferences);
-  localStorage.setItem("hyper-tutor-notification-preferences", JSON.stringify(next));
+  try {
+    localStorage.setItem("hyper-tutor-notification-preferences", JSON.stringify(next));
+  } catch (e) {
+    console.error("Error saving notification preferences to localStorage:", e);
+  }
   return next;
 }
 
 export function getNotificationPreferences() {
   try {
     const raw = localStorage.getItem("hyper-tutor-notification-preferences");
-    return normalizeNotificationPreferences(raw ? JSON.parse(raw) : defaultNotificationPreferences);
+    if (!raw) return normalizeNotificationPreferences(defaultNotificationPreferences);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      console.error("Invalid notification preferences format in localStorage, clearing key:", raw);
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+      return normalizeNotificationPreferences(defaultNotificationPreferences);
+    }
+    return normalizeNotificationPreferences(parsed);
   } catch (error) {
+    console.error("Error parsing notification preferences from localStorage, clearing key:", error);
+    try {
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+    } catch (_) {}
     return normalizeNotificationPreferences(defaultNotificationPreferences);
   }
 }

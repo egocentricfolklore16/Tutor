@@ -9,7 +9,7 @@ import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";
 import NotFound from "./components/common/NotFound.jsx";
 import supabase from "./lib/supabase.js";
-import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 import Library from "./components/Library/Library.jsx";
@@ -40,11 +40,29 @@ function App() {
 
     window.addEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
 
+    const getCompletedLocally = (userId) => {
+      try {
+        return sessionStorage.getItem(`hyper-tutor-onboarding-complete:${userId}`) === "true";
+      } catch (e) {
+        console.error("Error reading onboarding completion from sessionStorage:", e);
+        return false;
+      }
+    };
+
+    const watchdogTimer = setTimeout(() => {
+      if (mounted) {
+        console.warn("Bootstrap auth or onboarding check timed out. Forcing loading states to false.");
+        setLoading(false);
+        setOnboardingLoading(false);
+      }
+    }, 7000);
+
     const bootstrapAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
+          console.error("Error getting Supabase session during bootstrap:", error);
           const errMsg = error.message || "";
           const errCode = error.code || "";
           if (
@@ -68,24 +86,36 @@ function App() {
 
         if (currentSession?.user) {
           setOnboardingLoading(true);
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("user_id", currentSession.user.id)
-            .maybeSingle();
+          try {
+            const completedLocally = getCompletedLocally(currentSession.user.id);
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", currentSession.user.id)
+              .maybeSingle();
 
-          if (mounted) {
-            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
-            setOnboardingLoading(false);
+            if (profileError) {
+              console.error("Error fetching user profile during bootstrap onboarding check:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Unexpected error during profile onboarding check:", profileErr);
+          } finally {
+            if (mounted) {
+              setOnboardingLoading(false);
+            }
           }
         }
       } catch (err) {
-        // Quietly catch errors on bootstrap
+        console.error("Unexpected error in bootstrapAuth:", err);
       } finally {
         if (mounted) {
           setLoading(false);
         }
+        clearTimeout(watchdogTimer);
       }
     };
 
@@ -110,15 +140,23 @@ function App() {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(nextSession);
         if (nextSession?.user) {
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("user_id", nextSession.user.id)
-            .maybeSingle();
+          try {
+            const completedLocally = getCompletedLocally(nextSession.user.id);
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", nextSession.user.id)
+              .maybeSingle();
 
-          if (mounted) {
-            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            if (profileError) {
+              console.error("Error fetching user profile on auth state change:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Unexpected error checking profile on auth state change:", profileErr);
           }
         }
       }
@@ -126,6 +164,7 @@ function App() {
 
     return () => {
       mounted = false;
+      clearTimeout(watchdogTimer);
       subscription.unsubscribe();
       window.removeEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
     };

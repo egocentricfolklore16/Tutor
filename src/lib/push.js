@@ -51,6 +51,9 @@ export async function registerServiceWorker() {
   if (!isPushSupported()) return null;
   try {
     const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    try {
+      await registration.update();
+    } catch (_) {}
     await navigator.serviceWorker.ready;
     return registration;
   } catch (error) {

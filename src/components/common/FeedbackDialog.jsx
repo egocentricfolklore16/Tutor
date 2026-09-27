@@ -11,8 +11,29 @@ function FeedbackDialog({ open, onClose, onLogout }) {
   const submitFeedback = (event) => {
     event.preventDefault();
     const feedback = { reason, message: message.trim(), createdAt: new Date().toISOString() };
-    const existing = JSON.parse(localStorage.getItem("hyper-tutor-feedback") || "[]");
-    localStorage.setItem("hyper-tutor-feedback", JSON.stringify([feedback, ...existing].slice(0, 25)));
+    let existing = [];
+    try {
+      const raw = localStorage.getItem("hyper-tutor-feedback");
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          existing = parsed;
+        } else {
+          console.error("Invalid shape for hyper-tutor-feedback in localStorage, clearing key:", raw);
+          localStorage.removeItem("hyper-tutor-feedback");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to parse hyper-tutor-feedback from localStorage, clearing key:", e);
+      try {
+        localStorage.removeItem("hyper-tutor-feedback");
+      } catch (_) {}
+    }
+    try {
+      localStorage.setItem("hyper-tutor-feedback", JSON.stringify([feedback, ...existing].slice(0, 25)));
+    } catch (e) {
+      console.error("Failed to save hyper-tutor-feedback to localStorage:", e);
+    }
     setSubmitted(true);
   };
 

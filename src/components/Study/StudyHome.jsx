@@ -117,7 +117,9 @@ function Study() {
         },
         ...prev,
       ]);
-      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.id)));
+      // entry.session_id is the Study.id the `sessions` list is keyed by
+      // (entry.id is the study_history row's own UUID, a different id space).
+      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.session_id)));
     };
 
     window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);

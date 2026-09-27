@@ -1,4 +1,4 @@
-import { Check, CircleAlert, HelpCircle, Loader2, Plus, X } from "lucide-react";
+import { Check, CircleAlert, HelpCircle, Loader2, Plus, RotateCcw, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
@@ -18,8 +18,10 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
   const { setQuizInProgress, sendTutorEvent } = useAITutor();
   const [quizzes, setQuizzes] = useState([]);
   const [draft, setDraft] = useState(emptyQuizDraft);
-  const [, setUserAnswers] = useState({});
-  const [attempts, setAttempts] = useState({});
+  const [quizAttemptsMap, setQuizAttemptsMap] = useState({}); // { [quizId]: AttemptRow[] }
+  const [selectedAnswersMap, setSelectedAnswersMap] = useState({}); // { [quizId]: selectedIndex }
+  const [retakingQuizMap, setRetakingQuizMap] = useState({}); // { [quizId]: boolean }
+
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
@@ -29,6 +31,12 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
     if (!studyId) return;
     setIsLoading(true);
     try {
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        activeUserId = user?.id;
+      }
+
       const { data: quizData, error: quizError } = await supabase
         .from("session_quizzes")
         .select(`
@@ -41,7 +49,27 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
       if (quizError) {
         setError(quizError.message);
       } else {
-        setQuizzes(quizData || []);
+        const quizList = quizData || [];
+        setQuizzes(quizList);
+
+        if (quizList.length > 0 && activeUserId) {
+          const quizIds = quizList.map((q) => q.id);
+          const { data: attemptsData, error: attemptsErr } = await supabase
+            .from("session_quiz_attempts")
+            .select("id, quiz_id, score, total, answers, created_at")
+            .in("quiz_id", quizIds)
+            .eq("user_id", activeUserId)
+            .order("created_at", { ascending: false });
+
+          if (!attemptsErr && attemptsData) {
+            const map = {};
+            attemptsData.forEach((att) => {
+              if (!map[att.quiz_id]) map[att.quiz_id] = [];
+              map[att.quiz_id].push(att);
+            });
+            setQuizAttemptsMap(map);
+          }
+        }
       }
     } catch (err) {
       setError(err.message || "Failed to load quizzes.");
@@ -125,20 +153,6 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
       return;
     }
 
-    // Legacy analytics log write
-    await supabase.from("study_session_logs").insert({
-      session_id: studyId,
-      user_id: activeUserId,
-      topic: topic || "",
-      concept: draft.title.trim(),
-      question: draft.question.trim(),
-      submitted_answer: "",
-      correct_answer: optionsArray[Number(draft.correctIndex)],
-      is_correct: false,
-      outcome: "created",
-      answered_at: new Date().toISOString(),
-    }).catch(() => {});
-
     if (onTimelineEvent) {
       onTimelineEvent({
         id: crypto.randomUUID(),
@@ -155,7 +169,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
   };
 
   const recordQuizAttempt = async (quiz, selectedIndex) => {
-    if (!userId || !studyId || savingId) return;
+    if (!studyId || savingId) return;
     setSavingId(quiz.id);
     setError("");
 
@@ -199,9 +213,19 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
     if (attemptErr) {
       setError(`Failed to save attempt: ${attemptErr.message}`);
     } else {
-      setAttempts((prev) => ({
+      setQuizAttemptsMap((prev) => ({
         ...prev,
-        [quiz.id]: { isCorrect, score, total, selectedIndex },
+        [quiz.id]: [attempt, ...(prev[quiz.id] || [])],
+      }));
+
+      setSelectedAnswersMap((prev) => ({
+        ...prev,
+        [quiz.id]: selectedIndex,
+      }));
+
+      setRetakingQuizMap((prev) => ({
+        ...prev,
+        [quiz.id]: false,
       }));
 
       setQuizInProgress(null);
@@ -216,7 +240,6 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
         });
       }
 
-      // Fire quiz_finished event
       sendTutorEvent("quiz_finished", {
         quiz_id: quiz.id,
         score,
@@ -343,33 +366,54 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
         <div className="space-y-4">
           {quizzes.map((quiz) => {
             const question = quiz.questions?.[0];
-            const attempt = attempts[quiz.id];
+            const attemptsList = quizAttemptsMap[quiz.id] || [];
+            const latestAttempt = attemptsList[0];
+            const isRetaking = retakingQuizMap[quiz.id];
 
             return (
               <div key={quiz.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
                 <div className="flex items-center justify-between gap-2">
                   <h4 className="font-bold text-slate-900">{quiz.title}</h4>
-                  <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-purple-700 uppercase">Quiz</span>
+                  <div className="flex items-center gap-2">
+                    {attemptsList.length > 0 && (
+                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+                        {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} (Latest: {latestAttempt.score}/{latestAttempt.total})
+                      </span>
+                    )}
+                    <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-purple-700 uppercase">Quiz</span>
+                  </div>
                 </div>
 
                 {question && (
                   <div className="space-y-3 pt-2">
                     <p className="text-sm font-semibold text-slate-800">{question.question}</p>
 
-                    {attempt ? (
-                      <div className="space-y-2 rounded-xl bg-slate-50 p-3.5 text-xs">
-                        <div className={`flex items-center gap-2 font-bold ${attempt.isCorrect ? "text-emerald-700" : "text-rose-700"}`}>
-                          {attempt.isCorrect ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-                          {attempt.isCorrect ? "Correct answer!" : "Needs another review"}
+                    {latestAttempt && !isRetaking ? (
+                      <div className="space-y-3 rounded-xl bg-slate-50 p-3.5 text-xs">
+                        <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                          <span className="flex items-center gap-2">
+                            {latestAttempt.score > 0 ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
+                            {latestAttempt.score > 0 ? "Correct!" : "Needs Review"} ({latestAttempt.score}/{latestAttempt.total})
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
+                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> Retake
+                          </button>
                         </div>
-                        <p className="text-slate-600">
-                          Your answer: {question.options?.[attempt.selectedIndex]}
-                        </p>
-                        {!attempt.isCorrect && (
+
+                        {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
                           <p className="text-slate-600">
-                            Correct answer: {question.options?.[question.correct_index]}
+                            Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
                           </p>
                         )}
+
+                        <p className="text-slate-600">
+                          Correct answer: {question.options?.[question.correct_index]}
+                        </p>
+
                         {question.explanation && (
                           <p className="italic text-slate-500 border-t border-slate-200 pt-2 mt-2">
                             Explanation: {question.explanation}
@@ -385,7 +429,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
                                 key={idx}
                                 disabled={savingId === quiz.id}
                                 onClick={() => {
-                                  setUserAnswers((prev) => ({ ...prev, [quiz.id]: idx }));
+                                  setSelectedAnswersMap((prev) => ({ ...prev, [quiz.id]: idx }));
                                   setQuizInProgress({
                                     quiz_id: quiz.id,
                                     title: quiz.title,

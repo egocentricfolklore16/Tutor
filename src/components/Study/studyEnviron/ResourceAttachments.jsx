@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ExternalLink, FileUp, Loader2, Trash2 } from "lucide-react";
+import { ExternalLink, FileUp, Link2, Loader2, Plus, Trash2, Youtube, FileText } from "lucide-react";
 import supabase from "../../../lib/supabase";
 
 const STORAGE_BUCKET = "resources";
@@ -19,7 +19,12 @@ const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 
 const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const [resources, setResources] = useState([]);
+  const [mode, setMode] = useState("file"); // "file" | "link"
   const [selectedFile, setSelectedFile] = useState(null);
+  const [linkTitle, setLinkTitle] = useState("");
+  const [linkUrl, setLinkUrl] = useState("");
+  const [linkKind, setLinkKind] = useState("link"); // "link" | "youtube" | "document"
+
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
@@ -31,7 +36,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
       setIsLoading(true);
       const { data, error: fetchError } = await supabase
         .from("session_resources")
-        .select("id, session_id, user_id, title, kind, file_path, url, mime_type, source, created_at")
+        .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, source, created_at")
         .eq("session_id", studyId)
         .eq("user_id", userId)
         .order("created_at", { ascending: false });
@@ -62,7 +67,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     };
   }, [studyId, userId]);
 
-  const saveResource = async (event) => {
+  const saveFileUpload = async (event) => {
     event.preventDefault();
     if (!studyId) {
       setError("Active study session required to upload resources.");
@@ -120,7 +125,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
         mime_type: mimeType,
         source: "user",
       })
-      .select("id, session_id, user_id, title, kind, file_path, url, mime_type, source, created_at")
+      .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, source, created_at")
       .single();
 
     if (insertError) {
@@ -139,6 +144,71 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
       setResources((current) => [data, ...current]);
       setSelectedFile(null);
       event.target.reset();
+    }
+    setIsSaving(false);
+  };
+
+  const saveLinkResource = async (event) => {
+    event.preventDefault();
+    if (!studyId) {
+      setError("Active study session required to attach links.");
+      return;
+    }
+    if (!linkTitle.trim() || !linkUrl.trim()) {
+      setError("Please provide a title and URL for the link.");
+      return;
+    }
+
+    setIsSaving(true);
+    setError("");
+
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user } } = await supabase.auth.getUser();
+      activeUserId = user?.id;
+    }
+
+    if (!activeUserId) {
+      setError("User session invalid.");
+      setIsSaving(false);
+      return;
+    }
+
+    let detectedKind = linkKind;
+    if (linkUrl.includes("youtube.com") || linkUrl.includes("youtu.be")) {
+      detectedKind = "youtube";
+    }
+
+    const { data, error: insertError } = await supabase
+      .from("session_resources")
+      .insert({
+        session_id: studyId,
+        user_id: activeUserId,
+        title: linkTitle.trim(),
+        kind: detectedKind,
+        file_path: null,
+        url: linkUrl.trim(),
+        mime_type: null,
+        source: "user",
+      })
+      .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, source, created_at")
+      .single();
+
+    if (insertError) {
+      setError(`Failed to save link: ${insertError.message}`);
+    } else {
+      if (onTimelineEvent && data) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "resource",
+          refId: String(data.id),
+          title: data.title || "Link attached",
+          timestamp: new Date().toISOString(),
+        });
+      }
+      setResources((current) => [data, ...current]);
+      setLinkTitle("");
+      setLinkUrl("");
     }
     setIsSaving(false);
   };
@@ -178,61 +248,160 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     }
   };
 
+  const renderExtractionBadge = (status) => {
+    if (!status) return null;
+    const badgeStyles = {
+      pending: "bg-amber-100 text-amber-800 border-amber-200",
+      done: "bg-emerald-100 text-emerald-800 border-emerald-200",
+      failed: "bg-rose-100 text-rose-800 border-rose-200",
+      unsupported: "bg-slate-100 text-slate-700 border-slate-200",
+    }[status] || "bg-slate-100 text-slate-700 border-slate-200";
+
+    return (
+      <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyles}`}>
+        {status}
+      </span>
+    );
+  };
+
+  const renderKindIcon = (kind) => {
+    if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600" />;
+    if (kind === "document") return <FileText className="h-4 w-4 text-blue-600" />;
+    if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600" />;
+    return <FileUp className="h-4 w-4 text-emerald-600" />;
+  };
+
   return (
     <div className="space-y-5">
-      <form onSubmit={saveResource} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center">
-        <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-500">
-          <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
-          <span className="truncate">{selectedFile?.name || "Choose a file to attach (PDF, images, txt, md, csv - max 10MB)"}</span>
-          <input
-            type="file"
-            accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv"
-            onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
-            className="sr-only"
-            disabled={!studyId}
-          />
-        </label>
+      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
-          type="submit"
-          disabled={!selectedFile || isSaving || !studyId}
-          className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600"}`}
+          type="button"
+          onClick={() => setMode("file")}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+            mode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
         >
-          {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} Upload
+          Upload File
         </button>
-      </form>
+        <button
+          type="button"
+          onClick={() => setMode("link")}
+          className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+            mode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+          }`}
+        >
+          Add Link / URL
+        </button>
+      </div>
+
+      {mode === "file" ? (
+        <form onSubmit={saveFileUpload} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center">
+          <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-500">
+            <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
+            <span className="truncate">{selectedFile?.name || "Choose a file to attach (PDF, images, txt, md, csv - max 10MB)"}</span>
+            <input
+              type="file"
+              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv"
+              onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
+              className="sr-only"
+              disabled={!studyId}
+            />
+          </label>
+          <button
+            type="submit"
+            disabled={!selectedFile || isSaving || !studyId}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+          >
+            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} Upload File
+          </button>
+        </form>
+      ) : (
+        <form onSubmit={saveLinkResource} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+          <div className="grid gap-3 sm:grid-cols-3">
+            <input
+              type="text"
+              value={linkTitle}
+              onChange={(e) => setLinkTitle(e.target.value)}
+              placeholder="Resource Title (e.g. Lecture Video)"
+              className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none sm:col-span-1"
+              required
+              disabled={!studyId}
+            />
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://..."
+              className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none sm:col-span-2"
+              required
+              disabled={!studyId}
+            />
+          </div>
+          <div className="flex items-center justify-between gap-3">
+            <select
+              value={linkKind}
+              onChange={(e) => setLinkKind(e.target.value)}
+              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+              disabled={!studyId}
+            >
+              <option value="link">Web Link</option>
+              <option value="youtube">YouTube Video</option>
+              <option value="document">Online Document</option>
+            </select>
+            <button
+              type="submit"
+              disabled={!linkTitle.trim() || !linkUrl.trim() || isSaving || !studyId}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+            >
+              {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Attach Link
+            </button>
+          </div>
+        </form>
+      )}
+
       {error && <p className="text-sm text-red-600">{error}</p>}
       {isLoading ? (
         <p className="text-sm text-slate-500">Loading resources...</p>
       ) : resources.length === 0 ? (
         <p className="text-sm text-slate-500">No resources attached yet.</p>
       ) : (
-        resources.map((resource) => (
-          <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 p-4">
-            <div className="min-w-0">
-              <p className="truncate font-semibold text-slate-800">{resource.title}</p>
-              <p className="mt-1 text-xs text-slate-400">{resource.mime_type || resource.kind}</p>
-            </div>
-            <div className="flex shrink-0 items-center gap-3">
-              <button
-                type="button"
-                onClick={() => openResource(resource)}
-                title="Open resource"
-                className={`rounded-md p-2 ${theme?.accentText || "text-indigo-600"}`}
-              >
-                <ExternalLink className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={() => removeResource(resource)}
-                disabled={deletingId === resource.id}
-                title="Delete resource"
-                className="rounded-md p-2 text-red-600 disabled:opacity-50"
-              >
-                {deletingId === resource.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-              </button>
-            </div>
-          </article>
-        ))
+        <div className="space-y-3">
+          {resources.map((resource) => (
+            <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+              <div className="min-w-0 flex items-center gap-3">
+                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
+                  {renderKindIcon(resource.kind)}
+                </div>
+                <div className="min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="truncate font-semibold text-slate-800 text-sm">{resource.title}</p>
+                    {renderExtractionBadge(resource.extraction_status)}
+                  </div>
+                  <p className="mt-0.5 text-xs text-slate-400 capitalize">{resource.mime_type || resource.kind}</p>
+                </div>
+              </div>
+              <div className="flex shrink-0 items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => openResource(resource)}
+                  title="Open resource"
+                  className={`rounded-md p-2 hover:bg-slate-50 transition ${theme?.accentText || "text-indigo-600"}`}
+                >
+                  <ExternalLink className="h-4 w-4" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => removeResource(resource)}
+                  disabled={deletingId === resource.id}
+                  title="Delete resource"
+                  className="rounded-md p-2 text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                >
+                  {deletingId === resource.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                </button>
+              </div>
+            </article>
+          ))}
+        </div>
       )}
     </div>
   );

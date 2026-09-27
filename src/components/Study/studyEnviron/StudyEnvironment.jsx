@@ -14,8 +14,7 @@ import {
   RotateCcw,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
-import { updateStreakForActivity } from "../../../lib/streaks";
-import { awardUserRewards } from "../../../lib/gamification";
+import { getUserTimeZone } from "../../../lib/streaks";
 import { useAITutor } from "../../../app/AITutorContext";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
@@ -44,6 +43,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const [userId, setUserId] = useState(null);
   const [sessionComplete, setSessionComplete] = useState(false);
   const [timeline, setTimeline] = useState([]);
+  const [completionError, setCompletionError] = useState("");
 
   const handleTimelineEvent = (eventItem) => {
     if (!eventItem) return;
@@ -199,72 +199,65 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     return () => window.clearInterval(timer);
   }, [isStudying, timeLeft]);
 
+  // Session completion: one atomic RPC call handles history, streak, rewards,
+  // pomodoro logging, and deleting the session row. No client-side delay, no
+  // partial-failure window, and materials attached to this session (notes,
+  // flashcards, resources, quizzes) survive because their FK now detaches
+  // (ON DELETE SET NULL) instead of cascading.
   useEffect(() => {
     if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
     pomodoroRecorded.current = true;
     sendTutorEvent("timer_ended");
-    
+
     const completeSession = async () => {
       let activeUserId = userId;
       if (!activeUserId) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
+        const {
+          data: { user: authUser },
+        } = await supabase.auth.getUser();
         activeUserId = authUser?.id || null;
       }
 
-      if (activeUserId) {
-        const historyEntry = {
-          id: crypto.randomUUID(),
-          user_id: activeUserId,
-          subject: session.Subject || session.subject || "Untitled subject",
-          topic: session.Topic || session.topic || "No topic provided",
-          duration_minutes: Math.round(durationSeconds / 60),
-          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
-          completed_at: new Date().toISOString(),
-          status: "completed",
-          xp_earned: 50,
-          timeline: timeline,
-        };
+      if (!activeUserId) return;
 
-        // Always update streak, award rewards, and save history entry
-        try {
-          await Promise.all([
-            updateStreakForActivity(activeUserId),
-            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
-            supabase.from("study_history").insert(historyEntry),
-          ]);
-        } catch (err) {
-          console.error("Error updating streak, rewards, or study history:", err);
-        }
+      const { data, error: completeErr } = await supabase.rpc("complete_study_session", {
+        p_session_id: session.id,
+        p_xp: 50,
+        p_gems: 5,
+        p_timeline: timeline,
+        p_user_timezone: getUserTimeZone(),
+        p_cutoff_hour: 3,
+      });
 
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
-        }
-
-        // Save pomodoro record
-        const { error: pomodoroError } = await supabase
-          .from("study_pomodoros")
-          .insert({ session_id: session.id, user_id: activeUserId });
-
-        if (pomodoroError) {
-          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
-        }
+      if (completeErr) {
+        console.error("Session completion error:", completeErr);
+        // Leave pomodoroRecorded true so this doesn't re-fire; the Study row is
+        // untouched, so the user can reopen the session and finish it again.
+        setCompletionError("We couldn't save this session. Please try finishing it again.");
+        return;
       }
 
-      // Delete the finished study session from backend
-      setTimeout(async () => {
-        const { error: deleteError } = await supabase
-          .from("Study")
-          .delete()
-          .eq("id", session.id);
+      const result = Array.isArray(data) ? data[0] : data;
 
-        if (deleteError) {
-          console.error("Session delete error on completion:", deleteError);
-        }
-      }, 2000);
+      window.dispatchEvent(
+        new CustomEvent("hyper-tutor-session-completed", {
+          detail: {
+            id: result?.history_id,
+            session_id: session.id,
+            subject: session.Subject || session.subject || "Untitled subject",
+            topic: session.Topic || session.topic || "No topic provided",
+            duration_minutes: Math.round(durationSeconds / 60),
+            completed_at: new Date().toISOString(),
+            status: "completed",
+            xp_earned: 50,
+            timeline,
+          },
+        })
+      );
     };
-    
+
     completeSession();
-  }, [timeLeft, userId, session]);
+  }, [timeLeft, userId, session, durationSeconds, timeline, sendTutorEvent]);
 
   useEffect(() => {
     if (timeLeft === 0) setSessionComplete(true);
@@ -306,9 +299,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
           <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
-          <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
-            <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
-          </div>
+          {completionError ? (
+            <div className="mt-4 rounded-xl bg-red-50 px-5 py-3 border border-red-200">
+              <span className="text-sm font-semibold text-red-700">{completionError}</span>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
+              <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
+            </div>
+          )}
           <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>

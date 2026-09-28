@@ -89,11 +89,19 @@ export const NOTIFICATION_STORAGE_KEY = "hyper-tutor-notifications-v1";
 export function getStoredNotifications() {
   try {
     const raw = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.error(`Invalid structure in ${NOTIFICATION_STORAGE_KEY}, clearing key`);
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+      return [];
+    }
     return parsed;
   } catch (error) {
-    console.warn("Could not read notifications from local storage:", error);
+    console.error("Could not read notifications from local storage, clearing key:", error);
+    try {
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+    } catch (e) {}
     return [];
   }
 }
@@ -126,7 +134,7 @@ export function writeNotification(notification) {
 }
 
 export function recordNotification(notification, preferences = null) {
-  const mergedPreferences = normalizeNotificationPreferences(preferences || JSON.parse(localStorage.getItem("hyper-tutor-notification-preferences") || "null"));
+  const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
   const notificationRecord = writeNotification(notification);
 
@@ -254,8 +262,19 @@ export function persistNotificationPreferences(preferences) {
 export function getNotificationPreferences() {
   try {
     const raw = localStorage.getItem("hyper-tutor-notification-preferences");
-    return normalizeNotificationPreferences(raw ? JSON.parse(raw) : defaultNotificationPreferences);
+    if (!raw) return normalizeNotificationPreferences(defaultNotificationPreferences);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      console.error("Invalid structure in hyper-tutor-notification-preferences, clearing key");
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+      return normalizeNotificationPreferences(defaultNotificationPreferences);
+    }
+    return normalizeNotificationPreferences(parsed);
   } catch (error) {
+    console.error("Failed to parse hyper-tutor-notification-preferences from localStorage, clearing key:", error);
+    try {
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+    } catch (e) {}
     return normalizeNotificationPreferences(defaultNotificationPreferences);
   }
 }

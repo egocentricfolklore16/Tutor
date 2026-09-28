@@ -9,7 +9,7 @@ import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";
 import NotFound from "./components/common/NotFound.jsx";
 import supabase from "./lib/supabase.js";
-import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 import Library from "./components/Library/Library.jsx";
@@ -40,11 +40,21 @@ function App() {
 
     window.addEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
 
+    // Watchdog timer to prevent indefinite loading/blank screen if promises hang
+    const watchdogTimer = setTimeout(() => {
+      if (mounted) {
+        console.error("Auth bootstrap watchdog timeout triggered after 6s. Forcing loading state resolution.");
+        setLoading(false);
+        setOnboardingLoading(false);
+      }
+    }, 6000);
+
     const bootstrapAuth = async () => {
       try {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
+          console.error("Error fetching auth session during bootstrap:", error);
           const errMsg = error.message || "";
           const errCode = error.code || "";
           if (
@@ -53,11 +63,12 @@ function App() {
             errCode === "session_not_found" ||
             errCode === "invalid_grant"
           ) {
-            await supabase.auth.signOut({ scope: "local" });
+            await supabase.auth.signOut({ scope: "local" }).catch((soErr) => {
+              console.error("Error signing out locally on invalid session:", soErr);
+            });
             if (!mounted) return;
             setSession(null);
             setNeedsOnboarding(false);
-            setLoading(false);
             return;
           }
         }
@@ -68,22 +79,32 @@ function App() {
 
         if (currentSession?.user) {
           setOnboardingLoading(true);
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
+          } catch (err) {
+            console.error("Error reading hyper-tutor-onboarding-complete from sessionStorage:", err);
+          }
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("onboarding_completed")
             .eq("user_id", currentSession.user.id)
             .maybeSingle();
 
+          if (profileError) {
+            console.error("Error checking onboarding profile during bootstrap:", profileError);
+          }
+
           if (mounted) {
             setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
-            setOnboardingLoading(false);
           }
         }
       } catch (err) {
-        // Quietly catch errors on bootstrap
+        console.error("Unhandled error during auth bootstrap:", err);
       } finally {
+        clearTimeout(watchdogTimer);
         if (mounted) {
+          setOnboardingLoading(false);
           setLoading(false);
         }
       }
@@ -110,7 +131,12 @@ function App() {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(nextSession);
         if (nextSession?.user) {
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
+          } catch (err) {
+            console.error("Error reading hyper-tutor-onboarding-complete from sessionStorage:", err);
+          }
           const { data: profile, error: profileError } = await supabase
             .from("profiles")
             .select("onboarding_completed")

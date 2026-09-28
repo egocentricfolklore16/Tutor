@@ -7,13 +7,24 @@ const ProfileContext = createContext(null);
 export function ProfileProvider({ user, children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("hyper-tutor-dark-mode") === "true");
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem("hyper-tutor-dark-mode") === "true";
+    } catch (err) {
+      console.error("Error reading hyper-tutor-dark-mode from localStorage:", err);
+      return false;
+    }
+  });
   const [streak, setStreak] = useState(null);
   const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
+    try {
+      localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
+    } catch (err) {
+      console.error("Error setting hyper-tutor-dark-mode in localStorage:", err);
+    }
   }, [darkMode]);
 
   const touchLastSeenThrottled = async () => {

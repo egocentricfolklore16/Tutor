@@ -7,13 +7,30 @@ const ProfileContext = createContext(null);
 export function ProfileProvider({ user, children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("hyper-tutor-dark-mode") === "true");
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      const stored = localStorage.getItem("hyper-tutor-dark-mode");
+      if (stored !== null && stored !== "true" && stored !== "false") {
+        console.error("[ProfileContext] Invalid dark mode value in localStorage, clearing key.");
+        localStorage.removeItem("hyper-tutor-dark-mode");
+        return false;
+      }
+      return stored === "true";
+    } catch (err) {
+      console.error("[ProfileContext] Error reading hyper-tutor-dark-mode from localStorage:", err);
+      return false;
+    }
+  });
   const [streak, setStreak] = useState(null);
   const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
+    try {
+      localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
+    } catch (err) {
+      console.error("[ProfileContext] Error setting hyper-tutor-dark-mode in localStorage:", err);
+    }
   }, [darkMode]);
 
   const touchLastSeenThrottled = async () => {
@@ -35,42 +52,47 @@ export function ProfileProvider({ user, children }) {
       setIsLoading(false);
       return;
     }
-    const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
-    if (error) console.error("Unable to load learning profile:", error);
-    let nextProfile = data || null;
-    if (nextProfile?.user_img) {
-      const { data: signedImage } = await supabase.storage.from("user-images").createSignedUrl(nextProfile.user_img, 3600);
-      nextProfile = { ...nextProfile, avatar_url: signedImage?.signedUrl || "" };
-    }
-    setProfile(nextProfile);
+    try {
+      const { data, error } = await supabase.from("profiles").select("*").eq("user_id", user.id).maybeSingle();
+      if (error) console.error("Unable to load learning profile:", error);
+      let nextProfile = data || null;
+      if (nextProfile?.user_img) {
+        const { data: signedImage } = await supabase.storage.from("user-images").createSignedUrl(nextProfile.user_img, 3600);
+        nextProfile = { ...nextProfile, avatar_url: signedImage?.signedUrl || "" };
+      }
+      setProfile(nextProfile);
 
-    // Sync timezone if different
-    const browserTz = getUserTimeZone();
-    if (nextProfile && nextProfile.timezone !== browserTz) {
-      supabase.from("profiles").update({ timezone: browserTz }).eq("user_id", user.id).then(({ error: tzErr }) => {
-        if (tzErr) console.warn("Unable to sync timezone:", tzErr);
-      });
-    }
+      // Sync timezone if different
+      const browserTz = getUserTimeZone();
+      if (nextProfile && nextProfile.timezone !== browserTz) {
+        supabase.from("profiles").update({ timezone: browserTz }).eq("user_id", user.id).then(({ error: tzErr }) => {
+          if (tzErr) console.warn("Unable to sync timezone:", tzErr);
+        });
+      }
 
-    // Touch last seen throttled
-    touchLastSeenThrottled();
+      // Touch last seen throttled
+      touchLastSeenThrottled();
 
-    const { data: streakData } = await getUserStreak(user.id);
-    if (streakData) {
-      const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
-      const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
-      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity });
-    } else {
-      setStreak(null);
+      const { data: streakData } = await getUserStreak(user.id);
+      if (streakData) {
+        const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
+        const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
+        setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity });
+      } else {
+        setStreak(null);
+      }
+
+      // Check for streak slips
+      if (streakData) {
+        await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
+      }
+
+      setDarkMode(Boolean(nextProfile?.dark_mode));
+    } catch (err) {
+      console.error("[ProfileContext] Unhandled error while loading profile:", err);
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Check for streak slips
-    if (streakData) {
-      await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
-    }
-    
-    setDarkMode(Boolean(nextProfile?.dark_mode));
-    setIsLoading(false);
   };
 
   useEffect(() => {

@@ -89,17 +89,31 @@ export const NOTIFICATION_STORAGE_KEY = "hyper-tutor-notifications-v1";
 export function getStoredNotifications() {
   try {
     const raw = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.error("[Notifications] Invalid shape in localStorage for NOTIFICATION_STORAGE_KEY, clearing key.");
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+      return [];
+    }
     return parsed;
   } catch (error) {
-    console.warn("Could not read notifications from local storage:", error);
+    console.error("[Notifications] Could not read notifications from local storage:", error);
+    try {
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+    } catch (e) {
+      console.error("[Notifications] Error clearing NOTIFICATION_STORAGE_KEY:", e);
+    }
     return [];
   }
 }
 
 export function saveStoredNotifications(notifications) {
-  localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifications));
+  try {
+    localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify(notifications));
+  } catch (err) {
+    console.error("[Notifications] Error saving notifications to localStorage:", err);
+  }
 
   if (typeof window !== "undefined") {
     window.dispatchEvent(new CustomEvent("hyper-tutor-notifications-updated", {
@@ -126,7 +140,23 @@ export function writeNotification(notification) {
 }
 
 export function recordNotification(notification, preferences = null) {
-  const mergedPreferences = normalizeNotificationPreferences(preferences || JSON.parse(localStorage.getItem("hyper-tutor-notification-preferences") || "null"));
+  let userPrefs = preferences;
+  if (!userPrefs) {
+    try {
+      const rawPref = localStorage.getItem("hyper-tutor-notification-preferences");
+      userPrefs = rawPref ? JSON.parse(rawPref) : null;
+    } catch (err) {
+      console.error("[Notifications] Error reading notification preferences from localStorage:", err);
+      try {
+        localStorage.removeItem("hyper-tutor-notification-preferences");
+      } catch (e) {
+        console.error("[Notifications] Error clearing notification preferences key:", e);
+      }
+      userPrefs = null;
+    }
+  }
+
+  const mergedPreferences = normalizeNotificationPreferences(userPrefs);
   const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
   const notificationRecord = writeNotification(notification);
 
@@ -247,15 +277,32 @@ export async function requestBrowserNotificationPermission() {
 
 export function persistNotificationPreferences(preferences) {
   const next = normalizeNotificationPreferences(preferences);
-  localStorage.setItem("hyper-tutor-notification-preferences", JSON.stringify(next));
+  try {
+    localStorage.setItem("hyper-tutor-notification-preferences", JSON.stringify(next));
+  } catch (err) {
+    console.error("[Notifications] Error saving notification preferences to localStorage:", err);
+  }
   return next;
 }
 
 export function getNotificationPreferences() {
   try {
     const raw = localStorage.getItem("hyper-tutor-notification-preferences");
-    return normalizeNotificationPreferences(raw ? JSON.parse(raw) : defaultNotificationPreferences);
+    if (!raw) return normalizeNotificationPreferences(defaultNotificationPreferences);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      console.error("[Notifications] Invalid preferences shape in localStorage, clearing key.");
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+      return normalizeNotificationPreferences(defaultNotificationPreferences);
+    }
+    return normalizeNotificationPreferences(parsed);
   } catch (error) {
+    console.error("[Notifications] Failed to parse notification preferences from localStorage:", error);
+    try {
+      localStorage.removeItem("hyper-tutor-notification-preferences");
+    } catch (e) {
+      console.error("[Notifications] Error clearing notification preferences key:", e);
+    }
     return normalizeNotificationPreferences(defaultNotificationPreferences);
   }
 }

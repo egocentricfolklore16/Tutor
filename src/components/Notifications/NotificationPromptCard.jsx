@@ -24,14 +24,20 @@ export default function NotificationPromptCard({ userId, onDismiss }) {
     try {
       const lastDismissed = localStorage.getItem(DISMISSAL_KEY);
       if (lastDismissed) {
-        const timePassed = Date.now() - Number(lastDismissed);
-        if (timePassed < SEVEN_DAYS_MS) {
-          setVisible(false);
-          return;
+        const parsedNum = Number(lastDismissed);
+        if (Number.isNaN(parsedNum) || parsedNum <= 0) {
+          console.error(`[NotificationPromptCard] Invalid dismissal timestamp in localStorage for key "${DISMISSAL_KEY}", clearing key.`);
+          localStorage.removeItem(DISMISSAL_KEY);
+        } else {
+          const timePassed = Date.now() - parsedNum;
+          if (timePassed < SEVEN_DAYS_MS) {
+            setVisible(false);
+            return;
+          }
         }
       }
     } catch (e) {
-      // Ignore storage errors
+      console.error("[NotificationPromptCard] Storage error reading DISMISSAL_KEY:", e);
     }
 
     setVisible(true);
@@ -41,7 +47,7 @@ export default function NotificationPromptCard({ userId, onDismiss }) {
     try {
       localStorage.setItem(DISMISSAL_KEY, String(Date.now()));
     } catch (e) {
-      // Ignore storage errors
+      console.error("[NotificationPromptCard] Storage error setting DISMISSAL_KEY:", e);
     }
     setVisible(false);
     onDismiss?.();

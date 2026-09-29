@@ -128,7 +128,12 @@ function Onboarding({ session }) {
       return;
     }
 
-    sessionStorage.setItem(`hyper-tutor-onboarding-complete:${user.id}`, "true");
+    try {
+      sessionStorage.setItem(`hyper-tutor-onboarding-complete:${user.id}`, "true");
+    } catch (e) {
+      console.error(`[Onboarding] Error setting sessionStorage key "hyper-tutor-onboarding-complete:${user.id}":`, e);
+    }
+
     window.dispatchEvent(new CustomEvent("hyper-tutor-onboarding-completed", { detail: { userId: user.id } }));
     navigate("/Dashboard", { replace: true });
   };

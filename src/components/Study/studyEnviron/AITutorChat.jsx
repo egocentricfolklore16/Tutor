@@ -365,6 +365,8 @@ const AITutorChat = ({
               type="button"
               onClick={onSendMessage}
               disabled={!currentMessage.trim() || isTyping}
+              aria-label="Send message"
+              title="Send message"
               className={`rounded-lg p-2 text-white transition disabled:cursor-not-allowed disabled:opacity-40 ${theme?.accentButton || "bg-indigo-600"}`}
             >
               <Send className="h-4 w-4" />

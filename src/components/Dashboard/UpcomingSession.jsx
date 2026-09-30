@@ -3,6 +3,7 @@ import {
   BookOpen,
   Calendar,
   Play,
+  Pause,
   MoreHorizontal,
   AlertCircle,
   Loader2,
@@ -21,7 +22,6 @@ const UpcomingSessions = () => {
         setIsLoading(true);
         setError("");
 
-        // Get the current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -31,30 +31,27 @@ const UpcomingSessions = () => {
           return;
         }
 
-        // Get current date and time for comparison
         const now = new Date();
-        const today = now.toISOString().split("T")[0]; // YYYY-MM-DD format
-        const currentTime = now.toTimeString().slice(0, 5); // HH:MM format
+        const today = now.toISOString().split("T")[0];
+        const currentTime = now.toTimeString().slice(0, 5);
 
-        // Fetch upcoming sessions from Supabase
         const { data, error } = await supabase
           .from("Study")
           .select("*")
           .eq("user_id", user.id)
           .neq("session_status", "completed")
-          .eq("muted", false) // Don't show muted sessions
+          .eq("muted", false)
           .or(
             `Date.gt.${today},and(Date.eq.${today},"Start".gt.${currentTime})`
-          ) // Future dates or today with future times
+          )
           .order("Date", { ascending: true })
           .order("Start", { ascending: true })
-          .limit(3); // Only get the 3 most upcoming
+          .limit(3);
 
         if (error) {
           setError("Failed to load upcoming sessions");
           console.error("Supabase fetch error:", error);
         } else {
-          // Transform the data to match component expectations
           const transformedSessions = data.map((session) => {
             const sessionDate = new Date(session.Date);
 
@@ -63,7 +60,6 @@ const UpcomingSessions = () => {
               sessionDate.toDateString() ===
               new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
 
-            // Format time display
             let timeDisplay;
             if (isToday) {
               timeDisplay = `Today at ${session.Start || "09:00"}`;
@@ -76,7 +72,6 @@ const UpcomingSessions = () => {
               })} at ${session.Start || "09:00"}`;
             }
 
-            // Determine priority based on Status
             let priority = "medium";
             const normalizedStatus = session.Status?.trim().toLowerCase();
             if (normalizedStatus === "very important") priority = "high";
@@ -87,10 +82,10 @@ const UpcomingSessions = () => {
               subject: session.Subject,
               topic: session.Topic,
               time: timeDisplay,
-              duration: `${session.Duration || 60} hour(s)`,
+              duration: `${session.Duration || 1} hour(s)`,
               type: "Study Session",
               priority: priority,
-              status: "scheduled",
+              status: session.session_status || "active",
               isOverdue: false,
               originalDate: session.Date,
               originalTime: session.Start,
@@ -148,6 +143,14 @@ const UpcomingSessions = () => {
         </span>
       );
     }
+    if (status === "paused") {
+      return (
+        <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
+          <Pause className="h-3 w-3" />
+          Paused
+        </span>
+      );
+    }
     return (
       <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
         Scheduled
@@ -156,7 +159,6 @@ const UpcomingSessions = () => {
   };
 
   const handleStartSession = (sessionId) => {
-    // Navigate to the study environment
     window.location.href = `/Study/${sessionId}`;
   };
 
@@ -217,63 +219,70 @@ const UpcomingSessions = () => {
         </div>
       ) : (
         <div className="space-y-3">
-          {sessions.map((session) => (
-            <div
-              key={session.id}
-              className={`border-l-4 rounded-r-lg p-4 transition-all hover:shadow-md ${getPriorityColor(
-                session.priority,
-                session.isOverdue
-              )}`}
-            >
-              <div className="flex items-start justify-between">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-2">
-                    <div className="flex items-center gap-2 text-gray-600">
-                      {getTypeIcon(session.type)}
+          {sessions.map((session) => {
+            const isPaused = session.status === "paused";
+            return (
+              <div
+                key={session.id}
+                className={`border-l-4 rounded-r-lg p-4 transition-all hover:shadow-md ${getPriorityColor(
+                  session.priority,
+                  session.isOverdue
+                )}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-2">
+                      <div className="flex items-center gap-2 text-gray-600">
+                        {getTypeIcon(session.type)}
+                      </div>
+                      {getStatusBadge(session.status, session.isOverdue)}
                     </div>
-                    {getStatusBadge(session.status, session.isOverdue)}
+
+                    <h3 className="font-semibold text-gray-900 mb-1">
+                      {session.subject}
+                    </h3>
+                    <p className="text-sm text-gray-600 mb-2 lg:w-fit">
+                      {session.topic}
+                    </p>
+
+                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                      <div className="flex items-center gap-1">
+                        <Clock className="h-3 w-3" />
+                        <span>{session.time}</span>
+                      </div>
+                      <div className="flex items-center gap-1">
+                        <span>{session.duration}</span>
+                      </div>
+                    </div>
                   </div>
 
-                  <h3 className="font-semibold text-gray-900 mb-1">
-                    {session.subject}
-                  </h3>
-                  <p className="text-sm text-gray-600 mb-2 lg:w-fit">
-                    {session.topic}
-                  </p>
-
-                  <div className="flex items-center gap-4 text-xs text-gray-500">
-                    <div className="flex items-center gap-1">
-                      <Clock className="h-3 w-3" />
-                      <span>{session.time}</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span>{session.duration}</span>
-                    </div>
+                  <div className="flex items-center gap-2 ml-4">
+                    {!session.isOverdue && (
+                      <button
+                        onClick={() => handleStartSession(session.id)}
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                          isPaused
+                            ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+                            : "bg-blue-600 text-white hover:bg-blue-700"
+                        }`}
+                      >
+                        <Play className="h-3 w-3 fill-current" />
+                        {isPaused ? "Resume" : "Start"}
+                      </button>
+                    )}
+                    {session.isOverdue && (
+                      <button className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+                        Reschedule
+                      </button>
+                    )}
+                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                      <MoreHorizontal className="h-4 w-4" />
+                    </button>
                   </div>
-                </div>
-
-                <div className="flex items-center gap-2 ml-4">
-                  {!session.isOverdue && (
-                    <button
-                      onClick={() => handleStartSession(session.id)}
-                      className="flex items-center gap-1 px-3 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
-                    >
-                      <Play className="h-3 w-3" />
-                      Start
-                    </button>
-                  )}
-                  {session.isOverdue && (
-                    <button className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
-                      Reschedule
-                    </button>
-                  )}
-                  <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
-                    <MoreHorizontal className="h-4 w-4" />
-                  </button>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

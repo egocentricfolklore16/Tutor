@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Layout/Sidebar";
 import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";

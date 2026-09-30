@@ -233,8 +233,11 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     <>
       {/* Fixed Toggle Button for Small Screens */}
       <button
+        type="button"
         onClick={toggleSidebar2}
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 ${
+        aria-label="Open navigation menu"
+        title="Open navigation menu"
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
           isOpen ? "hidden" : ""
         }`}
       >
@@ -276,24 +279,30 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               </Link>
             )}
           </div>
-          <svg
+          <button
+            type="button"
             onClick={toggleSidebar2}
-            className="cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300"
-            stroke="currentColor"
-            fill="currentColor"
-            strokeWidth="0"
-            viewBox="0 0 16 16"
-            height="1em"
-            width="1em"
-            xmlns="http://www.w3.org/2000/svg"
+            aria-label={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
+            title={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
+            className="p-1 rounded-lg text-black hover:bg-black/5 hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
           >
-            <path
-              fillRule="evenodd"
-              d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V3a2 2 0 00-2-2H2z"
-              clipRule="evenodd"
-            />
-            <path fillRule="evenodd" d="M4 14V2h1v12H4z" clipRule="evenodd" />
-          </svg>
+            <svg
+              stroke="currentColor"
+              fill="currentColor"
+              strokeWidth="0"
+              viewBox="0 0 16 16"
+              height="1em"
+              width="1em"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                fillRule="evenodd"
+                d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V3a2 2 0 00-2-2H2z"
+                clipRule="evenodd"
+              />
+              <path fillRule="evenodd" d="M4 14V2h1v12H4z" clipRule="evenodd" />
+            </svg>
+          </button>
         </div>
 
         {/* Menu Items */}
@@ -343,8 +352,11 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
 
           {/* New Project Button */}
           <button
+            type="button"
             onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
-            className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm"
+            aria-label="New study session"
+            title="New study session"
+            className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
           >
             {isOpen ? "+ New Study Session" : "+"}
           </button>
@@ -352,8 +364,9 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           <button
             type="button"
             onClick={handleLogout}
+            aria-label="Log out"
             title="Log out"
-            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700"
+            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             <LogOut size={15} />
             {isOpen && "Log out"}

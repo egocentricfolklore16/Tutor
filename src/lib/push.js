@@ -51,6 +51,7 @@ export async function registerServiceWorker() {
   if (!isPushSupported()) return null;
   try {
     const registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    registration.update().catch((err) => console.warn("SW update check failed:", err));
     await navigator.serviceWorker.ready;
     return registration;
   } catch (error) {
@@ -77,6 +78,7 @@ export async function enablePush(userId) {
   let registration;
   try {
     registration = await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+    registration.update().catch((err) => console.warn("SW update check failed:", err));
   } catch (err) {
     console.error("SW registration failed:", err);
     throw new Error("SW_NOT_ACTIVE");

@@ -7,7 +7,14 @@ const ProfileContext = createContext(null);
 export function ProfileProvider({ user, children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("hyper-tutor-dark-mode") === "true");
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem("hyper-tutor-dark-mode") === "true";
+    } catch (e) {
+      console.error("Error reading 'hyper-tutor-dark-mode' from localStorage:", e);
+      return false;
+    }
+  });
   const [streak, setStreak] = useState(null);
   const lastTouchTimeRef = useRef(0);
 

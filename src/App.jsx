@@ -9,7 +9,7 @@ import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";
 import NotFound from "./components/common/NotFound.jsx";
 import supabase from "./lib/supabase.js";
-import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 import Library from "./components/Library/Library.jsx";
@@ -20,6 +20,7 @@ import AuthCallback from "./components/Auth/callback/page.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
+import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -31,6 +32,15 @@ function App() {
 
   useEffect(() => {
     let mounted = true;
+
+    // Safety watchdog timer: force loading flags to false after 5 seconds if auth promises hang
+    const watchdogTimer = setTimeout(() => {
+      if (mounted && (loading || onboardingLoading)) {
+        console.error("Auth bootstrap or onboarding check timed out after 5000ms. Forcing loading resolution.");
+        setLoading(false);
+        setOnboardingLoading(false);
+      }
+    }, 5000);
 
     const handleOnboardingCompleted = (event) => {
       if (event.detail?.userId && session?.user?.id === event.detail.userId) {
@@ -45,6 +55,7 @@ function App() {
         const { data, error } = await supabase.auth.getSession();
 
         if (error) {
+          console.error("Error fetching session during auth bootstrap:", error);
           const errMsg = error.message || "";
           const errCode = error.code || "";
           if (
@@ -57,7 +68,6 @@ function App() {
             if (!mounted) return;
             setSession(null);
             setNeedsOnboarding(false);
-            setLoading(false);
             return;
           }
         }
@@ -68,20 +78,37 @@ function App() {
 
         if (currentSession?.user) {
           setOnboardingLoading(true);
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("user_id", currentSession.user.id)
-            .maybeSingle();
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
+          } catch (e) {
+            console.error("Error reading onboarding completion state from sessionStorage:", e);
+          }
 
-          if (mounted) {
-            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
-            setOnboardingLoading(false);
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", currentSession.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error("Error fetching user profile during auth bootstrap:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Failed to query user profile:", profileErr);
+          } finally {
+            if (mounted) {
+              setOnboardingLoading(false);
+            }
           }
         }
       } catch (err) {
-        // Quietly catch errors on bootstrap
+        console.error("Unhandled exception during auth bootstrap:", err);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -110,15 +137,28 @@ function App() {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(nextSession);
         if (nextSession?.user) {
-          const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
-          const { data: profile, error: profileError } = await supabase
-            .from("profiles")
-            .select("onboarding_completed")
-            .eq("user_id", nextSession.user.id)
-            .maybeSingle();
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
+          } catch (e) {
+            console.error("Error reading onboarding completion state from sessionStorage:", e);
+          }
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", nextSession.user.id)
+              .maybeSingle();
 
-          if (mounted) {
-            setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            if (profileError) {
+              console.error("Error fetching profile on auth state change:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Unhandled exception fetching profile on auth state change:", profileErr);
           }
         }
       }
@@ -126,12 +166,19 @@ function App() {
 
     return () => {
       mounted = false;
+      clearTimeout(watchdogTimer);
       subscription.unsubscribe();
       window.removeEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
     };
   }, []);
 
-  if (loading || onboardingLoading) return null;
+  if (loading || onboardingLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+        <LoadingCompanion message="Loading Hyper Tutor..." />
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>

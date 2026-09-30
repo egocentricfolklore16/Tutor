@@ -11,8 +11,28 @@ function FeedbackDialog({ open, onClose, onLogout }) {
   const submitFeedback = (event) => {
     event.preventDefault();
     const feedback = { reason, message: message.trim(), createdAt: new Date().toISOString() };
-    const existing = JSON.parse(localStorage.getItem("hyper-tutor-feedback") || "[]");
-    localStorage.setItem("hyper-tutor-feedback", JSON.stringify([feedback, ...existing].slice(0, 25)));
+    let existing = [];
+    const KEY = "hyper-tutor-feedback";
+    try {
+      const raw = localStorage.getItem(KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (Array.isArray(parsed)) {
+          existing = parsed;
+        } else {
+          console.error(`Invalid feedback history shape in localStorage key '${KEY}'. Clearing key.`);
+          localStorage.removeItem(KEY);
+        }
+      }
+    } catch (err) {
+      console.error(`Error parsing JSON from localStorage key '${KEY}':`, err);
+      try {
+        localStorage.removeItem(KEY);
+      } catch (e) {
+        // ignore
+      }
+    }
+    localStorage.setItem(KEY, JSON.stringify([feedback, ...existing].slice(0, 25)));
     setSubmitted(true);
   };
 

@@ -10,8 +10,12 @@ import {
   Zap,
   Heart,
 } from "lucide-react";
+import { useProfile } from "../../app/ProfileContext";
+import { getCollaborationInfo } from "../../lib/collaboration";
 
 const Community = () => {
+  const { profile } = useProfile();
+  const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
   const [email, setEmail] = useState("");
   const [isSubscribed, setIsSubscribed] = useState(false);
   const [timeLeft, setTimeLeft] = useState({
@@ -137,6 +141,14 @@ const Community = () => {
               experiences. Connect with peers, join study groups, and accelerate
               your academic success through the power of community.
             </p>
+
+            {/* Personalized Collaboration Interest Banner */}
+            <div className="mb-10 inline-flex flex-col sm:flex-row items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 px-5 py-3.5 text-center sm:text-left text-sm text-emerald-950 shadow-md">
+              <span className="rounded-full bg-emerald-200 px-3 py-1 text-xs font-bold uppercase tracking-wider text-emerald-900 shrink-0">
+                {collaborationInfo.badge}
+              </span>
+              <span className="font-medium">{collaborationInfo.description}</span>
+            </div>
             <div className="mb-10">
               <img
                 className="rounded-lg border border-gray-200 shadow-2xl"

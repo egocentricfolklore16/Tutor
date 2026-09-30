@@ -89,11 +89,21 @@ export const NOTIFICATION_STORAGE_KEY = "hyper-tutor-notifications-v1";
 export function getStoredNotifications() {
   try {
     const raw = localStorage.getItem(NOTIFICATION_STORAGE_KEY);
-    const parsed = raw ? JSON.parse(raw) : [];
-    if (!Array.isArray(parsed)) return [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.error(`Invalid notifications shape in localStorage key '${NOTIFICATION_STORAGE_KEY}'. Clearing key.`);
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+      return [];
+    }
     return parsed;
   } catch (error) {
-    console.warn("Could not read notifications from local storage:", error);
+    console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
+    try {
+      localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
+    } catch (e) {
+      // ignore
+    }
     return [];
   }
 }
@@ -126,7 +136,7 @@ export function writeNotification(notification) {
 }
 
 export function recordNotification(notification, preferences = null) {
-  const mergedPreferences = normalizeNotificationPreferences(preferences || JSON.parse(localStorage.getItem("hyper-tutor-notification-preferences") || "null"));
+  const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
   const notificationRecord = writeNotification(notification);
 
@@ -252,10 +262,24 @@ export function persistNotificationPreferences(preferences) {
 }
 
 export function getNotificationPreferences() {
+  const KEY = "hyper-tutor-notification-preferences";
   try {
-    const raw = localStorage.getItem("hyper-tutor-notification-preferences");
-    return normalizeNotificationPreferences(raw ? JSON.parse(raw) : defaultNotificationPreferences);
+    const raw = localStorage.getItem(KEY);
+    if (!raw) return normalizeNotificationPreferences(defaultNotificationPreferences);
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== "object") {
+      console.error(`Invalid notification preferences shape in localStorage key '${KEY}'. Clearing key.`);
+      localStorage.removeItem(KEY);
+      return normalizeNotificationPreferences(defaultNotificationPreferences);
+    }
+    return normalizeNotificationPreferences(parsed);
   } catch (error) {
+    console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
+    try {
+      localStorage.removeItem(KEY);
+    } catch (e) {
+      // ignore
+    }
     return normalizeNotificationPreferences(defaultNotificationPreferences);
   }
 }

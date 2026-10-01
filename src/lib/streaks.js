@@ -1,5 +1,5 @@
-import supabase from "./supabase";
-import { getActivityDate, getDisplayStreak } from "./streaksCore";
+import supabase from "./supabase.js";
+import { getActivityDate, getDisplayStreak } from "./streaksCore.js";
 
 export { getActivityDate, getDisplayStreak };
 

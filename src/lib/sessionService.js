@@ -1,5 +1,5 @@
-import supabase from "./supabase";
-import { getUserTimeZone } from "./streaks";
+import supabase from "./supabase.js";
+import { getUserTimeZone } from "./streaks.js";
 
 /**
  * Single source of truth for study session lifecycle operations:
@@ -150,19 +150,21 @@ export const completeSession = async ({ id, userId, durationSeconds = 0, timelin
 
     const result = Array.isArray(data) ? data[0] : data;
 
-    window.dispatchEvent(
-      new CustomEvent("hyper-tutor-session-completed", {
-        detail: {
-          id: result?.history_id,
-          session_id: id,
-          duration_minutes: Math.round(durationSeconds / 60),
-          completed_at: new Date().toISOString(),
-          status: "completed",
-          xp_earned: xp,
-          timeline,
-        },
-      })
-    );
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(
+        new CustomEvent("hyper-tutor-session-completed", {
+          detail: {
+            id: result?.history_id,
+            session_id: id,
+            duration_minutes: Math.round(durationSeconds / 60),
+            completed_at: new Date().toISOString(),
+            status: "completed",
+            xp_earned: xp,
+            timeline,
+          },
+        })
+      );
+    }
 
     return { data: result, error: null };
   } catch (err) {
@@ -175,31 +177,8 @@ export const deleteSession = async ({ id }) => {
   if (!id) return { error: new Error("Missing session ID") };
 
   try {
-    // 1. Delete storage resource files if any
-    const { data: resourceFiles } = await supabase
-      .from("session_resources")
-      .select("file_path")
-      .eq("session_id", id)
-      .eq("kind", "file");
-
-    if (Array.isArray(resourceFiles) && resourceFiles.length > 0) {
-      const paths = resourceFiles.map((r) => r.file_path).filter(Boolean);
-      if (paths.length > 0) {
-        await supabase.storage.from("resources").remove(paths);
-      }
-    }
-
-    // 2. Explicitly delete child materials for cascade safety
-    await Promise.all([
-      supabase.from("session_notes").delete().eq("session_id", id),
-      supabase.from("session_flashcards").delete().eq("session_id", id),
-      supabase.from("session_resources").delete().eq("session_id", id),
-      supabase.from("session_quizzes").delete().eq("session_id", id),
-      supabase.from("notes").delete().eq("session_id", id),
-      supabase.from("flashcards").delete().eq("session_id", id),
-    ]);
-
-    // 3. Delete from Study
+    // Delete session from Study; DB FK constraints (ON DELETE SET NULL)
+    // automatically preserve child materials in the Library by clearing session_id.
     const { error } = await supabase.from("Study").delete().eq("id", id);
     if (error) return { error };
 

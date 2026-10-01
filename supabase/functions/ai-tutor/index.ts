@@ -143,6 +143,7 @@ Deno.serve(async (req: Request) => {
       resources,
       notes,
       clientState: body.client_state,
+      messages: body.messages,
     });
 
     const messagesToSend: Message[] = [{ role: "system", content: systemPrompt }];

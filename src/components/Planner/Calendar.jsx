@@ -1,11 +1,9 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Plus, Play, Pause } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 const Calendar = ({
   currentDate,
-  selectedDate,
-  setSelectedDate,
   sessions,
   handleDrop,
   setSelectedSession,
@@ -14,6 +12,33 @@ const Calendar = ({
 }) => {
   const navigate = useNavigate();
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
+
+  // BOLT OPTIMIZATION:
+  // Pre-index sessions by `${dateString}-${hour}` in O(N) time using useMemo.
+  // This eliminates doing array filtering (O(N) * 12 hours * 7 days = 84 * N array iterations)
+  // on every render in renderWeekView, reducing lookups to O(1) hash map access.
+  const sessionsByDateAndHour = useMemo(() => {
+    const map = new Map();
+    if (!Array.isArray(sessions)) return map;
+
+    for (const session of sessions) {
+      if (!session || !session.date) continue;
+      const dateKey = session.date.toDateString();
+      const deadline = isDeadline(session);
+      const startHour = deadline
+        ? 8
+        : parseInt((session.startTime || "09:00").split(":")[0], 10);
+
+      const key = `${dateKey}-${startHour}`;
+      let group = map.get(key);
+      if (!group) {
+        group = [];
+        map.set(key, group);
+      }
+      group.push(session);
+    }
+    return map;
+  }, [sessions]);
 
   const renderSessionItem = (session, compact = false) => {
     const deadline = isDeadline(session);
@@ -120,18 +145,14 @@ const Calendar = ({
         ))}
 
         {[...Array(12)].map((_, hour) => {
-          const time = `${(hour + 8).toString().padStart(2, "0")}:00`;
+          const slotHour = hour + 8;
+          const time = `${slotHour.toString().padStart(2, "0")}:00`;
           return (
             <React.Fragment key={time}>
               <div className="text-xs text-gray-500 py-2">{time}</div>
               {weekDays.map((day) => {
-                const daySession = sessions.filter(
-                  (session) =>
-                    session.date.toDateString() === day.toDateString() &&
-                    (isDeadline(session)
-                      ? hour === 0
-                      : parseInt((session?.startTime || "09:00").split(":")[0]) === hour + 8)
-                );
+                const key = `${day.toDateString()}-${slotHour}`;
+                const daySession = sessionsByDateAndHour.get(key) || [];
                 return (
                   <div
                     key={`${day.toDateString()}-${time}`}

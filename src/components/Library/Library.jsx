@@ -977,6 +977,7 @@ function Library({ session }) {
                             disabled={deletingId === note.id}
                             className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
                             title="Delete note"
+                            aria-label="Delete note"
                           >
                             {deletingId === note.id ? (
                               <Loader2 className="h-4 w-4 animate-spin" />
@@ -1025,6 +1026,7 @@ function Library({ session }) {
                               disabled={deletingId === card.id}
                               className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
                               title="Delete flashcard"
+                              aria-label="Delete flashcard"
                             >
                               {deletingId === card.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1098,6 +1100,7 @@ function Library({ session }) {
                               onClick={() => handleOpenResource(res)}
                               className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
                               title="Open resource"
+                              aria-label="Open resource"
                             >
                               <ExternalLink className="h-4 w-4" />
                             </button>
@@ -1106,6 +1109,7 @@ function Library({ session }) {
                               disabled={deletingId === res.id}
                               className="p-1.5 text-slate-400 hover:text-red-600 transition disabled:opacity-50"
                               title="Delete resource"
+                              aria-label="Delete resource"
                             >
                               {deletingId === res.id ? (
                                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -1177,6 +1181,7 @@ function Library({ session }) {
                                 disabled={deletingId === quiz.id}
                                 className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
                                 title="Delete quiz"
+                                aria-label="Delete quiz"
                               >
                                 {deletingId === quiz.id ? (
                                   <Loader2 className="h-4 w-4 animate-spin" />

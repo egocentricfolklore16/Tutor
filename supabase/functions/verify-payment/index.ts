@@ -26,6 +26,28 @@ Deno.serve(async (req) => {
       throw new Error("Missing Supabase configuration environment variables");
     }
 
+    // Security: Require authorization header and authenticate calling user
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ error: "Missing Authorization header" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+    const supabaseUserClient = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: userError } = await supabaseUserClient.auth.getUser();
+    if (userError || !user) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: Invalid or expired session token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const body = await req.json();
     const { reference } = body || {};
 
@@ -56,6 +78,21 @@ Deno.serve(async (req) => {
           error: paystackData.message || "Failed to verify transaction with Paystack",
         }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Security: Validate that authenticated user matches the payment transaction metadata
+    const metadata = paystackData?.data?.metadata || {};
+    const metadataUserId =
+      metadata.userId ||
+      metadata.user_id ||
+      paystackData?.data?.customer?.metadata?.userId ||
+      paystackData?.data?.customer?.metadata?.user_id;
+
+    if (metadataUserId && metadataUserId !== user.id) {
+      return new Response(
+        JSON.stringify({ error: "Forbidden: Payment user ID mismatch" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

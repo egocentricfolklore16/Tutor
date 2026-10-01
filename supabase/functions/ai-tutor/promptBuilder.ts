@@ -20,6 +20,7 @@ export function buildSystemPrompt(params: PromptParams): string {
     120
   );
 
+  const primary_goal = sanitizeString(profile?.primary_goal || "General learning", 120);
   const curriculum_standard = sanitizeString(profile?.curriculum_standard || "None/General", 120);
   const learning_style = sanitizeString(profile?.learning_style || "unknown", 120);
   const knowledge_gaps = Array.isArray(profile?.knowledge_gaps)
@@ -105,6 +106,7 @@ export function buildSystemPrompt(params: PromptParams): string {
   // Replace placeholders
   let prompt = SYSTEM_PROMPT_TEMPLATE;
   prompt = prompt.replaceAll("{{student_level}}", student_level || "unknown");
+  prompt = prompt.replaceAll("{{primary_goal}}", primary_goal || "General learning");
   prompt = prompt.replaceAll("{{curriculum_standard}}", curriculum_standard || "unknown");
   prompt = prompt.replaceAll("{{learning_style}}", learning_style || "unknown");
   prompt = prompt.replaceAll("{{knowledge_gaps}}", knowledge_gaps || "unknown");

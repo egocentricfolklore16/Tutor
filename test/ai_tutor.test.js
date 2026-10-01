@@ -20,6 +20,7 @@ test("PromptBuilder replaces all placeholders and leaves zero '{{'", () => {
     profile: {
       education_level: "High School",
       learner_type: "Visual",
+      primary_goal: "Prepare for an exam",
       curriculum_standard: "AP Biology",
       learning_style: "step-by-step",
       knowledge_gaps: ["Mitosis", "Osmosis"],
@@ -48,9 +49,17 @@ test("PromptBuilder replaces all placeholders and leaves zero '{{'", () => {
 
   assert.strictEqual(prompt.includes("{{"), false, "Prompt contains unreplaced '{{' placeholders");
   assert.strictEqual(prompt.includes("}}"), false, "Prompt contains unreplaced '}}' placeholders");
+  assert.strictEqual(prompt.includes("Prepare for an exam"), true, "Primary goal injected into prompt");
   assert.strictEqual(prompt.includes("AP Biology"), true);
   assert.strictEqual(prompt.includes("Cell Division"), true);
   assert.strictEqual(prompt.includes("<student_data>"), true);
+
+  // Test safe fallback for missing/null primary_goal
+  const fallbackPrompt = buildSystemPrompt({
+    profile: {},
+    studySession: { Subject: "Math", Topic: "Algebra" },
+  });
+  assert.strictEqual(fallbackPrompt.includes("Primary goal: General learning"), true, "Falls back to 'General learning'");
 });
 
 test("Sanitization and student data wrapping neutralises prompt injection attempts", () => {

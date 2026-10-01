@@ -62,11 +62,20 @@ export function ProfileProvider({ user, children }) {
     // Touch last seen throttled
     touchLastSeenThrottled();
 
+    try {
+      await supabase.rpc("check_stale_streak", {
+        p_user_timezone: getUserTimeZone(),
+        p_cutoff_hour: 3,
+      }).catch(() => null);
+    } catch (e) {
+      // Ignore RPC availability issues
+    }
+
     const { data: streakData } = await getUserStreak(user.id);
     if (streakData) {
       const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
       const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
-      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity });
+      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: streakData.freeze_tokens ?? streakData.freeze_tokens_available ?? 0 });
     } else {
       setStreak(null);
     }
@@ -106,7 +115,7 @@ export function ProfileProvider({ user, children }) {
       if (data) {
         const displayStreak = getDisplayStreak(data, new Date(), getUserTimeZone());
         const weekActivity = await getWeekActivity(user.id, { ...data, display_current_streak: displayStreak });
-        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity });
+        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: data.freeze_tokens ?? data.freeze_tokens_available ?? 0 });
         // Check for slip when streak is refreshed
         await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
       }

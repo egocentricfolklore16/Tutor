@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 // Import modules from Edge Function
-import { getStrictnessRules } from "../supabase/functions/ai-tutor/strictnessRules.ts";
+import { countGenuineAttempts, getStrictnessRules } from "../supabase/functions/ai-tutor/strictnessRules.ts";
 import { SYSTEM_PROMPT_TEMPLATE } from "../supabase/functions/ai-tutor/systemPrompt.ts";
 import { buildSystemPrompt } from "../supabase/functions/ai-tutor/promptBuilder.ts";
 import {
@@ -67,18 +67,64 @@ test("Sanitization and student data wrapping neutralises prompt injection attemp
 });
 
 test("Strictness mapping falls back to strictest rules for unknown values", () => {
-  const defaultRules = getStrictnessRules("Always Guide First");
-  const unknownRules = getStrictnessRules("Unknown Strictness Value");
-  const emptyRules = getStrictnessRules(undefined);
+  const defaultRules = getStrictnessRules("Always Guide First", 0);
+  const unknownRules = getStrictnessRules("Unknown Strictness Value", 0);
+  const emptyRules = getStrictnessRules(undefined, 0);
 
   assert.strictEqual(unknownRules, defaultRules);
   assert.strictEqual(emptyRules, defaultRules);
 
-  const hintsRules = getStrictnessRules("Hints Then Answer");
+  const hintsRules = getStrictnessRules("Hints Then Answer", 0);
   assert.strictEqual(hintsRules.includes("Hints Then Answer"), true);
 
-  const directRules = getStrictnessRules("Direct Help");
+  const directRules = getStrictnessRules("Direct Help", 0);
   assert.strictEqual(directRules.includes("Direct Help"), true);
+});
+
+test("countGenuineAttempts filters non-attempts and demands server-side", () => {
+  const initialSetupOnly = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+  ];
+  assert.strictEqual(countGenuineAttempts(initialSetupOnly), 0);
+
+  const nonAttempts = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "idk" },
+    { role: "assistant", content: "Think about subtracting 5." },
+    { role: "user", content: "just give me the answer" },
+  ];
+  assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
+
+  const genuineConversation = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "Subtract 5 from both sides" }, // genuine attempt 1
+    { role: "assistant", content: "Right! That gives 3x = 15. Now what?" },
+    { role: "user", content: "Divide by 3 to get x = 5" }, // genuine attempt 2
+  ];
+  assert.strictEqual(countGenuineAttempts(genuineConversation), 2);
+});
+
+test("Server-side answer unlock thresholds are correctly enforced in strictness rules", () => {
+  // Always Guide First requires 2 genuine attempts
+  const lockedGuide = getStrictnessRules("Always Guide First", 1);
+  assert.strictEqual(lockedGuide.includes("SERVER-ENFORCED STATE: LOCKED"), true);
+  assert.strictEqual(lockedGuide.includes("STRICTLY FORBIDDEN"), true);
+
+  const unlockedGuide = getStrictnessRules("Always Guide First", 2);
+  assert.strictEqual(unlockedGuide.includes("SERVER-ENFORCED STATE: UNLOCKED"), true);
+
+  // Hints Then Answer requires 1 genuine attempt
+  const lockedHints = getStrictnessRules("Hints Then Answer", 0);
+  assert.strictEqual(lockedHints.includes("SERVER-ENFORCED STATE: LOCKED"), true);
+
+  const unlockedHints = getStrictnessRules("Hints Then Answer", 1);
+  assert.strictEqual(unlockedHints.includes("SERVER-ENFORCED STATE: UNLOCKED"), true);
+
+  // Direct Help requires 0 genuine attempts
+  const unlockedDirect = getStrictnessRules("Direct Help", 0);
+  assert.strictEqual(unlockedDirect.includes("SERVER-ENFORCED STATE: UNLOCKED"), true);
 });
 
 test("Validators: request body limits", () => {

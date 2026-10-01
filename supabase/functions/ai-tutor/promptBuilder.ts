@@ -1,5 +1,5 @@
 import { SYSTEM_PROMPT_TEMPLATE } from "./systemPrompt.ts";
-import { getStrictnessRules } from "./strictnessRules.ts";
+import { countGenuineAttempts, getStrictnessRules } from "./strictnessRules.ts";
 import { sanitizeString, wrapStudentData } from "./validators.ts";
 
 export interface PromptParams {
@@ -8,10 +8,11 @@ export interface PromptParams {
   resources: any[];
   notes: any[];
   clientState?: any;
+  messages?: any[];
 }
 
 export function buildSystemPrompt(params: PromptParams): string {
-  const { profile, studySession, resources, notes, clientState } = params;
+  const { profile, studySession, resources, notes, clientState, messages } = params;
 
   const student_level = sanitizeString(
     profile?.education_level
@@ -100,7 +101,8 @@ export function buildSystemPrompt(params: PromptParams): string {
     notes_excerpt = wrapStudentData(sanitizeString(combinedNotes, 6000));
   }
 
-  const strictness_rules = getStrictnessRules(profile?.socratic_strictness);
+  const genuineAttempts = countGenuineAttempts(messages || []);
+  const strictness_rules = getStrictnessRules(profile?.socratic_strictness, genuineAttempts);
 
   // Replace placeholders
   let prompt = SYSTEM_PROMPT_TEMPLATE;

@@ -26,7 +26,6 @@ CREATE POLICY "Users update own streak_days" ON public.streak_days
   FOR UPDATE TO authenticated USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 -- 2. Ensure user_streaks table has required columns and aliases
--- Existing table is public.users_streaks; we create a compatibility view/table schema if needed or add columns to users_streaks.
 ALTER TABLE public.users_streaks
   ADD COLUMN IF NOT EXISTS freeze_tokens INTEGER NOT NULL DEFAULT 0 CHECK (freeze_tokens >= 0),
   ADD COLUMN IF NOT EXISTS timezone TEXT NOT NULL DEFAULT 'UTC',
@@ -63,6 +62,7 @@ DECLARE
   v_next_freezes INTEGER;
   v_day_gap INTEGER;
   v_eff_tz TEXT;
+  v_yesterday_status TEXT;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -97,19 +97,26 @@ BEGIN
   VALUES (v_user_id, v_today_date, 'completed')
   ON CONFLICT (user_id, local_date) DO UPDATE SET status = 'completed';
 
-  -- Calculate day gap from last completed/active date
+  v_next_freezes := COALESCE(v_streak.freeze_tokens, v_streak.freeze_tokens_available, 0);
+
+  -- Check if yesterday was completed or frozen
+  SELECT status INTO v_yesterday_status
+  FROM public.streak_days
+  WHERE user_id = v_user_id AND local_date = (v_today_date - 1);
+
   IF COALESCE(v_streak.last_completed_date, v_streak.last_active_date) IS NULL THEN
     v_next_current := 1;
   ELSE
     v_day_gap := v_today_date - COALESCE(v_streak.last_completed_date, v_streak.last_active_date);
-    v_next_freezes := COALESCE(v_streak.freeze_tokens, v_streak.freeze_tokens_available, 0);
 
-    IF v_day_gap = 1 THEN
+    IF v_day_gap = 1 OR v_yesterday_status IN ('completed', 'frozen') THEN
+      -- Yesterday was active or frozen: increment streak without consuming extra freeze
       v_next_current := v_streak.current_streak + 1;
     ELSIF v_day_gap = 2 AND v_next_freezes > 0 THEN
+      -- Missed yesterday and not yet frozen by check_stale_streak: consume token now
       v_next_current := v_streak.current_streak + 1;
       v_next_freezes := v_next_freezes - 1;
-      -- Record frozen day for yesterday
+
       INSERT INTO public.streak_days (user_id, local_date, status)
       VALUES (v_user_id, v_today_date - 1, 'frozen')
       ON CONFLICT (user_id, local_date) DO NOTHING;
@@ -119,7 +126,6 @@ BEGIN
   END IF;
 
   v_next_longest := GREATEST(v_streak.longest_streak, v_next_current);
-  v_next_freezes := COALESCE(v_next_freezes, v_streak.freeze_tokens, 0);
 
   UPDATE public.users_streaks
   SET current_streak = v_next_current,
@@ -170,6 +176,7 @@ DECLARE
   v_was_reset BOOLEAN := FALSE;
   v_cur_streak INTEGER;
   v_freezes INTEGER;
+  v_yesterday_status TEXT;
 BEGIN
   IF v_user_id IS NULL THEN
     RAISE EXCEPTION 'Not authenticated';
@@ -192,10 +199,15 @@ BEGIN
   v_cur_streak := v_streak.current_streak;
   v_freezes := COALESCE(v_streak.freeze_tokens, v_streak.freeze_tokens_available, 0);
 
+  -- Check status of yesterday
+  SELECT status INTO v_yesterday_status
+  FROM public.streak_days
+  WHERE user_id = v_user_id AND local_date = (v_today_date - 1);
+
   IF v_last_date IS NOT NULL THEN
     v_days_missed := v_today_date - v_last_date;
 
-    IF v_days_missed = 2 AND v_cur_streak > 0 THEN
+    IF v_days_missed = 2 AND v_cur_streak > 0 AND v_yesterday_status IS NULL THEN
       -- Missed yesterday. Check if freeze token exists.
       IF v_freezes > 0 THEN
         v_freezes := v_freezes - 1;

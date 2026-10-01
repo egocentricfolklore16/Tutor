@@ -26,6 +26,7 @@ function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
   const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted } = useStreak();
 
+  const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
@@ -273,7 +274,7 @@ function DashboardHeader({ toggleSidebar }) {
 
                         {day.state === "completed" && (
                           <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 ring-2 ring-orange-400 shadow-sm dark:bg-orange-500/20 dark:ring-orange-500/60">
-                            <img src="/streak.png" alt="Streak completed" className="animate-streak-pop h-5 w-5 object-contain" />
+                            <img src="/streak.svg" alt="Streak completed" className="animate-streak-pop h-5 w-5 object-contain" />
                           </div>
                         )}
 

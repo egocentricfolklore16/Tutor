@@ -29,7 +29,7 @@ export function getLocalCutoffDate(date = new Date(), timeZone = getUserTimeZone
 /**
  * Computes the 7 Sunday-through-Saturday dates for the current week containing today (under cutoff).
  */
-export function getCurrentWeekDays(todayCutoffStr, timeZone = getUserTimeZone()) {
+export function getCurrentWeekDays(todayCutoffStr) {
   const todayParts = todayCutoffStr.split("-").map(Number);
   // Construct UTC date object representing local midnight
   const todayObj = new Date(Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]));
@@ -191,8 +191,10 @@ export function useStreak() {
 
     // Supabase Realtime subscription on users_streaks
     let channel;
+    let isMounted = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session?.user) {
+      if (session?.user && isMounted) {
         channel = supabase
           .channel(`streak_changes_${session.user.id}`)
           .on(
@@ -204,7 +206,7 @@ export function useStreak() {
               filter: `user_id=eq.${session.user.id}`,
             },
             () => {
-              fetchStreakData();
+              if (isMounted) fetchStreakData();
             }
           )
           .subscribe();
@@ -212,6 +214,7 @@ export function useStreak() {
     });
 
     return () => {
+      isMounted = false;
       window.removeEventListener("hyper-tutor-streak-updated", handleUpdateEvent);
       if (channel) {
         supabase.removeChannel(channel);

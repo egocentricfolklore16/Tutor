@@ -83,8 +83,9 @@ Deno.serve(async (req: Request) => {
     }
 
     // Load user data in parallel
-    const [profileRes, studyRes, resourcesRes, notesRes] = await Promise.all([
+    const [profileRes, prefRes, studyRes, resourcesRes, notesRes] = await Promise.all([
       supabaseUserClient.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
+      supabaseUserClient.from("user_preferences").select("socratic_strictness").eq("user_id", user.id).maybeSingle(),
       supabaseUserClient.from("Study").select("*").eq("id", body.session_id).eq("user_id", user.id).maybeSingle(),
       supabaseUserClient.from("resources").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
       supabaseUserClient.from("notes").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
@@ -97,7 +98,10 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const profile = profileRes.data || {};
+    const profile = {
+      ...(profileRes.data || {}),
+      socratic_strictness: prefRes.data?.socratic_strictness || profileRes.data?.socratic_strictness,
+    };
     const studySession = studyRes.data;
     const rawResources = resourcesRes.data || [];
     const notes = notesRes.data || [];

@@ -60,8 +60,11 @@ function Progress() {
       date.setDate(date.getDate() - (29 - index));
       return { key: dateKey(date), day: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), hours: 0 };
     });
+    // BOLT OPTIMIZATION: Index 30-day buckets by date key into a Map for O(1) lookups.
+    // Replaces O(30 * N) linear `.find(...)` array searches per session with O(30 + N) total complexity.
+    const daysMap = new Map(last30Days.map((day) => [day.key, day]));
     sessions.forEach((item) => {
-      const point = last30Days.find((day) => day.key === dateKey(item.Date));
+      const point = daysMap.get(dateKey(item.Date));
       if (point) point.hours += Number.parseFloat(item.Duration) || 0;
     });
     const subjectHours = sessions.reduce((result, item) => {

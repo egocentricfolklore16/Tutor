@@ -142,9 +142,33 @@ export async function processVerifiedPayment({
   }
 
   // 5. Calculate period start/end based on plan.billing_interval
+  const { data: existingSub } = await supabaseClient
+    .from("subscriptions")
+    .select("*")
+    .eq("user_id", userId)
+    .maybeSingle();
+
   const now = new Date();
-  const periodStart = now.toISOString();
-  const periodEnd = new Date(now);
+  let periodStart = now.toISOString();
+  let baseDate = now;
+
+  // If user has an active subscription for the same plan that hasn't expired, extend current_period_end
+  if (
+    existingSub &&
+    existingSub.plan_id === planId &&
+    existingSub.status === "active" &&
+    existingSub.current_period_end
+  ) {
+    const existingEnd = new Date(existingSub.current_period_end);
+    if (existingEnd > now) {
+      baseDate = existingEnd;
+      if (existingSub.current_period_start) {
+        periodStart = existingSub.current_period_start;
+      }
+    }
+  }
+
+  const periodEnd = new Date(baseDate);
 
   if (plan.billing_interval === "year") {
     periodEnd.setFullYear(periodEnd.getFullYear() + 1);

@@ -134,37 +134,33 @@ function Overview() {
           <QuickShortcuts />
         </div>
       </div>
-      <div className="mx-0 grid w-full grid-cols-1 gap-6 px-3 py-2 sm:px-4 lg:mx-6 lg:w-[96%] lg:grid-cols-3 lg:grid-row-11 lg:p-2 [box-shadow:rgba(128,128,128,0.5)_3px_3px_6px_0px_inset,rgba(255,255,255,0.5)_-3px_-3px_6px_1px_inset]">
-        <div className="lg:col-span-2 lg:row-span-5">
-          <PerformanceDashboard />
-        </div>
-        <div className="lg:col-span-1 row-span-5">
-          <StudyCompanion topic={profile?.current_topic || "your studies"} />
-        </div>
-
-        <div className="lg:col-span-1 lg:col-start-3 row-span-3">
-          <Leaderboard />
-        </div>
-
-        <div className="lg:col-span-1">
-          <CommunitySpotlight />
-        </div>
-        <div className="lg:col-span-1">
-          <AchievementsCard />
-        </div>
-
-        <div className="lg:col-span-2">
-          <div className="row-span-6 mb-6">
-            <StudyStreak streak={streak} />
+      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 lg:px-6">
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <PerformanceDashboard />
+          </div>
+          <div className="lg:col-span-1">
+            <StudyCompanion topic={profile?.current_topic || "your studies"} />
           </div>
 
-          <div className="lg:col-span-2 row-span-3">
+          <div className="lg:col-span-1">
+            <CommunitySpotlight />
+          </div>
+          <div className="lg:col-span-1">
+            <AchievementsCard />
+          </div>
+          <div className="lg:col-span-1">
+            <Leaderboard />
+          </div>
+
+          <div className="lg:col-span-2 space-y-6">
+            <StudyStreak streak={streak} />
             <KeepsSlipping userId={userId} />
           </div>
-        </div>
 
-        <div className="lg:col-span-3">
-          <AISuggestions />
+          <div className="lg:col-span-3">
+            <AISuggestions />
+          </div>
         </div>
       </div>
       {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">

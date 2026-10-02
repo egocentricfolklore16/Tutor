@@ -1,7 +1,9 @@
 export function countGenuineAttempts(messages: any[]): number {
   if (!Array.isArray(messages)) return 0;
 
-  const nonAttemptRegex = /^(?:idk|i\s*don'?t\s*know|dont\s*know|no\s*idea|pass|help|tell\s*me(?:\s*the\s*answer)?|just\s*tell\s*me(?:\s*the\s*answer)?|give\s*me\s*the\s*answer|just\s*give\s*me\s*the\s*answer|what'?s\s*the\s*answer|what\s*is\s*the\s*answer|answer\s*please|show\s*answer|dunno|\?+|\.+|hi|hello|hey|\[.*\])$/i;
+  const nonAttemptExactRegex = /^(?:idk|i\s*don'?t\s*know|dont\s*know|no\s*idea|no\s*clue|pass|help|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
+
+  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve)\s*(?:me\s*)?(?:the\s*)?(?:answer|solution)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:answer|solution)|(?:answer|solution)\s*(?:please|pls)|(?:solve|do|write)\s*it\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell)\s*(?:it|me|answer|solution)?/i;
 
   let attemptCount = 0;
   let hasAssistantResponded = false;
@@ -14,9 +16,18 @@ export function countGenuineAttempts(messages: any[]): number {
       if (typeof msg.content !== "string") continue;
       const clean = msg.content.trim();
       if (!clean) continue;
-      if (nonAttemptRegex.test(clean)) continue;
+      if (nonAttemptExactRegex.test(clean)) continue;
       const cleanLower = clean.toLowerCase();
-      if (cleanLower.includes("give me the answer") || cleanLower.includes("tell me the answer")) continue;
+      if (
+        cleanLower.startsWith("i don't know") ||
+        cleanLower.startsWith("i dont know") ||
+        cleanLower.startsWith("idk") ||
+        cleanLower.startsWith("i am stuck") ||
+        cleanLower.startsWith("i'm stuck")
+      ) {
+        if (clean.length < 50 && !cleanLower.includes("because") && !cleanLower.includes("think")) continue;
+      }
+      if (nonAttemptDemandRegex.test(clean) && !cleanLower.includes("because")) continue;
 
       attemptCount++;
     }
@@ -26,15 +37,15 @@ export function countGenuineAttempts(messages: any[]): number {
 }
 
 export function getStrictnessRules(strictness?: string, attemptCount: number = 0): string {
-  const normalized = (strictness || "").trim();
+  const normalized = (strictness || "").trim().toLowerCase();
 
   let modeName = "Always Guide First";
   let requiredAttempts = 2;
 
-  if (normalized === "Hints Then Answer") {
+  if (normalized === "hints then answer" || normalized === "hints_then_answer") {
     modeName = "Hints Then Answer";
     requiredAttempts = 1;
-  } else if (normalized === "Direct Help") {
+  } else if (normalized === "direct help" || normalized === "direct_help") {
     modeName = "Direct Help";
     requiredAttempts = 0;
   }

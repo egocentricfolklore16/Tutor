@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useId } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
 
@@ -7,16 +7,26 @@ import { X } from "lucide-react";
  * and a bottom sheet / drawer on mobile screens (<768px).
  */
 export function ResponsiveSheet({ isOpen, onClose, title, children, className = "" }) {
+  const titleId = useId();
+
   useEffect(() => {
-    if (isOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
+    if (!isOpen) return;
+
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        onClose?.();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
     return () => {
       document.body.style.overflow = "";
+      window.removeEventListener("keydown", handleKeyDown);
     };
-  }, [isOpen]);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -31,6 +41,7 @@ export function ResponsiveSheet({ isOpen, onClose, title, children, className = 
         className={`relative z-10 flex max-h-[90vh] md:max-h-[85vh] w-full max-w-lg flex-col rounded-t-3xl md:rounded-2xl bg-white shadow-2xl transition-all dark:bg-[#18211f] dark:text-slate-100 ${className}`}
         role="dialog"
         aria-modal="true"
+        aria-labelledby={title ? titleId : undefined}
       >
         {/* Mobile Pull Handle Indicator */}
         <div className="flex w-full justify-center pt-3 pb-1 md:hidden">
@@ -39,7 +50,7 @@ export function ResponsiveSheet({ isOpen, onClose, title, children, className = 
 
         {/* Header */}
         <div className="flex items-center justify-between border-b border-slate-100 px-5 py-3.5 dark:border-slate-800">
-          {title && <h3 className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>}
+          {title && <h3 id={titleId} className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>}
           <button
             type="button"
             onClick={onClose}

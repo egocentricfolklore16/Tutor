@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import mammoth from "npm:mammoth@1.8.0";
 import { Message, RequestBody } from "./types.ts";
 import { validateRequestBody } from "./validators.ts";
 import { checkRateLimit } from "./rateLimit.ts";
@@ -83,11 +84,13 @@ Deno.serve(async (req: Request) => {
     }
 
     // Load user data in parallel
-    const [profileRes, prefRes, studyRes, resourcesRes, notesRes] = await Promise.all([
+    const [profileRes, prefRes, studyRes, sessionResourcesRes, legacyResourcesRes, sessionNotesRes, legacyNotesRes] = await Promise.all([
       supabaseUserClient.from("profiles").select("*").eq("user_id", user.id).maybeSingle(),
       supabaseUserClient.from("user_preferences").select("socratic_strictness").eq("user_id", user.id).maybeSingle(),
       supabaseUserClient.from("Study").select("*").eq("id", body.session_id).eq("user_id", user.id).maybeSingle(),
+      supabaseUserClient.from("session_resources").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
       supabaseUserClient.from("resources").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
+      supabaseUserClient.from("session_notes").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
       supabaseUserClient.from("notes").select("*").eq("session_id", body.session_id).eq("user_id", user.id),
     ]);
 
@@ -103,28 +106,51 @@ Deno.serve(async (req: Request) => {
       socratic_strictness: prefRes.data?.socratic_strictness || profileRes.data?.socratic_strictness,
     };
     const studySession = studyRes.data;
-    const rawResources = resourcesRes.data || [];
-    const notes = notesRes.data || [];
+    const rawResources = [
+      ...(sessionResourcesRes.data || []),
+      ...(legacyResourcesRes.data || []),
+    ];
+    const notes = [
+      ...(sessionNotesRes.data || []),
+      ...(legacyNotesRes.data || []),
+    ];
 
-    // Process resources text availability (.txt and .md)
+    // Process resources text availability (.txt, .md, .csv, .docx, .doc)
     const resources = await Promise.all(
       rawResources.map(async (res: any) => {
-        const fileName = res.file_name || "";
-        const ext = fileName.split(".").pop()?.toLowerCase();
+        const fileName = res.title || res.file_name || "";
+        const ext = fileName.split(".").pop()?.toLowerCase() || "";
         let text_available = false;
         let excerpt = "";
 
-        if ((ext === "txt" || ext === "md") && res.file_path) {
+        if (res.file_path) {
           try {
             const { data: fileBlob, error: downloadError } = await supabaseUserClient.storage
               .from("resources")
               .download(res.file_path);
 
             if (!downloadError && fileBlob) {
-              const fileText = await fileBlob.text();
-              if (fileText && fileText.trim()) {
-                text_available = true;
-                excerpt = fileText;
+              if (ext === "txt" || ext === "md" || ext === "csv") {
+                const fileText = await fileBlob.text();
+                if (fileText && fileText.trim()) {
+                  text_available = true;
+                  excerpt = fileText;
+                }
+              } else if (ext === "docx") {
+                try {
+                  const arrayBuffer = await fileBlob.arrayBuffer();
+                  const result = await mammoth.extractRawText({ arrayBuffer });
+                  const extractedText = result?.value || "";
+                  if (extractedText && extractedText.trim()) {
+                    text_available = true;
+                    excerpt = extractedText.trim();
+                  }
+                } catch (docxErr) {
+                  console.error(`Error extracting text from docx resource ${res.file_path}:`, docxErr);
+                  excerpt = "[Note: This .docx file could not be read because it may be password-protected or corrupted. Ask the student to re-save or paste the content.]";
+                }
+              } else if (ext === "doc") {
+                excerpt = "[Note: This is a legacy .doc binary file. Inform the student warmly that legacy .doc files cannot be read directly by the tutor, and ask them to save/export it as a .docx file or paste the text.]";
               }
             }
           } catch (err) {
@@ -134,7 +160,7 @@ Deno.serve(async (req: Request) => {
 
         return {
           name: fileName,
-          type: res.file_type || ext || "file",
+          type: res.mime_type || res.file_type || ext || "file",
           text_available,
           excerpt,
         };

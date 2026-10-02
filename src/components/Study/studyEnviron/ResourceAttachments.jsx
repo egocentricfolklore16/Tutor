@@ -7,6 +7,8 @@ const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "image/png",
   "image/jpeg",
   "image/webp",
@@ -14,6 +16,8 @@ const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/csv",
 ];
+
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", "txt", "md", "csv"];
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 
@@ -76,16 +80,17 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     if (!selectedFile) return;
 
     if (selectedFile.size > MAX_FILE_SIZE) {
-      setError("File size exceeds 10 MB limit.");
+      setError("File size exceeds the 10 MB limit.");
       return;
     }
 
-    if (selectedFile.type && !ALLOWED_MIME_TYPES.includes(selectedFile.type)) {
-      const ext = selectedFile.name.split(".").pop()?.toLowerCase();
-      if (!["pdf", "png", "jpg", "jpeg", "webp", "txt", "md", "csv"].includes(ext || "")) {
-        setError("Invalid file type. Allowed: PDF, PNG, JPG, WEBP, TXT, MD, CSV.");
-        return;
-      }
+    const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+    const isAllowedExt = ALLOWED_EXTENSIONS.includes(ext);
+    const isAllowedMime = selectedFile.type ? ALLOWED_MIME_TYPES.includes(selectedFile.type) : false;
+
+    if (!isAllowedExt && !isAllowedMime) {
+      setError("Unsupported file type. Allowed formats: PDF, Word (.doc, .docx), PNG, JPG, WEBP, TXT, MD, CSV (max 10 MB).");
+      return;
     }
 
     setIsSaving(true);
@@ -264,11 +269,35 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     );
   };
 
-  const renderKindIcon = (kind) => {
+  const renderKindIcon = (resource) => {
+    const kind = resource.kind;
+    const ext = resource.title?.split(".").pop()?.toLowerCase();
+    const mime = resource.mime_type;
+
     if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600" />;
     if (kind === "document") return <FileText className="h-4 w-4 text-blue-600" />;
     if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600" />;
+    if (
+      ext === "doc" ||
+      ext === "docx" ||
+      mime === "application/msword" ||
+      mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    ) {
+      return <FileText className="h-4 w-4 text-blue-700" />;
+    }
     return <FileUp className="h-4 w-4 text-emerald-600" />;
+  };
+
+  const getResourceLabel = (resource) => {
+    const ext = resource.title?.split(".").pop()?.toLowerCase();
+    const mime = resource.mime_type;
+    if (ext === "docx" || mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      return "Word Document (.docx)";
+    }
+    if (ext === "doc" || mime === "application/msword") {
+      return "Word Document (.doc)";
+    }
+    return resource.mime_type || resource.kind;
   };
 
   return (
@@ -298,10 +327,10 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
         <form onSubmit={saveFileUpload} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center">
           <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-500">
             <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
-            <span className="truncate">{selectedFile?.name || "Choose a file to attach (PDF, images, txt, md, csv - max 10MB)"}</span>
+            <span className="truncate">{selectedFile?.name || "Choose a file to attach (PDF, Word .doc/.docx, images, txt, md, csv - max 10MB)"}</span>
             <input
               type="file"
-              accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv"
+              accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
               onChange={(event) => setSelectedFile(event.target.files?.[0] || null)}
               className="sr-only"
               disabled={!studyId}
@@ -370,14 +399,14 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
             <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
               <div className="min-w-0 flex items-center gap-3">
                 <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
-                  {renderKindIcon(resource.kind)}
+                  {renderKindIcon(resource)}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="truncate font-semibold text-slate-800 text-sm">{resource.title}</p>
                     {renderExtractionBadge(resource.extraction_status)}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-400 capitalize">{resource.mime_type || resource.kind}</p>
+                  <p className="mt-0.5 text-xs text-slate-400 capitalize">{getResourceLabel(resource)}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">

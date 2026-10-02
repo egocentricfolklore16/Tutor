@@ -121,23 +121,23 @@ const UpcomingSessions = () => {
   };
 
   const getPriorityColor = (priority, isOverdue) => {
-    if (isOverdue) return "border-l-red-300 bg-red-50";
+    if (isOverdue) return "border-l-red-400 bg-red-50 dark:bg-red-950/30 dark:border-l-red-500";
     switch (priority) {
       case "high":
-        return "border-l-red-300 bg-red-50";
+        return "border-l-red-400 bg-red-50 dark:bg-red-950/30 dark:border-l-red-500";
       case "medium":
-        return "border-l-orange-300 bg-orange-50";
+        return "border-l-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-l-amber-500";
       case "low":
-        return "border-l-green-300 bg-green-50";
+        return "border-l-emerald-400 bg-emerald-50 dark:bg-emerald-950/30 dark:border-l-emerald-500";
       default:
-        return "border-l-gray-300 bg-gray-50";
+        return "border-l-slate-300 bg-slate-50 dark:bg-slate-800/50 dark:border-l-slate-600";
     }
   };
 
   const getStatusBadge = (status, isOverdue) => {
     if (isOverdue) {
       return (
-        <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 rounded-full flex items-center gap-1">
+        <span className="px-2 py-1 text-xs font-medium bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-300 rounded-full flex items-center gap-1">
           <AlertCircle className="h-3 w-3" />
           Missed
         </span>
@@ -145,14 +145,14 @@ const UpcomingSessions = () => {
     }
     if (status === "paused") {
       return (
-        <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 rounded-full flex items-center gap-1">
+        <span className="px-2 py-1 text-xs font-semibold bg-amber-100 text-amber-800 dark:bg-amber-900/60 dark:text-amber-300 rounded-full flex items-center gap-1">
           <Pause className="h-3 w-3" />
           Paused
         </span>
       );
     }
     return (
-      <span className="px-2 py-1 text-xs font-medium bg-green-100 text-green-700 rounded-full">
+      <span className="px-2 py-1 text-xs font-medium bg-emerald-100 text-emerald-800 dark:bg-emerald-900/60 dark:text-emerald-300 rounded-full">
         Scheduled
       </span>
     );
@@ -164,14 +164,14 @@ const UpcomingSessions = () => {
 
   if (isLoading) {
     return (
-      <div className="bg-white h-full rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-6">
-          <Clock className="h-5 w-5 text-blue-600" />
+      <div className="bg-white dark:bg-slate-900 h-full rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 p-6 transition-colors">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-6">
+          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Upcoming Sessions
         </h2>
         <div className="flex items-center justify-center py-8">
           <Loader2 className="h-8 w-8 text-blue-500 animate-spin mr-3" />
-          <p className="text-gray-600">Loading upcoming sessions...</p>
+          <p className="text-gray-600 dark:text-slate-400">Loading upcoming sessions...</p>
         </div>
       </div>
     );
@@ -179,27 +179,27 @@ const UpcomingSessions = () => {
 
   if (error) {
     return (
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2 mb-6">
-          <Clock className="h-5 w-5 text-blue-600" />
+      <div className="bg-white dark:bg-slate-900 rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 p-6 transition-colors">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2 mb-6">
+          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Upcoming Sessions
         </h2>
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-          <p className="text-red-700">{error}</p>
+        <div className="bg-red-50 dark:bg-red-950/50 border border-red-200 dark:border-red-800 rounded-lg p-4">
+          <p className="text-red-700 dark:text-red-300">{error}</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="bg-white h-full rounded-lg shadow-sm border border-gray-200 p-3 animate-in fade-in zoom-in">
+    <div className="bg-white dark:bg-slate-900 h-full rounded-lg shadow-sm border border-gray-200 dark:border-slate-800 p-3 animate-in fade-in zoom-in transition-colors">
       <div className="flex items-center justify-between mb-6">
-        <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-          <Clock className="h-5 w-5 text-blue-600" />
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 flex items-center gap-2">
+          <Clock className="h-5 w-5 text-blue-600 dark:text-blue-400" />
           Upcoming Sessions
         </h2>
         <button
-          className="text-sm text-blue-600 hover:text-blue-800 font-medium cursor-pointer"
+          className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium cursor-pointer"
           onClick={() => (window.location.href = "/Study")}
         >
           View All
@@ -208,11 +208,11 @@ const UpcomingSessions = () => {
 
       {sessions.length === 0 ? (
         <div className="text-center py-8">
-          <Calendar className="h-12 w-12 text-gray-300 mx-auto mb-3" />
-          <p className="text-gray-500 font-medium">No upcoming sessions - Schedule one to stay consistent</p>
+          <Calendar className="h-12 w-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
+          <p className="text-gray-500 dark:text-slate-400 font-medium">No upcoming sessions - Schedule one to stay consistent</p>
           <button
             onClick={() => (window.location.href = "/Study")}
-            className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors"
+            className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
           >
             Create Session
           </button>
@@ -232,20 +232,20 @@ const UpcomingSessions = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-3 mb-2">
-                      <div className="flex items-center gap-2 text-gray-600">
+                      <div className="flex items-center gap-2 text-gray-600 dark:text-slate-400">
                         {getTypeIcon(session.type)}
                       </div>
                       {getStatusBadge(session.status, session.isOverdue)}
                     </div>
 
-                    <h3 className="font-semibold text-gray-900 mb-1">
+                    <h3 className="font-semibold text-gray-900 dark:text-slate-100 mb-1">
                       {session.subject}
                     </h3>
-                    <p className="text-sm text-gray-600 mb-2 lg:w-fit">
+                    <p className="text-sm text-gray-600 dark:text-slate-300 mb-2 lg:w-fit">
                       {session.topic}
                     </p>
 
-                    <div className="flex items-center gap-4 text-xs text-gray-500">
+                    <div className="flex items-center gap-4 text-xs text-gray-500 dark:text-slate-400">
                       <div className="flex items-center gap-1">
                         <Clock className="h-3 w-3" />
                         <span>{session.time}</span>
@@ -260,7 +260,7 @@ const UpcomingSessions = () => {
                     {!session.isOverdue && (
                       <button
                         onClick={() => handleStartSession(session.id)}
-                        className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors ${
+                        className={`flex items-center gap-1 px-3 py-2 text-sm font-semibold rounded-lg transition-colors cursor-pointer ${
                           isPaused
                             ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
                             : "bg-blue-600 text-white hover:bg-blue-700"
@@ -271,11 +271,11 @@ const UpcomingSessions = () => {
                       </button>
                     )}
                     {session.isOverdue && (
-                      <button className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors">
+                      <button className="flex items-center gap-1 px-3 py-2 bg-orange-600 text-white text-sm font-medium rounded-lg hover:bg-orange-700 transition-colors cursor-pointer">
                         Reschedule
                       </button>
                     )}
-                    <button className="p-2 text-gray-400 hover:text-gray-600 transition-colors">
+                    <button className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-slate-300 transition-colors cursor-pointer">
                       <MoreHorizontal className="h-4 w-4" />
                     </button>
                   </div>

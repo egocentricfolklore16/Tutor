@@ -16,8 +16,6 @@
   --text-accent-green: #9CC98A;
   --text-accent-amber: #E0B96B;
   --text-accent-purple: #C3A8E8;
-  --bottom-nav-height: 4rem;
-  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 }
 
 body {
@@ -25,25 +23,6 @@ body {
   background: #f8fafc;
   color: #0f172a;
   transition: background-color 180ms ease, color 180ms ease;
-  overflow-x: hidden;
-}
-
-/* Touch targets and Mobile Input Zoom prevention (minimum 16px font-size) */
-@media (max-width: 767px) {
-  input:not([type="checkbox"]):not([type="radio"]),
-  select,
-  textarea {
-    font-size: 16px !important;
-  }
-}
-
-/* Hide scrollbars for clean horizontal tab scrolling */
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
 }
 
 button,

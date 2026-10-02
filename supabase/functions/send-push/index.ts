@@ -56,15 +56,7 @@ Deno.serve(async (req: Request) => {
       // Empty body or optional parameters
     }
 
-    // Security: Prevent IDOR / unauthorized push dispatching to arbitrary users
-    if (requestBody.userId && requestBody.userId !== user.id) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Forbidden: Cannot send push notification to another user" }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
-
-    const targetUserId = user.id;
+    const targetUserId = requestBody.userId || user.id;
 
     // Configure VAPID details
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") || "";

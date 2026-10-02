@@ -22,7 +22,7 @@ export function calculateStreakUpdate(previous, activityDate, freezeEnabled = tr
   const previousDate = new Date(`${previous.lastActiveDate}T00:00:00Z`);
   const currentDate = new Date(`${activityDate}T00:00:00Z`);
   const daysSinceActivity = Math.round((currentDate - previousDate) / 86400000);
-  if (daysSinceActivity <= 0) return { ...previous, noOp: true };
+  if (daysSinceActivity === 0) return { ...previous, noOp: true };
 
   const canUseFreeze = freezeEnabled && daysSinceActivity === 2 && (previous.freezeTokensAvailable || 0) > 0;
   const currentStreak = daysSinceActivity === 1 || canUseFreeze ? previous.currentStreak + 1 : 1;

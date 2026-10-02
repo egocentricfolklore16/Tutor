@@ -35,11 +35,8 @@ const AnalyticsDashboard = () => {
       date.setDate(start.getDate() + index);
       return { key: dateKey(date), day: date.toLocaleDateString("en-US", { weekday: "short" }), hours: 0 };
     });
-    // BOLT OPTIMIZATION: Pre-index chart buckets by date key into a Map for O(1) lookups.
-    // Eliminates linear `.find(...)` array iteration per session item, reducing complexity from O(7 * N) to O(7 + N).
-    const chartMap = new Map(chart.map((item) => [item.key, item]));
     sessions.forEach((session) => {
-      const day = chartMap.get(dateKey(session.Date));
+      const day = chart.find((item) => item.key === dateKey(session.Date));
       if (day) day.hours += Number.parseFloat(session.Duration) || 0;
     });
     const subjectTotals = sessions.reduce((result, session) => {

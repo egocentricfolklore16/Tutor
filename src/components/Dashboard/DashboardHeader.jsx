@@ -451,26 +451,19 @@ function DashboardHeader({ toggleSidebar }) {
 
         {/* Profile Avatar */}
         <div className="relative">
-          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
-            {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
+          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
+            {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-4 w-4" />}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-13 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-700 dark:bg-[#18211f] dark:text-white z-[220]">
-              <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
-                <p className="truncate font-bold text-slate-900 dark:text-white">{name}</p>
-                <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500 sm:hidden">
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><Zap className="h-3 w-3" />{xpPoints} XP</span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400"><GemIcon className="h-3 w-3" />{gemsCount} Gems</span>
-                </div>
-              </div>
-              <button type="button" onClick={() => { toggleDarkMode(!darkMode); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
+            <div className="absolute right-0 top-11 w-48 rounded-lg border border-slate-200 bg-white p-2 text-sm shadow-lg dark:border-slate-700 dark:bg-[#18211f] dark:text-white">
+              <p className="truncate px-3 py-2 font-semibold">{name}</p>
+              <button type="button" onClick={() => { toggleDarkMode(!darkMode); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
                 {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {darkMode ? "Light Theme" : "Dark Theme"}
               </button>
-              <button type="button" onClick={() => { navigate("/Settings"); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
+              <button type="button" onClick={() => { navigate("/Settings"); setMenuOpen(false); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
                 <Settings className="h-4 w-4" /> Settings
               </button>
-              <button type="button" onClick={logout} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+              <button type="button" onClick={logout} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
                 <LogOut className="h-4 w-4" /> Logout
               </button>
             </div>

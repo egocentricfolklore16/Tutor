@@ -550,7 +550,7 @@ function Study() {
                 <select
                   value={historySubjectFilter}
                   onChange={(e) => setHistorySubjectFilter(e.target.value)}
-                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none"
                 >
                   <option value="all">All Subjects</option>
                   {uniqueSubjects.map((sub) => (
@@ -563,7 +563,7 @@ function Study() {
                 <select
                   value={historyDateFilter}
                   onChange={(e) => setHistoryDateFilter(e.target.value)}
-                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none"
                 >
                   <option value="all">All Time</option>
                   <option value="7days">Last 7 Days</option>
@@ -592,10 +592,10 @@ function Study() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-base truncate">
+                        <span className="font-bold text-white text-base">
                           {toTitleCase(item.subject)}
                         </span>
-                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50 shrink-0">
+                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
                           Completed
                         </span>
                       </div>
@@ -606,8 +606,8 @@ function Study() {
                         {dateStr}
                       </p>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4 text-right border-t border-slate-800/60 sm:border-0 pt-2 sm:pt-0">
-                      <div className="text-left sm:text-right">
+                    <div className="flex items-center gap-4 text-right">
+                      <div>
                         <p className="text-sm font-bold text-white">
                           {item.durationMinutes} min
                         </p>
@@ -621,7 +621,7 @@ function Study() {
                         onClick={(e) => handleDeleteHistoryItem(item.id, e)}
                         disabled={isDeletingThis}
                         title="Delete this history entry"
-                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                        className="rounded-lg p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
                       >
                         {isDeletingThis ? (
                           <Loader2 className="h-4 w-4 animate-spin" />

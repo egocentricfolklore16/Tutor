@@ -11,21 +11,38 @@ function AISuggestions() {
   const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
 
   return (
-    <div className="min-h-[360px] rounded-2xl bg-[#9cc8e5] p-6 shadow-xl">
-      <h1 className="mb-4 flex items-center gap-2 text-xl font-bold"><Sparkles className="h-5 w-5 text-emerald-700" />AI Suggestions</h1>
+    <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 dark:from-slate-900 dark:to-slate-800 dark:border dark:border-slate-800 p-6 shadow-xl transition-colors">
+      <h1 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+        <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+        AI Suggestions
+      </h1>
       <div>
-        <p className="rounded-xl bg-white/45 p-4 leading-7 text-slate-800">
+        <p className="rounded-xl bg-white/60 dark:bg-slate-950/50 p-4 leading-7 text-slate-800 dark:text-slate-200 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/80">
           Start with {subjects} and plan {weeklyHours} focused hours this week.
           Your {learningStyle} approach will work well with a short active-recall
           session, followed by practice questions and a quick review tomorrow.
         </p>
         <div className="mt-6 space-y-3">
-          <button type="button" onClick={() => navigate("/Planner")} className="flex w-full items-center gap-3 rounded-xl bg-white px-4 py-3 text-left text-sm font-bold text-slate-800 shadow-sm transition hover:bg-emerald-50"><CalendarDays className="h-5 w-5 text-emerald-600" />Visit your planner</button>
-          <button type="button" onClick={() => navigate("/Study")} className="flex w-full items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700"><Plus className="h-5 w-5" />Create a study session</button>
+          <button
+            type="button"
+            onClick={() => navigate("/Planner")}
+            className="flex w-full items-center gap-3 rounded-xl bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700/90 border border-slate-200/80 dark:border-slate-700 px-4 py-3 text-left text-sm font-bold text-slate-800 dark:text-slate-200 shadow-sm transition hover:bg-emerald-50 cursor-pointer"
+          >
+            <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+            Visit your planner
+          </button>
+          <button
+            type="button"
+            onClick={() => navigate("/Study")}
+            className="flex w-full items-center gap-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-4 py-3 text-left text-sm font-bold text-white shadow-sm transition cursor-pointer"
+          >
+            <Plus className="h-5 w-5" />
+            Create a study session
+          </button>
         </div>
       </div>
     </div>
   );
 }
 
-export default AISuggestions
+export default AISuggestions;

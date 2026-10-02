@@ -6,6 +6,7 @@ import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import GlobalAITutorFab from "../components/common/GlobalAITutorFab";
 import InstallPrompt from "../components/InstallPrompt";
 import NotificationPromptCard from "../components/Notifications/NotificationPromptCard";
+import BottomNavBar from "../components/common/BottomNavBar";
 import { ProfileProvider, useProfile } from "./ProfileContext";
 import { AITutorProvider } from "./AITutorContext";
 
@@ -82,6 +83,9 @@ function Layout({ session, needsOnboarding }) {
             )}
           </div>
         </div>
+
+        {/* Mobile Navigation Tab Bar */}
+        <BottomNavBar />
 
         {/* Global Persistent AI Tutor FAB & Portal Drawer */}
         <GlobalAITutorFab session={session} />

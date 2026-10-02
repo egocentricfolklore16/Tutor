@@ -13,29 +13,32 @@ function AISuggestions() {
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
 
   return (
-    <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 dark:from-slate-900 dark:to-slate-800 dark:border dark:border-slate-800 p-6 shadow-xl transition-colors">
-      <h1 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
-        <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        AI Suggestions
-      </h1>
-    <div className="min-h-[360px] rounded-2xl bg-[#9cc8e5] p-6 shadow-xl">
+    <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-bold"><Sparkles className="h-5 w-5 text-emerald-700" />AI Suggestions</h1>
-        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950">{learnerTypeInfo.badge}</span>
+        <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          AI Suggestions
+        </h1>
+        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950 dark:text-emerald-200">
+          {learnerTypeInfo.badge}
+        </span>
       </div>
       <div>
-        <p className="rounded-xl bg-white/60 dark:bg-slate-950/50 p-4 leading-7 text-slate-800 dark:text-slate-200 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/80">
+        <p className="rounded-xl border border-slate-200/50 bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-200">
           Start with {subjects} and plan {weeklyHours} focused hours this week.
           Your {learningStyle} approach will work well with a short active-recall
           session, followed by practice questions and a quick review tomorrow.
-          <br /><br />
-          <span className="font-semibold text-slate-900">{learnerTypeInfo.recommendation}</span>
+          <br />
+          <br />
+          <span className="font-semibold text-slate-900 dark:text-slate-100">
+            {learnerTypeInfo.recommendation}
+          </span>
         </p>
         <div className="mt-6 space-y-3">
           <button
             type="button"
             onClick={() => navigate("/Planner")}
-            className="flex w-full items-center gap-3 rounded-xl bg-white dark:bg-slate-800/90 dark:hover:bg-slate-700/90 border border-slate-200/80 dark:border-slate-700 px-4 py-3 text-left text-sm font-bold text-slate-800 dark:text-slate-200 shadow-sm transition hover:bg-emerald-50 cursor-pointer"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-bold text-slate-800 shadow-sm transition hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-700/90"
           >
             <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             Visit your planner
@@ -43,7 +46,7 @@ function AISuggestions() {
           <button
             type="button"
             onClick={() => navigate("/Study")}
-            className="flex w-full items-center gap-3 rounded-xl bg-emerald-600 hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500 px-4 py-3 text-left text-sm font-bold text-white shadow-sm transition cursor-pointer"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           >
             <Plus className="h-5 w-5" />
             Create a study session

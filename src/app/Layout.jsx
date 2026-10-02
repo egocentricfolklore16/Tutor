@@ -1,9 +1,14 @@
 import React, { useState } from "react";
-import { Navigate, Outlet, useLocation } from "react-router";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Layout/Sidebar";
 import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
+import GlobalAITutorFab from "../components/common/GlobalAITutorFab";
+import InstallPrompt from "../components/InstallPrompt";
+import NotificationPromptCard from "../components/Notifications/NotificationPromptCard";
+import BottomNavBar from "../components/common/BottomNavBar";
 import { ProfileProvider, useProfile } from "./ProfileContext";
+import { AITutorProvider } from "./AITutorContext";
 
 function GlobalStudyCompanion() {
   const { profile } = useProfile();
@@ -33,11 +38,17 @@ function Layout({ session, needsOnboarding }) {
   // Extract user from session
   const user = session?.user || null;
 
+  // Check standalone / installed status
+  const isStandalone =
+    (typeof window !== "undefined" && window.matchMedia("(display-mode: standalone)").matches) ||
+    (typeof navigator !== "undefined" && navigator.standalone === true);
+
   if (needsOnboarding) return <Navigate to="/onboarding" replace />;
 
   return (
     <ProfileProvider user={user}>
-      <div className="mainapp">
+      <AITutorProvider session={session}>
+        <div className="mainapp">
         <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
 
         <div
@@ -49,6 +60,14 @@ function Layout({ session, needsOnboarding }) {
           }}
         >
           <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
+
+          {/* Post-install notification opt-in prompt for standalone launch / installed users */}
+          {user?.id && isStandalone && !isStudyEnvironment && (
+            <div className="px-5 pt-4 md:px-10">
+              <NotificationPromptCard userId={user.id} />
+            </div>
+          )}
+
           <div key={location.pathname} className="page-enter">
             {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
               <Outlet />
@@ -64,7 +83,17 @@ function Layout({ session, needsOnboarding }) {
             )}
           </div>
         </div>
-      </div>
+
+        {/* Mobile Navigation Tab Bar */}
+        <BottomNavBar />
+
+        {/* Global Persistent AI Tutor FAB & Portal Drawer */}
+        <GlobalAITutorFab session={session} />
+
+        {/* Install Hyper Tutor Prompt Card */}
+        <InstallPrompt userId={user?.id} />
+        </div>
+      </AITutorProvider>
     </ProfileProvider>
   );
 }

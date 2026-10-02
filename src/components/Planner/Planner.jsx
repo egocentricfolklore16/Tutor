@@ -3,7 +3,6 @@ import {
   Plus,
   ChevronLeft,
   ChevronRight,
-  BookOpen,
   CalendarDays,
   Filter,
   Loader2,
@@ -19,6 +18,7 @@ import TimeBlocking from "./TimeBlocking";
 import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
+import NotificationPromptCard from "../Notifications/NotificationPromptCard";
 import { getNotificationPreferences, recordNotification, scheduleSessionRemindersFromSessions, scheduleStudyReminder } from "../../lib/notifications";
 
 const PlannerPage = () => {
@@ -32,8 +32,7 @@ const PlannerPage = () => {
   const [fetchError, setFetchError] = useState("");
   const [isSavingSession, setIsSavingSession] = useState(false);
   const [activityMode, setActivityMode] = useState(null);
-  const [blockedTimes, setBlockedTimes] = useState([
-  ]);
+  const [blockedTimes, setBlockedTimes] = useState([]);
 
   const [newSession, setNewSession] = useState({
     title: "",
@@ -77,7 +76,6 @@ const PlannerPage = () => {
         setIsLoadingSessions(true);
         setFetchError("");
 
-        // Get the current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -89,8 +87,9 @@ const PlannerPage = () => {
 
         const { data, error } = await supabase
           .from("Study")
-          .select('id,Subject,Topic,Status,Date,"Start",Duration,recurring,reminder_minutes,deadline,activity_type')
-          .eq("user_id", user.id); // Filter by current user's ID
+          .select('id,Subject,Topic,Status,Date,"Start",Duration,recurring,reminder_minutes,deadline,activity_type,session_status')
+          .eq("user_id", user.id)
+          .neq("session_status", "completed");
 
         const { data: timeBlockData, error: timeBlockError } = await supabase
           .from("time_blocks")
@@ -123,13 +122,13 @@ const PlannerPage = () => {
             let color = "bg-blue-500";
             switch (session.Status?.trim().toLowerCase()) {
               case "very important":
-                color = "bg-red-300";
+                color = "bg-red-500";
                 break;
               case "not so important":
-                color = "bg-green-300";
+                color = "bg-emerald-500";
                 break;
               case "medium":
-                color = "bg-orange-300";
+                color = "bg-amber-500";
                 break;
               default:
                 color = "bg-blue-500";
@@ -147,6 +146,7 @@ const PlannerPage = () => {
               reminder: session.reminder_minutes ?? 15,
               deadline: session.deadline,
               activityType: session.activity_type || "study",
+              sessionStatus: session.session_status || "active",
               color,
             };
           });
@@ -220,9 +220,10 @@ const PlannerPage = () => {
       reminder_minutes: newSession.reminder,
       deadline: activityMode === "deadline" ? newSession.date : null,
       activity_type: activityMode === "deadline" ? "deadline" : "study",
+      session_status: "active",
       muted: false,
       user_id: user.id,
-    }]).select("id,Subject,Topic,Status,Date,Start,Duration,recurring,reminder_minutes,deadline,activity_type").single();
+    }]).select("id,Subject,Topic,Status,Date,Start,Duration,recurring,reminder_minutes,deadline,activity_type,session_status").single();
     if (error) {
       setFetchError("Failed to create session: " + error.message);
     } else {
@@ -230,8 +231,8 @@ const PlannerPage = () => {
         id: data.id, title: data.Topic, subject: data.Subject, type: "study", status: data.Status,
         date: new Date(data.Date), startTime: data.Start, endTime: calculateEndTime(data.Start, data.Duration),
         duration: data.Duration, recurring: data.recurring || "none", reminder: data.reminder_minutes ?? 15,
-        deadline: data.deadline, activityType: data.activity_type || "study",
-        color: data.Status === "very important" ? "bg-red-300" : data.Status === "not so important" ? "bg-green-300" : "bg-orange-300",
+        deadline: data.deadline, activityType: data.activity_type || "study", sessionStatus: data.session_status || "active",
+        color: data.Status === "very important" ? "bg-red-500" : data.Status === "not so important" ? "bg-emerald-500" : "bg-amber-500",
       };
 
       setSessions((prev) => [...prev, nextSession]);
@@ -319,7 +320,6 @@ const PlannerPage = () => {
     return endDate.toTimeString().slice(0, 5);
   };
 
-  // Loading component
   const LoadingSpinner = () => (
     <div className="flex flex-col items-center justify-center py-16">
       <Loader2 className="h-12 w-12 text-blue-500 animate-spin mb-4" />
@@ -347,7 +347,10 @@ const PlannerPage = () => {
       </div>
       <button type="button" onClick={() => handleAddActivity(selectedDate)} disabled={isLoadingSessions} className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 sm:hidden"><Plus className="h-4 w-4" />+ Create new</button>
 
-      {/* Error Message */}
+      <div className="mb-6">
+        <NotificationPromptCard userId={profile?.user_id} />
+      </div>
+
       {fetchError && (
         <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
           <div className="flex items-center justify-between">
@@ -362,13 +365,11 @@ const PlannerPage = () => {
         </div>
       )}
 
-      {/* Loading State */}
       {isLoadingSessions ? (
         <LoadingSpinner />
       ) : (
         <>
           <PlannerStatsBar />
-          {/* Controls */}
           <DeadlineManager sessions={sessions} onAddActivity={() => handleAddActivity(selectedDate, "deadline")} />
           <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2">
             <div className="flex min-w-0 items-center gap-1">
@@ -387,7 +388,6 @@ const PlannerPage = () => {
             </div>
           </div>
 
-          {/* Calendar and Details */}
           <div>
               <Calendar
                 currentDate={currentDate}
@@ -402,7 +402,6 @@ const PlannerPage = () => {
               />
           </div>
 
-          {/* Quick Actions */}
           <div className="mb-6 flex flex-col gap-4">
             <RecurringSetup sessions={sessions} onUpdateRecurring={handleUpdateRecurring} onAddActivity={() => handleAddActivity(selectedDate, "recurring")} />
             <TimeBlocking blockedTimes={blockedTimes} onAddActivity={() => handleAddActivity(selectedDate, "timeblock")} onDeleteBlock={handleDeleteTimeBlock} />
@@ -411,7 +410,6 @@ const PlannerPage = () => {
         </>
       )}
 
-      {/* Session Scheduler Modal */}
       <PlannerActivityModal
         mode={activityMode}
         form={newSession}

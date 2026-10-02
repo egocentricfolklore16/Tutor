@@ -1,8 +1,10 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
 import LoadingCompanion from "../common/LoadingCompanion";
+import { deleteSession } from "../../lib/sessionService";
 import {
   BookOpen,
   Play,
@@ -10,11 +12,12 @@ import {
   AlertCircle,
   X,
   Loader2,
+  Pause,
 } from "lucide-react";
 
 function Study() {
   const toTitleCase = (value) =>
-    value
+    String(value || "")
       .toLowerCase()
       .replace(/\b\w/g, (character) => character.toUpperCase());
 
@@ -34,6 +37,12 @@ function Study() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
+
+  // History Filter states
+  const [historySubjectFilter, setHistorySubjectFilter] = useState("all");
+  const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
+  const [historyDateFilter, setHistoryDateFilter] = useState("all");
+  const [deletingHistoryId, setDeletingHistoryId] = useState(null);
 
   // Fetch sessions and history from Supabase on mount
   useEffect(() => {
@@ -56,7 +65,7 @@ function Study() {
 
         const [{ data: activeData, error: activeError }, { data: historyData, error: historyError }] =
           await Promise.all([
-            supabase.from("Study").select("*").eq("user_id", user.id),
+            supabase.from("Study").select("*").eq("user_id", user.id).neq("session_status", "completed"),
             supabase.from("study_history").select("*").eq("user_id", user.id).order("completed_at", { ascending: false }),
           ]);
 
@@ -78,7 +87,7 @@ function Study() {
               durationMinutes: item.duration_minutes,
               startedAt: item.started_at,
               completedAt: item.completed_at,
-              status: item.status,
+              status: item.status || "completed",
               xpEarned: item.xp_earned,
             }))
           );
@@ -105,12 +114,12 @@ function Study() {
           durationMinutes: entry.duration_minutes,
           startedAt: entry.started_at,
           completedAt: entry.completed_at,
-          status: entry.status,
+          status: entry.status || "completed",
           xpEarned: entry.xp_earned,
         },
         ...prev,
       ]);
-      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.id)));
+      setSessions((prev) => prev.filter((s) => String(s.id) !== String(entry.session_id)));
     };
 
     window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);
@@ -120,6 +129,14 @@ function Study() {
   const [dropdownIndex, setDropdownIndex] = useState(null);
   const [isOpen, setIsOpen] = useState(false);
   const [activeSession, setActiveSession] = useState(null);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+    };
+  }, [isOpen]);
   const formRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -202,7 +219,6 @@ function Study() {
       try {
         setLoadingState("form", "submit", true);
 
-        // Get the current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -212,7 +228,6 @@ function Study() {
           return;
         }
 
-        // Save to Supabase with user_id
         const { data, error } = await supabase
           .from("Study")
           .insert([
@@ -223,8 +238,9 @@ function Study() {
               Date: session.date,
               Start: session.time,
               Duration: session.hours,
+              session_status: "active",
               muted: false,
-              user_id: user.id, // Add user_id to the new session
+              user_id: user.id,
             },
           ])
           .select("*");
@@ -267,24 +283,14 @@ function Study() {
   };
 
   const handleMuteToggle = async (id) => {
-    if (!id) {
-      setFetchError("Cannot toggle mute: Invalid session ID");
-      return;
-    }
-
-    // Find the session to toggle
+    if (!id) return;
     const sessionToToggle = sessions.find((s) => s.id === id);
-    if (!sessionToToggle) {
-      setFetchError("Session not found");
-      return;
-    }
+    if (!sessionToToggle) return;
 
     const newMutedState = !sessionToToggle.muted;
 
     try {
       setLoadingState(id, "mute", true);
-
-      // Update the muted state in Supabase
       const { error } = await supabase
         .from("Study")
         .update({ muted: newMutedState })
@@ -292,9 +298,7 @@ function Study() {
 
       if (error) {
         setFetchError("Failed to update mute state: " + error.message);
-        console.error("Supabase update error:", error);
       } else {
-        // Update local state to reflect change
         setSessions((prevSessions) =>
           prevSessions.map((session) =>
             session.id === id ? { ...session, muted: newMutedState } : session
@@ -304,7 +308,6 @@ function Study() {
         setDropdownIndex(null);
       }
     } catch (err) {
-      setFetchError("An unexpected error occurred while updating session");
       console.error("Unexpected error:", err);
     } finally {
       setLoadingState(id, "mute", false);
@@ -312,36 +315,19 @@ function Study() {
   };
 
   const handleDelete = async (id) => {
-    if (!id) {
-      setFetchError("Cannot delete: Invalid session ID");
+    if (!id) return;
+    if (!window.confirm("Are you sure you want to delete this study session and all attached materials?")) {
       return;
     }
 
     try {
       setLoadingState(id, "delete", true);
-
-      const [{ error: notesError }, { error: flashcardsError }, { error: resourcesError }] = await Promise.all([
-        supabase.from("notes").delete().eq("session_id", id),
-        supabase.from("flashcards").delete().eq("session_id", id),
-        supabase.from("resources").delete().eq("session_id", id),
-      ]);
-
-      if (notesError || flashcardsError || resourcesError) {
-        const childError = notesError || flashcardsError || resourcesError;
-        setFetchError("Failed to delete session items: " + childError.message);
-        return;
-      }
-
-      const { error } = await supabase.from("Study").delete().eq("id", id);
+      const { error } = await deleteSession({ id });
 
       if (error) {
         setFetchError("Failed to delete session: " + error.message);
-        console.error("Supabase delete error:", error);
       } else {
-        // Update local state immediately
-        setSessions((prevSessions) =>
-          prevSessions.filter((session) => session.id !== id)
-        );
+        setSessions((prevSessions) => prevSessions.filter((session) => session.id !== id));
         setFetchError("");
         setDropdownIndex(null);
       }
@@ -353,7 +339,53 @@ function Study() {
     }
   };
 
-  // Close dropdown when clicking outside
+  const handleDeleteHistoryItem = async (historyId, e) => {
+    e.stopPropagation();
+    if (!window.confirm("Delete this session history record? Attached resources will not be deleted.")) {
+      return;
+    }
+
+    try {
+      setDeletingHistoryId(historyId);
+      const { error } = await supabase.from("study_history").delete().eq("id", historyId);
+      if (error) {
+        setFetchError("Failed to delete session history record: " + error.message);
+      } else {
+        setSessionHistory((prev) => prev.filter((item) => item.id !== historyId));
+      }
+    } catch (err) {
+      console.error("Error deleting session history:", err);
+      setFetchError("An error occurred while deleting session history");
+    } finally {
+      setDeletingHistoryId(null);
+    }
+  };
+
+  const uniqueSubjects = Array.from(
+    new Set(sessionHistory.map((item) => item.subject).filter(Boolean))
+  );
+
+  const filteredSessionHistory = sessionHistory.filter((item) => {
+    if (historySubjectFilter !== "all" && item.subject?.toLowerCase() !== historySubjectFilter.toLowerCase()) {
+      return false;
+    }
+    if (historyStatusFilter !== "all" && item.status?.toLowerCase() !== historyStatusFilter.toLowerCase()) {
+      return false;
+    }
+    if (historyDateFilter !== "all" && item.completedAt) {
+      const completedDate = new Date(item.completedAt);
+      const now = new Date();
+      if (historyDateFilter === "7days") {
+        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+        if (diff > 7) return false;
+      } else if (historyDateFilter === "30days") {
+        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+        if (diff > 30) return false;
+      }
+    }
+    return true;
+  });
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".dropdown-container")) {
@@ -388,18 +420,18 @@ function Study() {
             </button>
           </div>
         )}
-        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 mb-6">
-          Study Sessions
+        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 dark:text-white mb-6">
+          Active &amp; Paused Study Sessions
         </h1>
 
         {isLoadingSessions ? (
           <LoadingCompanion message="Loading your study sessions..." />
         ) : sessions.length === 0 ? (
-          <div className="">
+          <div className="text-center py-12 bg-white dark:bg-[#18211f] rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 p-8">
             <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg mb-4">No study sessions yet</p>
-            <p className="text-gray-400">
-              Click the + button to create your first session
+            <p className="text-gray-500 text-lg mb-2">No active or paused study sessions</p>
+            <p className="text-gray-400 text-sm">
+              Click the + button below to create a new session
             </p>
           </div>
         ) : (
@@ -408,6 +440,7 @@ function Study() {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];
               const isMuting = loadingStates[`${sessionItem.id}_mute`];
+              const isPaused = sessionItem.session_status === "paused";
 
               return (
                 <div
@@ -417,27 +450,56 @@ function Study() {
                       ? "bg-slate-900/60 border border-slate-800 rounded-2xl"
                       : getPriorityColor(sessionItem.Status)
                   } ${isDeleting ? "opacity-50" : ""}`}
-                  style={
-                    isMuted ? { filter: "grayscale(1)", color: "#888" } : {}
-                  }
                 >
-                  <div className="flex items-center justify-between mb-3">
-                    <div className="flex items-center gap-2.5">
-                      {getTypeIcon()}
-                      {!isMuted && getStatusBadge(sessionItem.Status)}
+                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-center gap-3 mb-2 flex-wrap">
+                        <div className="flex items-center gap-2 text-gray-600">
+                          {getTypeIcon()}
+                        </div>
+                        {!isMuted && getStatusBadge(sessionItem.Status)}
+                        {isPaused ? (
+                          <span className="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/40 flex items-center gap-1">
+                            <Pause className="h-3 w-3" /> Paused
+                          </span>
+                        ) : (
+                          <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/40 flex items-center gap-1">
+                            <Play className="h-3 w-3" /> Active
+                          </span>
+                        )}
+                      </div>
+
+                      <h2 className="font-semibold text-lg text-white mb-1">
+                        {toTitleCase(sessionItem.Subject || "")}
+                      </h2>
+                      <h3 className="text-sm text-slate-300 mb-2">
+                        {toTitleCase(sessionItem.Topic || "")}
+                      </h3>
+                      <p className="text-xs text-slate-400 mb-1">
+                        {sessionItem.Date}{" "}
+                        {sessionItem.Start && (
+                          <span className="ml-2 text-slate-400">
+                            at {sessionItem.Start}
+                          </span>
+                        )}
+                      </p>
+                      <p className="text-xs font-medium text-slate-300">
+                        {sessionItem.Duration} hour(s)
+                      </p>
                     </div>
+
                     <div className="relative flex items-center gap-2 dropdown-container">
                       <button
-                        className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-400 text-slate-950 text-xs font-semibold rounded-full hover:bg-emerald-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        onClick={() =>
-                          navigate(
-                            `/Study/${encodeURIComponent(sessionItem.id)}`
-                          )
-                        }
+                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 ${
+                          isPaused
+                            ? "bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-sm"
+                            : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
+                        }`}
+                        onClick={() => navigate(`/Study/${encodeURIComponent(sessionItem.id)}`)}
                         disabled={isDeleting || isMuting}
                       >
-                        <Play className="h-3 w-3 fill-current" />
-                        Start
+                        {isPaused ? <Play className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}
+                        {isPaused ? "Resume" : "Start"}
                       </button>
 
                       <button
@@ -457,59 +519,17 @@ function Study() {
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleMuteToggle(sessionItem.id)}
-                            disabled={isMuting}
                           >
-                            {isMuting ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                {isMuted ? "Unmuting..." : "Muting..."}
-                              </span>
-                            ) : isMuted ? (
-                              "Unmute"
-                            ) : (
-                              "Mute"
-                            )}
+                            {isMuted ? "Unmute" : "Mute"}
                           </button>
                           <button
                             className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 disabled:opacity-50"
                             onClick={() => handleDelete(sessionItem.id)}
-                            disabled={isDeleting}
                           >
-                            {isDeleting ? (
-                              <span className="flex items-center gap-2">
-                                <Loader2 className="h-3 w-3 animate-spin" />
-                                Deleting...
-                              </span>
-                            ) : (
-                              "Delete"
-                            )}
+                            Delete
                           </button>
                         </div>
                       )}
-                    </div>
-                  </div>
-
-                  <div>
-                    <h2
-                      className={`font-bold text-lg mb-0.5 ${
-                        isMuted ? "text-slate-500" : "text-white"
-                      }`}
-                    >
-                      {toTitleCase(sessionItem.Subject || "")}
-                    </h2>
-                    <h3
-                      className={`text-sm mb-3 ${
-                        isMuted ? "text-slate-600" : "text-slate-400"
-                      }`}
-                    >
-                      {toTitleCase(sessionItem.Topic || "")}
-                    </h3>
-                    <div className="flex items-center justify-between text-xs text-slate-400">
-                      <span>
-                        {sessionItem.Date}
-                        {sessionItem.Start && ` at ${sessionItem.Start}`}
-                      </span>
-                      <span>{sessionItem.Duration} hour(s)</span>
                     </div>
                   </div>
                 </div>
@@ -520,21 +540,50 @@ function Study() {
 
         {/* Session History Section */}
         <div className="mt-12">
-          <h2 className="text-xl font-bold text-gray-800 dark:text-white mb-4">
-            Session History
-          </h2>
-          {sessionHistory.length === 0 ? (
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+              Session History (Completed Sessions)
+            </h2>
+
+            {sessionHistory.length > 0 && (
+              <div className="flex flex-wrap items-center gap-2">
+                <select
+                  value={historySubjectFilter}
+                  onChange={(e) => setHistorySubjectFilter(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                >
+                  <option value="all">All Subjects</option>
+                  {uniqueSubjects.map((sub) => (
+                    <option key={sub} value={sub}>
+                      {toTitleCase(sub)}
+                    </option>
+                  ))}
+                </select>
+
+                <select
+                  value={historyDateFilter}
+                  onChange={(e) => setHistoryDateFilter(e.target.value)}
+                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                >
+                  <option value="all">All Time</option>
+                  <option value="7days">Last 7 Days</option>
+                  <option value="30days">Last 30 Days</option>
+                </select>
+              </div>
+            )}
+          </div>
+
+          {filteredSessionHistory.length === 0 ? (
             <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-[#18211f] p-8 text-center text-gray-500 dark:text-slate-400">
               <BookOpen className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
-              <p className="font-medium text-sm">No completed study sessions yet.</p>
-              <p className="text-xs text-gray-400 dark:text-slate-500 mt-1">
-                Completed study sessions will appear here in your history.
-              </p>
+              <p className="font-medium text-sm">No session history records match filters.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              {sessionHistory.map((item) => {
+              {filteredSessionHistory.map((item) => {
                 const dateStr = item.completedAt ? new Date(item.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently";
+                const isDeletingThis = deletingHistoryId === item.id;
+
                 return (
                   <div
                     key={item.id}
@@ -543,11 +592,11 @@ function Study() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-base">
+                        <span className="font-bold text-white text-base truncate">
                           {toTitleCase(item.subject)}
                         </span>
-                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
-                          {item.status || "completed"}
+                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50 shrink-0">
+                          Completed
                         </span>
                       </div>
                       <p className="text-sm font-medium text-slate-400 truncate">
@@ -557,8 +606,8 @@ function Study() {
                         {dateStr}
                       </p>
                     </div>
-                    <div className="flex items-center gap-4 text-right">
-                      <div>
+                    <div className="flex items-center justify-between sm:justify-end gap-4 text-right border-t border-slate-800/60 sm:border-0 pt-2 sm:pt-0">
+                      <div className="text-left sm:text-right">
                         <p className="text-sm font-bold text-white">
                           {item.durationMinutes} min
                         </p>
@@ -566,6 +615,20 @@ function Study() {
                           +{item.xpEarned || 50} XP
                         </p>
                       </div>
+
+                      <button
+                        type="button"
+                        onClick={(e) => handleDeleteHistoryItem(item.id, e)}
+                        disabled={isDeletingThis}
+                        title="Delete this history entry"
+                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                      >
+                        {isDeletingThis ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <X className="h-4 w-4" />
+                        )}
+                      </button>
                     </div>
                   </div>
                 );
@@ -576,185 +639,184 @@ function Study() {
       </div>
 
       {/* Fixed Overlay Modal */}
-      {isOpen && (
-        <div
-          className="fixed inset-0 flex items-center justify-center z-50 p-4 backdrop-blur-2xl backdrop-saturate-600"
-          style={{ background: "rgba(255,255,255,0.05)" }}
-          onClick={(e) => {
-            if (formRef.current && !formRef.current.contains(e.target)) {
-              setIsOpen(false);
-            }
-          }}
-        >
-          <div className="w-full max-w-md" ref={formRef}>
-            <form
-              className="bg-white p-6 rounded-lg shadow-xl"
-              onSubmit={addSession}
-            >
-              <div className="flex justify-between items-center mb-6">
-                <h2 className="text-xl font-bold text-gray-800">
-                  Create Study Session
-                </h2>
-                <button
-                  type="button"
-                  onClick={() => setIsOpen(false)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                  disabled={loadingStates.form_submit}
-                >
-                  <X className="h-6 w-6" />
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {/* Subject */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Subject *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="subject"
-                    value={session.subject}
-                    onChange={handleChange}
-                    placeholder="e.g., Mathematics, Biology"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Topic */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Topic *
-                  </label>
-                  <input
-                    required
-                    type="text"
-                    name="topic"
-                    value={session.topic}
-                    onChange={handleChange}
-                    placeholder="e.g., Calculus, Cell Division"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-
-                {/* Status */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Status *
-                  </label>
-                  <select
-                    required
-                    name="status"
-                    value={session.status}
-                    onChange={handleChange}
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+      {isOpen &&
+        createPortal(
+          <div
+            className="fixed inset-0 z-[100] flex items-center justify-center overflow-y-auto bg-slate-900/50 p-4 backdrop-blur-sm"
+            onClick={(e) => {
+              if (formRef.current && !formRef.current.contains(e.target)) {
+                setIsOpen(false);
+              }
+            }}
+          >
+            <div className="my-auto max-h-[90vh] w-full max-w-md overflow-y-auto rounded-2xl bg-white shadow-2xl dark:bg-[#18211f]" ref={formRef}>
+              <form
+                className="p-6 text-slate-800 dark:text-slate-100"
+                onSubmit={addSession}
+              >
+                <div className="flex justify-between items-center mb-6">
+                  <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                    Create Study Session
+                  </h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsOpen(false)}
+                    className="text-gray-400 hover:text-gray-600 transition-colors dark:hover:text-gray-200"
                     disabled={loadingStates.form_submit}
                   >
-                    <option value="">Select status</option>
-                    <option value="Very Important">Very Important</option>
-                    <option value="Medium">Medium</option>
-                    <option value="Not so Important">Not so Important</option>
-                  </select>
+                    <X className="h-6 w-6" />
+                  </button>
                 </div>
 
-                {/* Date */}
-                <div className="flex gap-2">
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Date *
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Subject *
                     </label>
                     <input
                       required
-                      type="date"
-                      min={new Date().toISOString().slice(0, 10)}
-                      name="date"
-                      value={session.date}
+                      type="text"
+                      name="subject"
+                      value={session.subject}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Mathematics, Biology"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
-                  <div className="flex-1">
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Start Time *
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Topic *
                     </label>
                     <input
                       required
-                      type="time"
-                      name="time"
-                      value={session.time}
+                      type="text"
+                      name="topic"
+                      value={session.topic}
                       onChange={handleChange}
-                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
+                      placeholder="e.g., Calculus, Cell Division"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Status *
+                    </label>
+                    <select
+                      required
+                      name="status"
+                      value={session.status}
+                      onChange={handleChange}
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                      disabled={loadingStates.form_submit}
+                    >
+                      <option value="">Select status</option>
+                      <option value="Very Important">Very Important</option>
+                      <option value="Medium">Medium</option>
+                      <option value="Not so Important">Not so Important</option>
+                    </select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Date *
+                      </label>
+                      <input
+                        required
+                        type="date"
+                        min={new Date().toISOString().slice(0, 10)}
+                        name="date"
+                        value={session.date}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                        Start Time *
+                      </label>
+                      <input
+                        required
+                        type="time"
+                        name="time"
+                        value={session.time}
+                        onChange={handleChange}
+                        className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                        disabled={loadingStates.form_submit}
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
+                      Study Duration (hours) *
+                    </label>
+                    <input
+                      required
+                      type="number"
+                      name="hours"
+                      value={session.hours}
+                      onChange={handleChange}
+                      placeholder="1"
+                      min="0.5"
+                      step="0.5"
+                      max="100"
+                      className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-white"
                       disabled={loadingStates.form_submit}
                     />
                   </div>
                 </div>
 
-                {/* Hours */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Study Duration (hours) *
-                  </label>
-                  <input
-                    required
-                    type="number"
-                    name="hours"
-                    value={session.hours}
-                    onChange={handleChange}
-                    placeholder="1"
-                    min="0.5"
-                    step="0.5"
-                    max="100"
-                    className="w-full border border-gray-300 rounded-lg p-3 focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all"
-                    disabled={loadingStates.form_submit}
-                  />
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                disabled={loadingStates.form_submit}
-              >
-                {loadingStates.form_submit ? (
-                  <>
-                    <Loader2 className="h-4 w-4 animate-spin" />
-                    Creating Session...
-                  </>
-                ) : (
-                  "Create Session"
-                )}
-              </button>
-            </form>
-          </div>
-        </div>
-      )}
+                <button
+                  type="submit"
+                  className="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-medium mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={loadingStates.form_submit}
+                >
+                  {loadingStates.form_submit ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Creating Session...
+                    </>
+                  ) : (
+                    "Create Session"
+                  )}
+                </button>
+              </form>
+            </div>
+          </div>,
+          document.body
+        )}
 
       {/* Floating Action Button */}
-      <button
-        onClick={toggleShow}
-        className="fixed bottom-6 right-6 bg-green-600 hover:bg-green-700 text-white p-4 rounded-full shadow-lg hover:shadow-xl transition-all duration-300 ease-in-out hover:scale-110 z-40"
-        title="Create New Session"
-      >
-        <svg
-          className="w-6 h-6"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-          />
-        </svg>
-      </button>
+      {!activeSession &&
+        createPortal(
+          <button
+            onClick={toggleShow}
+            className="fixed bottom-20 right-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:right-8"
+            title="Create New Session"
+          >
+            <svg
+              className="w-6 h-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+          </button>,
+          document.body
+        )}
     </div>
   );
 }

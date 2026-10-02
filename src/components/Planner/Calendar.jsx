@@ -1,21 +1,49 @@
-import React from 'react';
-import { Plus } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { Plus, Play, Pause } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 const Calendar = ({
   currentDate,
-  selectedDate,
-  setSelectedDate,
   sessions,
   handleDrop,
   setSelectedSession,
   selectedSession,
   onAddActivity,
 }) => {
+  const navigate = useNavigate();
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
+
+  // BOLT OPTIMIZATION:
+  // Pre-index sessions by `${dateString}-${hour}` in O(N) time using useMemo.
+  // This eliminates doing array filtering (O(N) * 12 hours * 7 days = 84 * N array iterations)
+  // on every render in renderWeekView, reducing lookups to O(1) hash map access.
+  const sessionsByDateAndHour = useMemo(() => {
+    const map = new Map();
+    if (!Array.isArray(sessions)) return map;
+
+    for (const session of sessions) {
+      if (!session || !session.date) continue;
+      const dateKey = session.date.toDateString();
+      const deadline = isDeadline(session);
+      const startHour = deadline
+        ? 8
+        : parseInt((session.startTime || "09:00").split(":")[0], 10);
+
+      const key = `${dateKey}-${startHour}`;
+      let group = map.get(key);
+      if (!group) {
+        group = [];
+        map.set(key, group);
+      }
+      group.push(session);
+    }
+    return map;
+  }, [sessions]);
 
   const renderSessionItem = (session, compact = false) => {
     const deadline = isDeadline(session);
     const isOpen = selectedSession?.id === session.id;
+    const isPaused = session.sessionStatus === "paused";
 
     return (
       <div key={session.id} className="relative">
@@ -27,7 +55,14 @@ const Calendar = ({
           }}
           className={`w-full cursor-pointer rounded p-1 text-left text-xs text-white transition hover:brightness-95 ${deadline ? "bg-red-600" : session.color} ${compact ? "mb-1" : ""}`}
         >
-          <span className="block truncate font-semibold">{deadline ? "Deadline" : session.title}</span>
+          <div className="flex items-center justify-between gap-1">
+            <span className="block truncate font-semibold">{deadline ? "Deadline" : session.title}</span>
+            {!deadline && isPaused && (
+              <span className="shrink-0 rounded bg-black/40 px-1 py-0.2 text-[9px] font-bold text-amber-200">
+                Paused
+              </span>
+            )}
+          </div>
           {!compact && deadline && <span className="block truncate">{session.title}</span>}
         </button>
         {isOpen && (
@@ -41,11 +76,26 @@ const Calendar = ({
             </div>
             <dl className="mt-3 space-y-2 text-xs">
               <div className="flex justify-between gap-3"><dt className="text-slate-500">Subject</dt><dd className="font-semibold text-right">{session.subject || "-"}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Status</dt><dd className="font-semibold text-right">{isPaused ? "Paused" : "Active / Scheduled"}</dd></div>
               <div className="flex justify-between gap-3"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-right">{session.date.toLocaleDateString()}</dd></div>
               {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Time</dt><dd className="font-semibold text-right">{session?.startTime || "09:00"} - {session?.endTime || "10:00"}</dd></div>}
               {!deadline && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{Number(session.duration || 0).toFixed(2).replace(/\.00$/, "")} hours</dd></div>}
               {session.recurring && session.recurring !== "none" && <div className="flex justify-between gap-3"><dt className="text-slate-500">Repeats</dt><dd className="font-semibold capitalize text-right">{session.recurring}</dd></div>}
             </dl>
+            {!deadline && (
+              <div className="mt-4 border-t border-slate-100 pt-3">
+                <button
+                  type="button"
+                  onClick={() => navigate(`/Study/${session.id}`)}
+                  className={`flex w-full items-center justify-center gap-2 rounded-lg py-2 px-3 text-xs font-bold text-slate-950 transition ${
+                    isPaused ? "bg-amber-400 hover:bg-amber-500" : "bg-emerald-400 hover:bg-emerald-500"
+                  }`}
+                >
+                  {isPaused ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5 fill-current" />}
+                  {isPaused ? "Resume Session" : "Start Session"}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -95,18 +145,14 @@ const Calendar = ({
         ))}
 
         {[...Array(12)].map((_, hour) => {
-          const time = `${(hour + 8).toString().padStart(2, "0")}:00`;
+          const slotHour = hour + 8;
+          const time = `${slotHour.toString().padStart(2, "0")}:00`;
           return (
             <React.Fragment key={time}>
               <div className="text-xs text-gray-500 py-2">{time}</div>
               {weekDays.map((day) => {
-                const daySession = sessions.filter(
-                  (session) =>
-                    session.date.toDateString() === day.toDateString() &&
-                    (isDeadline(session)
-                      ? hour === 0
-                      : parseInt((session?.startTime || "09:00").split(":")[0]) === hour + 8)
-                );
+                const key = `${day.toDateString()}-${slotHour}`;
+                const daySession = sessionsByDateAndHour.get(key) || [];
                 return (
                   <div
                     key={`${day.toDateString()}-${time}`}

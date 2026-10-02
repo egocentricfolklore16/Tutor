@@ -16,7 +16,7 @@ const AnalyticsDashboard = () => {
     const loadSessions = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) { setStatus("unauthenticated"); return; }
-      const { data, error } = await supabase.from("Study").select("id,Subject,Date,Duration,Status").eq("user_id", user.id);
+      const { data, error } = await supabase.from("Study").select("id,Subject,Date,Duration,Status").eq("user_id", user.id).neq("session_status", "completed");
       if (error) { setStatus("error"); console.error("Analytics fetch error:", error); return; }
       setSessions(data || []);
       setStatus("ready");
@@ -35,8 +35,11 @@ const AnalyticsDashboard = () => {
       date.setDate(start.getDate() + index);
       return { key: dateKey(date), day: date.toLocaleDateString("en-US", { weekday: "short" }), hours: 0 };
     });
+    // BOLT OPTIMIZATION: Pre-index chart buckets by date key into a Map for O(1) lookups.
+    // Eliminates linear `.find(...)` array iteration per session item, reducing complexity from O(7 * N) to O(7 + N).
+    const chartMap = new Map(chart.map((item) => [item.key, item]));
     sessions.forEach((session) => {
-      const day = chart.find((item) => item.key === dateKey(session.Date));
+      const day = chartMap.get(dateKey(session.Date));
       if (day) day.hours += Number.parseFloat(session.Duration) || 0;
     });
     const subjectTotals = sessions.reduce((result, session) => {

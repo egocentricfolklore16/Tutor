@@ -1,7 +1,9 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { Eye, EyeOff, Mail, Lock, User, BookOpen, Check } from "lucide-react";
 import supabase from "../../lib/supabase.js";
 import { useNavigate } from "react-router-dom";
+import { mapAuthError } from "../../lib/authErrors.js";
+
 const SignupPage = () => {
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
@@ -18,9 +20,11 @@ const SignupPage = () => {
   const [passwordStrength, setPasswordStrength] = useState(0);
   const [showConfirmDialog, setShowConfirmDialog] = useState(false);
   const [formError, setFormError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [resendLoading, setResendLoading] = useState(false);
   const [resendMessage, setResendMessage] = useState("");
   const [resendError, setResendError] = useState("");
+  const errorRef = useRef(null);
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -75,56 +79,76 @@ const SignupPage = () => {
       });
 
       if (error) {
-        setResendError(error.message || "Failed to resend confirmation email.");
+        const mapped = mapAuthError(error);
+        setResendError(mapped.message);
       } else {
         setResendMessage("Confirmation email has been resent successfully!");
       }
     } catch (err) {
-      setResendError(err.message || "An unexpected error occurred.");
+      const mapped = mapAuthError(err);
+      setResendError(mapped.message);
     } finally {
       setResendLoading(false);
     }
   };
 
   const handleSubmit = async () => {
+    if (loading) return;
     setFormError("");
+
     // Basic validation
     if (!formData.userName || !formData.email || !formData.password) {
       setFormError("Please fill in all required fields.");
+      setTimeout(() => errorRef.current?.focus(), 50);
       return;
     }
 
     if (formData.password !== formData.confirmPassword) {
       setFormError("Passwords do not match.");
+      setTimeout(() => errorRef.current?.focus(), 50);
       return;
     }
 
     if (!formData.agreeToTerms) {
       setFormError("Please agree to the Terms of Service and Privacy Policy.");
+      setTimeout(() => errorRef.current?.focus(), 50);
       return;
     }
 
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        data: {
-          full_name: formData.userName.trim(),
+    setLoading(true);
+    try {
+      const { error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            full_name: formData.userName.trim(),
+          },
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      }
-    });
-    if (error) {
-      console.error("Error signing Up:", error.message);
-      setFormError(error.message || "Signup failed.");
-      return;
-    }
+      });
 
-    // Show confirmation dialog
-    setResendMessage("");
-    setResendError("");
-    setShowConfirmDialog(true);
-  }
+      if (error) {
+        const mapped = mapAuthError(error);
+        setFormError(mapped.message);
+        setFormData((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+        setTimeout(() => errorRef.current?.focus(), 50);
+        return;
+      }
+
+      // Show confirmation dialog
+      setResendMessage("");
+      setResendError("");
+      setShowConfirmDialog(true);
+    } catch (err) {
+      const mapped = mapAuthError(err);
+      setFormError(mapped.message);
+      setFormData((prev) => ({ ...prev, password: "", confirmPassword: "" }));
+      setTimeout(() => errorRef.current?.focus(), 50);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSocialSignup = async (provider) => {
     setFormError("");
@@ -137,10 +161,14 @@ const SignupPage = () => {
         },
       });
       if (error) {
-        setFormError(`Error signing up with ${provider}: ${error.message}`);
+        const mapped = mapAuthError(error);
+        setFormError(`Error signing up with ${provider}: ${mapped.message}`);
+        setTimeout(() => errorRef.current?.focus(), 50);
       }
     } catch (err) {
-      setFormError(`Error signing up with ${provider}: ${err.message}`);
+      const mapped = mapAuthError(err);
+      setFormError(`Error signing up with ${provider}: ${mapped.message}`);
+      setTimeout(() => errorRef.current?.focus(), 50);
     }
   };
 
@@ -212,7 +240,12 @@ const SignupPage = () => {
               Start your personalized learning journey today
             </p>
             {formError && (
-              <div className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm font-medium text-red-400 text-center">
+              <div
+                ref={errorRef}
+                tabIndex={-1}
+                role="alert"
+                className="mt-4 rounded-lg bg-red-500/10 border border-red-500/30 p-3 text-sm font-medium text-red-400 text-center outline-none"
+              >
                 {formError}
               </div>
             )}
@@ -508,10 +541,11 @@ const SignupPage = () => {
             {/* Sign Up Button */}
             <button
               type="button"
+              disabled={loading}
               onClick={handleSubmit}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Create Account
+              {loading ? "Creating Account..." : "Create Account"}
             </button>
 
             {/* Divider */}

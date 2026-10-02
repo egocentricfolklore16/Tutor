@@ -40,7 +40,7 @@ function StudyCompanion({ theme, topic }) {
             <div className="absolute right-5 top-5 rounded-full bg-white/80 dark:bg-slate-800/80 p-2 text-amber-500 shadow-sm"><Sparkles className="h-4 w-4" /></div>
             <img src="/logo3.png" alt="Lumo, your study companion" className="lumo-float h-44 w-auto object-contain drop-shadow-md" />
           </div>
-          <div className="flex flex-1 flex-col px-5 pb-5">
+          <div className="flex flex-1 flex-col pb-2">
             <p className={`text-xs font-bold uppercase tracking-[0.18em] ${theme?.accentText || "text-green-700 dark:text-green-400"}`}>Lumo says</p>
             <p className="mt-2 min-h-14 text-lg font-bold leading-7 text-slate-900 dark:text-slate-100">{messages[messageIndex]}</p>
             <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Studying {topic} together, one idea at a time.</p>

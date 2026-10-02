@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
 import AuthLayout from "./components/Auth/AuthLayout.jsx";
@@ -9,7 +9,7 @@ import Study from "./components/Study/StudyHome.jsx";
 import LoginPage from "./components/Auth/LoginForm.jsx";
 import NotFound from "./components/common/NotFound.jsx";
 import supabase from "./lib/supabase.js";
-import ErrorBoundary from "./components/common/ErrorBoundary_temp.jsx";
+import ErrorBoundary from "./components/common/ErrorBoundary.jsx";
 import PlannerPage from "./components/Planner/Planner.jsx";
 import StudyEnvironment from "./components/Study/studyEnviron/StudyEnvironment.jsx";
 import Library from "./components/Library/Library.jsx";
@@ -20,6 +20,7 @@ import AuthCallback from "./components/Auth/callback/page.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
+import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -30,58 +31,154 @@ function App() {
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
+
+    // Safety watchdog timer: force loading flags to false after 5 seconds if auth promises hang
+    const watchdogTimer = setTimeout(() => {
+      if (mounted && (loading || onboardingLoading)) {
+        console.error("Auth bootstrap or onboarding check timed out after 5000ms. Forcing loading resolution.");
+        setLoading(false);
+        setOnboardingLoading(false);
+      }
+    }, 5000);
+
     const handleOnboardingCompleted = (event) => {
-      if (event.detail?.userId === session?.user?.id) {
+      if (event.detail?.userId && session?.user?.id === event.detail.userId) {
         setNeedsOnboarding(false);
       }
     };
 
     window.addEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
 
-    const fetchSession = async () => {
-      const currentSession = await supabase.auth.getSession();
-      const nextSession = currentSession.data?.session || null;
-      setSession(nextSession);
-      if (nextSession?.user) {
-        setOnboardingLoading(true);
-        const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
-        const { data: profile, error } = await supabase
-          .from("profiles")
-          .select("onboarding_completed")
-          .eq("user_id", nextSession.user.id)
-          .maybeSingle();
-        setNeedsOnboarding(!completedLocally && (Boolean(error) || !profile?.onboarding_completed));
-        setOnboardingLoading(false);
+    const bootstrapAuth = async () => {
+      try {
+        const { data, error } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Error fetching session during auth bootstrap:", error);
+          const errMsg = error.message || "";
+          const errCode = error.code || "";
+          if (
+            errMsg.toLowerCase().includes("refresh token") ||
+            errCode === "refresh_token_not_found" ||
+            errCode === "session_not_found" ||
+            errCode === "invalid_grant"
+          ) {
+            await supabase.auth.signOut({ scope: "local" });
+            if (!mounted) return;
+            setSession(null);
+            setNeedsOnboarding(false);
+            return;
+          }
+        }
+
+        const currentSession = data?.session || null;
+        if (!mounted) return;
+        setSession(currentSession);
+
+        if (currentSession?.user) {
+          setOnboardingLoading(true);
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
+          } catch (e) {
+            console.error("Error reading onboarding completion state from sessionStorage:", e);
+          }
+
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", currentSession.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error("Error fetching user profile during auth bootstrap:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Failed to query user profile:", profileErr);
+          } finally {
+            if (mounted) {
+              setOnboardingLoading(false);
+            }
+          }
+        }
+      } catch (err) {
+        console.error("Unhandled exception during auth bootstrap:", err);
+      } finally {
+        if (mounted) {
+          setLoading(false);
+        }
       }
-      setLoading(false);
     };
 
-    fetchSession();
+    bootstrapAuth();
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
-      if (!session) {
+    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+      if (!mounted) return;
+
+      if (event === "SIGNED_OUT") {
+        setSession(null);
         setNeedsOnboarding(false);
+        const publicPaths = ["/login", "/signup", "/auth/callback", "/"];
+        const currentPath = window.location.pathname;
+        if (!publicPaths.includes(currentPath)) {
+          window.location.href = "/login";
+        }
         return;
       }
-      const completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${session.user.id}`) === "true";
-      supabase
-        .from("profiles")
-        .select("onboarding_completed")
-        .eq("user_id", session.user.id)
-        .maybeSingle()
-        .then(({ data, error }) => setNeedsOnboarding(!completedLocally && (Boolean(error) || !data?.onboarding_completed)));
+
+      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+        setSession(nextSession);
+        if (nextSession?.user) {
+          let completedLocally = false;
+          try {
+            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
+          } catch (e) {
+            console.error("Error reading onboarding completion state from sessionStorage:", e);
+          }
+          try {
+            const { data: profile, error: profileError } = await supabase
+              .from("profiles")
+              .select("onboarding_completed")
+              .eq("user_id", nextSession.user.id)
+              .maybeSingle();
+
+            if (profileError) {
+              console.error("Error fetching profile on auth state change:", profileError);
+            }
+
+            if (mounted) {
+              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
+            }
+          } catch (profileErr) {
+            console.error("Unhandled exception fetching profile on auth state change:", profileErr);
+          }
+        }
+      }
     });
 
     return () => {
+      mounted = false;
+      clearTimeout(watchdogTimer);
       subscription.unsubscribe();
       window.removeEventListener("hyper-tutor-onboarding-completed", handleOnboardingCompleted);
     };
-  }, [session?.user?.id]);
+  }, []);
 
-  if (loading || onboardingLoading) return null;
+  if (loading || onboardingLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+        <LoadingCompanion message="Loading Hyper Tutor..." />
+      </div>
+    );
+  }
 
   return (
     <ErrorBoundary>
@@ -136,6 +233,7 @@ function App() {
                 </AuthLayout>
               }
             />
+            <Route path="*" element={<Navigate to="/login" replace />} />
           </Routes>
         )}
       </BrowserRouter>

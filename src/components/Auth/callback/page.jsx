@@ -3,10 +3,17 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../../lib/supabase.js";
 
+import { mapAuthError } from "../../../lib/authErrors.js";
+
 export default function AuthCallback() {
   const navigate = useNavigate();
   const [status, setStatus] = useState("verifying");
   const [error, setError] = useState(null);
+  const [emailInput, setEmailInput] = useState("");
+  const [showEmailInput, setShowEmailInput] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendStatusMessage, setResendStatusMessage] = useState("");
+  const [resendErrorMessage, setResendErrorMessage] = useState("");
 
   const redirectAfterAuth = async (session) => {
     if (!session?.user) return;
@@ -30,11 +37,17 @@ export default function AuthCallback() {
         // Check for error parameters in URL hash or search
         const hashParams = new URLSearchParams(window.location.hash.substring(1));
         const searchParams = new URLSearchParams(window.location.search);
+        const errorCode = hashParams.get("error_code") || searchParams.get("error_code") || hashParams.get("error") || searchParams.get("error");
         const errorDescription = hashParams.get("error_description") || searchParams.get("error_description");
+        const detectedEmail = hashParams.get("email") || searchParams.get("email") || "";
 
-        if (errorDescription) {
+        if (detectedEmail) {
+          setEmailInput(detectedEmail);
+        }
+
+        if (errorCode === "otp_expired" || errorCode === "access_denied" || errorDescription) {
           if (!mounted) return;
-          setError(decodeURIComponent(errorDescription.replace(/\+/g, " ")));
+          setError("This link has expired or was already used.");
           setStatus("error");
           return;
         }
@@ -52,7 +65,7 @@ export default function AuthCallback() {
           if (!mounted) return;
 
           if (setSessionError) {
-            setError(setSessionError.message || "Failed to establish session from magic link.");
+            setError("This link has expired or was already used.");
             setStatus("error");
             return;
           }
@@ -64,7 +77,7 @@ export default function AuthCallback() {
           }
         }
 
-        // Get the current session to see if user is authenticated
+        // Get current session
         const {
           data: { session },
           error: sessionError,
@@ -73,8 +86,7 @@ export default function AuthCallback() {
         if (!mounted) return;
 
         if (sessionError) {
-          console.error("Session error:", sessionError);
-          setError("Authentication failed. Please try again.");
+          setError("This link has expired or was already used.");
           setStatus("error");
           return;
         }
@@ -83,24 +95,13 @@ export default function AuthCallback() {
           setStatus("success");
           await redirectAfterAuth(session);
         } else {
-          // No session found, redirect to login
-          setError("No valid session found. Please try logging in again.");
+          setError("This link has expired or was already used.");
           setStatus("error");
-
-          setTimeout(() => {
-            navigate("/login");
-          }, 2000);
         }
       } catch (err) {
         if (!mounted) return;
-
-        console.error("Callback error:", err);
-        setError("Something went wrong during authentication.");
+        setError("This link has expired or was already used.");
         setStatus("error");
-
-        setTimeout(() => {
-          navigate("/login");
-        }, 2000);
       }
     };
 
@@ -126,25 +127,59 @@ export default function AuthCallback() {
     };
   }, [navigate]);
 
+  const handleResendConfirmation = async (e) => {
+    e?.preventDefault?.();
+    if (!emailInput.trim()) {
+      setShowEmailInput(true);
+      return;
+    }
+
+    setResendLoading(true);
+    setResendStatusMessage("");
+    setResendErrorMessage("");
+
+    try {
+      const { error: resendErr } = await supabase.auth.resend({
+        type: "signup",
+        email: emailInput.trim(),
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
+      });
+
+      if (resendErr) {
+        const mapped = mapAuthError(resendErr);
+        setResendErrorMessage(mapped.message);
+      } else {
+        setResendStatusMessage("Confirmation email has been resent successfully!");
+      }
+    } catch (err) {
+      const mapped = mapAuthError(err);
+      setResendErrorMessage(mapped.message);
+    } finally {
+      setResendLoading(false);
+    }
+  };
+
   const getStatusContent = () => {
     switch (status) {
       case "verifying":
         return {
           icon: (
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
           ),
           title: "Completing Sign In...",
           description: "Please wait while we verify your email confirmation.",
-          bgColor: "bg-blue-50",
-          textColor: "text-blue-900",
+          bgColor: "bg-emerald-50",
+          textColor: "text-emerald-950",
         };
 
       case "success":
         return {
           icon: (
-            <div className="rounded-full h-12 w-12 bg-green-100 flex items-center justify-center">
+            <div className="rounded-full h-12 w-12 bg-emerald-100 flex items-center justify-center">
               <svg
-                className="h-6 w-6 text-green-600"
+                className="h-6 w-6 text-emerald-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -161,8 +196,8 @@ export default function AuthCallback() {
           title: "Email Confirmed!",
           description:
             "Welcome to Hyper Tutor. Redirecting you to setup...",
-          bgColor: "bg-green-50",
-          textColor: "text-green-900",
+          bgColor: "bg-emerald-50",
+          textColor: "text-emerald-950",
         };
 
       case "error":
@@ -184,11 +219,10 @@ export default function AuthCallback() {
               </svg>
             </div>
           ),
-          title: "Authentication Failed",
-          description:
-            error || "Something went wrong. Redirecting you to login...",
-          bgColor: "bg-red-50",
-          textColor: "text-red-900",
+          title: "Link Expired",
+          description: error || "This link has expired or was already used.",
+          bgColor: "bg-slate-50",
+          textColor: "text-slate-900",
         };
 
       default:
@@ -213,40 +247,75 @@ export default function AuthCallback() {
       <div className="max-w-md w-full">
         {/* Hyper Tutor Logo/Branding */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white font-bold text-xl mb-4">
-            HT
+          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-emerald-100 text-emerald-700 mb-4">
+            <img src="/logo3.png" alt="Hyper Tutor logo" className="h-10 w-10 object-contain" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Hyper Tutor</h1>
-          <p className="text-gray-600 text-sm">
+          <h1 className="text-2xl font-bold text-slate-900">Hyper Tutor</h1>
+          <p className="text-slate-500 text-sm">
             Your Intelligent Learning Companion
           </p>
         </div>
 
         {/* Status Card */}
-        <div className="bg-white rounded-xl shadow-lg p-8 text-center">
+        <div className="bg-white rounded-xl shadow-lg p-8 text-center border border-slate-100">
           <div className="flex justify-center mb-6">{icon}</div>
 
-          <h2 className={`text-xl font-semibold mb-3 ${textColor}`}>{title}</h2>
+          <h2 className={`text-xl font-bold mb-3 ${textColor}`}>{title}</h2>
 
-          <p className="text-gray-600 mb-6">{description}</p>
+          <p className="text-slate-600 mb-6 text-sm">{description}</p>
 
           {/* Progress indicators */}
           {status === "verifying" && (
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-slate-100 rounded-full h-2">
               <div
-                className="bg-blue-600 h-2 rounded-full animate-pulse"
+                className="bg-emerald-600 h-2 rounded-full animate-pulse"
                 style={{ width: "60%" }}
               ></div>
             </div>
           )}
 
           {status === "error" && (
-            <div className="mt-4">
+            <div className="mt-6 space-y-3">
+              {resendStatusMessage && (
+                <p className="text-xs font-semibold text-emerald-700 bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
+                  {resendStatusMessage}
+                </p>
+              )}
+              {resendErrorMessage && (
+                <p className="text-xs font-semibold text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-200">
+                  {resendErrorMessage}
+                </p>
+              )}
+
+              {showEmailInput && (
+                <form onSubmit={handleResendConfirmation} className="mb-3 text-left">
+                  <label className="block text-xs font-bold text-slate-700 mb-1">Enter your email</label>
+                  <input
+                    type="email"
+                    required
+                    value={emailInput}
+                    onChange={(e) => setEmailInput(e.target.value)}
+                    placeholder="you@example.com"
+                    className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 focus:bg-white"
+                  />
+                </form>
+              )}
+
               <button
-                onClick={() => navigate("/login")}
-                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                type="button"
+                disabled={resendLoading}
+                onClick={handleResendConfirmation}
+                className="w-full inline-flex items-center justify-center px-4 py-3 border border-emerald-600/30 text-sm font-bold rounded-xl text-emerald-700 bg-emerald-50 hover:bg-emerald-100 transition-colors disabled:opacity-50"
               >
-                Return to Login
+                {resendLoading ? "Resending..." : "Resend confirmation email"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => navigate("/login")}
+                className="w-full inline-flex items-center justify-center px-4 py-3 text-sm font-bold rounded-xl text-white bg-emerald-600 hover:bg-emerald-700 shadow-sm transition-colors"
+              >
+                Back to login
               </button>
             </div>
           )}
@@ -254,10 +323,10 @@ export default function AuthCallback() {
 
         {/* Footer */}
         <div className="mt-8 text-center">
-          <p className="text-xs text-gray-500">
+          <p className="text-xs text-slate-400">
             Having trouble?{" "}
-            <button className="text-blue-600 hover:text-blue-800 underline">
-              Contact support
+            <button type="button" onClick={() => navigate("/FAQ")} className="text-emerald-700 hover:underline font-semibold">
+              Visit FAQ & Support
             </button>
           </p>
         </div>

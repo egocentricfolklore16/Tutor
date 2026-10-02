@@ -1,46 +1,54 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
-  Menu,
-  MessageCircle,
-  Loader2,
+  Clock,
+  FileText,
+  HelpCircle,
+  Library,
+  ChevronDown,
   Play,
   Pause,
   RotateCcw,
+  CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
-import { updateStreakForActivity } from "../../../lib/streaks";
-import { awardUserRewards } from "../../../lib/gamification";
-import Sidepane from "./Sidepane";
-import AITutorChat from "./AITutorChat";
+import { useAITutor } from "../../../app/AITutorContext";
+import { useStudySession } from "../../../hooks/useStudySession";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
 import PracticeQuestions from "./PracticeQuestions";
 import ResourceAttachments from "./ResourceAttachments";
 import LoadingCompanion from "../../common/LoadingCompanion";
 
-// StudyEnvironment: orchestrates the study workspace, sidepane and AI pane.
+// StudyEnvironment: orchestrates the study workspace, tool navigation, and session timer.
 const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [isToolsOpen, setIsToolsOpen] = useState(true);
+  const {
+    isOpen: isAIOpen,
+    sendTutorEvent,
+    setActiveSessionId,
+    setFocusMode,
+    setPomodoroState,
+    setMinutesRemaining,
+    setPanel,
+  } = useAITutor();
+
+  const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
   const [isLoading, setIsLoading] = useState(!incomingSession);
   const [error, setError] = useState("");
   const [profile, setProfile] = useState(null);
   const [userId, setUserId] = useState(null);
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiMessage, setAiMessage] = useState("");
-  const [isAiTyping, setIsAiTyping] = useState(false);
-  const [sessionComplete, setSessionComplete] = useState(false);
   const [timeline, setTimeline] = useState([]);
 
   const handleTimelineEvent = (eventItem) => {
     if (!eventItem) return;
     setTimeline((prev) => [...prev, eventItem]);
   };
+
   const { Studyid } = useParams();
   const navigate = useNavigate();
 
@@ -101,105 +109,54 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     fetchProfile();
   }, []);
 
+  // Hook handles pause, resume, heartbeat, beacon, and explicit finish/delete
+  const {
+    timeLeft,
+    setTimeLeft,
+    isStudying,
+    isGoalReached,
+    setIsGoalReached,
+    isCompleting,
+    completionError,
+    isCompleted,
+    durationSeconds,
+    pause,
+    resume,
+    finishSession,
+  } = useStudySession({
+    session,
+    userId,
+    sendTutorEvent,
+  });
+
+  useEffect(() => {
+    setMinutesRemaining(Math.max(0, Math.floor(timeLeft / 60)));
+  }, [timeLeft, setMinutesRemaining]);
+
+  useEffect(() => {
+    setFocusMode("Deep work");
+    setPomodoroState(isStudying ? "focus" : "idle");
+  }, [isStudying, setFocusMode, setPomodoroState]);
+
+  useEffect(() => {
+    if (session?.id) setActiveSessionId(session.id);
+  }, [session?.id, setActiveSessionId]);
+
+  useEffect(() => {
+    const mappedPanel = activeTool === "quizzicle" ? "quizzes" : activeTool;
+    setPanel(mappedPanel);
+  }, [activeTool, setPanel]);
+
+  const handleExplicitFinish = async () => {
+    await finishSession(timeline);
+  };
+
+  const handleLeaveSession = async () => {
+    await pause();
+    navigate("/Study");
+  };
+
   const duration = session?.Duration || session?.hours || 0;
-  const durationSeconds = Math.max(1, Number.parseFloat(duration) * 60 * 60);
-  const [timeLeft, setTimeLeft] = useState(durationSeconds);
-  const [isStudying, setIsStudying] = useState(true);
-  const pomodoroRecorded = useRef(false);
-
-  useEffect(() => {
-    setTimeLeft(durationSeconds);
-    pomodoroRecorded.current = false;
-    setSessionComplete(false);
-  }, [durationSeconds]);
-
-  useEffect(() => {
-    if (!isStudying || timeLeft <= 0) return undefined;
-    const timer = window.setInterval(() => {
-      setTimeLeft((current) => Math.max(0, current - 1));
-    }, 1000);
-    return () => window.clearInterval(timer);
-  }, [isStudying, timeLeft]);
-
-  useEffect(() => {
-    if (timeLeft !== 0 || pomodoroRecorded.current || !session?.id) return;
-    pomodoroRecorded.current = true;
-    
-    const completeSession = async () => {
-      let activeUserId = userId;
-      if (!activeUserId) {
-        const { data: { user: authUser } } = await supabase.auth.getUser();
-        activeUserId = authUser?.id || null;
-      }
-
-      if (activeUserId) {
-        const historyEntry = {
-          id: crypto.randomUUID(),
-          user_id: activeUserId,
-          subject: session.Subject || session.subject || "Untitled subject",
-          topic: session.Topic || session.topic || "No topic provided",
-          duration_minutes: Math.round(durationSeconds / 60),
-          started_at: new Date(Date.now() - durationSeconds * 1000).toISOString(),
-          completed_at: new Date().toISOString(),
-          status: "completed",
-          xp_earned: 50,
-          timeline: timeline,
-        };
-
-        // Always update streak, award rewards, and save history entry
-        try {
-          await Promise.all([
-            updateStreakForActivity(activeUserId),
-            awardUserRewards(activeUserId, { xp: 50, gems: 5 }),
-            supabase.from("study_history").insert(historyEntry),
-          ]);
-        } catch (err) {
-          console.error("Error updating streak, rewards, or study history:", err);
-        }
-
-        if (typeof window !== "undefined") {
-          window.dispatchEvent(new CustomEvent("hyper-tutor-session-completed", { detail: historyEntry }));
-        }
-
-        // Save pomodoro record
-        const { error: pomodoroError } = await supabase
-          .from("study_pomodoros")
-          .insert({ session_id: session.id, user_id: activeUserId });
-
-        if (pomodoroError) {
-          throw new Error(`Pomodoro completion save error: ${pomodoroError.message}`);
-        }
-      }
-
-      // Delete the study session after a short delay to allow UI to update
-      setTimeout(async () => {
-        const { error: deleteError } = await supabase
-          .from("Study")
-          .delete()
-          .eq("id", session.id);
-
-        if (deleteError) {
-          console.error("Session deletion error:", deleteError);
-        }
-      }, 2000);
-    };
-    
-    completeSession();
-  }, [timeLeft, userId, session]);
-
-  useEffect(() => {
-    if (timeLeft === 0) setSessionComplete(true);
-  }, [timeLeft]);
-
-  const user =
-    incomingUser ||
-    (session
-      ? {
-          name: session.host || "Guest User",
-          email: session.ownerEmail || "guest@example.com",
-          avatar: "",
-        }
-      : { name: "Guest User", email: "guest@example.com", avatar: "" });
 
   if (isLoading) {
     return <LoadingCompanion message="Loading your study environment..." />;
@@ -220,19 +177,25 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     );
   }
 
-  if (sessionComplete) {
+  if (isCompleted) {
     return (
       <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-center text-slate-900">
         <div className="motion-dialog flex w-full max-w-xl flex-col items-center">
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
           <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
-          <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
-            <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
-          </div>
+          {completionError ? (
+            <div className="mt-4 rounded-xl bg-red-50 px-5 py-3 border border-red-200">
+              <span className="text-sm font-semibold text-red-700">{completionError}</span>
+            </div>
+          ) : (
+            <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
+              <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
+            </div>
+          )}
           <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={() => { setTimeLeft(durationSeconds); setIsStudying(true); setSessionComplete(false); }} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Start another focus session</button>
+            <button type="button" onClick={() => navigate("/Study")} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Back to all sessions</button>
             <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200">Back to dashboard</button>
           </div>
         </div>
@@ -309,24 +272,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const minutesLeft = Math.floor((timeLeft % 3600) / 60);
   const secondsLeft = timeLeft % 60;
 
-  const sendAiMessage = () => {
-    const text = aiMessage.trim();
-    if (!text || isAiTyping) return;
-    setAiMessages((messages) => [...messages, { sender: "user", text }]);
-    setAiMessage("");
-    setIsAiTyping(true);
-    window.setTimeout(() => {
-      setAiMessages((messages) => [
-        ...messages,
-        {
-          sender: "ai",
-          text: `For ${subject} - ${topic}, ${text.toLowerCase().includes("plan") ? "try a focused cycle: review the concept, practise one example, then explain it in your own words." : "break that question into one small step at a time and write down what you already know before solving it."}`,
-        },
-      ]);
-      setIsAiTyping(false);
-    }, 700);
-  };
-
   const renderTool = () => {
     if (activeTool === "notes") {
       return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
@@ -348,9 +293,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
             </div>
           ))}
         </div>
-        <div className="mt-6 flex flex-wrap gap-3">
+        <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
-            onClick={() => setIsStudying((studying) => !studying)}
+            onClick={isStudying ? pause : resume}
             className="inline-flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-semibold text-white hover:bg-slate-900"
           >
             {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
@@ -359,120 +304,195 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           <button
             onClick={() => {
               setTimeLeft(durationSeconds);
-              setIsStudying(true);
+              resume();
             }}
             className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-600 hover:bg-slate-50"
           >
             <RotateCcw className="h-4 w-4" />
             Reset
           </button>
+          <button
+            type="button"
+            onClick={handleExplicitFinish}
+            disabled={isCompleting}
+            className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 shadow-sm disabled:opacity-50"
+          >
+            {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Finish &amp; Complete Session
+          </button>
         </div>
       </div>
     );
   };
 
+  const toolItems = [
+    { id: "pomodoro", label: "Pomodoro Timer", icon: Clock },
+    { id: "notes", label: "Notes", icon: FileText },
+    { id: "flashcards", label: "Flashcards", icon: Library },
+    { id: "quizzicle", label: "Quizicle", icon: HelpCircle },
+    { id: "resources", label: "Resources", icon: BookOpen },
+  ];
+
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <Sidepane
-        isOpen={isToolsOpen}
-        onToggle={() => setIsToolsOpen((open) => !open)}
-        onClose={() => setIsToolsOpen(false)}
-        width={300}
-        user={profile || user}
-        theme={importanceTheme}
-        activeTool={activeTool}
-        onToolSelect={setActiveTool}
-      />
-
       <main
         className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
-          isToolsOpen ? "xl:ml-[calc(var(--app-sidebar-width)+300px)]" : "xl:ml-[calc(var(--app-sidebar-width)+64px)]"
-        } ${
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >
         <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
-          <div className="mb-6 flex min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
-            <button
-              title="Open study menu"
-              onClick={() => setIsToolsOpen((isOpen) => !isOpen)}
-              className="inline-flex shrink-0 items-center gap-2 rounded-lg border border-slate-200 bg-white p-2.5 text-slate-600 shadow-sm hover:bg-slate-100"
-            >
-              <Menu className="h-5 w-5" />
-              <span className="hidden text-sm font-semibold sm:inline">Study tools</span>
-            </button>
-            <button
-              onClick={() => navigate("/Study")}
-              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-600 hover:text-red-700"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              All sessions
-            </button>
-          </div>
+            <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+              <button
+                onClick={handleLeaveSession}
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-100"
+              >
+                <ArrowLeft className="h-4 w-4" />
+                Back to all sessions (Pause)
+              </button>
 
-          <section className={`rounded-2xl p-6 shadow-lg md:p-10 ${importanceTheme.header}`}>
-            <div className="flex flex-wrap items-start justify-between gap-6">
-              <div>
-                <p className={`mb-3 text-sm font-semibold uppercase tracking-widest ${importanceTheme.eyebrow}`}>
-                  Study session
-                </p>
-                <h1 className="text-3xl font-bold md:text-5xl">{subject}</h1>
-                <p className={`mt-3 text-lg ${importanceTheme.topic}`}>{topic}</p>
+              {/* Desktop Tools Bar */}
+              <div className="hidden md:flex items-center gap-1.5 overflow-x-auto py-1">
+                {toolItems.map((item) => {
+                  const isActive = activeTool === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => setActiveTool(item.id)}
+                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
+                        isActive
+                          ? `${importanceTheme.accentBg} ${importanceTheme.accentText} border ${importanceTheme.accentBorder || "border-red-200"}`
+                          : "text-slate-600 hover:bg-slate-100"
+                      }`}
+                    >
+                      <item.icon className="h-4 w-4" />
+                      <span>{item.label}</span>
+                    </button>
+                  );
+                })}
               </div>
-              <span className={`rounded-full px-4 py-2 text-sm font-semibold ${importanceTheme.pill}`}>
-                {status}
-              </span>
-            </div>
-            <div className={`mt-8 grid grid-cols-2 gap-5 border-t pt-6 md:grid-cols-4 ${importanceTheme.divider}`}>
-              <div><p className={`text-sm ${importanceTheme.detail}`}>Date</p><p className="mt-1 font-semibold">{date}</p></div>
-              <div><p className={`text-sm ${importanceTheme.detail}`}>Starts</p><p className="mt-1 font-semibold">{start}</p></div>
-              <div><p className={`text-sm ${importanceTheme.detail}`}>Duration</p><p className="mt-1 font-semibold">{duration} hour(s)</p></div>
-              <div><p className={`text-sm ${importanceTheme.detail}`}>Focus</p><p className="mt-1 font-semibold">Deep work</p></div>
-            </div>
-          </section>
 
-          <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
-            <div className="mb-5 flex items-center gap-3">
-              <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
-              <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
+              {/* Explicit Finish Button */}
+              <button
+                onClick={handleExplicitFinish}
+                disabled={isCompleting}
+                className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                <span>Finish Session</span>
+              </button>
+
+              {/* Mobile Tools Dropdown */}
+              <div className="relative md:hidden">
+                <button
+                  onClick={() => setIsToolsOpen((prev) => !prev)}
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                >
+                  {(() => {
+                    const current = toolItems.find((t) => t.id === activeTool) || toolItems[0];
+                    const ActiveIcon = current.icon;
+                    return (
+                      <>
+                        <ActiveIcon className="h-4 w-4" />
+                        <span>{current.label}</span>
+                        <ChevronDown className={`h-4 w-4 transition-transform ${isToolsOpen ? "rotate-180" : ""}`} />
+                      </>
+                    );
+                  })()}
+                </button>
+
+                {isToolsOpen && (
+                  <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
+                    <div className="flex flex-col gap-1">
+                      {toolItems.map((item) => {
+                        const isActive = activeTool === item.id;
+                        return (
+                          <button
+                            key={item.id}
+                            onClick={() => {
+                              setActiveTool(item.id);
+                              setIsToolsOpen(false);
+                            }}
+                            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
+                              isActive
+                                ? `${importanceTheme.accentBg} ${importanceTheme.accentText}`
+                                : "text-slate-700 hover:bg-slate-100"
+                            }`}
+                          >
+                            <item.icon className="h-4 w-4" />
+                            <span>{item.label}</span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
-            {renderTool()}
-          </section>
+
+            {/* Goal Reached Dialog Prompt */}
+            {isGoalReached && (
+              <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-300 p-5 shadow-sm">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-lg font-bold text-amber-900">Goal Reached! 🎉</h3>
+                    <p className="text-sm text-amber-800 mt-1">You have completed your target study time. Would you like to finish and record this session?</p>
+                  </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => {
+                        setIsGoalReached(false);
+                        setTimeLeft(1800); // 30 extra minutes
+                        resume();
+                      }}
+                      className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 border border-slate-300 hover:bg-slate-50"
+                    >
+                      Study 30m More
+                    </button>
+                    <button
+                      onClick={handleExplicitFinish}
+                      disabled={isCompleting}
+                      className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700"
+                    >
+                      {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                      Finish Session Now
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <section className={`rounded-2xl p-6 shadow-lg md:p-10 ${importanceTheme.header}`}>
+              <div className="flex flex-wrap items-start justify-between gap-6">
+                <div>
+                  <p className={`mb-3 text-sm font-semibold uppercase tracking-widest ${importanceTheme.eyebrow}`}>
+                    Study session
+                  </p>
+                  <h1 className="text-3xl font-bold md:text-5xl">{subject}</h1>
+                  <p className={`mt-3 text-lg ${importanceTheme.topic}`}>{topic}</p>
+                </div>
+                <span className={`rounded-full px-4 py-2 text-sm font-semibold ${importanceTheme.pill}`}>
+                  {status}
+                </span>
+              </div>
+              <div className={`mt-8 grid grid-cols-2 gap-5 border-t pt-6 md:grid-cols-4 ${importanceTheme.divider}`}>
+                <div><p className={`text-sm ${importanceTheme.detail}`}>Date</p><p className="mt-1 font-semibold">{date}</p></div>
+                <div><p className={`text-sm ${importanceTheme.detail}`}>Starts</p><p className="mt-1 font-semibold">{start}</p></div>
+                <div><p className={`text-sm ${importanceTheme.detail}`}>Duration</p><p className="mt-1 font-semibold">{duration} hour(s)</p></div>
+                <div><p className={`text-sm ${importanceTheme.detail}`}>Focus</p><p className="mt-1 font-semibold">Deep work</p></div>
+              </div>
+            </section>
+
+            <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
+              <div className="mb-5 flex items-center gap-3">
+                <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
+                <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
+              </div>
+              {renderTool()}
+            </section>
           </div>
         </div>
       </main>
-
-      <button
-        title="Open AI tutor"
-        onClick={() => setIsAIOpen((isOpen) => !isOpen)}
-        className={`fixed bottom-[max(1rem,env(safe-area-inset-bottom))] right-[max(1rem,env(safe-area-inset-right))] z-[60] inline-flex max-w-[calc(100vw-2rem)] items-center gap-2 rounded-full px-4 py-3 text-sm font-semibold text-white shadow-lg transition-transform hover:scale-105 sm:right-6 sm:px-5 sm:text-base ${importanceTheme.accentButton}`}
-      >
-        <MessageCircle className="h-5 w-5" />
-        AI Tutor
-      </button>
-      <div
-        className={`fixed inset-y-0 right-0 z-[50] transition-transform duration-300 ${
-          isAIOpen ? "translate-x-0" : "translate-x-full"
-        }`}
-      >
-        <AITutorChat
-          isOpen={isAIOpen}
-          onClose={() => setIsAIOpen(false)}
-          messages={aiMessages}
-          currentMessage={aiMessage}
-          onMessageChange={setAiMessage}
-          onSendMessage={sendAiMessage}
-          onClear={() => {
-            setAiMessages([]);
-            setAiMessage("");
-          }}
-          isTyping={isAiTyping}
-          width={360}
-          user={user}
-          theme={importanceTheme}
-        />
-      </div>
     </div>
   );
 };

@@ -1,9 +1,7 @@
 import React, { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { ArrowLeft, FileText, Loader2, MessageCircle } from "lucide-react";
+import { ArrowLeft, FileText } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
-import AITutorChat from "./studyEnviron/AITutorChat";
 import LoadingCompanion from "../common/LoadingCompanion";
 
 function NoteDetail() {
@@ -12,19 +10,14 @@ function NoteDetail() {
   const [note, setNote] = useState(null);
   const [sessionStatus, setSessionStatus] = useState("");
   const [status, setStatus] = useState("loading");
-  const [isAIOpen, setIsAIOpen] = useState(false);
-  const [aiMessages, setAiMessages] = useState([]);
-  const [aiMessage, setAiMessage] = useState("");
-  const [isAiTyping, setIsAiTyping] = useState(false);
 
   useEffect(() => {
     const loadNote = async () => {
       const [{ data, error }, { data: study }] = await Promise.all([
         supabase
-          .from("notes")
+          .from("session_notes")
           .select("id, session_id, title, content, created_at")
           .eq("id", noteId)
-          .eq("session_id", Studyid)
           .single(),
         supabase.from("Study").select("Status").eq("id", Studyid).single(),
       ]);
@@ -39,21 +32,6 @@ function NoteDetail() {
 
     loadNote();
   }, [Studyid, noteId]);
-
-  const sendAiMessage = () => {
-    const text = aiMessage.trim();
-    if (!text || isAiTyping || !note) return;
-    setAiMessages((messages) => [...messages, { sender: "user", text }]);
-    setAiMessage("");
-    setIsAiTyping(true);
-    window.setTimeout(() => {
-      setAiMessages((messages) => [...messages, {
-        sender: "ai",
-        text: `For your note "${note.title}", ${text.toLowerCase().includes("summar") ? "focus on the main idea, supporting points, and one practical example." : "use the note's key ideas to explain the topic in your own words, then test yourself with one example."}`,
-      }]);
-      setIsAiTyping(false);
-    }, 700);
-  };
 
   const theme = {
     "very important": { page: "bg-red-50", accent: "text-red-700", button: "bg-red-600 hover:bg-red-700", border: "border-red-200", soft: "border-red-100" },
@@ -86,15 +64,6 @@ function NoteDetail() {
         </article>
       </div>
       </main>
-      {createPortal(
-        <>
-          <button type="button" title="Open AI tutor" onClick={() => setIsAIOpen((open) => !open)} className={`fixed bottom-6 right-6 z-40 inline-flex items-center gap-2 rounded-full px-5 py-3 font-semibold text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:shadow-xl ${theme.button}`}><MessageCircle className="h-5 w-5" /> AI Tutor</button>
-          <div className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ${isAIOpen ? "translate-x-0" : "translate-x-full"}`}>
-            <AITutorChat isOpen={isAIOpen} onClose={() => setIsAIOpen(false)} messages={aiMessages} currentMessage={aiMessage} onMessageChange={setAiMessage} onSendMessage={sendAiMessage} onClear={() => { setAiMessages([]); setAiMessage(""); }} isTyping={isAiTyping} width={360} theme={{ accentButton: theme.button, accentBg: theme.page }} />
-          </div>
-        </>,
-        document.body
-      )}
     </div>
   );
 }

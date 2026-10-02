@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processVerifiedPayment } from "../_shared/payment-processor.ts";
+import { processVerifiedPayment, timingSafeEqualStrings } from "../_shared/payment-processor.ts";
 
 async function verifyPaystackSignature(
   rawBody: string,
@@ -28,7 +28,7 @@ async function verifyPaystackSignature(
   const hashArray = Array.from(new Uint8Array(signatureBytes));
   const hexHash = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
 
-  return hexHash.toLowerCase() === signature.toLowerCase();
+  return timingSafeEqualStrings(hexHash.toLowerCase(), signature.toLowerCase());
 }
 
 Deno.serve(async (req) => {
@@ -80,7 +80,7 @@ Deno.serve(async (req) => {
     });
   } catch (error: any) {
     console.error("Error processing Paystack webhook:", error);
-    // Respond with 200 to acknowledge webhook receipt even if error occurs, preventing infinite retries
+    // Respond with 200 to acknowledge webhook receipt even if processing error occurs, preventing infinite retries
     return new Response(JSON.stringify({ status: "error", message: error.message }), {
       status: 200,
       headers: { "Content-Type": "application/json" },

@@ -22,9 +22,9 @@ function Progress() {
       if (!user) { setStatus("unauthenticated"); return; }
 
       const [{ data: sessionData, error: sessionError }, { data: historyData }, { count, error: resourceError }] = await Promise.all([
-        supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id),
+        supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id).neq("session_status", "completed"),
         supabase.from("study_history").select("id, subject, topic, completed_at, duration_minutes").eq("user_id", user.id),
-        supabase.from("resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
+        supabase.from("session_resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
       ]);
       if (sessionError || resourceError) { setStatus("error"); return; }
 
@@ -60,8 +60,11 @@ function Progress() {
       date.setDate(date.getDate() - (29 - index));
       return { key: dateKey(date), day: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), hours: 0 };
     });
+    // BOLT OPTIMIZATION: Index 30-day buckets by date key into a Map for O(1) lookups.
+    // Replaces O(30 * N) linear `.find(...)` array searches per session with O(30 + N) total complexity.
+    const daysMap = new Map(last30Days.map((day) => [day.key, day]));
     sessions.forEach((item) => {
-      const point = last30Days.find((day) => day.key === dateKey(item.Date));
+      const point = daysMap.get(dateKey(item.Date));
       if (point) point.hours += Number.parseFloat(item.Duration) || 0;
     });
     const subjectHours = sessions.reduce((result, item) => {

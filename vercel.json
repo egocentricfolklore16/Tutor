@@ -1,7 +1,22 @@
 {
+  "headers": [
+    {
+      "source": "/sw.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache"
+        },
+        {
+          "key": "Service-Worker-Allowed",
+          "value": "/"
+        }
+      ]
+    }
+  ],
   "rewrites": [
     {
-      "source": "/(.*)",
+      "source": "/((?!sw\\.js|manifest\\.webmanifest|icons/|.*\\.(?:png|jpg|jpeg|gif|svg|ico|json)).*)",
       "destination": "/"
     }
   ]

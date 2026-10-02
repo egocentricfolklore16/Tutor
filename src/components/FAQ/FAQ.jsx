@@ -46,14 +46,80 @@ function FAQ() {
   }), [category, query]);
 
   return (
-    <main className="min-h-screen bg-slate-50 px-6 pb-12 pt-20 text-slate-900 md:px-10">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 px-6 pb-12 pt-20 text-slate-900 dark:text-slate-100 md:px-10 transition-colors">
       <div className="mx-auto max-w-4xl">
-        <div className="flex items-center gap-3"><div className="rounded-xl bg-emerald-100 p-3 text-emerald-700"><HelpCircle size={25} /></div><div><p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700">Support center</p><h1 className="text-3xl font-bold">Frequently Asked Questions</h1></div></div>
-        <p className="mt-4 max-w-2xl text-slate-600">Find clear answers about your account, study routine, AI tutor, progress, and privacy.</p>
-        <label className="relative mt-8 block"><Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={19} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search questions" className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-12 pr-4 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100" /></label>
-        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">{categories.map((itemCategory) => <button key={itemCategory} type="button" onClick={() => setCategory(itemCategory)} className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition duration-200 active:scale-95 ${category === itemCategory ? "bg-emerald-600 text-white shadow-sm" : "bg-white text-slate-600 ring-1 ring-slate-200 hover:ring-emerald-300 hover:-translate-y-0.5"}`}>{itemCategory}</button>)}</div>
-        <div className="mt-6 space-y-3">{filteredFaqs.length ? filteredFaqs.map(([itemCategory, question, answer]) => { const isOpen = openQuestion === question; return <article key={question} className="overflow-hidden rounded-xl border border-slate-200 bg-white"><button type="button" aria-expanded={isOpen} onClick={() => setOpenQuestion(isOpen ? null : question)} className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-semibold transition-colors hover:bg-slate-50 active:bg-slate-100"><span><span className="mr-3 text-xs font-medium uppercase tracking-wider text-emerald-600">{itemCategory}</span>{question}</span><ChevronDown size={19} className={`shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-600" : "text-slate-400"}`} /></button><div className={`faq-answer ${isOpen ? "faq-answer-open" : ""}`}><p className="border-t border-slate-100 px-5 pb-5 pt-4 leading-7 text-slate-600">{answer}</p></div></article>; }) : <div className="rounded-xl border border-dashed border-slate-300 bg-white p-10 text-center text-slate-500">No questions matched your search.</div>}</div>
-        <p className="mt-6 text-center text-sm text-slate-500">Showing {filteredFaqs.length} of {faqs.length} questions</p>
+        <div className="flex items-center gap-3">
+          <div className="rounded-xl bg-emerald-100 dark:bg-emerald-950/60 p-3 text-emerald-700 dark:text-emerald-400">
+            <HelpCircle size={25} />
+          </div>
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-[0.18em] text-emerald-700 dark:text-emerald-400">Support center</p>
+            <h1 className="text-3xl font-bold">Frequently Asked Questions</h1>
+          </div>
+        </div>
+        <p className="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">Find clear answers about your account, study routine, AI tutor, progress, and privacy.</p>
+
+        <label className="relative mt-8 block">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={19} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search questions"
+            className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 py-3 pl-12 pr-4 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:focus:ring-emerald-900/50"
+          />
+        </label>
+
+        <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
+          {categories.map((itemCategory) => (
+            <button
+              key={itemCategory}
+              type="button"
+              onClick={() => setCategory(itemCategory)}
+              className={`whitespace-nowrap rounded-full px-4 py-2 text-sm font-semibold transition duration-200 active:scale-95 cursor-pointer ${
+                category === itemCategory
+                  ? "bg-emerald-600 text-white shadow-sm"
+                  : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 ring-1 ring-slate-200 dark:ring-slate-800 hover:ring-emerald-300 dark:hover:ring-emerald-600 hover:-translate-y-0.5"
+              }`}
+            >
+              {itemCategory}
+            </button>
+          ))}
+        </div>
+
+        <div className="mt-6 space-y-3">
+          {filteredFaqs.length ? (
+            filteredFaqs.map(([itemCategory, question, answer]) => {
+              const isOpen = openQuestion === question;
+              return (
+                <article key={question} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">
+                  <button
+                    type="button"
+                    aria-expanded={isOpen}
+                    onClick={() => setOpenQuestion(isOpen ? null : question)}
+                    className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left font-semibold transition-colors hover:bg-slate-50 dark:hover:bg-slate-800/60 active:bg-slate-100 dark:active:bg-slate-800 cursor-pointer"
+                  >
+                    <span className="text-slate-900 dark:text-slate-100">
+                      <span className="mr-3 text-xs font-medium uppercase tracking-wider text-emerald-600 dark:text-emerald-400">{itemCategory}</span>
+                      {question}
+                    </span>
+                    <ChevronDown size={19} className={`shrink-0 transition-transform duration-300 ${isOpen ? "rotate-180 text-emerald-600 dark:text-emerald-400" : "text-slate-400 dark:text-slate-500"}`} />
+                  </button>
+                  <div className={`faq-answer ${isOpen ? "faq-answer-open" : ""}`}>
+                    <p className="border-t border-slate-100 dark:border-slate-800 px-5 pb-5 pt-4 leading-7 text-slate-600 dark:text-slate-300">{answer}</p>
+                  </div>
+                </article>
+              );
+            })
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-300 dark:border-slate-800 bg-white dark:bg-slate-900 p-10 text-center text-slate-500 dark:text-slate-400">
+              No questions matched your search.
+            </div>
+          )}
+        </div>
+
+        <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+          Showing {filteredFaqs.length} of {faqs.length} questions
+        </p>
       </div>
     </main>
   );

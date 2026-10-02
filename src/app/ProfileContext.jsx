@@ -1,19 +1,39 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useState, useRef } from "react";
 import supabase from "../lib/supabase.js";
-import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip } from "../lib/streaks";
+import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
 
 const ProfileContext = createContext(null);
 
 export function ProfileProvider({ user, children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => localStorage.getItem("hyper-tutor-dark-mode") === "true");
+  const [darkMode, setDarkMode] = useState(() => {
+    try {
+      return localStorage.getItem("hyper-tutor-dark-mode") === "true";
+    } catch (e) {
+      console.error("Error reading 'hyper-tutor-dark-mode' from localStorage:", e);
+      return false;
+    }
+  });
   const [streak, setStreak] = useState(null);
+  const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
   }, [darkMode]);
+
+  const touchLastSeenThrottled = async () => {
+    if (!user?.id) return;
+    const now = Date.now();
+    if (now - lastTouchTimeRef.current < 5 * 60 * 1000) return;
+    lastTouchTimeRef.current = now;
+    try {
+      await supabase.rpc("touch_last_seen");
+    } catch (err) {
+      // Fail silently
+    }
+  };
 
   const loadProfile = async () => {
     if (!user?.id) {
@@ -30,8 +50,35 @@ export function ProfileProvider({ user, children }) {
       nextProfile = { ...nextProfile, avatar_url: signedImage?.signedUrl || "" };
     }
     setProfile(nextProfile);
+
+    // Sync timezone if different
+    const browserTz = getUserTimeZone();
+    if (nextProfile && nextProfile.timezone !== browserTz) {
+      supabase.from("profiles").update({ timezone: browserTz }).eq("user_id", user.id).then(({ error: tzErr }) => {
+        if (tzErr) console.warn("Unable to sync timezone:", tzErr);
+      });
+    }
+
+    // Touch last seen throttled
+    touchLastSeenThrottled();
+
+    try {
+      await supabase.rpc("check_stale_streak", {
+        p_user_timezone: getUserTimeZone(),
+        p_cutoff_hour: 3,
+      }).catch(() => null);
+    } catch (e) {
+      // Ignore RPC availability issues
+    }
+
     const { data: streakData } = await getUserStreak(user.id);
-    setStreak(streakData ? { ...streakData, display_current_streak: getDisplayStreak(streakData, new Date(), getUserTimeZone()) } : null);
+    if (streakData) {
+      const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
+      const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
+      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: streakData.freeze_tokens ?? streakData.freeze_tokens_available ?? 0 });
+    } else {
+      setStreak(null);
+    }
     
     // Check for streak slips
     if (streakData) {
@@ -54,10 +101,21 @@ export function ProfileProvider({ user, children }) {
 
   useEffect(() => {
     if (!user?.id) return undefined;
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        touchLastSeenThrottled();
+      }
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
     const refreshStreak = async () => {
       const { data } = await getUserStreak(user.id);
       if (data) {
-        setStreak({ ...data, display_current_streak: getDisplayStreak(data, new Date(), getUserTimeZone()) });
+        const displayStreak = getDisplayStreak(data, new Date(), getUserTimeZone());
+        const weekActivity = await getWeekActivity(user.id, { ...data, display_current_streak: displayStreak });
+        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: data.freeze_tokens ?? data.freeze_tokens_available ?? 0 });
         // Check for slip when streak is refreshed
         await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
       }
@@ -101,6 +159,7 @@ export function ProfileProvider({ user, children }) {
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
 
     return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
       window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);

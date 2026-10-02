@@ -19,7 +19,7 @@ function AISuggestions() {
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           AI Suggestions
         </h1>
-        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950 dark:text-emerald-200">
+        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-300">
           {learnerTypeInfo.badge}
         </span>
       </div>

@@ -27,6 +27,8 @@ const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
   "image/png",
   "image/jpeg",
   "image/webp",
@@ -34,6 +36,8 @@ const ALLOWED_MIME_TYPES = [
   "text/markdown",
   "text/csv",
 ];
+
+const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", "txt", "md", "csv"];
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 
@@ -297,7 +301,17 @@ function Library({ session }) {
       }
 
       if (selectedFile.size > MAX_FILE_SIZE) {
-        setError("File size exceeds 10 MB limit.");
+        setError("File size exceeds the 10 MB limit.");
+        setIsSubmitting(false);
+        return;
+      }
+
+      const ext = selectedFile.name.split(".").pop()?.toLowerCase() || "";
+      const isAllowedExt = ALLOWED_EXTENSIONS.includes(ext);
+      const isAllowedMime = selectedFile.type ? ALLOWED_MIME_TYPES.includes(selectedFile.type) : false;
+
+      if (!isAllowedExt && !isAllowedMime) {
+        setError("Unsupported file type. Allowed formats: PDF, Word (.doc, .docx), PNG, JPG, WEBP, TXT, MD, CSV (max 10 MB).");
         setIsSubmitting(false);
         return;
       }
@@ -801,10 +815,10 @@ function Library({ session }) {
                 {resourceMode === "file" ? (
                   <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
                     <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
-                    <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, image, txt, md, csv - max 10MB)"}</span>
+                    <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
                     <input
                       type="file"
-                      accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.md,.csv"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
                       onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                       className="sr-only"
                     />

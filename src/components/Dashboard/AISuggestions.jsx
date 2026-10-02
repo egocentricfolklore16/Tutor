@@ -14,14 +14,14 @@ function AISuggestions() {
 
   return (
     <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 dark:from-slate-900 dark:to-slate-800 dark:border dark:border-slate-800 p-6 shadow-xl transition-colors">
-      <h1 className="mb-4 flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
-        <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-        AI Suggestions
-      </h1>
-    <div className="min-h-[360px] rounded-2xl bg-[#9cc8e5] p-6 shadow-xl">
       <div className="mb-4 flex items-center justify-between">
-        <h1 className="flex items-center gap-2 text-xl font-bold"><Sparkles className="h-5 w-5 text-emerald-700" />AI Suggestions</h1>
-        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950">{learnerTypeInfo.badge}</span>
+        <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          AI Suggestions
+        </h1>
+        <span className="rounded-full bg-emerald-700/15 dark:bg-emerald-500/20 px-3 py-1 text-xs font-semibold text-emerald-950 dark:text-emerald-300">
+          {learnerTypeInfo.badge}
+        </span>
       </div>
       <div>
         <p className="rounded-xl bg-white/60 dark:bg-slate-950/50 p-4 leading-7 text-slate-800 dark:text-slate-200 backdrop-blur-sm border border-slate-200/50 dark:border-slate-800/80">

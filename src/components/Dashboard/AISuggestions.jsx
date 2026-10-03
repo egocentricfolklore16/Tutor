@@ -3,6 +3,7 @@ import { CalendarDays, Plus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import { getLearnerTypeSuggestion } from "../../lib/learnerType.js";
+import { getEducationLevelInfo } from "../../lib/educationLevel.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
@@ -11,17 +12,23 @@ function AISuggestions() {
   const weeklyHours = profile?.weekly_hours || 5;
   const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
+  const educationLevelInfo = getEducationLevelInfo(profile?.education_level);
 
   return (
     <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
-      <div className="mb-4 flex items-center justify-between">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
         <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           AI Suggestions
         </h1>
-        <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-300">
-          {learnerTypeInfo.badge}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="rounded-full bg-sky-700/15 px-3 py-1 text-xs font-semibold text-sky-950 dark:bg-sky-500/20 dark:text-sky-300">
+            {educationLevelInfo.badge}
+          </span>
+          <span className="rounded-full bg-emerald-700/15 px-3 py-1 text-xs font-semibold text-emerald-950 dark:bg-emerald-500/20 dark:text-emerald-300">
+            {learnerTypeInfo.badge}
+          </span>
+        </div>
       </div>
       <div>
         <p className="rounded-xl border border-slate-200/50 bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-200">
@@ -31,7 +38,7 @@ function AISuggestions() {
           <br />
           <br />
           <span className="font-semibold text-slate-900 dark:text-slate-100">
-            {learnerTypeInfo.recommendation}
+            {educationLevelInfo.guidance} {learnerTypeInfo.recommendation}
           </span>
         </p>
         <div className="mt-6 space-y-3">

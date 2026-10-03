@@ -37,7 +37,7 @@ export function resolveSessionDateTime(session) {
     baseDate = new Date(rawDate);
   }
 
-  if (Number.isNaN(baseDate?.getTime?.())) {
+  if (!baseDate || Number.isNaN(baseDate.getTime())) {
     return null;
   }
 
@@ -61,10 +61,9 @@ export function normalizeNotificationPreferences(value) {
   };
 }
 
-export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours) {
+export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours, now = new Date()) {
   if (!quietHours?.enabled) return false;
 
-  const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const parseTime = (time) => {
     if (!time || typeof time !== "string") return 0;
@@ -101,7 +100,7 @@ export function getStoredNotifications() {
     console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
     try {
       localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
     return [];
@@ -135,15 +134,15 @@ export function writeNotification(notification) {
   return nextNotification;
 }
 
-export function recordNotification(notification, preferences = null) {
+export function recordNotification(notification, preferences = null, now = new Date()) {
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
+  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours, now);
   const notificationRecord = writeNotification(notification);
 
   if (quietHoursActive) {
     const muted = { ...notificationRecord, muted: true };
     saveStoredNotifications(getStoredNotifications().map((item) => item.id === muted.id ? muted : item));
-    return notificationRecord;
+    return muted;
   }
 
   return notificationRecord;
@@ -155,7 +154,7 @@ export async function hasActivePushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
-  } catch (e) {
+  } catch (_e) {
     return false;
   }
 }
@@ -277,7 +276,7 @@ export function getNotificationPreferences() {
     console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
     try {
       localStorage.removeItem(KEY);
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
     return normalizeNotificationPreferences(defaultNotificationPreferences);

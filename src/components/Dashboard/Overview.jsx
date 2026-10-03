@@ -14,6 +14,7 @@ import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "luci
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import supabase from "../../lib/supabase";
+import { getEducationLevelInfo } from "../../lib/educationLevel.js";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -112,7 +113,13 @@ function Overview() {
             </div>
 
             <p className="mt-2 truncate pl-14 text-sm text-slate-600">{greeting.paragraph}</p>
-            {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500">Focus: <span className="font-semibold text-slate-700">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
+            {(profile?.education_level || profile?.primary_goal) && (
+              <p className="mt-1 pl-14 text-xs text-slate-500">
+                <span className="font-semibold text-slate-700">{getEducationLevelInfo(profile?.education_level).badge}</span>
+                {profile?.primary_goal ? <> · Focus: <span className="font-semibold text-slate-700">{profile.primary_goal}</span></> : null}
+                {profile?.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
+              </p>
+            )}
 
            <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
   <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">

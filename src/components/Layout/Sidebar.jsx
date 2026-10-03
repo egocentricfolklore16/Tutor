@@ -237,7 +237,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         onClick={toggleSidebar2}
         aria-label="Open navigation menu"
         title="Open navigation menu"
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white dark:bg-slate-800 border border-gray-500 dark:border-slate-600 rounded-full p-2 text-slate-800 dark:text-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
           isOpen ? "hidden" : ""
         }`}
       >
@@ -366,7 +366,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={handleLogout}
             aria-label="Log out"
             title="Log out"
-            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 dark:border-slate-700 text-sm font-semibold text-gray-700 dark:text-slate-300 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 dark:hover:bg-red-950/30 hover:text-red-700 dark:hover:text-red-400 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
           >
             <LogOut size={15} />
             {isOpen && "Log out"}
@@ -377,7 +377,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             <button
               type="button"
               onClick={() => setFeedbackOpen(true)}
-              className="flex items-center text-gray-700 hover:text-emerald-600 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
+              className="flex items-center text-gray-700 dark:text-slate-300 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
             >
               <svg
                 className="mr-2"

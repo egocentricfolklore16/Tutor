@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect, useMemo } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
@@ -361,30 +361,36 @@ function Study() {
     }
   };
 
-  const uniqueSubjects = Array.from(
-    new Set(sessionHistory.map((item) => item.subject).filter(Boolean))
-  );
+  // BOLT OPTIMIZATION: Memoize uniqueSubjects computation to avoid set creation & array iteration on every render.
+  const uniqueSubjects = useMemo(() => {
+    return Array.from(
+      new Set(sessionHistory.map((item) => item.subject).filter(Boolean))
+    );
+  }, [sessionHistory]);
 
-  const filteredSessionHistory = sessionHistory.filter((item) => {
-    if (historySubjectFilter !== "all" && item.subject?.toLowerCase() !== historySubjectFilter.toLowerCase()) {
-      return false;
-    }
-    if (historyStatusFilter !== "all" && item.status?.toLowerCase() !== historyStatusFilter.toLowerCase()) {
-      return false;
-    }
-    if (historyDateFilter !== "all" && item.completedAt) {
-      const completedDate = new Date(item.completedAt);
-      const now = new Date();
-      if (historyDateFilter === "7days") {
-        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
-        if (diff > 7) return false;
-      } else if (historyDateFilter === "30days") {
-        const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
-        if (diff > 30) return false;
+  // BOLT OPTIMIZATION: Memoize filteredSessionHistory to avoid unnecessary array filtering and Date object creations on state updates that don't affect filters or history.
+  const filteredSessionHistory = useMemo(() => {
+    return sessionHistory.filter((item) => {
+      if (historySubjectFilter !== "all" && item.subject?.toLowerCase() !== historySubjectFilter.toLowerCase()) {
+        return false;
       }
-    }
-    return true;
-  });
+      if (historyStatusFilter !== "all" && item.status?.toLowerCase() !== historyStatusFilter.toLowerCase()) {
+        return false;
+      }
+      if (historyDateFilter !== "all" && item.completedAt) {
+        const completedDate = new Date(item.completedAt);
+        const now = new Date();
+        if (historyDateFilter === "7days") {
+          const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+          if (diff > 7) return false;
+        } else if (historyDateFilter === "30days") {
+          const diff = (now - completedDate) / (1000 * 60 * 60 * 24);
+          if (diff > 30) return false;
+        }
+      }
+      return true;
+    });
+  }, [sessionHistory, historySubjectFilter, historyStatusFilter, historyDateFilter]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {

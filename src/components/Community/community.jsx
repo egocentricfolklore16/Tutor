@@ -114,7 +114,7 @@ const Community = () => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen pb-24 md:pb-8">
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute "></div>

@@ -46,7 +46,7 @@ function FAQ() {
   }), [category, query]);
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 px-6 pb-12 pt-20 text-slate-900 dark:text-slate-100 md:px-10 transition-colors">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 px-6 pb-24 pt-20 text-slate-900 dark:text-slate-100 md:px-10 md:pb-12 transition-colors">
       <div className="mx-auto max-w-4xl">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-100 dark:bg-emerald-950/60 p-3 text-emerald-700 dark:text-emerald-400">

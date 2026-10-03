@@ -89,7 +89,7 @@ function Progress() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-8 md:px-10">
+    <main className="min-h-screen bg-slate-50 px-5 py-8 md:px-10 pb-24 md:pb-8">
       <div className="mx-auto max-w-6xl">
         <header className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">Your learning journey</p>

@@ -163,7 +163,7 @@ function Overview() {
           </div>
         </div>
       </div>
-      {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+      {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
         <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">

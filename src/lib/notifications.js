@@ -160,7 +160,9 @@ export async function hasActivePushSubscription() {
   }
 }
 
-export async function scheduleStudyReminder(session, preferences = null) {
+// BOLT OPTIMIZATION: Accepts an optional pushActiveOverride boolean parameter to avoid redundant
+// Service Worker queries when scheduling multiple sessions in batch operations.
+export async function scheduleStudyReminder(session, preferences = null, pushActiveOverride = null) {
   if (!session || !session.id) return null;
 
   // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
@@ -168,7 +170,7 @@ export async function scheduleStudyReminder(session, preferences = null) {
     return null;
   }
 
-  const pushActive = await hasActivePushSubscription();
+  const pushActive = typeof pushActiveOverride === "boolean" ? pushActiveOverride : await hasActivePushSubscription();
   if (pushActive) {
     // Web Push is handling reminders; disable local in-tab fallback timer to avoid duplicate notifications
     return null;
@@ -223,13 +225,21 @@ export async function scheduleStudyReminder(session, preferences = null) {
   return timer;
 }
 
-export function scheduleSessionRemindersFromSessions(sessions, preferences = null) {
+// BOLT OPTIMIZATION: Check Web Push subscription status once for the entire batch of sessions.
+// Evaluates hasActivePushSubscription() in O(1) upfront rather than O(N) times sequentially/concurrently,
+// and awaits Promise.all so timer IDs are properly resolved and filtered.
+export async function scheduleSessionRemindersFromSessions(sessions, preferences = null) {
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  if (!Array.isArray(sessions)) return [];
+  if (!Array.isArray(sessions) || sessions.length === 0) return [];
 
-  return sessions
-    .map((session) => scheduleStudyReminder(session, mergedPreferences))
-    .filter(Boolean);
+  const pushActive = await hasActivePushSubscription();
+  if (pushActive) return [];
+
+  const timers = await Promise.all(
+    sessions.map((session) => scheduleStudyReminder(session, mergedPreferences, pushActive))
+  );
+
+  return timers.filter(Boolean);
 }
 
 export function markAllNotificationsRead() {

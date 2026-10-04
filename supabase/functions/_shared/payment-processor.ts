@@ -97,7 +97,7 @@ export async function processVerifiedPayment({
     );
   }
 
-  // 3. Idempotency check: return existing record if payment with this reference was already processed
+  // 3. Idempotency check: return existing record if payment with this reference was already processed and subscription granted
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
@@ -111,12 +111,14 @@ export async function processVerifiedPayment({
       .eq("user_id", userId)
       .maybeSingle();
 
-    return {
-      payment: existingPayment,
-      subscription: existingSub,
-      plan,
-      alreadyProcessed: true,
-    };
+    if (existingSub && existingSub.payment_id === existingPayment.id) {
+      return {
+        payment: existingPayment,
+        subscription: existingSub,
+        plan,
+        alreadyProcessed: true,
+      };
+    }
   }
 
   // 4. Upsert into `payments` table keyed on unique reference (idempotent)
@@ -147,6 +149,15 @@ export async function processVerifiedPayment({
     .select("*")
     .eq("user_id", userId)
     .maybeSingle();
+
+  if (existingSub && existingSub.payment_id === paymentRow.id) {
+    return {
+      payment: paymentRow,
+      subscription: existingSub,
+      plan,
+      alreadyProcessed: true,
+    };
+  }
 
   const now = new Date();
   let periodStart = now.toISOString();

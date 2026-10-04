@@ -204,6 +204,7 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
+    payment_id: "payment-uuid-999",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
   };
@@ -227,6 +228,83 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
   assert.strictEqual(result.alreadyProcessed, true);
   assert.strictEqual(result.payment.reference, "ref_already_processed");
   assert.strictEqual(result.subscription.current_period_start, "2025-05-01T00:00:05.000Z");
+});
+
+test("processVerifiedPayment recovers missed entitlement when payment exists but subscription link is missing", async () => {
+  const existingPayment = {
+    id: "payment-uuid-999",
+    user_id: "user-uuid-111",
+    reference: "ref_interrupted_run",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  // Subscription still points to an old free plan (payment_id != payment-uuid-999)
+  const existingSub = {
+    id: "sub-uuid-888",
+    user_id: "user-uuid-111",
+    plan_id: "free",
+    status: "active",
+    payment_id: "payment-uuid-old",
+    current_period_start: "2025-01-01T00:00:00.000Z",
+    current_period_end: "2025-02-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_interrupted_run",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.subscription.plan_id, "pro");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-123");
+});
+
+test("processVerifiedPayment prevents double-grant when concurrent request already linked subscription", async () => {
+  // Subscription is already linked to payment-uuid-123 (upserted by concurrent request)
+  const existingSub = {
+    id: "sub-uuid-888",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-123",
+    current_period_start: "2025-05-01T00:00:00.000Z",
+    current_period_end: "2025-06-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_concurrent_call",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.subscription.current_period_end, "2025-06-01T00:00:00.000Z");
 });
 
 test("processVerifiedPayment extends current_period_end when renewing active same-plan subscription", async () => {

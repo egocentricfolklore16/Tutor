@@ -1,8 +1,16 @@
+# Netlify configuration for Hyper Tutor
+
 [build]
-  command = "npm run build"
   publish = "dist"
+  command = "pnpm build"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"

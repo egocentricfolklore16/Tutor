@@ -157,7 +157,8 @@ export async function processVerifiedPayment({
     existingSub &&
     existingSub.plan_id === planId &&
     existingSub.status === "active" &&
-    existingSub.current_period_end
+    existingSub.current_period_end &&
+    existingSub.payment_id !== paymentRow.id
   ) {
     const existingEnd = new Date(existingSub.current_period_end);
     if (existingEnd > now) {

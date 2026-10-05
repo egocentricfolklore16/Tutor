@@ -66,7 +66,12 @@ function createMockSupabaseClient({
               select() {
                 return {
                   async single() {
-                    const newRow = { id: "payment-uuid-123", ...payload };
+                    let existing = paymentsStore.find((p) => p.reference === payload.reference);
+                    if (existing) {
+                      Object.assign(existing, payload);
+                      return { data: existing, error: null };
+                    }
+                    const newRow = { id: payload.id || "payment-uuid-123", ...payload };
                     paymentsStore.push(newRow);
                     return { data: newRow, error: null };
                   },
@@ -96,7 +101,12 @@ function createMockSupabaseClient({
               select() {
                 return {
                   async single() {
-                    const newRow = { id: "sub-uuid-456", ...payload };
+                    let existing = subsStore.find((s) => s.user_id === payload.user_id);
+                    if (existing) {
+                      Object.assign(existing, payload);
+                      return { data: existing, error: null };
+                    }
+                    const newRow = { id: payload.id || "sub-uuid-456", ...payload };
                     subsStore.push(newRow);
                     return { data: newRow, error: null };
                   },
@@ -206,6 +216,7 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
     status: "active",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
+    payment_id: "payment-uuid-999",
   };
 
   const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
@@ -227,6 +238,54 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
   assert.strictEqual(result.alreadyProcessed, true);
   assert.strictEqual(result.payment.reference, "ref_already_processed");
   assert.strictEqual(result.subscription.current_period_start, "2025-05-01T00:00:05.000Z");
+});
+
+
+test("processVerifiedPayment prevents double-extension when subscription payment_id matches paymentRow.id", async () => {
+  const futureEnd = new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString();
+
+  // existingPayment in DB had status pending, but subscription already was updated with this payment_id
+  const existingPayment = {
+    id: "payment-uuid-123",
+    user_id: "user-uuid-111",
+    reference: "ref_pending_retry",
+    amount: 250000,
+    currency: "NGN",
+    status: "pending",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-111",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    current_period_start: "2025-01-01T00:00:00.000Z",
+    current_period_end: futureEnd,
+    payment_id: "payment-uuid-123",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_pending_retry",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  // Period end should not be extended further from futureEnd because payment_id matches paymentRow.id
+  assert.notStrictEqual(
+    new Date(result.subscription.current_period_end).getTime(),
+    new Date(futureEnd).getTime() + 30 * 24 * 60 * 60 * 1000
+  );
 });
 
 test("processVerifiedPayment extends current_period_end when renewing active same-plan subscription", async () => {

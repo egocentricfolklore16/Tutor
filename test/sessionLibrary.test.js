@@ -19,7 +19,7 @@ test("deleteSession only deletes the Study record and does not delete Library ma
       delete: () => {
         deletedTables.push(tableName);
         return {
-          eq: (col, val) => {
+          eq: () => {
             return Promise.resolve({ error: null });
           },
         };
@@ -56,7 +56,7 @@ test("Library materials persist and are accessible after session deletion", asyn
     if (tableName === "Study") {
       return {
         delete: () => ({
-          eq: (col, val) => {
+          eq: (_col, val) => {
             // Simulate ON DELETE SET NULL on related tables as performed by Supabase database
             const idx = sessions.findIndex((s) => s.id === val);
             if (idx !== -1) sessions.splice(idx, 1);

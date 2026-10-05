@@ -22,6 +22,8 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
+import PageContainer from "../common/PageContainer";
+import ResponsiveSheet from "../common/ResponsiveSheet";
 
 const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -605,8 +607,7 @@ function Library({ session }) {
   const totalItemsCount = notes.length + flashcards.length + resources.length + quizzes.length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-10">
-      <div className="mx-auto max-w-7xl">
+    <PageContainer maxWidth="max-w-7xl">
         {/* Header */}
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
@@ -701,258 +702,251 @@ function Library({ session }) {
           </div>
         )}
 
-        {/* Creation Forms */}
-        {creationType && (
-          <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-md animate-in fade-in slide-in-from-top-2">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 capitalize">
-                Create Standalone {creationType}
-              </h3>
-              <button onClick={() => setCreationType(null)} className="text-slate-400 hover:text-slate-600">
-                <X className="h-5 w-5" />
-              </button>
-            </div>
+        {/* Creation Forms Sheet */}
+        <ResponsiveSheet
+          isOpen={Boolean(creationType)}
+          onClose={() => setCreationType(null)}
+          title={`Create Standalone ${creationType || ""}`}
+        >
+          {/* Note Form */}
+          {creationType === "note" && (
+            <form onSubmit={handleCreateNote} className="space-y-4">
+              <input
+                type="text"
+                value={noteForm.title}
+                onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+                placeholder="Note Title"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
+                required
+              />
+              <textarea
+                value={noteForm.content}
+                onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                placeholder="Write your note content here..."
+                className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
+                required
+              />
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCreationType(null)}
+                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
+                </button>
+              </div>
+            </form>
+          )}
 
-            {/* Note Form */}
-            {creationType === "note" && (
-              <form onSubmit={handleCreateNote} className="space-y-4">
-                <input
-                  type="text"
-                  value={noteForm.title}
-                  onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                  placeholder="Note Title"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+          {/* Flashcard Form */}
+          {creationType === "flashcard" && (
+            <form onSubmit={handleCreateFlashcard} className="space-y-4">
+              <div className="grid gap-4 md:grid-cols-2">
+                <textarea
+                  value={flashcardForm.question}
+                  onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
+                  placeholder="Front / Question"
+                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
                   required
                 />
                 <textarea
-                  value={noteForm.content}
-                  onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                  placeholder="Write your note content here..."
-                  className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                  value={flashcardForm.answer}
+                  onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
+                  placeholder="Back / Answer"
+                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
                   required
                 />
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
-                  </button>
-                </div>
-              </form>
-            )}
+              </div>
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCreationType(null)}
+                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
+                </button>
+              </div>
+            </form>
+          )}
 
-            {/* Flashcard Form */}
-            {creationType === "flashcard" && (
-              <form onSubmit={handleCreateFlashcard} className="space-y-4">
-                <div className="grid gap-4 md:grid-cols-2">
-                  <textarea
-                    value={flashcardForm.question}
-                    onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
-                    placeholder="Front / Question"
-                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
-                    required
-                  />
-                  <textarea
-                    value={flashcardForm.answer}
-                    onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
-                    placeholder="Back / Answer"
-                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
-                    required
-                  />
-                </div>
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
-                  </button>
-                </div>
-              </form>
-            )}
+          {/* Resource Form */}
+          {creationType === "resource" && (
+            <form onSubmit={handleCreateResource} className="space-y-4">
+              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <button
+                  type="button"
+                  onClick={() => setResourceMode("file")}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                    resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setResourceMode("link")}
+                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
+                    resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  }`}
+                >
+                  Add Link / URL
+                </button>
+              </div>
 
-            {/* Resource Form */}
-            {creationType === "resource" && (
-              <form onSubmit={handleCreateResource} className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                  <button
-                    type="button"
-                    onClick={() => setResourceMode("file")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                      resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    Upload File
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setResourceMode("link")}
-                    className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                      resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                    }`}
-                  >
-                    Add Link / URL
-                  </button>
-                </div>
-
-                {resourceMode === "file" ? (
-                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
-                    <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
-                    <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
-                    <input
-                      type="file"
-                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                      className="sr-only"
-                    />
-                  </label>
-                ) : (
-                  <div className="grid gap-3 sm:grid-cols-3">
-                    <input
-                      type="text"
-                      value={linkTitle}
-                      onChange={(e) => setLinkTitle(e.target.value)}
-                      placeholder="Resource Title"
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none"
-                      required
-                    />
-                    <input
-                      type="url"
-                      value={linkUrl}
-                      onChange={(e) => setLinkUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none sm:col-span-2"
-                      required
-                    />
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
-                  </button>
-                </div>
-              </form>
-            )}
-
-            {/* Quiz Form */}
-            {creationType === "quiz" && (
-              <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
-                <input
-                  type="text"
-                  value={quizForm.title}
-                  onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
-                  placeholder="Quiz Title / Topic"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-200"
-                  required
-                />
-                <textarea
-                  value={quizForm.question}
-                  onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
-                  placeholder="Question text..."
-                  className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none focus:ring-2 focus:ring-purple-200"
-                  required
-                />
-                <div className="grid gap-2 sm:grid-cols-2">
+              {resourceMode === "file" ? (
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
+                  <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
+                  <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
                   <input
-                    type="text"
-                    value={quizForm.optionA}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
-                    placeholder="Option A (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                    required
+                    type="file"
+                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                    className="sr-only"
                   />
-                  <input
-                    type="text"
-                    value={quizForm.optionB}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
-                    placeholder="Option B (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                    required
-                  />
-                  <input
-                    type="text"
-                    value={quizForm.optionC}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
-                    placeholder="Option C (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={quizForm.optionD}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
-                    placeholder="Option D (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                  />
-                </div>
-                <label className="block text-xs font-bold text-slate-700">
-                  Correct Option
-                  <select
-                    value={quizForm.correctIndex}
-                    onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs"
-                  >
-                    <option value={0}>Option A</option>
-                    <option value={1}>Option B</option>
-                    {quizForm.optionC.trim() && <option value={2}>Option C</option>}
-                    {quizForm.optionD.trim() && <option value={3}>Option D</option>}
-                  </select>
                 </label>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <input
+                    type="text"
+                    value={linkTitle}
+                    onChange={(e) => setLinkTitle(e.target.value)}
+                    placeholder="Resource Title"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                    required
+                  />
+                  <input
+                    type="url"
+                    value={linkUrl}
+                    onChange={(e) => setLinkUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none sm:col-span-2"
+                    required
+                  />
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setCreationType(null)}
+                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
+                </button>
+              </div>
+            </form>
+          )}
+
+          {/* Quiz Form */}
+          {creationType === "quiz" && (
+            <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
+              <input
+                type="text"
+                value={quizForm.title}
+                onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
+                placeholder="Quiz Title / Topic"
+                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base font-semibold outline-none focus:ring-2 focus:ring-purple-200"
+                required
+              />
+              <textarea
+                value={quizForm.question}
+                onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
+                placeholder="Question text..."
+                className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-purple-200"
+                required
+              />
+              <div className="grid gap-2 sm:grid-cols-2">
                 <input
                   type="text"
-                  value={quizForm.explanation}
-                  onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
-                  placeholder="Explanation (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                  value={quizForm.optionA}
+                  onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
+                  placeholder="Option A (required)"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                  required
                 />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
-                  </button>
-                </div>
-              </form>
-            )}
-          </div>
-        )}
+                <input
+                  type="text"
+                  value={quizForm.optionB}
+                  onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
+                  placeholder="Option B (required)"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                  required
+                />
+                <input
+                  type="text"
+                  value={quizForm.optionC}
+                  onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
+                  placeholder="Option C (optional)"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                />
+                <input
+                  type="text"
+                  value={quizForm.optionD}
+                  onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
+                  placeholder="Option D (optional)"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                />
+              </div>
+              <label className="block text-xs font-bold text-slate-700">
+                Correct Option
+                <select
+                  value={quizForm.correctIndex}
+                  onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
+                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base"
+                >
+                  <option value={0}>Option A</option>
+                  <option value={1}>Option B</option>
+                  {quizForm.optionC.trim() && <option value={2}>Option C</option>}
+                  {quizForm.optionD.trim() && <option value={3}>Option D</option>}
+                </select>
+              </label>
+              <input
+                type="text"
+                value={quizForm.explanation}
+                onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
+                placeholder="Explanation (optional)"
+                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+              />
+              <div className="flex justify-end gap-2 mt-2">
+                <button
+                  type="button"
+                  onClick={() => setCreationType(null)}
+                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
+                </button>
+              </div>
+            </form>
+          )}
+        </ResponsiveSheet>
 
         {/* Content Display */}
         {isLoading ? (
@@ -1269,8 +1263,7 @@ function Library({ session }) {
             )}
           </div>
         )}
-      </div>
-    </main>
+    </PageContainer>
   );
 }
 

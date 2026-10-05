@@ -1,6 +1,8 @@
 import React, { useMemo } from 'react';
 import { Plus, Play, Pause } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useProfile } from '../../app/ProfileContext';
+import { isPreferredStudyDay } from '../../lib/studyDays';
 
 const Calendar = ({
   currentDate,
@@ -11,6 +13,8 @@ const Calendar = ({
   onAddActivity,
 }) => {
   const navigate = useNavigate();
+  const { profile } = useProfile();
+  const studyDays = profile?.study_days;
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
 
   // BOLT OPTIMIZATION:
@@ -118,12 +122,22 @@ const Calendar = ({
     return (
       <div className="grid min-w-[1180px] grid-cols-8 gap-2 h-96">
         <div className="text-sm font-semibold text-gray-600">Time</div>
-        {weekDays.map((day) => (
+        {weekDays.map((day) => {
+          const dayName = day.toLocaleDateString("en-US", { weekday: "short" });
+          const isTargetDay = isPreferredStudyDay(dayName, studyDays);
+          return (
           <div
             key={day.toDateString()}
             className="text-sm font-semibold text-gray-600 text-center"
           >
-            <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+            <div className="flex items-center justify-center gap-1">
+              <span>{dayName}</span>
+              {isTargetDay && (
+                <span className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-800" title="Your target study day">
+                  Target
+                </span>
+              )}
+            </div>
             <div
               className={`text-lg ${
                 day.toDateString() === new Date().toDateString()
@@ -142,7 +156,8 @@ const Calendar = ({
               Add
             </button>
           </div>
-        ))}
+        );
+        })}
 
         {[...Array(12)].map((_, hour) => {
           const slotHour = hour + 8;

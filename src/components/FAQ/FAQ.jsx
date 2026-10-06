@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
+import PageContainer from "../common/PageContainer";
 
 const faqs = [
   ["Getting started", "What is Hyper Tutor?", "Hyper Tutor is a learning companion that combines planning, AI tutoring, active recall, progress tracking, and study resources in one workspace."],
@@ -46,8 +47,7 @@ function FAQ() {
   }), [category, query]);
 
   return (
-    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 px-6 pb-12 pt-20 text-slate-900 dark:text-slate-100 md:px-10 transition-colors">
-      <div className="mx-auto max-w-4xl">
+    <PageContainer maxWidth="max-w-4xl">
         <div className="flex items-center gap-3">
           <div className="rounded-xl bg-emerald-100 dark:bg-emerald-950/60 p-3 text-emerald-700 dark:text-emerald-400">
             <HelpCircle size={25} />
@@ -120,8 +120,7 @@ function FAQ() {
         <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
           Showing {filteredFaqs.length} of {faqs.length} questions
         </p>
-      </div>
-    </main>
+    </PageContainer>
   );
 }
 

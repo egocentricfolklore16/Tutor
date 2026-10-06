@@ -3,9 +3,7 @@ export function countGenuineAttempts(messages: any[]): number {
 
   const nonAttemptExactRegex = /^(?:idk|i\s*don'?t\s*know|dont\s*know|no\s*idea|no\s*clue|pass|help|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
-  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve)\s*(?:me\s*)?(?:the\s*)?(?:answer|solution)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:answer|solution)|(?:answer|solution)\s*(?:please|pls)|(?:solve|do|write)\s*it\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell)\s*(?:it|me|answer|solution)?|ignore\s*(?:all\s*)?(?:previous\s*|your\s*)?instructions|system\s*prompt|you\s*are\s*now|pretend\s*(?:you\s*are|to\s*be)/i;
-
-  const promptInjectionRegex = /(?:ignore|disregard)\s+(?:all\s+|previous\s+|prior\s+|above\s+|system\s+)*(?:instructions|prompts|rules|directives)|system\s+prompt|you\s+are\s+now|jailbreak|(?:bypass|override)\s+(?:all\s+|system\s+|socratic\s+)*(?:rules|restrictions|mode|limits)/i;
+  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve)\s*(?:me\s*)?(?:the\s*)?(?:answer|solution)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:answer|solution)|(?:answer|solution)\s*(?:please|pls)|(?:solve|do|write)\s*it\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell)\s*(?:it|me|answer|solution)?/i;
 
   let attemptCount = 0;
   let hasAssistantResponded = false;
@@ -19,7 +17,6 @@ export function countGenuineAttempts(messages: any[]): number {
       const clean = msg.content.trim();
       if (!clean) continue;
       if (nonAttemptExactRegex.test(clean)) continue;
-      if (promptInjectionRegex.test(clean)) continue;
       const cleanLower = clean.toLowerCase();
       if (
         cleanLower.startsWith("i don't know") ||

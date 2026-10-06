@@ -15,19 +15,10 @@ const GlobalAITutorFab = () => {
     sendMessage,
     clearMessages,
     isTyping,
-    setPanel,
-    setRequestedQuizId,
   } = useAITutor();
 
   const handleSendMessage = () => {
     sendMessage();
-  };
-
-  const handleActionExecute = (action) => {
-    if (action?.type !== "open_quiz" || !action.data?.quiz_id) return;
-    setRequestedQuizId(action.data.quiz_id);
-    setPanel("quizzes");
-    handleToggle();
   };
 
   return (
@@ -70,7 +61,6 @@ const GlobalAITutorFab = () => {
             onSendMessage={handleSendMessage}
             onClear={clearMessages}
             isTyping={isTyping}
-            onActionExecute={handleActionExecute}
             width={380}
             theme={{ accentButton: "bg-indigo-600 hover:bg-indigo-700", accentBg: "bg-indigo-100" }}
           />

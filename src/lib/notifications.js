@@ -61,10 +61,10 @@ export function normalizeNotificationPreferences(value) {
   };
 }
 
-export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours, date = new Date()) {
+export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours) {
   if (!quietHours?.enabled) return false;
 
-  const now = date instanceof Date ? date : new Date(date);
+  const now = new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const parseTime = (time) => {
     if (!time || typeof time !== "string") return 0;
@@ -101,7 +101,7 @@ export function getStoredNotifications() {
     console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
     try {
       localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
-    } catch (_e) {
+    } catch (e) {
       // ignore
     }
     return [];
@@ -135,9 +135,9 @@ export function writeNotification(notification) {
   return nextNotification;
 }
 
-export function recordNotification(notification, preferences = null, date = new Date()) {
+export function recordNotification(notification, preferences = null) {
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours, date);
+  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
   const notificationRecord = writeNotification(notification);
 
   if (quietHoursActive) {
@@ -155,7 +155,7 @@ export async function hasActivePushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
-  } catch (_e) {
+  } catch (e) {
     return false;
   }
 }
@@ -277,7 +277,7 @@ export function getNotificationPreferences() {
     console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
     try {
       localStorage.removeItem(KEY);
-    } catch (_e) {
+    } catch (e) {
       // ignore
     }
     return normalizeNotificationPreferences(defaultNotificationPreferences);

@@ -126,7 +126,7 @@ export default function InstallPrompt({ userId }: InstallPromptProps) {
   }
 
   return (
-    <div className="fixed bottom-20 left-4 right-[8.5rem] z-[80] animate-slide-up pb-[env(safe-area-inset-bottom)] md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
+    <div className="fixed bottom-20 left-4 right-20 z-[80] animate-slide-up pb-[env(safe-area-inset-bottom)] md:bottom-6 md:left-6 md:right-auto md:w-[380px]">
       <div className="relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white/95 p-4 text-slate-900 shadow-xl backdrop-blur-md transition-all dark:border-slate-800 dark:bg-slate-900/95 dark:text-slate-100">
         <button
           type="button"

@@ -1,5 +1,5 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -33,9 +33,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     setPomodoroState,
     setMinutesRemaining,
     setPanel,
-    panel,
-    requestedQuizId,
-    setRequestedQuizId,
   } = useAITutor();
 
   const [isToolsOpen, setIsToolsOpen] = useState(false);
@@ -53,7 +50,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   };
 
   const { Studyid } = useParams();
-  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const toTitleCase = (value) =>
@@ -151,24 +147,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     setPanel(mappedPanel);
   }, [activeTool, setPanel]);
 
-  useEffect(() => {
-    if (panel === "quizzes") setActiveTool("quizzicle");
-  }, [panel]);
-
-  useEffect(() => {
-    if (searchParams.get("quizId")) setActiveTool("quizzicle");
-  }, [searchParams]);
-
-  const requestedQuizIdFromRoute = searchParams.get("quizId");
-  const handleQuizOpened = useCallback(() => {
-    setRequestedQuizId(null);
-    if (requestedQuizIdFromRoute) {
-      const nextParams = new URLSearchParams(searchParams);
-      nextParams.delete("quizId");
-      setSearchParams(nextParams, { replace: true });
-    }
-  }, [requestedQuizIdFromRoute, searchParams, setRequestedQuizId, setSearchParams]);
-
   const handleExplicitFinish = async () => {
     await finishSession(timeline);
   };
@@ -245,12 +223,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       accentButton: "bg-red-600 hover:bg-red-700",
       focus: "focus:border-red-500 focus:ring-red-100",
       accentBorder: "hover:border-red-300",
-      resourceAccentButton: "bg-red-600 hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-400",
-      quizAccentButton: "bg-red-600 text-white hover:bg-red-700 dark:bg-red-500 dark:hover:bg-red-400",
-      quizAccentFill: "bg-red-600 dark:bg-red-500",
-      quizAccentSurface: "bg-red-50 dark:bg-red-950/35",
-      quizAccentBorder: "border-red-500 dark:border-red-400",
-      quizAccentText: "text-red-700 dark:text-red-300",
     },
     medium: {
       header: "bg-orange-100 text-orange-950",
@@ -265,12 +237,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       accentButton: "bg-orange-600 hover:bg-orange-700",
       focus: "focus:border-orange-500 focus:ring-orange-100",
       accentBorder: "hover:border-orange-300",
-      resourceAccentButton: "bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-400",
-      quizAccentButton: "bg-orange-600 text-white hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-400",
-      quizAccentFill: "bg-orange-600 dark:bg-orange-500",
-      quizAccentSurface: "bg-orange-50 dark:bg-orange-950/35",
-      quizAccentBorder: "border-orange-500 dark:border-orange-400",
-      quizAccentText: "text-orange-700 dark:text-orange-300",
     },
     "not so important": {
       header: "bg-green-100 text-green-950",
@@ -285,12 +251,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       accentButton: "bg-green-600 hover:bg-green-700",
       focus: "focus:border-green-500 focus:ring-green-100",
       accentBorder: "hover:border-green-300",
-      resourceAccentButton: "bg-green-600 hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400",
-      quizAccentButton: "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400",
-      quizAccentFill: "bg-green-600 dark:bg-green-500",
-      quizAccentSurface: "bg-green-50 dark:bg-green-950/35",
-      quizAccentBorder: "border-green-500 dark:border-green-400",
-      quizAccentText: "text-green-700 dark:text-green-300",
     },
   }[normalizedStatus] || {
     header: "bg-slate-100 text-slate-950",
@@ -305,12 +265,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     accentButton: "bg-slate-600 hover:bg-slate-700",
     focus: "focus:border-slate-500 focus:ring-slate-100",
     accentBorder: "hover:border-slate-300",
-    resourceAccentButton: "bg-slate-600 hover:bg-slate-700 dark:bg-slate-500 dark:hover:bg-slate-400",
-    quizAccentButton: "bg-slate-700 text-white hover:bg-slate-800 dark:bg-slate-500 dark:hover:bg-slate-400",
-    quizAccentFill: "bg-slate-700 dark:bg-slate-500",
-    quizAccentSurface: "bg-slate-100 dark:bg-slate-800",
-    quizAccentBorder: "border-slate-500 dark:border-slate-400",
-    quizAccentText: "text-slate-700 dark:text-slate-300",
   };
 
   const formattedTime = (value) => String(value).padStart(2, "0");
@@ -319,12 +273,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const secondsLeft = timeLeft % 60;
 
   const renderTool = () => {
+    if (activeTool === "notes") {
+      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
+    }
     if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} requestedQuizId={requestedQuizId || requestedQuizIdFromRoute} onQuizOpened={handleQuizOpened} />;
+    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
       <div>
-        <div className={`grid gap-3 ${isAIOpen ? "grid-cols-2" : "grid-cols-3"}`}>
+        <div className="grid grid-cols-3 gap-3">
           {[
             [formattedTime(hoursLeft), "Hours", "accent-card-chat"],
             [formattedTime(minutesLeft), "Minutes", "accent-card-plan"],
@@ -370,6 +327,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const toolItems = [
     { id: "pomodoro", label: "Pomodoro Timer", icon: Clock },
+    { id: "notes", label: "Notes", icon: FileText },
     { id: "flashcards", label: "Flashcards", icon: Library },
     { id: "quizzicle", label: "Quizicle", icon: HelpCircle },
     { id: "resources", label: "Resources", icon: BookOpen },
@@ -377,7 +335,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
-      <main className="min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10">
+      <main
+        className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
+          isAIOpen ? "xl:mr-[370px]" : "mr-0"
+        }`}
+      >
         <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
             <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
@@ -521,30 +483,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <div className="mt-6 grid grid-cols-1 items-start gap-6">
-              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
-                <div className="mb-5 flex items-center gap-3">
-                  <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
-                  <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : toolItems.find((item) => item.id === activeTool)?.label}</h2>
-                </div>
-                {renderTool()}
-              </section>
-              <section id="session-notes" className="min-w-0 scroll-mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 md:p-6">
-                <div className="mb-5 flex items-center gap-3">
-                  <FileText className={`h-5 w-5 ${importanceTheme.accent}`} />
-                  <div>
-                    <h2 className="text-xl font-bold">Session notes</h2>
-                    <p className="mt-1 text-sm text-slate-500">A clear space for ideas worth keeping.</p>
-                  </div>
-                </div>
-                <NoteEditor
-                  studyId={Studyid || session.id}
-                  userId={userId}
-                  topic={topic}
-                  onTimelineEvent={handleTimelineEvent}
-                />
-              </section>
-            </div>
+            <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
+              <div className="mb-5 flex items-center gap-3">
+                <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
+                <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
+              </div>
+              {renderTool()}
+            </section>
           </div>
         </div>
       </main>

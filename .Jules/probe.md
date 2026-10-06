@@ -8,6 +8,6 @@
 **Learning:** `calculateStreakUpdate` evaluated `daysSinceActivity === 0` to identify same-day no-ops, but when users traveled westward across timezones or the International Date Line (or when client sync delivered backdated activity dates), `daysSinceActivity` was negative (`< 0`), causing `calculateStreakUpdate` to fall through and reset active streaks to 1.
 **Action:** Always check `daysSinceActivity <= 0` when computing streak updates to ensure earlier or out-of-order activity dates safely return `noOp: true` without resetting active streaks or modifying `lastActiveDate`.
 
-## 2026-04-08 - Client Notification Time Determinism & Push Timer Suppression
-**Learning:** `isQuietHoursActive` and `recordNotification` hardcoded system clock `new Date()`, making quiet hours and notification muting untestable without monkey-patching globals. Passing an optional `date` parameter allows deterministic time-boundary testing. Additionally, `scheduleStudyReminder` suppresses local in-tab fallback timers when active Web Push subscriptions are present to prevent duplicate study reminders.
-**Action:** Always pass deterministic `date` values when testing quiet hours / notifications, and verify that local fallback timers return `null` when Web Push is active.
+## 2026-04-06 - Client Notifications & Quiet Hours Verification
+**Learning:** Client-side notification utilities (`isQuietHoursActive`, `recordNotification`) directly instantiated `new Date()`, which made quiet hours time calculation non-deterministic in unit tests. Furthermore, when Web Push subscriptions are active, local in-tab study reminder timers must be suppressed to avoid duplicate notifications.
+**Action:** Pass optional `date` parameters to time-sensitive notification functions to allow deterministic time injection, and verify that `scheduleStudyReminder` returns `null` when `hasActivePushSubscription()` evaluates to `true`.

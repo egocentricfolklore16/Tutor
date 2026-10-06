@@ -1,125 +1,30 @@
 import React, { useEffect, useState } from "react";
-import {
-  Eye,
-  EyeOff,
-  Layers3,
-  Pencil,
-  Plus,
-  RotateCcw,
-  Sparkles,
-  Trash2,
-  X,
-} from "lucide-react";
+import { ArrowLeft, Layers3, Pencil, Plus, RotateCcw, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 
-const normalizeCardValue = (value, key, depth = 0) => {
-  if (value === null || value === undefined || depth > 3) return "";
-  if (typeof value === "object") {
-    const property = value[key] ?? value[key === "question" ? "front" : "back"];
-    return property === undefined ? "" : normalizeCardValue(property, key, depth + 1);
-  }
-
-  let text = typeof value === "string" ? value.trim() : String(value).trim();
-  if (!text) return "";
-
-  try {
-    const parsed = JSON.parse(text);
-    if (typeof parsed === "string") return normalizeCardValue(parsed, key, depth + 1);
-    if (parsed && typeof parsed === "object") {
-      const property = parsed[key] ?? parsed[key === "question" ? "front" : "back"];
-      if (property !== undefined) return normalizeCardValue(property, key, depth + 1);
-    }
-  } catch {
-    // Some legacy rows contain a single JSON property rather than valid JSON.
-  }
-
-  text = text
-    .replace(/^\s*\{\s*["']?(?:question|answer|front|back)["']?\s*:\s*/i, "")
-    .replace(/,\s*\}?\s*$/, "")
-    .replace(/\s*\}\s*$/, "")
-    .trim();
-
-  if (text.length >= 2 && text.startsWith('"') && text.endsWith('"')) {
-    try {
-      const parsed = JSON.parse(text);
-      if (typeof parsed === "string") return parsed.trim();
-    } catch {
-      text = text.slice(1, -1).replace(/\\"/g, '"').trim();
-    }
-  } else if (text.length >= 2 && text.startsWith("'") && text.endsWith("'")) {
-    text = text.slice(1, -1).trim();
-  }
-
-  return text.replace(/,\s*$/, "").trim();
-};
-
-const normalizeFlashcard = (card) => ({
-  ...card,
-  question: normalizeCardValue(card.question ?? card.front, "question"),
-  answer: normalizeCardValue(card.answer ?? card.back, "answer"),
-});
-
-const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
+const Flashcards = ({ studyId, userId, theme, onTimelineEvent }) => {
+  const cardThemes = ["accent-card-chat", "accent-card-plan", "accent-card-read", "accent-card-track"];
   const [cards, setCards] = useState([]);
   const [form, setForm] = useState({ question: "", answer: "" });
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [isAnswerVisible, setIsAnswerVisible] = useState(false);
-  const [isReviewComplete, setIsReviewComplete] = useState(false);
+  const [flippedCards, setFlippedCards] = useState({});
 
   useEffect(() => {
-    let isCurrent = true;
-    if (!studyId) {
-      setCards([]);
-      setIsLoading(false);
-      return () => {
-        isCurrent = false;
-      };
-    }
-
+    if (!studyId) return;
     setIsLoading(true);
-    setError("");
     supabase
       .from("session_flashcards")
       .select("id,session_id,user_id,question,answer,source,created_at")
       .eq("session_id", studyId)
       .order("created_at")
       .then(({ data, error: fetchError }) => {
-        if (!isCurrent) return;
         if (fetchError) setError(fetchError.message);
-        else setCards((data || []).map(normalizeFlashcard));
+        else setCards(data || []);
       })
-      .finally(() => {
-        if (isCurrent) setIsLoading(false);
-      });
-
-    return () => {
-      isCurrent = false;
-    };
+      .finally(() => setIsLoading(false));
   }, [studyId]);
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.code !== "Space" || event.repeat || isLoading || !cards.length || isReviewComplete) return;
-      const target = event.target;
-      const tagName = target?.tagName?.toLowerCase();
-      if (
-        tagName === "input" ||
-        tagName === "textarea" ||
-        tagName === "select" ||
-        tagName === "button" ||
-        target?.isContentEditable
-      ) return;
-
-      event.preventDefault();
-      setIsAnswerVisible((visible) => !visible);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cards.length, isLoading, isReviewComplete]);
 
   const saveCard = async (event) => {
     event.preventDefault();
@@ -127,23 +32,17 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
       setError("Active study session required to save flashcards.");
       return;
     }
-    const question = normalizeCardValue(form.question, "question");
-    const answer = normalizeCardValue(form.answer, "answer");
-    if (!question || !answer) return;
+    if (!form.question.trim() || !form.answer.trim()) return;
 
     let activeUserId = userId;
     if (!activeUserId) {
-      const { data: { user }, error: userError } = await supabase.auth.getUser();
-      if (userError) {
-        setError(userError.message);
-        return;
-      }
+      const { data: { user } } = await supabase.auth.getUser();
       activeUserId = user?.id;
     }
 
     const payload = {
-      question,
-      answer,
+      question: form.question.trim(),
+      answer: form.answer.trim(),
       session_id: studyId,
       user_id: activeUserId,
       source: "user",
@@ -156,20 +55,17 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
     const { data, error: saveError } = await query;
     if (saveError) setError(saveError.message);
     else {
-      const cleanCard = normalizeFlashcard(data);
       setError("");
       if (!editingId && onTimelineEvent && data) {
         onTimelineEvent({
           id: crypto.randomUUID(),
           type: "flashcard",
           refId: String(data.id),
-          title: cleanCard.question || "Flashcard created",
+          title: data.question || "Flashcard created",
           timestamp: new Date().toISOString(),
         });
       }
-      setCards((current) => editingId
-        ? current.map((card) => card.id === editingId ? cleanCard : card)
-        : [...current, cleanCard]);
+      setCards((current) => editingId ? current.map((card) => card.id === editingId ? data : card) : [...current, data]);
       setForm({ question: "", answer: "" });
       setEditingId(null);
     }
@@ -178,284 +74,41 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   const removeCard = async (id) => {
     const { error: deleteError } = await supabase.from("session_flashcards").delete().eq("id", id);
     if (deleteError) setError(deleteError.message);
-    else {
-      const nextCards = cards.filter((card) => card.id !== id);
-      setCards(nextCards);
-      setActiveIndex((index) => Math.min(index, Math.max(0, nextCards.length - 1)));
-      setIsAnswerVisible(false);
-      setIsReviewComplete(false);
-    }
-  };
-
-  const activeCard = cards[activeIndex];
-  const dueCount = isReviewComplete ? 0 : Math.max(0, cards.length - activeIndex);
-  const progress = cards.length
-    ? isReviewComplete ? 100 : ((activeIndex + 1) / cards.length) * 100
-    : 0;
-  const accentText = "text-orange-600 dark:text-orange-400";
-  const accentButton = "bg-orange-600 hover:bg-orange-700 dark:bg-orange-500 dark:hover:bg-orange-400";
-  const accentSoft = "bg-orange-50 dark:bg-orange-500/15";
-  const accentLabel = "text-orange-700 dark:text-orange-300";
-
-  const advanceCard = () => {
-    if (activeIndex >= cards.length - 1) {
-      setIsReviewComplete(true);
-      setIsAnswerVisible(false);
-      return;
-    }
-    setActiveIndex((index) => index + 1);
-    setIsAnswerVisible(false);
-  };
-
-  const restartReview = () => {
-    setActiveIndex(0);
-    setIsAnswerVisible(false);
-    setIsReviewComplete(false);
+    else setCards((current) => current.filter((card) => card.id !== id));
   };
 
   return (
     <div className="space-y-8">
-      <header className="mx-auto w-full max-w-3xl">
-        <div className="flex items-center gap-3">
-          <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${accentSoft} ${accentLabel}`}>
-            <Layers3 className="h-5 w-5" />
-          </span>
-          <div className="min-w-0">
-            <h2 className="text-2xl font-bold tracking-tight text-slate-900 dark:text-slate-100 sm:text-3xl">Daily Flashcard Review</h2>
+      {error && <div className="flex items-center justify-between rounded-lg bg-red-50 px-3 py-2 text-sm text-red-700"><span>{error}</span><button onClick={() => setError("")}><X className="h-4 w-4" /></button></div>}
+      {isLoading ? <p className="text-sm text-slate-500">Loading flashcards...</p> : cards.length === 0 ? <div className="rounded-xl border border-dashed border-slate-300 p-8 text-center"><Layers3 className="mx-auto mb-2 h-8 w-8 text-slate-300" /><p className="text-sm text-slate-500">No flashcards saved for this session.</p></div> : (
+        <div className="dark-surface rounded-2xl bg-slate-100 px-4 py-8 ring-1 ring-slate-200 md:px-8">
+          <div className="dark-primary-text mb-6 flex items-center justify-between"><div><p className="dark-secondary-text text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Study deck</p><h3 className="mt-1 text-xl font-bold">Flip through your cards</h3></div><Layers3 className={`h-6 w-6 ${theme?.accent || ""}`} /></div>
+          <div className="grid justify-items-center gap-10 sm:grid-cols-2">
+            {cards.map((card, index) => {
+              const isFlipped = flippedCards[card.id];
+              const cardTheme = cardThemes[index % cardThemes.length];
+              return <div key={card.id} className="w-full max-w-[360px] [perspective:1000px]"><div className={`relative aspect-[5/7] w-full transition-transform duration-700 [transform-style:preserve-3d] ${isFlipped ? "[transform:rotateY(180deg)]" : ""}`}>
+                <div className={`dark-primary-text absolute inset-0 flex flex-col justify-between overflow-hidden rounded-[1.25rem] border border-slate-200 p-6 shadow-xl [backface-visibility:hidden] ${cardTheme}`}>
+                  <div className="flex items-center justify-between"><span className={`rounded-full px-3 py-1 text-xs font-bold ${theme?.accentBg || "bg-emerald-50"} ${theme?.accentText || "text-emerald-800"}`}>CARD {index + 1}</span><Layers3 className="dark-secondary-text h-5 w-5 text-slate-300" /></div>
+                  <div className="text-center"><p className="dark-secondary-text mb-4 text-xs font-semibold uppercase tracking-[0.25em] text-slate-400">Question</p><p className="text-xl font-bold leading-relaxed">{card.question}</p></div>
+                  <button onClick={() => setFlippedCards((current) => ({ ...current, [card.id]: true }))} className="mx-auto inline-flex items-center gap-2 rounded-full bg-white/80 px-5 py-3 text-sm font-bold text-slate-900 shadow-lg transition hover:bg-white">Show answer <RotateCcw className="h-4 w-4" /></button>
+                </div>
+                <div className={`dark-primary-text absolute inset-0 flex flex-col justify-between overflow-hidden rounded-[1.25rem] border p-6 shadow-2xl [backface-visibility:hidden] [transform:rotateY(180deg)] ${cardTheme}`}>
+                  <div className="flex items-center justify-between"><span className={`rounded-full px-3 py-1 text-xs font-bold ${theme?.pill || "bg-slate-200"}`}>ANSWER</span><SparkleMark /></div>
+                  <p className="text-center text-xl font-bold leading-relaxed text-slate-900">{card.answer}</p>
+                  <button onClick={() => setFlippedCards((current) => ({ ...current, [card.id]: false }))} className="mx-auto inline-flex items-center gap-2 rounded-full border border-white/70 bg-white/60 px-5 py-3 text-sm font-bold text-slate-900 transition hover:bg-white"><ArrowLeft className="h-4 w-4" /> Question</button>
+                </div>
+              </div></div>;
+            })}
           </div>
-        </div>
-        <p className="mt-3 text-sm leading-6 text-slate-500 dark:text-slate-400 sm:text-base">
-          Strengthen your memory retention with scientifically timed active recall intervals.
-        </p>
-      </header>
-
-      <section className="mx-auto w-full max-w-3xl" aria-label="Flashcard review progress">
-        <div className="flex items-center justify-between gap-4">
-          <p className="flex min-w-0 items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-            <Sparkles className={`h-4 w-4 shrink-0 ${accentText}`} />
-            <span>Due in Queue: <strong className="font-bold text-slate-900 dark:text-slate-100">{dueCount}</strong></span>
-          </p>
-          <p className="shrink-0 text-sm text-slate-500 dark:text-slate-400">
-            Card <span className="font-semibold text-slate-700 dark:text-slate-200">{cards.length && !isReviewComplete ? activeIndex + 1 : 0}</span> of {cards.length}
-          </p>
-        </div>
-        <div
-          className="mt-3 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
-          role="progressbar"
-          aria-label="Flashcard review progress"
-          aria-valuemin={0}
-          aria-valuemax={cards.length || 1}
-          aria-valuenow={isReviewComplete ? cards.length : cards.length ? activeIndex + 1 : 0}
-        >
-          <div className="h-full rounded-full bg-orange-600 transition-[width] duration-300 dark:bg-orange-400" style={{ width: `${progress}%` }} />
-        </div>
-      </section>
-
-      <section id="flashcard-review" className="mx-auto w-full max-w-3xl rounded-3xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-[#18211f] sm:p-8 md:p-10">
-        {isLoading ? (
-          <div className="flex min-h-64 items-center justify-center text-center" role="status">
-            <div>
-              <Sparkles className={`mx-auto h-7 w-7 animate-pulse ${accentText}`} />
-              <p className="mt-3 text-sm font-medium text-slate-500 dark:text-slate-400">Loading your flashcards...</p>
-            </div>
-          </div>
-        ) : error && cards.length === 0 ? (
-          <div className="flex min-h-64 flex-col items-center justify-center text-center" role="alert">
-            <p className="font-semibold text-red-700 dark:text-red-300">We couldn&apos;t load your flashcards.</p>
-            <p className="mt-2 text-sm text-slate-500 dark:text-slate-400">{error}</p>
-          </div>
-        ) : !activeCard || isReviewComplete ? (
-          <div className="flex min-h-64 flex-col items-center justify-center text-center">
-            <span className={`flex h-12 w-12 items-center justify-center rounded-2xl ${accentSoft} ${accentLabel}`}>
-              {cards.length ? <Sparkles className="h-6 w-6" /> : <Layers3 className="h-6 w-6" />}
-            </span>
-            <h3 className="mt-4 text-xl font-bold text-slate-900 dark:text-slate-100">
-              All caught up
-            </h3>
-            <p className="mt-2 max-w-md text-sm leading-6 text-slate-500 dark:text-slate-400">
-              {cards.length
-                ? "You reviewed every card in this session. Come back later to strengthen your recall."
-                : "There are no flashcards waiting in this session. Add a question and answer below to build your deck."}
-            </p>
-            {cards.length > 0 && (
-              <button
-                type="button"
-                onClick={restartReview}
-                className={`mt-5 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 ${accentButton}`}
-              >
-                <RotateCcw className="h-4 w-4" /> Review again
-              </button>
-            )}
-          </div>
-        ) : (
-          <article
-            tabIndex={0}
-            aria-label={`Flashcard ${activeIndex + 1} of ${cards.length}`}
-            className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#18211f]"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${accentSoft} ${accentLabel}`}>
-                {isAnswerVisible ? "Answer" : "Question"}
-              </span>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Press <kbd className="mx-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-sans font-semibold text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">Space</kbd> to flip
-              </p>
-            </div>
-
-            <div className="flex min-h-36 items-center py-8 sm:min-h-44">
-              <h3 className="w-full break-words text-center text-xl font-bold leading-relaxed text-slate-900 dark:text-slate-100 sm:text-2xl">
-                {activeCard.question}
-              </h3>
-            </div>
-
-            <div className="border-t border-slate-200 dark:border-slate-700" />
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Answer</p>
-              <button
-                type="button"
-                onClick={() => setIsAnswerVisible((visible) => !visible)}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10 ${accentText}`}
-              >
-                {isAnswerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {isAnswerVisible ? "Hide" : "Reveal Answer (Space)"}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsAnswerVisible((visible) => !visible)}
-              aria-label={isAnswerVisible ? "Hide flashcard answer" : "Reveal flashcard answer"}
-              className={`mt-3 flex min-h-28 w-full items-center justify-center rounded-2xl border border-dashed px-5 py-6 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${
-                isAnswerVisible
-                  ? "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70"
-                  : "border-slate-300 bg-slate-50/70 hover:border-orange-300 hover:bg-orange-50/50 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5"
-              }`}
-            >
-              <span
-                aria-live="polite"
-                className={`max-w-2xl text-sm leading-6 ${
-                  isAnswerVisible
-                    ? "text-left text-slate-700 dark:text-slate-200 sm:text-base"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isAnswerVisible
-                  ? activeCard.answer
-                  : <>Click here or tap <kbd className="mx-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-xs font-semibold text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">Space</kbd> to view answer</>}
-              </span>
-            </button>
-
-            {isAnswerVisible && (
-              <button
-                type="button"
-                onClick={advanceCard}
-                className={`mt-5 flex min-h-12 w-full items-center justify-center rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${accentButton}`}
-              >
-                {activeIndex === cards.length - 1 ? "Finish review" : "Next card"}
-              </button>
-            )}
-          </article>
-        )}
-      </section>
-
-      {error && cards.length > 0 && (
-        <div role="alert" className="mx-auto flex w-full max-w-3xl items-start justify-between gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700 dark:border-red-900/60 dark:bg-red-950/30 dark:text-red-300">
-          <span>{error}</span>
-          <button type="button" aria-label="Dismiss error" onClick={() => setError("")} className="shrink-0 rounded p-1 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500">
-            <X className="h-4 w-4" />
-          </button>
         </div>
       )}
-
-      <form onSubmit={saveCard} className="dark-surface mx-auto w-full max-w-3xl space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 sm:p-5">
-        <div className="dark-primary-text flex items-center gap-2">
-          <Plus className={`h-4 w-4 ${accentText}`} />
-          <h3 className="font-bold text-slate-900 dark:text-slate-100">{editingId ? "Edit flashcard" : "Add to this deck"}</h3>
-        </div>
-        <div className="grid gap-3 md:grid-cols-2">
-          <label className="sr-only" htmlFor="flashcard-question">Question</label>
-          <input
-            id="flashcard-question"
-            value={form.question}
-            onChange={(event) => setForm({ ...form, question: event.target.value })}
-            placeholder="Question"
-            className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100 dark:placeholder:text-slate-500"
-            disabled={!studyId}
-          />
-          <label className="sr-only" htmlFor="flashcard-answer">Answer</label>
-          <input
-            id="flashcard-answer"
-            value={form.answer}
-            onChange={(event) => setForm({ ...form, answer: event.target.value })}
-            placeholder="Answer"
-            className="min-w-0 rounded-xl border border-slate-200 bg-white p-3 text-slate-900 outline-none placeholder:text-slate-400 focus-visible:ring-2 focus-visible:ring-orange-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100 dark:placeholder:text-slate-500"
-            disabled={!studyId}
-          />
-        </div>
-        <div className="flex justify-end gap-2">
-          {editingId && (
-            <button
-              type="button"
-              onClick={() => { setForm({ question: "", answer: "" }); setEditingId(null); }}
-              className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-slate-300 dark:hover:bg-slate-800"
-            >
-              Cancel
-            </button>
-          )}
-          <button
-            disabled={!studyId}
-            className={`inline-flex min-h-10 items-center rounded-xl px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${accentButton}`}
-          >
-            <Plus className="mr-1 inline h-4 w-4" />{editingId ? "Update card" : "Save card"}
-          </button>
-        </div>
-      </form>
-
-      {cards.length > 0 && (
-        <section className="mx-auto w-full max-w-3xl space-y-3" aria-label="Manage flashcards">
-          <h3 className="text-sm font-bold text-slate-700 dark:text-slate-300">Cards in this deck</h3>
-          {cards.map((card, index) => (
-            <article key={`edit-${card.id}`} className="flex items-start justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-700 dark:bg-[#18211f]">
-              <button
-                type="button"
-                onClick={() => {
-                  setActiveIndex(index);
-                  setIsAnswerVisible(false);
-                  setIsReviewComplete(false);
-                  document.getElementById("flashcard-review")?.scrollIntoView({ behavior: "smooth", block: "center" });
-                }}
-                className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500"
-              >
-                <span className={`text-xs font-bold uppercase tracking-wider ${accentText}`}>Card {index + 1}</span>
-                <span className="mt-1 block break-words text-sm font-semibold text-slate-800 dark:text-slate-100">{card.question}</span>
-              </button>
-              <div className="flex shrink-0 items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => { setEditingId(card.id); setForm({ question: card.question, answer: card.answer }); }}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-                  title="Edit card"
-                  aria-label={`Edit card ${index + 1}`}
-                >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeCard(card.id)}
-                  className="rounded-lg p-2 text-slate-500 hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 dark:text-slate-400 dark:hover:bg-red-950/40 dark:hover:text-red-300"
-                  title="Delete card"
-                  aria-label={`Delete card ${index + 1}`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </article>
-          ))}
-        </section>
-      )}
+      <form onSubmit={saveCard} className="dark-surface rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3"><div className="dark-primary-text flex items-center gap-2"><Plus className={`h-4 w-4 ${theme?.accent || ""}`} /><h3 className="font-bold">Add to this deck</h3></div><div className="grid gap-3 md:grid-cols-2"><input value={form.question} onChange={(event) => setForm({ ...form, question: event.target.value })} placeholder="Question" className="rounded-lg border border-slate-200 bg-white p-3" disabled={!studyId} /><input value={form.answer} onChange={(event) => setForm({ ...form, answer: event.target.value })} placeholder="Answer" className="rounded-lg border border-slate-200 bg-white p-3" disabled={!studyId} /></div><div className="flex justify-end gap-2"><button type="button" onClick={() => { setForm({ question: "", answer: "" }); setEditingId(null); }} className="dark-secondary-text rounded-lg px-4 py-2 text-sm text-slate-600 hover:bg-white">Clear</button><button disabled={!studyId} className={`rounded-lg px-4 py-2 text-sm font-semibold text-white disabled:opacity-50 ${theme?.accentButton || "bg-emerald-600"}`}><Plus className="mr-1 inline h-4 w-4" />{editingId ? "Update card" : "Save card"}</button></div></form>
+      {cards.length > 0 && <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">{cards.map((card, index) => <div key={`edit-${card.id}`} className={`relative flex min-h-36 flex-col justify-between rounded-lg p-4 ${cardThemes[index % cardThemes.length]}`}><span className="absolute right-3 top-3 text-xs font-bold opacity-60">{String(index + 1).padStart(2, "0")}</span><span className="line-clamp-4 pr-5 text-sm font-bold text-gray-900">{card.question}</span><div className="mt-4 flex items-center justify-end gap-2"><button onClick={() => { setEditingId(card.id); setForm({ question: card.question, answer: card.answer }); }} className="rounded-full bg-white/70 p-2 text-gray-900 transition hover:bg-white" title="Edit card" aria-label="Edit card"><Pencil className="h-4 w-4" /></button><button onClick={() => removeCard(card.id)} className="rounded-full bg-white/70 p-2 text-red-700 transition hover:bg-white" title="Delete card" aria-label="Delete card"><Trash2 className="h-4 w-4" /></button></div></div>)}</div>}
     </div>
   );
 };
+
+const SparkleMark = () => <span className="text-lg">✦</span>;
 
 export default Flashcards;

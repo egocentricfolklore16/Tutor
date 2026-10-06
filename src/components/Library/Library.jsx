@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -11,8 +11,6 @@ import {
   HelpCircle,
   Layers3,
   Library as LibraryIcon,
-  LayoutGrid,
-  List,
   Link2,
   Loader2,
   Plus,
@@ -24,9 +22,6 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
-import PageContainer from "../common/PageContainer";
-import ResponsiveSheet from "../common/ResponsiveSheet";
-import ResourcePreviewModal from "../common/ResourcePreviewModal";
 
 const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -45,107 +40,13 @@ const ALLOWED_MIME_TYPES = [
 const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", "txt", "md", "csv"];
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
-const getResourceDomain = (url) => {
-  try {
-    return url ? new URL(url).hostname : "";
-  } catch {
-    return "";
-  }
-};
-
-function LibraryItem({
-  variant,
-  icon: Icon,
-  iconClass,
-  tileClass,
-  title,
-  date,
-  category,
-  preview,
-  actions,
-  children,
-  onPreview,
-}) {
-  const handleCardKeyDown = (event) => {
-    if (!onPreview || event.target !== event.currentTarget) return;
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      onPreview();
-    }
-  };
-
-  if (variant === "list") {
-    return (
-      <article
-        onClick={onPreview}
-        onKeyDown={handleCardKeyDown}
-        tabIndex={onPreview ? 0 : undefined}
-        aria-label={onPreview ? `Preview ${title}` : undefined}
-        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-green-400 sm:flex-row sm:items-start ${onPreview ? "cursor-pointer" : ""}`}
-      >
-        <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
-            {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
-          </div>
-          <div className="min-w-0 flex-1">
-            <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
-            <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
-            <div className="mt-2 min-w-0">{category}</div>
-            <p className="mt-2 line-clamp-3 min-w-0 break-words text-xs leading-5 text-slate-600 dark:text-slate-300" title={preview}>
-              {preview}
-            </p>
-            {children && <div className="mt-3 min-w-0">{children}</div>}
-          </div>
-        </div>
-        <div className="flex shrink-0 items-center justify-end gap-1 border-t border-slate-100 pt-2 dark:border-slate-700 sm:border-0 sm:pt-0">{actions}</div>
-      </article>
-    );
-  }
-
-  return (
-    <article
-      onClick={onPreview}
-      onKeyDown={handleCardKeyDown}
-      tabIndex={onPreview ? 0 : undefined}
-      aria-label={onPreview ? `Preview ${title}` : undefined}
-      className={`flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 sm:p-5 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:focus-visible:ring-green-400" : ""}`}
-    >
-      <div className="flex min-w-0 items-start gap-3">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
-          {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
-        </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
-          <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-1">{actions}</div>
-      </div>
-      <div className="mt-3 min-w-0">{category}</div>
-      <p className="mt-3 min-h-[3.75rem] min-w-0 line-clamp-3 break-words text-xs leading-5 text-slate-600 dark:text-slate-300">
-        {preview}
-      </p>
-      {children && <div className="mt-auto min-w-0 pt-3">{children}</div>}
-    </article>
-  );
-}
 
 function Library({ session }) {
   const [activeTab, setActiveTab] = useState("all"); // "all" | "notes" | "flashcards" | "resources" | "quizzes"
-  const [libraryView, setLibraryView] = useState(() => {
-    try {
-      if (typeof window === "undefined") return "grid";
-      const savedView = window.localStorage.getItem("hypertutor:library-view");
-      return savedView === "list" ? "list" : "grid";
-    } catch {
-      return "grid";
-    }
-  });
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
-  const [previewResource, setPreviewResource] = useState(null);
-  const closeResourcePreview = useCallback(() => setPreviewResource(null), []);
 
   // Data states
   const [notes, setNotes] = useState([]);
@@ -155,7 +56,7 @@ function Library({ session }) {
   const [studies, setStudies] = useState([]);
 
   // Standalone creation form modals / toggles
-  const [creationType, setCreationType] = useState(null); // null | "note" | "flashcard" | "resource"
+  const [creationType, setCreationType] = useState(null); // null | "note" | "flashcard" | "resource" | "quiz"
 
   // Note creation form
   const [noteForm, setNoteForm] = useState({ title: "", content: "" });
@@ -169,6 +70,18 @@ function Library({ session }) {
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkKind, setLinkKind] = useState("link");
+
+  // Quiz creation form
+  const [quizForm, setQuizForm] = useState({
+    title: "",
+    question: "",
+    optionA: "",
+    optionB: "",
+    optionC: "",
+    optionD: "",
+    correctIndex: 0,
+    explanation: "",
+  });
 
   // Quiz interactive taking/retaking state
   const [retakingQuizMap, setRetakingQuizMap] = useState({});
@@ -209,7 +122,7 @@ function Library({ session }) {
           .order("created_at", { ascending: false }),
         supabase
           .from("session_resources")
-          .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, extracted_text, source, created_at")
+          .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, source, created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
         supabase
@@ -282,14 +195,6 @@ function Library({ session }) {
     fetchLibraryData();
   }, [session?.user?.id]);
 
-  useEffect(() => {
-    try {
-      window.localStorage.setItem("hypertutor:library-view", libraryView);
-    } catch {
-      // The view toggle remains usable when storage is unavailable.
-    }
-  }, [libraryView]);
-
   const studyById = useMemo(
     () => new Map(studies.map((study) => [study.id, study])),
     [studies]
@@ -299,7 +204,7 @@ function Library({ session }) {
   const renderSessionBadge = (sessionId) => {
     if (!sessionId) {
       return (
-        <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
           Standalone Library Item
         </span>
       );
@@ -313,11 +218,10 @@ function Library({ session }) {
     return (
       <Link
         to={`/Study/${sessionId}`}
-        onClick={(event) => event.stopPropagation()}
-        className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
+        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
         title="Open Session"
       >
-        <span className="min-w-0 truncate" title={label}>{label}</span>
+        <span>{label}</span>
         <ArrowRight className="h-3 w-3" />
       </Link>
     );
@@ -483,6 +387,81 @@ function Library({ session }) {
     setIsSubmitting(false);
   };
 
+  const handleCreateQuiz = async (e) => {
+    e.preventDefault();
+    if (!quizForm.title.trim() || !quizForm.question.trim() || !quizForm.optionA.trim() || !quizForm.optionB.trim()) {
+      setError("Please fill out quiz title, question, and at least Options A and B.");
+      return;
+    }
+
+    const userId = session?.user?.id;
+    if (!userId) return;
+
+    setIsSubmitting(true);
+    setError("");
+
+    // 1. Insert quiz
+    const { data: quiz, error: quizErr } = await supabase
+      .from("session_quizzes")
+      .insert({
+        user_id: userId,
+        session_id: null,
+        title: quizForm.title.trim(),
+        source: "user",
+      })
+      .select()
+      .single();
+
+    if (quizErr || !quiz) {
+      setError(`Failed to create quiz: ${quizErr?.message}`);
+      setIsSubmitting(false);
+      return;
+    }
+
+    // 2. Insert question
+    const optionsArray = [quizForm.optionA.trim(), quizForm.optionB.trim()];
+    if (quizForm.optionC.trim()) optionsArray.push(quizForm.optionC.trim());
+    if (quizForm.optionD.trim()) optionsArray.push(quizForm.optionD.trim());
+
+    const { data: questionData, error: questionErr } = await supabase
+      .from("session_quiz_questions")
+      .insert({
+        quiz_id: quiz.id,
+        user_id: userId,
+        position: 1,
+        question: quizForm.question.trim(),
+        options: optionsArray,
+        correct_index: Number(quizForm.correctIndex),
+        explanation: quizForm.explanation.trim() || null,
+      })
+      .select()
+      .single();
+
+    if (questionErr) {
+      await supabase.from("session_quizzes").delete().eq("id", quiz.id);
+      setError(`Failed to save quiz question: ${questionErr.message}`);
+    } else {
+      const fullQuiz = {
+        ...quiz,
+        questions: [questionData],
+        attempts: [],
+      };
+      setQuizzes((prev) => [fullQuiz, ...prev]);
+      setQuizForm({
+        title: "",
+        question: "",
+        optionA: "",
+        optionB: "",
+        optionC: "",
+        optionD: "",
+        correctIndex: 0,
+        explanation: "",
+      });
+      setCreationType(null);
+    }
+    setIsSubmitting(false);
+  };
+
   // Record Quiz Attempt
   const handleRecordAttempt = async (quiz, selectedIndex) => {
     const userId = session?.user?.id;
@@ -626,7 +605,8 @@ function Library({ session }) {
   const totalItemsCount = notes.length + flashcards.length + resources.length + quizzes.length;
 
   return (
-    <PageContainer maxWidth="max-w-7xl">
+    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-10">
+      <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
@@ -702,6 +682,12 @@ function Library({ session }) {
             >
               <Plus className="h-3.5 w-3.5" /> Resource
             </button>
+            <button
+              onClick={() => setCreationType(creationType === "quiz" ? null : "quiz")}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 transition"
+            >
+              <Plus className="h-3.5 w-3.5" /> Quiz
+            </button>
           </div>
         </div>
 
@@ -715,335 +701,314 @@ function Library({ session }) {
           </div>
         )}
 
-        {/* Creation Forms Sheet */}
-        <ResponsiveSheet
-          isOpen={Boolean(creationType)}
-          onClose={() => setCreationType(null)}
-          title={`Create Standalone ${creationType || ""}`}
-        >
-          {/* Note Form */}
-          {creationType === "note" && (
-            <form onSubmit={handleCreateNote} className="space-y-4">
-              <input
-                type="text"
-                value={noteForm.title}
-                onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
-                placeholder="Note Title"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
-                required
-              />
-              <textarea
-                value={noteForm.content}
-                onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
-                placeholder="Write your note content here..."
-                className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
-                required
-              />
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
-                </button>
-              </div>
-            </form>
-          )}
+        {/* Creation Forms */}
+        {creationType && (
+          <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-md animate-in fade-in slide-in-from-top-2">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
+              <h3 className="text-base font-bold text-slate-900 capitalize">
+                Create Standalone {creationType}
+              </h3>
+              <button onClick={() => setCreationType(null)} className="text-slate-400 hover:text-slate-600">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
 
-          {/* Flashcard Form */}
-          {creationType === "flashcard" && (
-            <form onSubmit={handleCreateFlashcard} className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <textarea
-                  value={flashcardForm.question}
-                  onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
-                  placeholder="Front / Question"
-                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
+            {/* Note Form */}
+            {creationType === "note" && (
+              <form onSubmit={handleCreateNote} className="space-y-4">
+                <input
+                  type="text"
+                  value={noteForm.title}
+                  onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
+                  placeholder="Note Title"
+                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                   required
                 />
                 <textarea
-                  value={flashcardForm.answer}
-                  onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
-                  placeholder="Back / Answer"
-                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
+                  value={noteForm.content}
+                  onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
+                  placeholder="Write your note content here..."
+                  className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
                   required
                 />
-              </div>
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
-                </button>
-              </div>
-            </form>
-          )}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreationType(null)}
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
+                  </button>
+                </div>
+              </form>
+            )}
 
-          {/* Resource Form */}
-          {creationType === "resource" && (
-            <form onSubmit={handleCreateResource} className="space-y-4">
-              <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
-                <button
-                  type="button"
-                  onClick={() => setResourceMode("file")}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                    resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Upload File
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setResourceMode("link")}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                    resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
-                  }`}
-                >
-                  Add Link / URL
-                </button>
-              </div>
-
-              {resourceMode === "file" ? (
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
-                  <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
-                  <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
-                  <input
-                    type="file"
-                    accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                    onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
-                    className="sr-only"
-                  />
-                </label>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  <input
-                    type="text"
-                    value={linkTitle}
-                    onChange={(e) => setLinkTitle(e.target.value)}
-                    placeholder="Resource Title"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+            {/* Flashcard Form */}
+            {creationType === "flashcard" && (
+              <form onSubmit={handleCreateFlashcard} className="space-y-4">
+                <div className="grid gap-4 md:grid-cols-2">
+                  <textarea
+                    value={flashcardForm.question}
+                    onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
+                    placeholder="Front / Question"
+                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
                     required
                   />
-                  <input
-                    type="url"
-                    value={linkUrl}
-                    onChange={(e) => setLinkUrl(e.target.value)}
-                    placeholder="https://..."
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none sm:col-span-2"
+                  <textarea
+                    value={flashcardForm.answer}
+                    onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
+                    placeholder="Back / Answer"
+                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
                     required
                   />
                 </div>
-              )}
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreationType(null)}
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-5 py-2 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
+                  </button>
+                </div>
+              </form>
+            )}
 
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
-                </button>
-              </div>
-            </form>
-          )}
+            {/* Resource Form */}
+            {creationType === "resource" && (
+              <form onSubmit={handleCreateResource} className="space-y-4">
+                <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                  <button
+                    type="button"
+                    onClick={() => setResourceMode("file")}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
+                      resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    Upload File
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setResourceMode("link")}
+                    className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
+                      resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                    }`}
+                  >
+                    Add Link / URL
+                  </button>
+                </div>
 
-          {/* Quiz Form */}
-          {creationType === "quiz" && (
-            <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
-              <input
-                type="text"
-                value={quizForm.title}
-                onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
-                placeholder="Quiz Title / Topic"
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base font-semibold outline-none focus:ring-2 focus:ring-purple-200"
-                required
-              />
-              <textarea
-                value={quizForm.question}
-                onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
-                placeholder="Question text..."
-                className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-purple-200"
-                required
-              />
-              <div className="grid gap-2 sm:grid-cols-2">
+                {resourceMode === "file" ? (
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
+                    <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
+                    <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
+                    <input
+                      type="file"
+                      accept=".pdf,.doc,.docx,.png,.jpg,.jpeg,.webp,.txt,.md,.csv,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
+                      className="sr-only"
+                    />
+                  </label>
+                ) : (
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    <input
+                      type="text"
+                      value={linkTitle}
+                      onChange={(e) => setLinkTitle(e.target.value)}
+                      placeholder="Resource Title"
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none"
+                      required
+                    />
+                    <input
+                      type="url"
+                      value={linkUrl}
+                      onChange={(e) => setLinkUrl(e.target.value)}
+                      placeholder="https://..."
+                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none sm:col-span-2"
+                      required
+                    />
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreationType(null)}
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-indigo-600 px-5 py-2 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
+                  </button>
+                </div>
+              </form>
+            )}
+
+            {/* Quiz Form */}
+            {creationType === "quiz" && (
+              <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
                 <input
                   type="text"
-                  value={quizForm.optionA}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
-                  placeholder="Option A (required)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                  value={quizForm.title}
+                  onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
+                  placeholder="Quiz Title / Topic"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-200"
                   required
                 />
-                <input
-                  type="text"
-                  value={quizForm.optionB}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
-                  placeholder="Option B (required)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                <textarea
+                  value={quizForm.question}
+                  onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
+                  placeholder="Question text..."
+                  className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none focus:ring-2 focus:ring-purple-200"
                   required
                 />
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    type="text"
+                    value={quizForm.optionA}
+                    onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
+                    placeholder="Option A (required)"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={quizForm.optionB}
+                    onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
+                    placeholder="Option B (required)"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    required
+                  />
+                  <input
+                    type="text"
+                    value={quizForm.optionC}
+                    onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
+                    placeholder="Option C (optional)"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                  />
+                  <input
+                    type="text"
+                    value={quizForm.optionD}
+                    onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
+                    placeholder="Option D (optional)"
+                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                  />
+                </div>
+                <label className="block text-xs font-bold text-slate-700">
+                  Correct Option
+                  <select
+                    value={quizForm.correctIndex}
+                    onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs"
+                  >
+                    <option value={0}>Option A</option>
+                    <option value={1}>Option B</option>
+                    {quizForm.optionC.trim() && <option value={2}>Option C</option>}
+                    {quizForm.optionD.trim() && <option value={3}>Option D</option>}
+                  </select>
+                </label>
                 <input
                   type="text"
-                  value={quizForm.optionC}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
-                  placeholder="Option C (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                  value={quizForm.explanation}
+                  onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
+                  placeholder="Explanation (optional)"
+                  className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
                 />
-                <input
-                  type="text"
-                  value={quizForm.optionD}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
-                  placeholder="Option D (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-                />
-              </div>
-              <label className="block text-xs font-bold text-slate-700">
-                Correct Option
-                <select
-                  value={quizForm.correctIndex}
-                  onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base"
-                >
-                  <option value={0}>Option A</option>
-                  <option value={1}>Option B</option>
-                  {quizForm.optionC.trim() && <option value={2}>Option C</option>}
-                  {quizForm.optionD.trim() && <option value={3}>Option D</option>}
-                </select>
-              </label>
-              <input
-                type="text"
-                value={quizForm.explanation}
-                onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
-                placeholder="Explanation (optional)"
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-              />
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
-                </button>
-              </div>
-            </form>
-          )}
-        </ResponsiveSheet>
-
-        <div className="mb-4 flex items-center justify-between gap-3">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
-            Your Materials ({totalItemsCount})
-          </h2>
-          <div
-            role="group"
-            aria-label="Library view"
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-[#18211f]"
-          >
-            {[
-              { view: "grid", label: "Grid view", Icon: LayoutGrid },
-              { view: "list", label: "List view", Icon: List },
-            ].map(({ view, label, Icon }) => {
-              const isActive = libraryView === view;
-              return (
-                <button
-                  key={view}
-                  type="button"
-                  title={label}
-                  aria-label={label}
-                  aria-pressed={isActive}
-                  onClick={() => setLibraryView(view)}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 dark:focus-visible:ring-indigo-400 dark:focus-visible:ring-offset-[#18211f] ${
-                    isActive
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
-                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
-                  }`}
-                >
-                  {React.createElement(Icon, { className: "h-4 w-4", "aria-hidden": true })}
-                </button>
-              );
-            })}
+                <div className="flex justify-end gap-2 mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setCreationType(null)}
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
+                  >
+                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Content Display */}
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 dark:border-slate-700 dark:bg-[#18211f]">
+          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
             <LoadingCompanion message="Loading your library..." />
           </div>
         ) : totalItemsCount === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center dark:border-slate-700 dark:bg-[#18211f]">
-            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Your Library is Empty</h3>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center">
+            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+            <h3 className="text-lg font-bold text-slate-800">Your Library is Empty</h3>
+            <p className="mt-1 text-xs text-slate-500">
               Create standalone materials or complete study sessions to populate your library.
             </p>
           </div>
         ) : (
-          <div key={libraryView} className="page-enter space-y-10">
+          <div className="space-y-10">
             {/* 1. NOTES SECTION */}
             {(activeTab === "all" || activeTab === "notes") && filteredNotes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Notes ({filteredNotes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-emerald-600" /> Notes ({filteredNotes.length})
                   </h2>
                 </div>
-                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredNotes.map((note) => (
-                    <LibraryItem
+                    <article
                       key={note.id}
-                      variant={libraryView}
-                      icon={FileText}
-                      iconClass="text-emerald-600 dark:text-emerald-400"
-                      tileClass="bg-emerald-50 dark:bg-emerald-950/35"
-                      title={note.title}
-                      date={new Date(note.created_at).toLocaleDateString()}
-                      category={renderSessionBadge(note.session_id)}
-                      preview={note.content}
-                      actions={(
-                        <button
-                          type="button"
-                          onClick={() => handleDeleteNote(note.id)}
-                          disabled={deletingId === note.id}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
-                          title="Delete note"
-                          aria-label="Delete note"
-                        >
-                          {deletingId === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                        </button>
-                      )}
-                    />
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <h3 className="font-bold text-slate-900 line-clamp-1">{note.title}</h3>
+                          <button
+                            onClick={() => handleDeleteNote(note.id)}
+                            disabled={deletingId === note.id}
+                            className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                            title="Delete note"
+                            aria-label="Delete note"
+                          >
+                            {deletingId === note.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed">{note.content}</p>
+                      </div>
+                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                        {renderSessionBadge(note.session_id)}
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(note.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </article>
                   ))}
                 </div>
               </section>
@@ -1052,57 +1017,58 @@ function Library({ session }) {
             {/* 2. FLASHCARDS SECTION */}
             {(activeTab === "all" || activeTab === "flashcards") && filteredFlashcards.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <Layers3 className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Flashcards ({filteredFlashcards.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <Layers3 className="h-5 w-5 text-amber-600" /> Flashcards ({filteredFlashcards.length})
                   </h2>
                 </div>
-                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
+                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredFlashcards.map((card) => {
                     const isFlipped = flippedCards[card.id];
                     return (
-                      <LibraryItem
+                      <div
                         key={card.id}
-                        variant={libraryView}
-                        icon={Layers3}
-                        iconClass="text-amber-600 dark:text-amber-400"
-                        tileClass="bg-amber-50 dark:bg-amber-950/35"
-                        title={card.question}
-                        date={new Date(card.created_at).toLocaleDateString()}
-                        category={(
-                          <div className="flex min-w-0 items-center gap-1.5">
-                            <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
+                      >
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full uppercase">
                               {isFlipped ? "Answer" : "Question"}
                             </span>
-                            {renderSessionBadge(card.session_id)}
-                          </div>
-                        )}
-                        preview={isFlipped ? card.answer : card.question}
-                        actions={(
-                          <>
                             <button
-                              type="button"
-                              onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-300 dark:hover:bg-amber-950/40 dark:focus-visible:ring-amber-400 sm:text-xs"
-                              title={isFlipped ? "Show question" : "Show answer"}
-                              aria-label={isFlipped ? "Show question" : "Show answer"}
-                            >
-                              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
-                              <span className="hidden sm:inline">{isFlipped ? "Question" : "Answer"}</span>
-                            </button>
-                            <button
-                              type="button"
                               onClick={() => handleDeleteFlashcard(card.id)}
                               disabled={deletingId === card.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                              className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
                               title="Delete flashcard"
                               aria-label="Delete flashcard"
                             >
-                              {deletingId === card.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                              {deletingId === card.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
                             </button>
-                          </>
-                        )}
-                      />
+                          </div>
+
+                          <p className="text-sm font-semibold text-slate-900 min-h-16 flex items-center">
+                            {isFlipped ? card.answer : card.question}
+                          </p>
+
+                          <button
+                            onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 transition"
+                          >
+                            <RotateCcw className="h-3.5 w-3.5" /> {isFlipped ? "Show Question" : "Show Answer"}
+                          </button>
+                        </div>
+
+                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                          {renderSessionBadge(card.session_id)}
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(card.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </div>
                     );
                   })}
                 </div>
@@ -1112,90 +1078,85 @@ function Library({ session }) {
             {/* 3. RESOURCES SECTION */}
             {(activeTab === "all" || activeTab === "resources") && filteredResources.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Resources ({filteredResources.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-indigo-600" /> Resources ({filteredResources.length})
                   </h2>
                 </div>
-                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
-                  {filteredResources.map((res) => {
-                    const ResourceIcon = res.kind === "youtube"
-                      ? Youtube
-                      : res.kind === "document"
-                        ? FileText
-                        : res.kind === "link"
-                          ? Link2
-                          : FileUp;
-                    const resourceIconClass = res.kind === "youtube"
-                      ? "text-red-600 dark:text-red-400"
-                      : res.kind === "document"
-                        ? "text-blue-600 dark:text-blue-400"
-                        : res.kind === "link"
-                          ? "text-indigo-600 dark:text-indigo-400"
-                          : "text-emerald-600 dark:text-emerald-400";
-
-                    return <LibraryItem
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                  {filteredResources.map((res) => (
+                    <article
                       key={res.id}
-                      variant={libraryView}
-                      icon={ResourceIcon}
-                      iconClass={resourceIconClass}
-                      tileClass="bg-slate-50 dark:bg-slate-800/70"
-                      title={res.title}
-                      date={new Date(res.created_at).toLocaleDateString()}
-                      category={(
-                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                          {renderSessionBadge(res.session_id)}
-                          {getResourceDomain(res.url) && (
-                            <span className="max-w-full truncate rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
-                              {getResourceDomain(res.url)}
-                            </span>
-                          )}
-                          {res.extraction_status && (
-                            <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
-                              res.extraction_status === "done"
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
-                                : res.extraction_status === "pending"
-                                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
-                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                            }`}>
-                              {res.extraction_status}
-                            </span>
-                          )}
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:border-slate-300 transition"
+                    >
+                      <div className="space-y-2">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="min-w-0 flex items-center gap-2.5">
+                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+                              {res.kind === "youtube" ? (
+                                <Youtube className="h-4 w-4 text-red-600" />
+                              ) : res.kind === "document" ? (
+                                <FileText className="h-4 w-4 text-blue-600" />
+                              ) : res.kind === "link" ? (
+                                <Link2 className="h-4 w-4 text-indigo-600" />
+                              ) : (
+                                <FileUp className="h-4 w-4 text-emerald-600" />
+                              )}
+                            </div>
+                            <div className="min-w-0">
+                              <h3 className="font-bold text-slate-900 text-sm truncate">{res.title}</h3>
+                              <p className="text-[10px] text-slate-400 capitalize">{res.mime_type || res.kind}</p>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-1 shrink-0">
+                            <button
+                              onClick={() => handleOpenResource(res)}
+                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              title="Open resource"
+                              aria-label="Open resource"
+                            >
+                              <ExternalLink className="h-4 w-4" />
+                            </button>
+                            <button
+                              onClick={() => handleDeleteResource(res)}
+                              disabled={deletingId === res.id}
+                              className="p-1.5 text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                              title="Delete resource"
+                              aria-label="Delete resource"
+                            >
+                              {deletingId === res.id ? (
+                                <Loader2 className="h-4 w-4 animate-spin" />
+                              ) : (
+                                <Trash2 className="h-4 w-4" />
+                              )}
+                            </button>
+                          </div>
                         </div>
-                      )}
-                      preview={res.extracted_text || res.mime_type || res.kind}
-                      onPreview={() => setPreviewResource(res)}
-                      actions={(
-                        <>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleOpenResource(res);
-                            }}
-                            className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/50 dark:focus-visible:ring-indigo-400"
-                            title="Open resource"
-                            aria-label="Open resource"
+
+                        {res.extraction_status && (
+                          <span
+                            className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded uppercase ${
+                              res.extraction_status === "done"
+                                ? "bg-emerald-50 text-emerald-700"
+                                : res.extraction_status === "pending"
+                                ? "bg-amber-50 text-amber-700"
+                                : "bg-slate-100 text-slate-600"
+                            }`}
                           >
-                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={(event) => {
-                              event.stopPropagation();
-                              handleDeleteResource(res);
-                            }}
-                            disabled={deletingId === res.id}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
-                            title="Delete resource"
-                            aria-label="Delete resource"
-                          >
-                            {deletingId === res.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                          </button>
-                        </>
-                      )}
-                    />;
-                  })}
+                            Status: {res.extraction_status}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                        {renderSessionBadge(res.session_id)}
+                        <span className="text-[10px] text-slate-400">
+                          {new Date(res.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                    </article>
+                  ))}
                 </div>
               </section>
             )}
@@ -1203,12 +1164,12 @@ function Library({ session }) {
             {/* 4. QUIZZES SECTION */}
             {(activeTab === "all" || activeTab === "quizzes") && filteredQuizzes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" /> Quizzes ({filteredQuizzes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5 text-purple-600" /> Quizzes ({filteredQuizzes.length})
                   </h2>
                 </div>
-                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
+                <div className="grid gap-4 sm:grid-cols-2">
                   {filteredQuizzes.map((quiz) => {
                     const question = quiz.questions?.[0];
                     const attemptsList = quiz.attempts || [];
@@ -1216,99 +1177,91 @@ function Library({ session }) {
                     const isRetaking = retakingQuizMap[quiz.id];
 
                     return (
-                      <LibraryItem
+                      <article
                         key={quiz.id}
-                        variant={libraryView}
-                        icon={HelpCircle}
-                        iconClass="text-purple-600 dark:text-purple-400"
-                        tileClass="bg-purple-50 dark:bg-purple-950/35"
-                        title={quiz.title}
-                        date={new Date(quiz.created_at).toLocaleDateString()}
-                        category={(
-                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
-                            {renderSessionBadge(quiz.session_id)}
-                            {attemptsList.length > 0 && (
-                              <span className="max-w-full truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                                {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} · {latestAttempt.score}/{latestAttempt.total}
-                              </span>
-                            )}
-                          </div>
-                        )}
-                        preview={question?.question || "No questions available."}
-                        actions={(
-                          <>
-                            {quiz.session_id ? (
-                              <Link
-                                to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
-                                className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:bg-purple-500 dark:hover:bg-purple-400 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#18211f] sm:gap-1.5 sm:px-3 sm:text-xs"
-                                title="Practice full quiz"
-                                aria-label="Practice full quiz"
-                              >
-                                <span className="hidden sm:inline">Practice</span><ArrowRight className="h-3.5 w-3.5" />
-                              </Link>
-                            ) : latestAttempt && !isRetaking && (
-                              <button
-                                type="button"
-                                onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-purple-400 sm:px-2.5 sm:text-xs"
-                              >
-                                <RotateCcw className="h-3.5 w-3.5" /> Retake
-                              </button>
-                            )}
-                            <button
-                              type="button"
-                              onClick={() => handleDeleteQuiz(quiz.id)}
-                              disabled={deletingId === quiz.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
-                              title="Delete quiz"
-                              aria-label="Delete quiz"
-                            >
-                              {deletingId === quiz.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
-                            </button>
-                          </>
-                        )}
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"
                       >
-                        {question && (
-                          <div className="min-w-0 space-y-2">
-                            {quiz.session_id ? (
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
-                              </p>
-                            ) : latestAttempt && !isRetaking ? (
-                              <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/70">
-                                <p className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
-                                  {latestAttempt.score === latestAttempt.total
-                                    ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                                    : <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
-                                  Latest score: {latestAttempt.score}/{latestAttempt.total}
-                                </p>
-                                {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
-                                  <p className="text-slate-600 dark:text-slate-300">
-                                    Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
-                                  </p>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between gap-2">
+                            <h3 className="font-bold text-slate-900 text-base">{quiz.title}</h3>
+                            <div className="flex items-center gap-2">
+                              {attemptsList.length > 0 && (
+                                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+                                  {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} (Latest: {latestAttempt.score}/{latestAttempt.total})
+                                </span>
+                              )}
+                              <button
+                                onClick={() => handleDeleteQuiz(quiz.id)}
+                                disabled={deletingId === quiz.id}
+                                className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                                title="Delete quiz"
+                                aria-label="Delete quiz"
+                              >
+                                {deletingId === quiz.id ? (
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="h-4 w-4" />
                                 )}
-                                <p className="text-slate-600 dark:text-slate-300">
-                                  Correct answer: {question.options?.[question.correct_index]}
-                                </p>
-                              </div>
-                            ) : (
-                              <div className="grid min-w-0 gap-2 sm:grid-cols-2">
-                                {Array.isArray(question.options) && question.options.map((opt, idx) => (
-                                  <button
-                                    key={idx}
-                                    type="button"
-                                    disabled={quizSavingId === quiz.id}
-                                    onClick={() => handleRecordAttempt(quiz, idx)}
-                                    className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 transition hover:border-purple-300 hover:bg-purple-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-purple-700 dark:hover:bg-purple-950/40 dark:focus-visible:ring-purple-400"
-                                  >
-                                    <strong>{String.fromCharCode(65 + idx)}.</strong> <span className="break-words">{opt}</span>
-                                  </button>
-                                ))}
-                              </div>
-                            )}
+                              </button>
+                            </div>
                           </div>
-                        )}
-                      </LibraryItem>
+
+                          {question && (
+                            <div className="space-y-3 pt-1">
+                              <p className="text-xs font-semibold text-slate-800">{question.question}</p>
+
+                              {latestAttempt && !isRetaking ? (
+                                <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs">
+                                  <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                                    <span className="flex items-center gap-1.5">
+                                      {latestAttempt.score > 0 ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
+                                      {latestAttempt.score > 0 ? "Passed" : "Needs Review"} ({latestAttempt.score}/{latestAttempt.total})
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
+                                      className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
+                                    >
+                                      <RotateCcw className="h-3 w-3" /> Retake
+                                    </button>
+                                  </div>
+
+                                  {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
+                                    <p className="text-slate-600">
+                                      Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
+                                    </p>
+                                  )}
+
+                                  <p className="text-slate-600">
+                                    Correct answer: {question.options?.[question.correct_index]}
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="grid gap-2 sm:grid-cols-2">
+                                  {Array.isArray(question.options) &&
+                                    question.options.map((opt, idx) => (
+                                      <button
+                                        key={idx}
+                                        disabled={quizSavingId === quiz.id}
+                                        onClick={() => handleRecordAttempt(quiz, idx)}
+                                        className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"
+                                      >
+                                        <strong>{String.fromCharCode(65 + idx)}.</strong> {opt}
+                                      </button>
+                                    ))}
+                                </div>
+                              )}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                          {renderSessionBadge(quiz.session_id)}
+                          <span className="text-[10px] text-slate-400">
+                            {new Date(quiz.created_at).toLocaleDateString()}
+                          </span>
+                        </div>
+                      </article>
                     );
                   })}
                 </div>
@@ -1316,10 +1269,8 @@ function Library({ session }) {
             )}
           </div>
         )}
-        {previewResource && (
-          <ResourcePreviewModal resource={previewResource} onClose={closeResourcePreview} />
-        )}
-    </PageContainer>
+      </div>
+    </main>
   );
 }
 

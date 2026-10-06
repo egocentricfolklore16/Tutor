@@ -11,6 +11,8 @@ import {
   HelpCircle,
   Layers3,
   Library as LibraryIcon,
+  LayoutGrid,
+  List,
   Link2,
   Loader2,
   Plus,
@@ -43,8 +45,70 @@ const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", 
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
 
+function LibraryItem({
+  variant,
+  icon: Icon,
+  iconClass,
+  tileClass,
+  title,
+  date,
+  category,
+  preview,
+  actions,
+  children,
+}) {
+  if (variant === "list") {
+    return (
+      <article className="flex min-h-16 min-w-0 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 sm:gap-3 sm:px-3">
+        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
+          {React.createElement(Icon, { className: `h-4 w-4 ${iconClass}`, "aria-hidden": true })}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
+          <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
+        </div>
+        <div className="max-w-[5.5rem] shrink-0 truncate sm:max-w-[10rem]">{category}</div>
+        <p className="hidden min-w-0 flex-1 truncate text-xs text-slate-500 dark:text-slate-400 md:block" title={preview}>
+          {preview}
+        </p>
+        <div className="flex shrink-0 items-center justify-end gap-1">{actions}</div>
+        {children && <div className="basis-full min-w-0 border-t border-slate-100 pt-2 dark:border-slate-700">{children}</div>}
+      </article>
+    );
+  }
+
+  return (
+    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 sm:p-5">
+      <div className="flex min-w-0 items-start gap-3">
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
+          {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
+        </div>
+        <div className="min-w-0 flex-1">
+          <h3 className="truncate font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
+          <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
+        </div>
+        <div className="flex shrink-0 items-center gap-1">{actions}</div>
+      </div>
+      <div className="mt-3 min-w-0">{category}</div>
+      <p className="mt-3 min-h-[3.75rem] min-w-0 line-clamp-3 break-words text-xs leading-5 text-slate-600 dark:text-slate-300">
+        {preview}
+      </p>
+      {children && <div className="mt-auto min-w-0 pt-3">{children}</div>}
+    </article>
+  );
+}
+
 function Library({ session }) {
   const [activeTab, setActiveTab] = useState("all"); // "all" | "notes" | "flashcards" | "resources" | "quizzes"
+  const [libraryView, setLibraryView] = useState(() => {
+    try {
+      if (typeof window === "undefined") return "grid";
+      const savedView = window.localStorage.getItem("hypertutor:library-view");
+      return savedView === "list" ? "list" : "grid";
+    } catch {
+      return "grid";
+    }
+  });
   const [searchTerm, setSearchTerm] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
@@ -185,6 +249,14 @@ function Library({ session }) {
     fetchLibraryData();
   }, [session?.user?.id]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem("hypertutor:library-view", libraryView);
+    } catch {
+      // The view toggle remains usable when storage is unavailable.
+    }
+  }, [libraryView]);
+
   const studyById = useMemo(
     () => new Map(studies.map((study) => [study.id, study])),
     [studies]
@@ -194,7 +266,7 @@ function Library({ session }) {
   const renderSessionBadge = (sessionId) => {
     if (!sessionId) {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+        <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           Standalone Library Item
         </span>
       );
@@ -208,10 +280,10 @@ function Library({ session }) {
     return (
       <Link
         to={`/Study/${sessionId}`}
-        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
+        className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
         title="Open Session"
       >
-        <span>{label}</span>
+        <span className="min-w-0 truncate" title={label}>{label}</span>
         <ArrowRight className="h-3 w-3" />
       </Link>
     );
@@ -855,61 +927,89 @@ function Library({ session }) {
           )}
         </ResponsiveSheet>
 
+        <div className="mb-4 flex items-center justify-between gap-3">
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+            Your Materials ({totalItemsCount})
+          </h2>
+          <div
+            role="group"
+            aria-label="Library view"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-[#18211f]"
+          >
+            {[
+              { view: "grid", label: "Grid view", Icon: LayoutGrid },
+              { view: "list", label: "List view", Icon: List },
+            ].map(({ view, label, Icon }) => {
+              const isActive = libraryView === view;
+              return (
+                <button
+                  key={view}
+                  type="button"
+                  title={label}
+                  aria-label={label}
+                  aria-pressed={isActive}
+                  onClick={() => setLibraryView(view)}
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 dark:focus-visible:ring-indigo-400 dark:focus-visible:ring-offset-[#18211f] ${
+                    isActive
+                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                      : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+                  }`}
+                >
+                  {React.createElement(Icon, { className: "h-4 w-4", "aria-hidden": true })}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+
         {/* Content Display */}
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
+          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 dark:border-slate-700 dark:bg-[#18211f]">
             <LoadingCompanion message="Loading your library..." />
           </div>
         ) : totalItemsCount === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center">
-            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-            <h3 className="text-lg font-bold text-slate-800">Your Library is Empty</h3>
-            <p className="mt-1 text-xs text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center dark:border-slate-700 dark:bg-[#18211f]">
+            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Your Library is Empty</h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Create standalone materials or complete study sessions to populate your library.
             </p>
           </div>
         ) : (
-          <div className="space-y-10">
+          <div key={libraryView} className="page-enter space-y-10">
             {/* 1. NOTES SECTION */}
             {(activeTab === "all" || activeTab === "notes") && filteredNotes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-emerald-600" /> Notes ({filteredNotes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Notes ({filteredNotes.length})
                   </h2>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
                   {filteredNotes.map((note) => (
-                    <article
+                    <LibraryItem
                       key={note.id}
-                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-bold text-slate-900 line-clamp-1">{note.title}</h3>
-                          <button
-                            onClick={() => handleDeleteNote(note.id)}
-                            disabled={deletingId === note.id}
-                            className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
-                            title="Delete note"
-                            aria-label="Delete note"
-                          >
-                            {deletingId === note.id ? (
-                              <Loader2 className="h-4 w-4 animate-spin" />
-                            ) : (
-                              <Trash2 className="h-4 w-4" />
-                            )}
-                          </button>
-                        </div>
-                        <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed">{note.content}</p>
-                      </div>
-                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
-                        {renderSessionBadge(note.session_id)}
-                        <span className="text-[10px] text-slate-400">
-                          {new Date(note.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </article>
+                      variant={libraryView}
+                      icon={FileText}
+                      iconClass="text-emerald-600 dark:text-emerald-400"
+                      tileClass="bg-emerald-50 dark:bg-emerald-950/35"
+                      title={note.title}
+                      date={new Date(note.created_at).toLocaleDateString()}
+                      category={renderSessionBadge(note.session_id)}
+                      preview={note.content}
+                      actions={(
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteNote(note.id)}
+                          disabled={deletingId === note.id}
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                          title="Delete note"
+                          aria-label="Delete note"
+                        >
+                          {deletingId === note.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                        </button>
+                      )}
+                    />
                   ))}
                 </div>
               </section>
@@ -918,58 +1018,57 @@ function Library({ session }) {
             {/* 2. FLASHCARDS SECTION */}
             {(activeTab === "all" || activeTab === "flashcards") && filteredFlashcards.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <Layers3 className="h-5 w-5 text-amber-600" /> Flashcards ({filteredFlashcards.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <Layers3 className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Flashcards ({filteredFlashcards.length})
                   </h2>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
                   {filteredFlashcards.map((card) => {
                     const isFlipped = flippedCards[card.id];
                     return (
-                      <div
+                      <LibraryItem
                         key={card.id}
-                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full uppercase">
+                        variant={libraryView}
+                        icon={Layers3}
+                        iconClass="text-amber-600 dark:text-amber-400"
+                        tileClass="bg-amber-50 dark:bg-amber-950/35"
+                        title={card.question}
+                        date={new Date(card.created_at).toLocaleDateString()}
+                        category={(
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                               {isFlipped ? "Answer" : "Question"}
                             </span>
+                            {renderSessionBadge(card.session_id)}
+                          </div>
+                        )}
+                        preview={isFlipped ? card.answer : card.question}
+                        actions={(
+                          <>
                             <button
+                              type="button"
+                              onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-300 dark:hover:bg-amber-950/40 dark:focus-visible:ring-amber-400 sm:text-xs"
+                              title={isFlipped ? "Show question" : "Show answer"}
+                              aria-label={isFlipped ? "Show question" : "Show answer"}
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                              <span className="hidden sm:inline">{isFlipped ? "Question" : "Answer"}</span>
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => handleDeleteFlashcard(card.id)}
                               disabled={deletingId === card.id}
-                              className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
                               title="Delete flashcard"
                               aria-label="Delete flashcard"
                             >
-                              {deletingId === card.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
+                              {deletingId === card.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                             </button>
-                          </div>
-
-                          <p className="text-sm font-semibold text-slate-900 min-h-16 flex items-center">
-                            {isFlipped ? card.answer : card.question}
-                          </p>
-
-                          <button
-                            onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
-                            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 transition"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" /> {isFlipped ? "Show Question" : "Show Answer"}
-                          </button>
-                        </div>
-
-                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
-                          {renderSessionBadge(card.session_id)}
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(card.created_at).toLocaleDateString()}
-                          </span>
-                        </div>
-                      </div>
+                          </>
+                        )}
+                      />
                     );
                   })}
                 </div>
@@ -979,85 +1078,78 @@ function Library({ session }) {
             {/* 3. RESOURCES SECTION */}
             {(activeTab === "all" || activeTab === "resources") && filteredResources.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-indigo-600" /> Resources ({filteredResources.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Resources ({filteredResources.length})
                   </h2>
                 </div>
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                  {filteredResources.map((res) => (
-                    <article
+                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
+                  {filteredResources.map((res) => {
+                    const ResourceIcon = res.kind === "youtube"
+                      ? Youtube
+                      : res.kind === "document"
+                        ? FileText
+                        : res.kind === "link"
+                          ? Link2
+                          : FileUp;
+                    const resourceIconClass = res.kind === "youtube"
+                      ? "text-red-600 dark:text-red-400"
+                      : res.kind === "document"
+                        ? "text-blue-600 dark:text-blue-400"
+                        : res.kind === "link"
+                          ? "text-indigo-600 dark:text-indigo-400"
+                          : "text-emerald-600 dark:text-emerald-400";
+
+                    return <LibraryItem
                       key={res.id}
-                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:border-slate-300 transition"
-                    >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex items-center gap-2.5">
-                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
-                              {res.kind === "youtube" ? (
-                                <Youtube className="h-4 w-4 text-red-600" />
-                              ) : res.kind === "document" ? (
-                                <FileText className="h-4 w-4 text-blue-600" />
-                              ) : res.kind === "link" ? (
-                                <Link2 className="h-4 w-4 text-indigo-600" />
-                              ) : (
-                                <FileUp className="h-4 w-4 text-emerald-600" />
-                              )}
-                            </div>
-                            <div className="min-w-0">
-                              <h3 className="font-bold text-slate-900 text-sm truncate">{res.title}</h3>
-                              <p className="text-[10px] text-slate-400 capitalize">{res.mime_type || res.kind}</p>
-                            </div>
-                          </div>
-
-                          <div className="flex items-center gap-1 shrink-0">
-                            <button
-                              onClick={() => handleOpenResource(res)}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
-                              title="Open resource"
-                              aria-label="Open resource"
-                            >
-                              <ExternalLink className="h-4 w-4" />
-                            </button>
-                            <button
-                              onClick={() => handleDeleteResource(res)}
-                              disabled={deletingId === res.id}
-                              className="p-1.5 text-slate-400 hover:text-red-600 transition disabled:opacity-50"
-                              title="Delete resource"
-                              aria-label="Delete resource"
-                            >
-                              {deletingId === res.id ? (
-                                <Loader2 className="h-4 w-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="h-4 w-4" />
-                              )}
-                            </button>
-                          </div>
-                        </div>
-
-                        {res.extraction_status && (
-                          <span
-                            className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded uppercase ${
+                      variant={libraryView}
+                      icon={ResourceIcon}
+                      iconClass={resourceIconClass}
+                      tileClass="bg-slate-50 dark:bg-slate-800/70"
+                      title={res.title}
+                      date={new Date(res.created_at).toLocaleDateString()}
+                      category={(
+                        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          {renderSessionBadge(res.session_id)}
+                          {res.extraction_status && (
+                            <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
                               res.extraction_status === "done"
-                                ? "bg-emerald-50 text-emerald-700"
+                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                                 : res.extraction_status === "pending"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-slate-100 text-slate-600"
-                            }`}
+                                  ? "bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300"
+                                  : "bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+                            }`}>
+                              {res.extraction_status}
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      preview={res.mime_type || res.kind}
+                      actions={(
+                        <>
+                          <button
+                            type="button"
+                            onClick={() => handleOpenResource(res)}
+                            className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/50 dark:focus-visible:ring-indigo-400"
+                            title="Open resource"
+                            aria-label="Open resource"
                           >
-                            Status: {res.extraction_status}
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
-                        {renderSessionBadge(res.session_id)}
-                        <span className="text-[10px] text-slate-400">
-                          {new Date(res.created_at).toLocaleDateString()}
-                        </span>
-                      </div>
-                    </article>
-                  ))}
+                            <ExternalLink className="h-4 w-4" aria-hidden="true" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteResource(res)}
+                            disabled={deletingId === res.id}
+                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                            title="Delete resource"
+                            aria-label="Delete resource"
+                          >
+                            {deletingId === res.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                          </button>
+                        </>
+                      )}
+                    />;
+                  })}
                 </div>
               </section>
             )}
@@ -1065,12 +1157,12 @@ function Library({ session }) {
             {/* 4. QUIZZES SECTION */}
             {(activeTab === "all" || activeTab === "quizzes") && filteredQuizzes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <HelpCircle className="h-5 w-5 text-purple-600" /> Quizzes ({filteredQuizzes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                    <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" /> Quizzes ({filteredQuizzes.length})
                   </h2>
                 </div>
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
                   {filteredQuizzes.map((quiz) => {
                     const question = quiz.questions?.[0];
                     const attemptsList = quiz.attempts || [];
@@ -1078,104 +1170,99 @@ function Library({ session }) {
                     const isRetaking = retakingQuizMap[quiz.id];
 
                     return (
-                      <article
+                      <LibraryItem
                         key={quiz.id}
-                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"
-                      >
-                        <div className="space-y-3">
-                          <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-bold text-slate-900 text-base">{quiz.title}</h3>
-                            <div className="flex items-center gap-2">
-                              {attemptsList.length > 0 && (
-                                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
-                                  {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} (Latest: {latestAttempt.score}/{latestAttempt.total})
-                                </span>
-                              )}
-                              <button
-                                onClick={() => handleDeleteQuiz(quiz.id)}
-                                disabled={deletingId === quiz.id}
-                                className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
-                                title="Delete quiz"
-                                aria-label="Delete quiz"
-                              >
-                                {deletingId === quiz.id ? (
-                                  <Loader2 className="h-4 w-4 animate-spin" />
-                                ) : (
-                                  <Trash2 className="h-4 w-4" />
-                                )}
-                              </button>
-                            </div>
+                        variant={libraryView}
+                        icon={HelpCircle}
+                        iconClass="text-purple-600 dark:text-purple-400"
+                        tileClass="bg-purple-50 dark:bg-purple-950/35"
+                        title={quiz.title}
+                        date={new Date(quiz.created_at).toLocaleDateString()}
+                        category={(
+                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                            {renderSessionBadge(quiz.session_id)}
+                            {attemptsList.length > 0 && (
+                              <span className="max-w-full truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} · {latestAttempt.score}/{latestAttempt.total}
+                              </span>
+                            )}
                           </div>
-
-                          {question && (
-                            <div className="space-y-3 pt-1">
-                              <p className="text-xs font-semibold text-slate-800">{question.question}</p>
-
-                              {quiz.session_id ? (
-                                <p className="text-xs text-slate-500">
-                                  {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
-                                </p>
-                              ) : latestAttempt && !isRetaking ? (
-                                <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs">
-                                  <div className="flex items-center justify-between font-bold text-slate-700">
-                                    <span className="flex items-center gap-1.5">
-                                      {latestAttempt.score === latestAttempt.total ? <Check className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-amber-600" />}
-                                      Latest score: {latestAttempt.score}/{latestAttempt.total}
-                                    </span>
-                                    {!quiz.session_id && <button
-                                      type="button"
-                                      onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
-                                    >
-                                      <RotateCcw className="h-3 w-3" /> Retake
-                                    </button>}
-                                  </div>
-
-                                  {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
-                                    <p className="text-slate-600">
-                                      Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
-                                    </p>
-                                  )}
-
-                                  <p className="text-slate-600">
-                                    Correct answer: {question.options?.[question.correct_index]}
-                                  </p>
-                                </div>
-                              ) : (
-                                <div className="grid gap-2 sm:grid-cols-2">
-                                  {Array.isArray(question.options) &&
-                                    question.options.map((opt, idx) => (
-                                      <button
-                                        key={idx}
-                                        disabled={quizSavingId === quiz.id}
-                                        onClick={() => handleRecordAttempt(quiz, idx)}
-                                        className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"
-                                      >
-                                        <strong>{String.fromCharCode(65 + idx)}.</strong> {opt}
-                                      </button>
-                                    ))}
-                                </div>
-                              )}
-                            </div>
-                          )}
-                        </div>
-
-                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
-                          {renderSessionBadge(quiz.session_id)}
-                          {quiz.session_id ? (
-                            <Link
-                              to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
-                              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-purple-700"
+                        )}
+                        preview={question?.question || "No questions available."}
+                        actions={(
+                          <>
+                            {quiz.session_id ? (
+                              <Link
+                                to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
+                                className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:bg-purple-500 dark:hover:bg-purple-400 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#18211f] sm:gap-1.5 sm:px-3 sm:text-xs"
+                                title="Practice full quiz"
+                                aria-label="Practice full quiz"
+                              >
+                                <span className="hidden sm:inline">Practice</span><ArrowRight className="h-3.5 w-3.5" />
+                              </Link>
+                            ) : latestAttempt && !isRetaking && (
+                              <button
+                                type="button"
+                                onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
+                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-purple-400 sm:px-2.5 sm:text-xs"
+                              >
+                                <RotateCcw className="h-3.5 w-3.5" /> Retake
+                              </button>
+                            )}
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteQuiz(quiz.id)}
+                              disabled={deletingId === quiz.id}
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                              title="Delete quiz"
+                              aria-label="Delete quiz"
                             >
-                              Practice full quiz <ArrowRight className="h-3.5 w-3.5" />
-                            </Link>
-                          ) : (
-                            <span className="text-[10px] text-slate-400">
-                              {new Date(quiz.created_at).toLocaleDateString()}
-                            </span>
-                          )}
-                        </div>
-                      </article>
+                              {deletingId === quiz.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+                            </button>
+                          </>
+                        )}
+                      >
+                        {question && (
+                          <div className="min-w-0 space-y-2">
+                            {quiz.session_id ? (
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
+                              </p>
+                            ) : latestAttempt && !isRetaking ? (
+                              <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/70">
+                                <p className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
+                                  {latestAttempt.score === latestAttempt.total
+                                    ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                                    : <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
+                                  Latest score: {latestAttempt.score}/{latestAttempt.total}
+                                </p>
+                                {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
+                                  <p className="text-slate-600 dark:text-slate-300">
+                                    Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
+                                  </p>
+                                )}
+                                <p className="text-slate-600 dark:text-slate-300">
+                                  Correct answer: {question.options?.[question.correct_index]}
+                                </p>
+                              </div>
+                            ) : (
+                              <div className="grid min-w-0 gap-2 sm:grid-cols-2">
+                                {Array.isArray(question.options) && question.options.map((opt, idx) => (
+                                  <button
+                                    key={idx}
+                                    type="button"
+                                    disabled={quizSavingId === quiz.id}
+                                    onClick={() => handleRecordAttempt(quiz, idx)}
+                                    className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 transition hover:border-purple-300 hover:bg-purple-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-purple-700 dark:hover:bg-purple-950/40 dark:focus-visible:ring-purple-400"
+                                  >
+                                    <strong>{String.fromCharCode(65 + idx)}.</strong> <span className="break-words">{opt}</span>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </LibraryItem>
                     );
                   })}
                 </div>

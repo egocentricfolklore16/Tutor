@@ -1,39 +1,36 @@
-import { Check, CircleAlert, HelpCircle, Loader2, Plus, RotateCcw, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Check, CircleAlert, HelpCircle, Loader2, RotateCcw, Sparkles } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 
-const emptyQuizDraft = {
-  title: "",
-  question: "",
-  optionA: "",
-  optionB: "",
-  optionC: "",
-  optionD: "",
-  correctIndex: 0,
-  explanation: "",
-};
-
-function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
-  const { setQuizInProgress, sendTutorEvent } = useAITutor();
+function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, requestedQuizId, onQuizOpened }) {
+  const { setQuizInProgress, sendTutorEvent, handleToggle, isOpen, setCurrentMessage } = useAITutor();
   const [quizzes, setQuizzes] = useState([]);
-  const [draft, setDraft] = useState(emptyQuizDraft);
-  const [quizAttemptsMap, setQuizAttemptsMap] = useState({}); // { [quizId]: AttemptRow[] }
-  const [selectedAnswersMap, setSelectedAnswersMap] = useState({}); // { [quizId]: selectedIndex }
-  const [retakingQuizMap, setRetakingQuizMap] = useState({}); // { [quizId]: boolean }
-
-  const [isAdding, setIsAdding] = useState(false);
+  const [quizAttemptsMap, setQuizAttemptsMap] = useState({});
+  const [activeQuizId, setActiveQuizId] = useState(null);
+  const [questionIndex, setQuestionIndex] = useState(0);
+  const [runAnswers, setRunAnswers] = useState([]);
+  const [selectedIndex, setSelectedIndex] = useState(null);
+  const [isAnswerChecked, setIsAnswerChecked] = useState(false);
+  const [reviewingQuizMap, setReviewingQuizMap] = useState({});
+  const [lastCompleted, setLastCompleted] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const requestedLookupRef = useRef(null);
 
-  const loadQuizzes = async () => {
-    if (!studyId) return;
+  const loadQuizzes = useCallback(async () => {
+    if (!studyId) {
+      setIsLoading(false);
+      return;
+    }
     setIsLoading(true);
+    setError("");
     try {
       let activeUserId = userId;
       if (!activeUserId) {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
         activeUserId = user?.id;
       }
 
@@ -45,414 +42,408 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent }) {
         `)
         .eq("session_id", studyId)
         .order("created_at", { ascending: false });
+      if (quizError) throw quizError;
 
-      if (quizError) {
-        setError(quizError.message);
+      const quizList = (quizData || []).map((quiz) => ({
+        ...quiz,
+        questions: [...(quiz.questions || [])].sort((a, b) => a.position - b.position),
+      }));
+      setQuizzes(quizList);
+
+      if (quizList.length > 0 && activeUserId) {
+        const { data: attemptsData, error: attemptsError } = await supabase
+          .from("session_quiz_attempts")
+          .select("id, quiz_id, score, total, answers, created_at")
+          .in("quiz_id", quizList.map((quiz) => quiz.id))
+          .eq("user_id", activeUserId)
+          .order("created_at", { ascending: false });
+        if (attemptsError) throw attemptsError;
+
+        const attemptsByQuiz = {};
+        (attemptsData || []).forEach((attempt) => {
+          if (!attemptsByQuiz[attempt.quiz_id]) attemptsByQuiz[attempt.quiz_id] = [];
+          attemptsByQuiz[attempt.quiz_id].push(attempt);
+        });
+        setQuizAttemptsMap(attemptsByQuiz);
       } else {
-        const quizList = quizData || [];
-        setQuizzes(quizList);
-
-        if (quizList.length > 0 && activeUserId) {
-          const quizIds = quizList.map((q) => q.id);
-          const { data: attemptsData, error: attemptsErr } = await supabase
-            .from("session_quiz_attempts")
-            .select("id, quiz_id, score, total, answers, created_at")
-            .in("quiz_id", quizIds)
-            .eq("user_id", activeUserId)
-            .order("created_at", { ascending: false });
-
-          if (!attemptsErr && attemptsData) {
-            const map = {};
-            attemptsData.forEach((att) => {
-              if (!map[att.quiz_id]) map[att.quiz_id] = [];
-              map[att.quiz_id].push(att);
-            });
-            setQuizAttemptsMap(map);
-          }
-        }
+        setQuizAttemptsMap({});
       }
     } catch (err) {
       setError(err.message || "Failed to load quizzes.");
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [studyId, userId]);
 
   useEffect(() => {
-    if (studyId) {
-      loadQuizzes();
-    }
-  }, [studyId]);
+    loadQuizzes();
+  }, [loadQuizzes]);
 
-  const createQuizWithQuestion = async (event) => {
-    event.preventDefault();
-    if (!studyId) {
-      setError("Active study session required to create practice quizzes.");
+  const totalQuestions = useMemo(
+    () => quizzes.reduce((total, quiz) => total + (quiz.questions?.length || 0), 0),
+    [quizzes]
+  );
+
+  const startQuiz = useCallback((quizId) => {
+    const quiz = quizzes.find((item) => String(item.id) === String(quizId));
+    if (!quiz?.questions?.length) {
+      setError("This quiz does not have any questions yet.");
       return;
     }
-    if (!draft.title.trim() || !draft.question.trim() || !draft.optionA.trim() || !draft.optionB.trim()) {
-      setError("Please provide a quiz title, question, and at least two options.");
-      return;
-    }
-
-    setIsLoading(true);
     setError("");
+    setActiveQuizId(quiz.id);
+    setQuestionIndex(0);
+    setRunAnswers([]);
+    setSelectedIndex(null);
+    setIsAnswerChecked(false);
+    setLastCompleted(null);
+    setQuizInProgress({
+      quiz_id: quiz.id,
+      title: quiz.title,
+      question_number: 1,
+      total: quiz.questions.length,
+    });
+  }, [quizzes, setQuizInProgress]);
 
-    let activeUserId = userId;
-    if (!activeUserId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      activeUserId = user?.id;
-    }
-
-    if (!activeUserId) {
-      setError("User session invalid.");
-      setIsLoading(false);
+  useEffect(() => {
+    if (!requestedQuizId || isLoading) return;
+    const requestedQuiz = quizzes.find((quiz) => String(quiz.id) === String(requestedQuizId));
+    if (requestedQuiz) {
+      startQuiz(requestedQuiz.id);
+      requestedLookupRef.current = null;
+      onQuizOpened?.();
       return;
     }
-
-    // 1. Insert session_quizzes row
-    const { data: quiz, error: quizErr } = await supabase
-      .from("session_quizzes")
-      .insert({
-        session_id: studyId,
-        user_id: activeUserId,
-        title: draft.title.trim(),
-        source: "user",
-      })
-      .select("id, title")
-      .single();
-
-    if (quizErr || !quiz) {
-      setError(`Failed to create quiz: ${quizErr?.message}`);
-      setIsLoading(false);
-      return;
+    if (requestedLookupRef.current !== String(requestedQuizId)) {
+      requestedLookupRef.current = String(requestedQuizId);
+      loadQuizzes();
+    } else {
+      setError("That practice set could not be found in this study session. Refresh your library and try again.");
     }
+  }, [requestedQuizId, quizzes, isLoading, startQuiz, onQuizOpened, loadQuizzes]);
 
-    // 2. Insert session_quiz_questions row
-    const optionsArray = [draft.optionA.trim(), draft.optionB.trim()];
-    if (draft.optionC.trim()) optionsArray.push(draft.optionC.trim());
-    if (draft.optionD.trim()) optionsArray.push(draft.optionD.trim());
-
-    const { error: questionErr } = await supabase
-      .from("session_quiz_questions")
-      .insert({
-        quiz_id: quiz.id,
-        user_id: activeUserId,
-        position: 1,
-        question: draft.question.trim(),
-        options: optionsArray,
-        correct_index: Number(draft.correctIndex),
-        explanation: draft.explanation.trim() || null,
-      });
-
-    if (questionErr) {
-      // Compensate: delete orphaned quiz
-      await supabase.from("session_quizzes").delete().eq("id", quiz.id);
-      setError(`Failed to create quiz question: ${questionErr.message}`);
-      setIsLoading(false);
-      return;
-    }
-
-    if (onTimelineEvent) {
-      onTimelineEvent({
-        id: crypto.randomUUID(),
-        type: "quiz",
-        refId: String(quiz.id),
-        title: `Quiz created: ${quiz.title}`,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    setDraft(emptyQuizDraft);
-    setIsAdding(false);
-    await loadQuizzes();
-  };
-
-  const recordQuizAttempt = async (quiz, selectedIndex) => {
-    if (!studyId || savingId) return;
+  const finishQuiz = async (quiz, answers) => {
+    if (savingId) return;
     setSavingId(quiz.id);
     setError("");
+    try {
+      let activeUserId = userId;
+      if (!activeUserId) {
+        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        if (authError) throw authError;
+        activeUserId = user?.id;
+      }
+      if (!activeUserId) throw new Error("Your sign-in session expired. Please sign in again.");
 
-    const questionsList = quiz.questions || [];
-    const firstQuestion = questionsList[0];
-    if (!firstQuestion) {
-      setError("No questions found in this quiz.");
-      setSavingId(null);
-      return;
-    }
+      const score = answers.filter((answer) => answer.correct).length;
+      const { data: attempt, error: attemptError } = await supabase
+        .from("session_quiz_attempts")
+        .insert({
+          quiz_id: quiz.id,
+          user_id: activeUserId,
+          score,
+          total: quiz.questions.length,
+          answers,
+        })
+        .select()
+        .single();
+      if (attemptError) throw attemptError;
 
-    const isCorrect = selectedIndex === firstQuestion.correct_index;
-    const score = isCorrect ? 1 : 0;
-    const total = 1;
-    const answersPayload = [
-      {
-        question_id: firstQuestion.id,
-        selected_index: selectedIndex,
-        correct: isCorrect,
-      },
-    ];
-
-    let activeUserId = userId;
-    if (!activeUserId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      activeUserId = user?.id;
-    }
-
-    const { data: attempt, error: attemptErr } = await supabase
-      .from("session_quiz_attempts")
-      .insert({
-        quiz_id: quiz.id,
-        user_id: activeUserId,
-        score,
-        total,
-        answers: answersPayload,
-      })
-      .select()
-      .single();
-
-    if (attemptErr) {
-      setError(`Failed to save attempt: ${attemptErr.message}`);
-    } else {
-      setQuizAttemptsMap((prev) => ({
-        ...prev,
-        [quiz.id]: [attempt, ...(prev[quiz.id] || [])],
+      setQuizAttemptsMap((previous) => ({
+        ...previous,
+        [quiz.id]: [attempt, ...(previous[quiz.id] || [])],
       }));
-
-      setSelectedAnswersMap((prev) => ({
-        ...prev,
-        [quiz.id]: selectedIndex,
-      }));
-
-      setRetakingQuizMap((prev) => ({
-        ...prev,
-        [quiz.id]: false,
-      }));
-
+      setLastCompleted({ quizId: quiz.id, score, total: quiz.questions.length });
+      setActiveQuizId(null);
       setQuizInProgress(null);
-
-      if (onTimelineEvent && attempt) {
+      if (onTimelineEvent) {
         onTimelineEvent({
           id: crypto.randomUUID(),
           type: "quiz",
           refId: String(quiz.id),
-          title: `Quiz attempted: ${quiz.title} (${isCorrect ? "Correct" : "Incorrect"})`,
+          title: `Quiz completed: ${quiz.title} (${score}/${quiz.questions.length})`,
           timestamp: new Date().toISOString(),
         });
       }
-
       sendTutorEvent("quiz_finished", {
         quiz_id: quiz.id,
         score,
-        total,
+        total: quiz.questions.length,
       });
+    } catch (err) {
+      setError(`Unable to save your quiz result: ${err.message}`);
+    } finally {
+      setSavingId(null);
     }
-    setSavingId(null);
   };
+
+  const checkAnswer = () => {
+    const quiz = quizzes.find((item) => item.id === activeQuizId);
+    const question = quiz?.questions?.[questionIndex];
+    if (!quiz || !question || selectedIndex === null) return;
+
+    const answer = {
+      question_id: question.id,
+      selected_index: selectedIndex,
+      correct: selectedIndex === question.correct_index,
+    };
+    const nextAnswers = [...runAnswers, answer];
+    setRunAnswers(nextAnswers);
+    setIsAnswerChecked(true);
+  };
+
+  const continueQuiz = () => {
+    const quiz = quizzes.find((item) => item.id === activeQuizId);
+    if (!quiz) return;
+    if (questionIndex === quiz.questions.length - 1) {
+      finishQuiz(quiz, runAnswers);
+      return;
+    }
+    const nextIndex = questionIndex + 1;
+    setQuestionIndex(nextIndex);
+    setSelectedIndex(null);
+    setIsAnswerChecked(false);
+    setQuizInProgress({
+      quiz_id: quiz.id,
+      title: quiz.title,
+      question_number: nextIndex + 1,
+      total: quiz.questions.length,
+    });
+  };
+
+  const askTutorToCreateQuiz = () => {
+    setCurrentMessage(`Make me a ${topic ? `quiz on ${topic}` : "quiz"} using my study materials. Start with 5 questions at the session difficulty.`);
+    if (!isOpen) handleToggle();
+  };
+
+  const activeQuiz = quizzes.find((quiz) => quiz.id === activeQuizId);
+  const activeQuestion = activeQuiz?.questions?.[questionIndex];
+  const attemptsCount = Object.values(quizAttemptsMap).reduce((count, attempts) => count + attempts.length, 0);
 
   return (
     <div className="mb-8 space-y-6">
-      <div className="flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
-          <h3 className="text-lg font-bold text-slate-900">Practice Quizzes</h3>
-          <p className="mt-1 text-xs text-slate-500">Test your knowledge with session-scoped quizzes and track your attempts.</p>
-        </div>
-        <button
-          title="Add practice quiz"
-          disabled={!studyId}
-          onClick={() => setIsAdding((current) => !current)}
-          className={`inline-flex items-center gap-2 rounded-xl px-4 py-2 text-xs font-bold text-white transition disabled:opacity-50 ${theme?.accentButton || "bg-purple-600 hover:bg-purple-700"}`}
-        >
-          {isAdding ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
-          {isAdding ? "Cancel" : "Create quiz"}
-        </button>
-      </div>
-
-      {isAdding && (
-        <form onSubmit={createQuizWithQuestion} className="grid gap-3 rounded-2xl border border-slate-200 bg-slate-50/80 p-5 text-sm">
-          <h4 className="font-bold text-slate-900">Create New Session Quiz</h4>
-          <input
-            value={draft.title}
-            onChange={(e) => setDraft({ ...draft, title: e.target.value })}
-            placeholder="Quiz Title / Topic (e.g., Cellular Respiration)"
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-200"
-            required
-            disabled={!studyId}
-          />
-          <textarea
-            value={draft.question}
-            onChange={(e) => setDraft({ ...draft, question: e.target.value })}
-            placeholder="Question"
-            className="min-h-20 rounded-xl border border-slate-200 bg-white px-3 py-2.5 outline-none focus:ring-2 focus:ring-purple-200"
-            required
-            disabled={!studyId}
-          />
-
-          <div className="grid gap-2 sm:grid-cols-2">
-            <input
-              value={draft.optionA}
-              onChange={(e) => setDraft({ ...draft, optionA: e.target.value })}
-              placeholder="Option A (required)"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-              required
-              disabled={!studyId}
-            />
-            <input
-              value={draft.optionB}
-              onChange={(e) => setDraft({ ...draft, optionB: e.target.value })}
-              placeholder="Option B (required)"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-              required
-              disabled={!studyId}
-            />
-            <input
-              value={draft.optionC}
-              onChange={(e) => setDraft({ ...draft, optionC: e.target.value })}
-              placeholder="Option C (optional)"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-              disabled={!studyId}
-            />
-            <input
-              value={draft.optionD}
-              onChange={(e) => setDraft({ ...draft, optionD: e.target.value })}
-              placeholder="Option D (optional)"
-              className="rounded-xl border border-slate-200 bg-white px-3 py-2 outline-none"
-              disabled={!studyId}
-            />
+      <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm">
+        <div className="bg-gradient-to-br from-violet-700 via-indigo-700 to-slate-900 px-6 py-7 text-white sm:px-8">
+          <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
+            <div>
+              <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-violet-200">Quizicle · Active recall</p>
+              <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Practice what you&apos;ve learned</h2>
+              <p className="mt-2 max-w-xl text-sm leading-6 text-indigo-100">
+                Work through one question at a time. You&apos;ll get an explanation as you go and a saved score when you finish.
+              </p>
+            </div>
+            <div className="flex gap-3">
+              <div className="rounded-2xl bg-white/10 px-4 py-3">
+                <div className="text-xl font-black">{quizzes.length}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100">Quizzes</div>
+              </div>
+              <div className="rounded-2xl bg-white/10 px-4 py-3">
+                <div className="text-xl font-black">{attemptsCount}</div>
+                <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100">Attempts</div>
+              </div>
+            </div>
           </div>
-
-          <label className="block text-xs font-bold text-slate-700">
-            Correct Option
-            <select
-              value={draft.correctIndex}
-              onChange={(e) => setDraft({ ...draft, correctIndex: Number(e.target.value) })}
-              className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm"
-              disabled={!studyId}
-            >
-              <option value={0}>Option A</option>
-              <option value={1}>Option B</option>
-              {draft.optionC.trim() && <option value={2}>Option C</option>}
-              {draft.optionD.trim() && <option value={3}>Option D</option>}
-            </select>
-          </label>
-
-          <input
-            value={draft.explanation}
-            onChange={(e) => setDraft({ ...draft, explanation: e.target.value })}
-            placeholder="Explanation for correct answer (optional)"
-            className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs"
-            disabled={!studyId}
-          />
-
-          <button
-            type="submit"
-            disabled={!studyId}
-            className="inline-flex w-fit items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 disabled:opacity-50"
-          >
-            <Plus className="h-4 w-4" /> Save Practice Quiz
-          </button>
-        </form>
-      )}
-
-      {error && <p className="rounded-xl bg-red-50 p-3 text-xs font-semibold text-red-700">{error}</p>}
-
-      {isLoading ? (
-        <Loader2 className="h-5 w-5 animate-spin text-slate-400" />
-      ) : quizzes.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-slate-300 p-8 text-center text-slate-500">
-          <HelpCircle className="mx-auto mb-2 h-8 w-8 text-slate-300" />
-          <p className="text-sm font-medium">No practice quizzes saved for this session.</p>
         </div>
-      ) : (
-        <div className="space-y-4">
-          {quizzes.map((quiz) => {
-            const question = quiz.questions?.[0];
-            const attemptsList = quizAttemptsMap[quiz.id] || [];
-            const latestAttempt = attemptsList[0];
-            const isRetaking = retakingQuizMap[quiz.id];
 
-            return (
-              <div key={quiz.id} className="rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-3">
-                <div className="flex items-center justify-between gap-2">
-                  <h4 className="font-bold text-slate-900">{quiz.title}</h4>
-                  <div className="flex items-center gap-2">
-                    {attemptsList.length > 0 && (
-                      <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
-                        {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} (Latest: {latestAttempt.score}/{latestAttempt.total})
-                      </span>
-                    )}
-                    <span className="rounded-full bg-purple-50 px-2.5 py-0.5 text-[10px] font-bold text-purple-700 uppercase">Quiz</span>
-                  </div>
+        <div className="space-y-4 p-4 sm:p-6">
+          {error && (
+            <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>{error}</span>
+            </div>
+          )}
+
+          {lastCompleted && !activeQuiz && (
+            <div role="status" className="flex flex-col justify-between gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 sm:flex-row sm:items-center">
+              <div>
+                <p className="font-bold text-emerald-900">Practice set complete</p>
+                <p className="mt-1 text-sm text-emerald-800">You scored {lastCompleted.score} out of {lastCompleted.total}. Your answers and explanations are saved below.</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setReviewingQuizMap((previous) => ({ ...previous, [lastCompleted.quizId]: true }))}
+                className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-emerald-800 shadow-sm hover:bg-emerald-100"
+              >
+                Review answers
+              </button>
+            </div>
+          )}
+
+          {isLoading ? (
+            <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-8 text-sm font-medium text-slate-500">
+              <Loader2 className="h-5 w-5 animate-spin" /> Loading your practice sets...
+            </div>
+          ) : activeQuiz && activeQuestion ? (
+            <div className="rounded-2xl border border-indigo-100 bg-indigo-50/40 p-5 sm:p-7">
+              <div className="mb-5 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold uppercase tracking-wider text-indigo-600">{activeQuiz.title}</p>
+                  <p className="mt-1 text-sm font-semibold text-slate-600">Question {questionIndex + 1} of {activeQuiz.questions.length}</p>
                 </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setActiveQuizId(null);
+                    setQuizInProgress(null);
+                  }}
+                  className="rounded-lg px-3 py-2 text-xs font-bold text-slate-500 hover:bg-white hover:text-slate-800"
+                >
+                  Exit quiz
+                </button>
+              </div>
+              <div className="mb-6 h-2 overflow-hidden rounded-full bg-indigo-100" aria-label={`Question ${questionIndex + 1} of ${activeQuiz.questions.length}`}>
+                <div className="h-full rounded-full bg-indigo-600 transition-all" style={{ width: `${((questionIndex + 1) / activeQuiz.questions.length) * 100}%` }} />
+              </div>
+              <h3 className="text-lg font-bold leading-7 text-slate-900 sm:text-xl">{activeQuestion.question}</h3>
+              <div className="mt-5 grid gap-2.5">
+                {(activeQuestion.options || []).map((option, index) => {
+                  const isCorrectOption = index === activeQuestion.correct_index;
+                  const isSelected = index === selectedIndex;
+                  const answerStyle = isAnswerChecked && isCorrectOption
+                    ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                    : isAnswerChecked && isSelected
+                    ? "border-rose-300 bg-rose-50 text-rose-900"
+                    : isSelected
+                    ? "border-indigo-400 bg-indigo-50 text-indigo-900 ring-2 ring-indigo-100"
+                    : "border-slate-200 bg-white text-slate-700 hover:border-indigo-300 hover:bg-indigo-50/60";
+                  return (
+                    <button
+                      key={`${activeQuestion.id}-${index}`}
+                      type="button"
+                      disabled={isAnswerChecked}
+                      onClick={() => setSelectedIndex(index)}
+                      className={`flex items-start gap-3 rounded-xl border p-3.5 text-left text-sm font-semibold transition ${answerStyle}`}
+                    >
+                      <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-slate-100 text-xs font-black text-slate-600">
+                        {String.fromCharCode(65 + index)}
+                      </span>
+                      <span className="pt-0.5">{option}</span>
+                    </button>
+                  );
+                })}
+              </div>
 
-                {question && (
-                  <div className="space-y-3 pt-2">
-                    <p className="text-sm font-semibold text-slate-800">{question.question}</p>
+              {isAnswerChecked && (
+                <div className={`mt-4 rounded-xl p-4 text-sm ${runAnswers.at(-1)?.correct ? "bg-emerald-50 text-emerald-900" : "bg-amber-50 text-amber-950"}`}>
+                  <p className="font-bold">{runAnswers.at(-1)?.correct ? "That’s right." : "Not quite — use this to learn."}</p>
+                  <p className="mt-1 leading-6">{activeQuestion.explanation || `The correct answer is ${activeQuestion.options?.[activeQuestion.correct_index]}.`}</p>
+                </div>
+              )}
 
-                    {latestAttempt && !isRetaking ? (
-                      <div className="space-y-3 rounded-xl bg-slate-50 p-3.5 text-xs">
-                        <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700" : "text-rose-700"}`}>
-                          <span className="flex items-center gap-2">
-                            {latestAttempt.score > 0 ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-                            {latestAttempt.score > 0 ? "Correct!" : "Needs Review"} ({latestAttempt.score}/{latestAttempt.total})
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
-                          >
-                            <RotateCcw className="h-3.5 w-3.5" /> Retake
-                          </button>
-                        </div>
-
-                        {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
-                          <p className="text-slate-600">
-                            Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
-                          </p>
-                        )}
-
-                        <p className="text-slate-600">
-                          Correct answer: {question.options?.[question.correct_index]}
-                        </p>
-
-                        {question.explanation && (
-                          <p className="italic text-slate-500 border-t border-slate-200 pt-2 mt-2">
-                            Explanation: {question.explanation}
-                          </p>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="space-y-2">
-                        <div className="grid gap-2 sm:grid-cols-2">
-                          {Array.isArray(question.options) &&
-                            question.options.map((opt, idx) => (
-                              <button
-                                key={idx}
-                                disabled={savingId === quiz.id}
-                                onClick={() => {
-                                  setSelectedAnswersMap((prev) => ({ ...prev, [quiz.id]: idx }));
-                                  setQuizInProgress({
-                                    quiz_id: quiz.id,
-                                    title: quiz.title,
-                                    question_number: 1,
-                                    total: 1,
-                                  });
-                                  recordQuizAttempt(quiz, idx);
-                                }}
-                                className="rounded-xl border border-slate-200 bg-slate-50/50 p-3 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"
-                              >
-                                <strong>{String.fromCharCode(65 + idx)}.</strong> {opt}
-                              </button>
-                            ))}
-                        </div>
-                      </div>
-                    )}
-                  </div>
+              <div className="mt-5 flex justify-end">
+                {!isAnswerChecked ? (
+                  <button
+                    type="button"
+                    disabled={selectedIndex === null}
+                    onClick={checkAnswer}
+                    className={`rounded-xl px-5 py-3 text-sm font-bold text-white shadow-sm transition disabled:cursor-not-allowed disabled:opacity-40 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+                  >
+                    Check answer
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={savingId === activeQuiz.id}
+                    onClick={continueQuiz}
+                    className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 text-sm font-bold text-white shadow-sm hover:bg-slate-800 disabled:opacity-60"
+                  >
+                    {savingId === activeQuiz.id && <Loader2 className="h-4 w-4 animate-spin" />}
+                    {questionIndex === activeQuiz.questions.length - 1 ? "Finish and save score" : "Next question"}
+                  </button>
                 )}
               </div>
-            );
-          })}
+            </div>
+          ) : quizzes.length === 0 ? (
+            <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center">
+              <div className="mx-auto mb-3 flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-100 text-violet-700">
+                <HelpCircle className="h-6 w-6" />
+              </div>
+              <h3 className="text-lg font-bold text-slate-900">Your first practice set starts with a conversation</h3>
+              <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500">
+                Ask your tutor to build questions from this session&apos;s materials. You can choose a topic, difficulty, and what you want to practise.
+              </p>
+              <button
+                type="button"
+                onClick={askTutorToCreateQuiz}
+                className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-800"
+              >
+                <Sparkles className="h-4 w-4" /> Ask my tutor for a quiz
+              </button>
+              <p className="mt-3 text-xs text-slate-400">No content is generated until you ask.</p>
+            </div>
+          ) : (
+            <div className="grid gap-3 md:grid-cols-2">
+              {quizzes.map((quiz) => {
+                const attempts = quizAttemptsMap[quiz.id] || [];
+                const latestAttempt = attempts[0];
+                const bestScore = attempts.reduce((best, attempt) => Math.max(best, Number(attempt.score || 0)), 0);
+                return (
+                  <article key={quiz.id} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-200 hover:shadow-sm">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">{quiz.source === "ai" ? "Tutor-made" : "Practice set"}</p>
+                        <h3 className="mt-1 font-bold text-slate-900">{quiz.title}</h3>
+                      </div>
+                      <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600">
+                        {quiz.questions.length} {quiz.questions.length === 1 ? "question" : "questions"}
+                      </span>
+                    </div>
+                    {latestAttempt ? (
+                      <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs">
+                        <span className="font-semibold text-slate-600">
+                          Latest {latestAttempt.score}/{latestAttempt.total}
+                          {attempts.length > 1 && ` · best ${bestScore}/${latestAttempt.total}`}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => setReviewingQuizMap((previous) => ({ ...previous, [quiz.id]: !previous[quiz.id] }))}
+                          className="font-bold text-indigo-700 hover:text-indigo-900"
+                        >
+                          {reviewingQuizMap[quiz.id] ? "Hide review" : "Review"}
+                        </button>
+                      </div>
+                    ) : (
+                      <p className="mt-3 text-sm text-slate-500">Ready when you are. Take your time and learn from each answer.</p>
+                    )}
+                    {reviewingQuizMap[quiz.id] && latestAttempt && (
+                      <div className="mt-3 space-y-2">
+                        {(latestAttempt.answers || []).map((answer, index) => {
+                          const question = quiz.questions.find((item) => item.id === answer.question_id) || quiz.questions[index];
+                          return (
+                            <div key={answer.question_id || index} className="rounded-xl border border-slate-100 p-3 text-xs">
+                              <p className="font-semibold text-slate-800">{index + 1}. {question?.question}</p>
+                              <p className={`mt-1 ${answer.correct ? "text-emerald-700" : "text-rose-700"}`}>
+                                Your answer: {question?.options?.[answer.selected_index] || "Not answered"}
+                              </p>
+                              {!answer.correct && (
+                                <p className="mt-1 text-slate-500">Correct answer: {question?.options?.[question?.correct_index]}</p>
+                              )}
+                              {question?.explanation && <p className="mt-1 leading-5 text-slate-500">{question.explanation}</p>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => startQuiz(quiz.id)}
+                      className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white transition hover:bg-slate-800"
+                    >
+                      {latestAttempt ? <RotateCcw className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+                      {latestAttempt ? "Retake practice set" : "Start practice set"}
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
+          )}
+          {!isLoading && quizzes.length > 0 && (
+            <p className="px-1 text-xs text-slate-400">
+              {totalQuestions} questions across {quizzes.length} practice {quizzes.length === 1 ? "set" : "sets"} · your attempts are saved to this session.
+            </p>
+          )}
         </div>
-      )}
+      </section>
     </div>
   );
 }

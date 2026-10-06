@@ -56,7 +56,7 @@ function Library({ session }) {
   const [studies, setStudies] = useState([]);
 
   // Standalone creation form modals / toggles
-  const [creationType, setCreationType] = useState(null); // null | "note" | "flashcard" | "resource" | "quiz"
+  const [creationType, setCreationType] = useState(null); // null | "note" | "flashcard" | "resource"
 
   // Note creation form
   const [noteForm, setNoteForm] = useState({ title: "", content: "" });
@@ -70,18 +70,6 @@ function Library({ session }) {
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkKind, setLinkKind] = useState("link");
-
-  // Quiz creation form
-  const [quizForm, setQuizForm] = useState({
-    title: "",
-    question: "",
-    optionA: "",
-    optionB: "",
-    optionC: "",
-    optionD: "",
-    correctIndex: 0,
-    explanation: "",
-  });
 
   // Quiz interactive taking/retaking state
   const [retakingQuizMap, setRetakingQuizMap] = useState({});
@@ -387,81 +375,6 @@ function Library({ session }) {
     setIsSubmitting(false);
   };
 
-  const handleCreateQuiz = async (e) => {
-    e.preventDefault();
-    if (!quizForm.title.trim() || !quizForm.question.trim() || !quizForm.optionA.trim() || !quizForm.optionB.trim()) {
-      setError("Please fill out quiz title, question, and at least Options A and B.");
-      return;
-    }
-
-    const userId = session?.user?.id;
-    if (!userId) return;
-
-    setIsSubmitting(true);
-    setError("");
-
-    // 1. Insert quiz
-    const { data: quiz, error: quizErr } = await supabase
-      .from("session_quizzes")
-      .insert({
-        user_id: userId,
-        session_id: null,
-        title: quizForm.title.trim(),
-        source: "user",
-      })
-      .select()
-      .single();
-
-    if (quizErr || !quiz) {
-      setError(`Failed to create quiz: ${quizErr?.message}`);
-      setIsSubmitting(false);
-      return;
-    }
-
-    // 2. Insert question
-    const optionsArray = [quizForm.optionA.trim(), quizForm.optionB.trim()];
-    if (quizForm.optionC.trim()) optionsArray.push(quizForm.optionC.trim());
-    if (quizForm.optionD.trim()) optionsArray.push(quizForm.optionD.trim());
-
-    const { data: questionData, error: questionErr } = await supabase
-      .from("session_quiz_questions")
-      .insert({
-        quiz_id: quiz.id,
-        user_id: userId,
-        position: 1,
-        question: quizForm.question.trim(),
-        options: optionsArray,
-        correct_index: Number(quizForm.correctIndex),
-        explanation: quizForm.explanation.trim() || null,
-      })
-      .select()
-      .single();
-
-    if (questionErr) {
-      await supabase.from("session_quizzes").delete().eq("id", quiz.id);
-      setError(`Failed to save quiz question: ${questionErr.message}`);
-    } else {
-      const fullQuiz = {
-        ...quiz,
-        questions: [questionData],
-        attempts: [],
-      };
-      setQuizzes((prev) => [fullQuiz, ...prev]);
-      setQuizForm({
-        title: "",
-        question: "",
-        optionA: "",
-        optionB: "",
-        optionC: "",
-        optionD: "",
-        correctIndex: 0,
-        explanation: "",
-      });
-      setCreationType(null);
-    }
-    setIsSubmitting(false);
-  };
-
   // Record Quiz Attempt
   const handleRecordAttempt = async (quiz, selectedIndex) => {
     const userId = session?.user?.id;
@@ -682,12 +595,6 @@ function Library({ session }) {
             >
               <Plus className="h-3.5 w-3.5" /> Resource
             </button>
-            <button
-              onClick={() => setCreationType(creationType === "quiz" ? null : "quiz")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-purple-700 transition"
-            >
-              <Plus className="h-3.5 w-3.5" /> Quiz
-            </button>
           </div>
         </div>
 
@@ -863,94 +770,6 @@ function Library({ session }) {
               </form>
             )}
 
-            {/* Quiz Form */}
-            {creationType === "quiz" && (
-              <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
-                <input
-                  type="text"
-                  value={quizForm.title}
-                  onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
-                  placeholder="Quiz Title / Topic"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-200"
-                  required
-                />
-                <textarea
-                  value={quizForm.question}
-                  onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
-                  placeholder="Question text..."
-                  className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none focus:ring-2 focus:ring-purple-200"
-                  required
-                />
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <input
-                    type="text"
-                    value={quizForm.optionA}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
-                    placeholder="Option A (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                    required
-                  />
-                  <input
-                    type="text"
-                    value={quizForm.optionB}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
-                    placeholder="Option B (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                    required
-                  />
-                  <input
-                    type="text"
-                    value={quizForm.optionC}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
-                    placeholder="Option C (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                  />
-                  <input
-                    type="text"
-                    value={quizForm.optionD}
-                    onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
-                    placeholder="Option D (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                  />
-                </div>
-                <label className="block text-xs font-bold text-slate-700">
-                  Correct Option
-                  <select
-                    value={quizForm.correctIndex}
-                    onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs"
-                  >
-                    <option value={0}>Option A</option>
-                    <option value={1}>Option B</option>
-                    {quizForm.optionC.trim() && <option value={2}>Option C</option>}
-                    {quizForm.optionD.trim() && <option value={3}>Option D</option>}
-                  </select>
-                </label>
-                <input
-                  type="text"
-                  value={quizForm.explanation}
-                  onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
-                  placeholder="Explanation (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
-                />
-                <div className="flex justify-end gap-2 mt-2">
-                  <button
-                    type="button"
-                    onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className="inline-flex items-center gap-2 rounded-lg bg-purple-600 px-5 py-2 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
-                  >
-                    {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
-                  </button>
-                </div>
-              </form>
-            )}
           </div>
         )}
 
@@ -1210,20 +1029,24 @@ function Library({ session }) {
                             <div className="space-y-3 pt-1">
                               <p className="text-xs font-semibold text-slate-800">{question.question}</p>
 
-                              {latestAttempt && !isRetaking ? (
+                              {quiz.session_id ? (
+                                <p className="text-xs text-slate-500">
+                                  {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
+                                </p>
+                              ) : latestAttempt && !isRetaking ? (
                                 <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs">
-                                  <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                                  <div className="flex items-center justify-between font-bold text-slate-700">
                                     <span className="flex items-center gap-1.5">
-                                      {latestAttempt.score > 0 ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
-                                      {latestAttempt.score > 0 ? "Passed" : "Needs Review"} ({latestAttempt.score}/{latestAttempt.total})
+                                      {latestAttempt.score === latestAttempt.total ? <Check className="h-4 w-4 text-emerald-600" /> : <CircleAlert className="h-4 w-4 text-amber-600" />}
+                                      Latest score: {latestAttempt.score}/{latestAttempt.total}
                                     </span>
-                                    <button
+                                    {!quiz.session_id && <button
                                       type="button"
                                       onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
                                       className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
                                     >
                                       <RotateCcw className="h-3 w-3" /> Retake
-                                    </button>
+                                    </button>}
                                   </div>
 
                                   {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
@@ -1257,9 +1080,18 @@ function Library({ session }) {
 
                         <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
                           {renderSessionBadge(quiz.session_id)}
-                          <span className="text-[10px] text-slate-400">
-                            {new Date(quiz.created_at).toLocaleDateString()}
-                          </span>
+                          {quiz.session_id ? (
+                            <Link
+                              to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
+                              className="inline-flex items-center gap-1.5 rounded-lg bg-purple-600 px-3 py-2 text-xs font-bold text-white transition hover:bg-purple-700"
+                            >
+                              Practice full quiz <ArrowRight className="h-3.5 w-3.5" />
+                            </Link>
+                          ) : (
+                            <span className="text-[10px] text-slate-400">
+                              {new Date(quiz.created_at).toLocaleDateString()}
+                            </span>
+                          )}
                         </div>
                       </article>
                     );

@@ -221,5 +221,22 @@ test("Validators: create_study_plan milestones validation", () => {
 test("Validators: generate_quiz difficulty and count", () => {
   assert.strictEqual(validateGenerateQuiz({ topic: "Algebra", question_count: 0, difficulty: "easy" }).valid, false);
   assert.strictEqual(validateGenerateQuiz({ topic: "Algebra", question_count: 5, difficulty: "super_hard" }).valid, false);
-  assert.strictEqual(validateGenerateQuiz({ topic: "Algebra", question_count: 5, difficulty: "medium" }).valid, true);
+  const question = {
+    question: "What is a variable?",
+    options: ["A named value", "A fixed answer"],
+    correct_answer: "A named value",
+    explanation: "A variable represents a value that can change.",
+  };
+  assert.strictEqual(validateGenerateQuiz({
+    topic: "Algebra",
+    question_count: 1,
+    difficulty: "medium",
+    questions: [question],
+  }).valid, true);
+  assert.strictEqual(validateGenerateQuiz({
+    topic: "Algebra",
+    question_count: 1,
+    difficulty: "medium",
+    questions: [{ ...question, correct_answer: "Not an option" }],
+  }).valid, false);
 });

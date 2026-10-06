@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import React, { useCallback, useEffect, useState } from "react";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import {
   ArrowLeft,
   BookOpen,
@@ -33,6 +33,9 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     setPomodoroState,
     setMinutesRemaining,
     setPanel,
+    panel,
+    requestedQuizId,
+    setRequestedQuizId,
   } = useAITutor();
 
   const [isToolsOpen, setIsToolsOpen] = useState(false);
@@ -50,6 +53,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   };
 
   const { Studyid } = useParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const navigate = useNavigate();
 
   const toTitleCase = (value) =>
@@ -146,6 +150,24 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     const mappedPanel = activeTool === "quizzicle" ? "quizzes" : activeTool;
     setPanel(mappedPanel);
   }, [activeTool, setPanel]);
+
+  useEffect(() => {
+    if (panel === "quizzes") setActiveTool("quizzicle");
+  }, [panel]);
+
+  useEffect(() => {
+    if (searchParams.get("quizId")) setActiveTool("quizzicle");
+  }, [searchParams]);
+
+  const requestedQuizIdFromRoute = searchParams.get("quizId");
+  const handleQuizOpened = useCallback(() => {
+    setRequestedQuizId(null);
+    if (requestedQuizIdFromRoute) {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.delete("quizId");
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [requestedQuizIdFromRoute, searchParams, setRequestedQuizId, setSearchParams]);
 
   const handleExplicitFinish = async () => {
     await finishSession(timeline);
@@ -277,7 +299,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     }
     if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} requestedQuizId={requestedQuizId || requestedQuizIdFromRoute} onQuizOpened={handleQuizOpened} />;
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
       <div>

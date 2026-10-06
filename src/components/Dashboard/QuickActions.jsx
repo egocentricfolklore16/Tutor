@@ -2,10 +2,10 @@ import React from 'react'
 
 function QuickActions() {
   return (
-    <div className="border border-gray-200 rounded-lg shadow-sm p-3">
+    <div className="border border-gray-200 dark:border-slate-800 bg-white dark:bg-slate-900 rounded-lg shadow-sm p-3 text-slate-900 dark:text-slate-100">
       <div className="flex gap-3">
         <svg
-          className="text-red-500"
+          className="text-red-500 dark:text-red-400"
           stroke="currentColor"
           fill="currentColor"
           strokeWidth="0"
@@ -22,7 +22,7 @@ function QuickActions() {
         </svg>
         <h1 className="font-bold text-2xl mb-4">Quick Actions</h1>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500 cursor-pointer">
+      <div className="border border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-[1.02] transition duration-300 ease-in-out hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Continue Session</h2>
           <svg
@@ -41,7 +41,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
+      <div className="border border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-[1.02] transition duration-300 ease-in-out w-full hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Library</h2>
           <svg
@@ -60,7 +60,7 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out hover:text-red-500 cursor-pointer">
+      <div className="border border-gray-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-800/40 rounded-lg shadow-sm mb-1 w-full hover:shadow-lg hover:scale-[1.02] transition duration-300 ease-in-out hover:text-red-500 dark:hover:text-red-400 cursor-pointer">
         <div className="flex justify-between p-3">
           <h2>Flashcards</h2>
           <svg
@@ -79,64 +79,6 @@ function QuickActions() {
           </svg>
         </div>
       </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
-        <div className="flex justify-between p-3">
-          <h2>Library</h2>
-          <svg
-            stroke="currentColor"
-            fill="currentColor"
-            strokeWidth="0"
-            viewBox="0 0 24 24"
-            height="1em"
-            width="1em"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g>
-              <path fill="none" d="M0 0h24v24H0z"></path>
-              <path d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8z"></path>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
-        <div className="flex justify-between p-3">
-          <h2>Library</h2>
-          <svg
-            stroke="currentColor"
-            fill="currentColor"
-            strokeWidth="0"
-            viewBox="0 0 24 24"
-            height="1em"
-            width="1em"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g>
-              <path fill="none" d="M0 0h24v24H0z"></path>
-              <path d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8z"></path>
-            </g>
-          </svg>
-        </div>
-      </div>
-      <div className="border border-gray-200 rounded-lg shadow-sm mb-1 hover:shadow-lg hover:scale-105 transition duration-500 ease-in-out w-full hover:text-red-500 cursor-pointer">
-        <div className="flex justify-between p-3">
-          <h2>Library</h2>
-          <svg
-            stroke="currentColor"
-            fill="currentColor"
-            strokeWidth="0"
-            viewBox="0 0 24 24"
-            height="1em"
-            width="1em"
-            xmlns="http://www.w3.org/2000/svg"
-          >
-            <g>
-              <path fill="none" d="M0 0h24v24H0z"></path>
-              <path d="M10 6v2H5v11h11v-5h2v6a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h6zm11-3v8h-2V6.413l-7.793 7.794-1.414-1.414L17.585 5H13V3h8z"></path>
-            </g>
-          </svg>
-        </div>
-      </div>
-      
     </div>
   );
 }

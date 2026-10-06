@@ -203,7 +203,7 @@ function DashboardHeader({ toggleSidebar }) {
   const isSocietyUnlocked = currentStreak >= 7;
 
   return <>
-    <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200">
+    <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 border-b border-border-subtle bg-surface px-3 py-3 text-body shadow-soft sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200">
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden">
           <button type="button" title="Open sidebar" onClick={toggleSidebar} className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/40">
@@ -223,10 +223,10 @@ function DashboardHeader({ toggleSidebar }) {
           {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-md hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
         </div>
 
-        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 sm:shadow-sm dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
-          <Search className="h-4 w-4 text-sky-700 dark:text-sky-400" />
+<button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-body transition hover:bg-info-soft hover:text-info sm:gap-3 sm:bg-info-soft sm:px-3 sm:py-2 sm:text-info sm:shadow-soft dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
+          <Search className="h-4 w-4 text-info dark:text-sky-400" />
           <span className="hidden text-xs font-semibold sm:inline">Search</span>
-          <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex dark:bg-slate-800/80 dark:text-sky-300">
+          <span className="hidden items-center gap-1 rounded-full bg-surface px-2 py-0.5 text-[11px] font-bold text-info sm:flex dark:bg-slate-800/80 dark:text-sky-300">
             <Command className="h-3 w-3" />K
           </span>
         </button>
@@ -240,9 +240,9 @@ function DashboardHeader({ toggleSidebar }) {
           <button
             type="button"
             onClick={toggleStreakDropdownMobile}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-sm transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl border border-warning/20 bg-warning-soft px-3 py-1.5 font-bold text-warning shadow-soft transition hover:-translate-y-0.5 hover:bg-warning/10 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
           >
-            <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
+            <Flame className="animate-streak-pop h-3.5 w-3.5 text-warning dark:text-orange-400" />
             <span>{currentStreak}d</span>
           </button>
 
@@ -353,8 +353,8 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openXpDropdown}
           onMouseLeave={closeXpDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-sm dark:bg-amber-500/15 dark:text-amber-300">
-            <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl border border-brand/15 bg-brand-soft px-3 py-1.5 font-bold text-brand-strong shadow-soft dark:bg-amber-500/15 dark:text-amber-300">
+            <Zap className="h-3.5 w-3.5 text-brand-strong dark:text-amber-400" />{xpPoints} XP
           </span>
           {xpDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
@@ -401,8 +401,8 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openGemsDropdown}
           onMouseLeave={closeGemsDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-sm dark:bg-cyan-500/15 dark:text-cyan-300">
-            <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl border border-accent/15 bg-accent-soft px-3 py-1.5 font-bold text-accent shadow-soft dark:bg-cyan-500/15 dark:text-cyan-300">
+            <GemIcon className="h-3.5 w-3.5 text-accent dark:text-cyan-400" />{gemsCount}
           </span>
           {gemsDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
@@ -439,23 +439,23 @@ function DashboardHeader({ toggleSidebar }) {
           type="button"
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => toggleDarkMode(!darkMode)}
-          className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 dark:text-slate-300 dark:hover:bg-violet-950/40"
+          className="inline-flex rounded-full p-2 text-body transition hover:bg-accent-soft hover:text-accent dark:text-slate-300 dark:hover:bg-violet-950/40"
         >
           {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-950/40">
+        <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-body transition hover:bg-danger-soft hover:text-danger dark:text-slate-300 dark:hover:bg-rose-950/40">
           <Bell className="h-4 w-4" />
           {unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(unreadCount, 9)}</span>}
         </button>
 
         {/* Profile Avatar */}
         <div className="relative">
-          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
+          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-brand-soft text-brand-strong shadow-soft transition hover:bg-brand/15 dark:bg-emerald-800 dark:text-emerald-100">
             {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-13 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-700 dark:bg-[#18211f] dark:text-white z-[220]">
+            <div className="absolute right-0 top-13 z-[220] w-56 rounded-2xl border border-border bg-surface p-2 text-sm shadow-modal dark:border-slate-700 dark:bg-[#18211f] dark:text-white">
               <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
                 <p className="truncate font-bold text-slate-900 dark:text-white">{name}</p>
                 <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500 sm:hidden">

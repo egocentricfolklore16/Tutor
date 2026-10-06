@@ -35,28 +35,28 @@ function StudyCompanion({ theme, topic }) {
   return (
     <aside className="w-full self-start lg:sticky lg:top-6">
       <div className="flex flex-col gap-4 lg:items-stretch">
-        <div className="mt-[30px] flex min-h-[19rem] w-full flex-1 flex-col overflow-hidden rounded-2xl border border-green-200 bg-gradient-to-b from-green-50 via-white to-amber-50 shadow-sm dark:border-slate-700 dark:from-green-950/40 dark:via-slate-900 dark:to-amber-950/20">
+        <div className="mt-[30px] flex min-h-[19rem] w-full flex-1 flex-col overflow-hidden rounded-3xl border border-border-subtle bg-surface-soft shadow-soft dark:border-slate-700 dark:from-green-950/40 dark:via-slate-900 dark:to-amber-950/20">
           <div className="relative flex justify-center px-5 pt-4">
-            <div className="absolute right-5 top-5 rounded-full bg-white/80 dark:bg-slate-800/80 p-2 text-amber-500 shadow-sm"><Sparkles className="h-4 w-4" /></div>
+            <div className="absolute right-5 top-5 rounded-full bg-surface p-2 text-warning shadow-soft dark:bg-slate-800/80 dark:text-amber-500"><Sparkles className="h-4 w-4" /></div>
             <img src="/logo3.png" alt="Lumo, your study companion" className="lumo-float h-44 w-auto object-contain drop-shadow-md" />
           </div>
           <div className="flex flex-1 flex-col pb-2">
-            <p className={`text-xs font-bold uppercase tracking-[0.18em] ${theme?.accentText || "text-green-700 dark:text-green-400"}`}>Lumo says</p>
-            <p className="mt-2 min-h-14 text-lg font-bold leading-7 text-slate-900 dark:text-slate-100">{messages[messageIndex]}</p>
-            <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">Studying {topic} together, one idea at a time.</p>
+            <p className={`text-xs font-bold uppercase tracking-[0.18em] ${theme?.accentText || "text-brand-strong dark:text-green-400"}`}>Lumo says</p>
+            <p className="mt-2 min-h-14 text-lg font-bold leading-7 text-heading dark:text-slate-100">{messages[messageIndex]}</p>
+            <p className="mt-2 text-sm text-body dark:text-slate-400">Studying {topic} together, one idea at a time.</p>
           </div>
         </div>
 
-        <div className="flex min-h-[19rem] w-full flex-col rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-5 shadow-sm" aria-live="polite">
+        <div className="flex min-h-[19rem] w-full flex-col rounded-3xl border border-warning/20 bg-warning-soft p-5 shadow-soft dark:border-amber-900/50 dark:bg-amber-950/30" aria-live="polite">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400"><Lightbulb className="h-5 w-5" /><h2 className="font-bold">Quick riddle</h2></div>
-            <button type="button" title="New riddle" aria-label="New riddle" onClick={nextRiddle} className="rounded-lg p-2 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><RefreshCw className="h-4 w-4" /></button>
+            <div className="flex items-center gap-2 text-warning dark:text-amber-400"><Lightbulb className="h-5 w-5" /><h2 className="font-bold text-heading">Quick riddle</h2></div>
+            <button type="button" title="New riddle" aria-label="New riddle" onClick={nextRiddle} className="rounded-lg p-2 text-warning hover:bg-warning/10 dark:text-amber-400 dark:hover:bg-amber-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning"><RefreshCw className="h-4 w-4" /></button>
           </div>
-          <p className="mt-4 flex-1 text-sm font-semibold leading-6 text-slate-800 dark:text-slate-200">{riddle.question}</p>
+          <p className="mt-4 flex-1 text-sm font-semibold leading-6 text-heading dark:text-slate-200">{riddle.question}</p>
           {showAnswer ? (
-            <p className="mt-3 rounded-lg bg-white dark:bg-slate-800 p-3 text-sm font-bold text-amber-900 dark:text-amber-300">Answer: {riddle.answer}</p>
+            <p className="mt-3 rounded-xl bg-surface p-3 text-sm font-bold text-warning dark:bg-slate-800 dark:text-amber-300">Answer: {riddle.answer}</p>
           ) : (
-            <button type="button" onClick={() => setShowAnswer(true)} className="mt-4 rounded text-sm font-bold text-amber-800 dark:text-amber-400 underline decoration-amber-300 dark:decoration-amber-600 underline-offset-4 hover:text-amber-950 dark:hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">Reveal answer</button>
+            <button type="button" onClick={() => setShowAnswer(true)} className="mt-4 rounded text-sm font-bold text-warning underline decoration-warning/40 underline-offset-4 hover:text-warning dark:text-amber-400 dark:decoration-amber-600 dark:hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-warning">Reveal answer</button>
           )}
         </div>
       </div>

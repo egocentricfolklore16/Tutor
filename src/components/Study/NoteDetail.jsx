@@ -265,14 +265,14 @@ function NoteDetail() {
           <div className="break-words text-sm font-normal leading-relaxed text-slate-700 dark:text-slate-300 md:text-base md:leading-8">
             <ReactMarkdown
               components={{
-                h1: ({ children }) => <h2 className="mb-3 mt-7 text-xl font-bold text-slate-900 first:mt-0 dark:text-slate-100 md:text-2xl **:font-bold">{children}</h2>,
-                h2: ({ children }) => <h2 className="mb-3 mt-7 text-lg font-bold text-slate-900 first:mt-0 dark:text-slate-100 md:text-xl **:font-bold">{children}</h2>,
-                h3: ({ children }) => <h3 className="mb-2 mt-5 text-base font-semibold text-slate-900 dark:text-slate-100 md:text-lg **:font-bold">{children}</h3>,
-                p: ({ children }) => <p className="mb-4 text-sm font-normal leading-relaxed last:mb-0 md:text-base md:leading-8">{children}</p>,
-                ul: ({ children }) => <ul className="mb-4 list-disc space-y-1 pl-6 text-sm font-normal leading-relaxed md:text-base md:leading-8">{children}</ul>,
-                ol: ({ children }) => <ol className="mb-4 list-decimal space-y-1 pl-6 text-sm font-normal leading-relaxed md:text-base md:leading-8">{children}</ol>,
+                h1: ({ children }) => <h2 className="mb-3 mt-7 text-xl font-bold text-slate-900 first:mt-0 dark:text-slate-100 md:text-2xl">{children}</h2>,
+                h2: ({ children }) => <h2 className="mb-3 mt-7 text-lg font-bold text-slate-900 first:mt-0 dark:text-slate-100 md:text-xl">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-2 mt-5 text-base font-semibold text-slate-900 dark:text-slate-100 md:text-lg">{children}</h3>,
+                p: ({ children }) => <p className="mb-4 text-[15px] font-normal leading-7 text-slate-700 last:mb-0 dark:text-slate-300 md:text-base md:leading-8">{children}</p>,
+                ul: ({ children }) => <ul className="mb-4 list-disc space-y-1 pl-6 text-[15px] font-normal leading-7 text-slate-700 dark:text-slate-300 md:text-base md:leading-8">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-4 list-decimal space-y-1 pl-6 text-[15px] font-normal leading-7 text-slate-700 dark:text-slate-300 md:text-base md:leading-8">{children}</ol>,
                 li: ({ children }) => <li className="pl-1">{children}</li>,
-                strong: ({ children }) => <strong className="font-normal text-slate-900 dark:text-slate-100 md:font-bold">{children}</strong>,
+                strong: ({ children }) => <strong className="font-semibold text-slate-900 dark:text-slate-100">{children}</strong>,
                 blockquote: ({ children }) => <blockquote className="my-4 border-l-4 border-emerald-300 pl-4 text-slate-600 dark:border-emerald-700 dark:text-slate-400">{children}</blockquote>,
                 code: ({ children }) => <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm dark:bg-slate-800">{children}</code>,
               }}

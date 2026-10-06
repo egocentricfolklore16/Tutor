@@ -22,7 +22,9 @@ import { useAITutor } from "../../../app/AITutorContext";
 
 function cleanQuizString(value) {
   if (typeof value !== "string") return "";
-  let cleaned = value.trim().replace(/,\s*$/, "");
+
+  let cleaned = value.trim();
+  cleaned = cleaned.replace(/\s*[:;,]\s*$/, "");
 
   if (
     (cleaned.startsWith('"') && cleaned.endsWith('"')) ||
@@ -35,12 +37,30 @@ function cleanQuizString(value) {
     }
   }
 
-  return cleaned
-    .replace(/^\s*["']?(?:question|option|explanation|correct_answer|correct_index|correctIndex)["']?\s*:\s*/i, "")
+  cleaned = cleaned
+    .replace(/^\s*["']?(?:question|question_text|option|options|explanation|correct_answer|correctAnswer|correct_index|correctIndex|answer|answers)["']?\s*:\s*/i, "")
     .replace(/,\s*$/, "")
-    .trim()
-    .replace(/^["']|["']$/g, "")
     .trim();
+
+  if (
+    (cleaned.startsWith("{") && cleaned.endsWith("}")) ||
+    (cleaned.startsWith("[") && cleaned.endsWith("]"))
+  ) {
+    try {
+      const parsed = JSON.parse(cleaned);
+      if (typeof parsed === "string") {
+        cleaned = parsed;
+      } else if (parsed && typeof parsed === "object") {
+        if (parsed.question || parsed.answer || parsed.correct_answer || parsed.correctAnswer || parsed.options) {
+          cleaned = parsed.question ?? parsed.answer ?? parsed.correct_answer ?? parsed.correctAnswer ?? "";
+        }
+      }
+    } catch {
+      // fall through to simple string cleanup
+    }
+  }
+
+  return cleaned.replace(/^['"]|['"]$/g, "").trim();
 }
 
 function normalizeQuizQuestion(row, position) {
@@ -56,50 +76,56 @@ function normalizeQuizQuestion(row, position) {
       throw new Error(`Question ${position + 1} has invalid options.`);
     }
   }
+
   if (!Array.isArray(options) || options.length < 2 || options.length > 4) {
     throw new Error(`Question ${position + 1} must have between two and four options.`);
   }
 
-  options = options.map(cleanQuizString);
-  if (options.some((option) => !option)) {
-    throw new Error(`Question ${position + 1} has an empty option.`);
+  const cleanedOptions = options.map((option) => cleanQuizString(String(option))).filter(Boolean);
+  if (cleanedOptions.length !== options.length || cleanedOptions.some((option) => !option)) {
+    throw new Error(`Question ${position + 1} has an empty or malformed option.`);
   }
 
-  const question = cleanQuizString(row.question);
-  if (!question) throw new Error(`Question ${position + 1} has no question text.`);
+  const questionText = cleanQuizString(row.question);
+  if (!questionText) {
+    throw new Error(`Question ${position + 1} has no question text.`);
+  }
 
-  const rawCorrectIndex = row.correct_index ?? row.correctIndex;
-  const rawCorrectAnswer = row.correct_answer ?? row.correctAnswer;
+  const rawCorrectIndex = row.correct_index ?? row.correctIndex ?? row.correct_index ?? row.correctIndex;
+  const rawCorrectAnswer = row.correct_answer ?? row.correctAnswer ?? row.answer ?? row.correct ?? null;
   let correctIndex = -1;
 
   if (typeof rawCorrectIndex === "number" && Number.isInteger(rawCorrectIndex)) {
     correctIndex = rawCorrectIndex;
   } else {
-    const correctValue = cleanQuizString(
+    const candidate = cleanQuizString(
       rawCorrectIndex === undefined || rawCorrectIndex === null
-        ? rawCorrectAnswer
+        ? String(rawCorrectAnswer ?? "")
         : String(rawCorrectIndex)
     );
-    if (/^[A-D]$/i.test(correctValue)) {
-      correctIndex = correctValue.toUpperCase().charCodeAt(0) - 65;
-    } else if (/^\d+$/.test(correctValue)) {
-      correctIndex = Number(correctValue);
-    } else {
-      correctIndex = options.findIndex(
-        (option) => option.toLocaleLowerCase() === correctValue.toLocaleLowerCase()
+
+    if (/^[A-D]$/i.test(candidate)) {
+      correctIndex = candidate.toUpperCase().charCodeAt(0) - 65;
+    } else if (/^\d+$/.test(candidate)) {
+      correctIndex = Number(candidate);
+    } else if (candidate) {
+      const matchIndex = cleanedOptions.findIndex(
+        (option) => option.toLocaleLowerCase() === candidate.toLocaleLowerCase()
       );
+      if (matchIndex >= 0) correctIndex = matchIndex;
     }
   }
 
-  if (correctIndex < 0 || correctIndex > 3 || correctIndex >= options.length) {
+  if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex > 3 || correctIndex >= cleanedOptions.length) {
     throw new Error(`Question ${position + 1} has an invalid correct answer.`);
   }
 
   const explanation = cleanQuizString(row.explanation);
+
   return {
     id: String(row.id ?? `question-${position + 1}`),
-    question,
-    options,
+    question: questionText,
+    options: cleanedOptions,
     correctIndex,
     ...(explanation ? { explanation } : {}),
   };
@@ -124,29 +150,21 @@ function QuizModal({
 
   const isResults = Boolean(result);
   const modalOpen = Boolean(quiz || result);
-  const answeredCount = quiz
-    ? quiz.questions.filter((question) => answers[question.id] !== undefined).length
-    : 0;
+  const answeredCount = quiz ? quiz.questions.filter((question) => answers[question.id] !== undefined).length : 0;
   const remaining = quiz ? quiz.questions.length - answeredCount : 0;
   const scorePercent = result ? Math.round((result.score / result.total) * 100) : 0;
-  const ringColor = scorePercent < 50
-    ? "text-red-600 dark:text-red-400"
-    : scorePercent < 80
-      ? "text-amber-600 dark:text-amber-400"
-      : "text-green-600 dark:text-green-400";
-  const scoreIcon = scorePercent < 50
-    ? <BookOpen className="h-7 w-7 text-red-600 dark:text-red-400" aria-hidden="true" />
-    : scorePercent < 80
-      ? <Award className="h-7 w-7 text-amber-600 dark:text-amber-400" aria-hidden="true" />
-      : <Star className="h-7 w-7 text-green-600 dark:text-green-400" aria-hidden="true" />;
+  const ringColor = scorePercent < 50 ? "text-red-600 dark:text-red-400" : scorePercent < 80 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400";
+  const scoreIcon = scorePercent < 50 ? <BookOpen className="h-7 w-7 text-red-600 dark:text-red-400" aria-hidden="true" /> : scorePercent < 80 ? <Award className="h-7 w-7 text-amber-600 dark:text-amber-400" aria-hidden="true" /> : <Star className="h-7 w-7 text-green-600 dark:text-green-400" aria-hidden="true" />;
   const headline = scorePercent < 50 ? "Study more!" : scorePercent < 80 ? "Good job!" : "Excellent!";
   const circumference = 2 * Math.PI * 48;
+
   const handleClose = () => {
     if (!isResults && answeredCount > 0 && !window.confirm("Close this quiz? Your selected answers will be lost.")) {
       return;
     }
     onClose();
   };
+
   const interactionRef = useRef({});
   interactionRef.current = {
     quiz,
@@ -161,6 +179,7 @@ function QuizModal({
       setRingAnimated(false);
       return undefined;
     }
+
     const frame = window.requestAnimationFrame(() => setRingAnimated(true));
     return () => window.cancelAnimationFrame(frame);
   }, [result]);
@@ -212,6 +231,7 @@ function QuizModal({
         const focusable = [...modalRef.current.querySelectorAll(
           'button:not([disabled]), [tabindex="0"], [role="radio"][tabindex="0"]'
         )].filter((element) => !element.hasAttribute("hidden"));
+
         if (!focusable.length) return;
 
         const first = focusable[0];
@@ -245,16 +265,16 @@ function QuizModal({
 
   const handleFocusQuestion = (index) => setFocusedQuestionIndex(index);
 
-  return createPortal((
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm dark:bg-black/70">
+  return createPortal(
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm dark:bg-black/70">
       <section
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="quiz-modal-title"
-        className="motion-dialog flex max-h-[90dvh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100"
+        className="flex max-h-[90dvh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-border bg-surface text-heading shadow-modal dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100"
       >
-        <header className="relative shrink-0 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-7">
+        <header className="relative shrink-0 border-b border-border px-5 py-4 dark:border-slate-700 sm:px-7">
           <div className="flex items-center justify-between gap-4">
             <div className="flex min-w-0 items-center gap-3">
               <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isResults ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : `${accentSurface} ${accentText}`}`}>
@@ -271,6 +291,7 @@ function QuizModal({
                 )}
               </div>
             </div>
+
             <button
               ref={closeButtonRef}
               type="button"
@@ -282,6 +303,7 @@ function QuizModal({
               <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
+
           {!isResults && (
             <div
               className="absolute inset-x-0 bottom-0 h-1 bg-slate-100 dark:bg-slate-800"
@@ -299,7 +321,7 @@ function QuizModal({
           )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700">
           {isResults ? (
             <div className="space-y-7">
               <section className="flex flex-col items-center text-center">
@@ -355,6 +377,7 @@ function QuizModal({
                   {activeQuiz.questions.map((question, index) => {
                     const selectedIndex = activeAnswers[question.id];
                     const isCorrect = selectedIndex === question.correctIndex;
+
                     return (
                       <article
                         key={question.id}
@@ -365,13 +388,16 @@ function QuizModal({
                         }`}
                       >
                         <div className="flex items-start gap-2.5">
-                          {isCorrect
-                            ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
-                            : <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-400" aria-hidden="true" />}
+                          {isCorrect ? (
+                            <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+                          ) : (
+                            <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-400" aria-hidden="true" />
+                          )}
                           <p className="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900 dark:text-slate-100">
                             {index + 1}. {question.question}
                           </p>
                         </div>
+
                         <div className="mt-2 pl-[1.875rem] text-sm leading-6">
                           {isCorrect ? (
                             <p className="font-semibold text-green-700 dark:text-green-400">
@@ -415,9 +441,11 @@ function QuizModal({
                       {question.question}
                     </h3>
                   </div>
+
                   <div className="mt-4 grid gap-2.5" role="radiogroup" aria-label={`Question ${questionIndex + 1} options`}>
                     {question.options.map((option, optionIndex) => {
                       const isSelected = answers[question.id] === optionIndex;
+
                       return (
                         <button
                           key={`${question.id}-${optionIndex}`}
@@ -453,28 +481,35 @@ function QuizModal({
         </div>
 
         {!isResults && (
-          <footer className="shrink-0 border-t border-slate-200 bg-white/95 p-4 dark:border-slate-700 dark:bg-[#18211f]/95 sm:px-7">
+          <footer className="shrink-0 border-t border-border bg-surface/95 p-4 dark:border-slate-700 dark:bg-[#18211f]/95 sm:px-7">
             <button
               type="button"
               disabled={remaining > 0 || saving}
               onClick={onSubmit}
               className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-500 ${
-                remaining > 0
-                  ? ""
-                  : `${accentButton} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
+                remaining > 0 ? "" : `${accentButton} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
               }`}
             >
-              {saving
-                ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Saving results...</>
-                : remaining > 0
-                  ? <><Target className="h-4 w-4" aria-hidden="true" /> {remaining} more to go</>
-                  : "Submit Quiz"}
+              {saving ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" />
+                  Saving results...
+                </>
+              ) : remaining > 0 ? (
+                <>
+                  <Target className="h-4 w-4" aria-hidden="true" />
+                  {remaining} more to go
+                </>
+              ) : (
+                "Submit Quiz"
+              )}
             </button>
           </footer>
         )}
       </section>
-    </div>
-  ), document.body);
+    </div>,
+    document.body
+  );
 }
 
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, requestedQuizId, onQuizOpened }) {
@@ -496,8 +531,10 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
       setIsLoading(false);
       return;
     }
+
     setIsLoading(true);
     setError("");
+
     try {
       let activeUserId = userId;
       if (!activeUserId) {
@@ -514,14 +551,16 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         `)
         .eq("session_id", studyId)
         .order("created_at", { ascending: false });
+
       if (quizError) throw quizError;
 
       const quizList = (quizData || []).map((quiz) => ({
         ...quiz,
         questions: [...(quiz.questions || [])]
           .sort((a, b) => a.position - b.position)
-          .map(normalizeQuizQuestion),
+          .map((question, index) => normalizeQuizQuestion(question, index)),
       }));
+
       setQuizzes(quizList);
 
       if (quizList.length > 0 && activeUserId) {
@@ -531,6 +570,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
           .in("quiz_id", quizList.map((quiz) => quiz.id))
           .eq("user_id", activeUserId)
           .order("created_at", { ascending: false });
+
         if (attemptsError) throw attemptsError;
 
         const attemptsByQuiz = {};
@@ -538,6 +578,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
           if (!attemptsByQuiz[attempt.quiz_id]) attemptsByQuiz[attempt.quiz_id] = [];
           attemptsByQuiz[attempt.quiz_id].push(attempt);
         });
+
         setQuizAttemptsMap(attemptsByQuiz);
       } else {
         setQuizAttemptsMap({});
@@ -557,6 +598,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
     () => quizzes.reduce((total, quiz) => total + (quiz.questions?.length || 0), 0),
     [quizzes]
   );
+
   const activeQuiz = quizzes.find((quiz) => String(quiz.id) === String(activeQuizId));
 
   const startQuiz = useCallback((quizId) => {
@@ -565,6 +607,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
       setError("This quiz does not have any questions yet.");
       return;
     }
+
     setError("");
     setResult(null);
     setActiveQuizId(quiz.id);
@@ -580,6 +623,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
 
   useEffect(() => {
     if (!requestedQuizId || isLoading) return;
+
     const requestedQuiz = quizzes.find((quiz) => String(quiz.id) === String(requestedQuizId));
     if (requestedQuiz) {
       startQuiz(requestedQuiz.id);
@@ -587,6 +631,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
       onQuizOpened?.();
       return;
     }
+
     if (requestedLookupRef.current !== String(requestedQuizId)) {
       requestedLookupRef.current = String(requestedQuizId);
       loadQuizzes();
@@ -607,8 +652,10 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
 
   const finishQuiz = async () => {
     if (!activeQuiz || savingId) return;
+
     setSavingId(activeQuiz.id);
     setError("");
+
     try {
       let activeUserId = userId;
       if (!activeUserId) {
@@ -616,6 +663,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         if (authError) throw authError;
         activeUserId = user?.id;
       }
+
       if (!activeUserId) throw new Error("Your sign-in session expired. Please sign in again.");
 
       const attemptAnswers = activeQuiz.questions.map((question) => {
@@ -626,6 +674,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
           correct: selectedIndex === question.correctIndex,
         };
       });
+
       const score = attemptAnswers.filter((answer) => answer.correct).length;
       const { data: attempt, error: attemptError } = await supabase
         .from("session_quiz_attempts")
@@ -638,16 +687,19 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         })
         .select()
         .single();
+
       if (attemptError) throw attemptError;
 
       setQuizAttemptsMap((previous) => ({
         ...previous,
         [activeQuiz.id]: [attempt, ...(previous[activeQuiz.id] || [])],
       }));
+
       setLastCompleted({ quizId: activeQuiz.id, score, total: activeQuiz.questions.length });
       setResult({ quiz: activeQuiz, answers: { ...answers }, score, total: activeQuiz.questions.length });
       setActiveQuizId(null);
       setQuizInProgress(null);
+
       if (onTimelineEvent) {
         onTimelineEvent({
           id: crypto.randomUUID(),
@@ -657,6 +709,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
           timestamp: new Date().toISOString(),
         });
       }
+
       sendTutorEvent("quiz_finished", {
         quiz_id: activeQuiz.id,
         score,
@@ -695,6 +748,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                   Work through a complete quiz, then review each answer and explanation.
                 </p>
               </div>
+
               <div className="flex gap-3">
                 <div className="rounded-2xl bg-white/10 px-4 py-3 dark:bg-white/5">
                   <div className="text-xl font-black">{quizzes.length}</div>
@@ -734,7 +788,8 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
 
             {isLoading ? (
               <div className="flex items-center gap-3 rounded-2xl bg-slate-50 p-8 text-sm font-medium text-slate-500 dark:bg-slate-900/50 dark:text-slate-400">
-                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" /> Loading your practice sets...
+                <Loader2 className="h-5 w-5 animate-spin" aria-hidden="true" />
+                Loading your practice sets...
               </div>
             ) : quizzes.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 px-6 py-10 text-center dark:border-slate-700 dark:bg-slate-900/45">
@@ -750,7 +805,8 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                   onClick={askTutorToCreateQuiz}
                   className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f]"
                 >
-                  <Sparkles className="h-4 w-4" aria-hidden="true" /> Ask my tutor for a quiz
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  Ask my tutor for a quiz
                 </button>
                 <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">No content is generated until you ask.</p>
               </div>
@@ -760,6 +816,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                   const attempts = quizAttemptsMap[quiz.id] || [];
                   const latestAttempt = attempts[0];
                   const bestScore = attempts.reduce((best, attempt) => Math.max(best, Number(attempt.score || 0)), 0);
+
                   return (
                     <article key={quiz.id} className="w-full rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900/45 dark:hover:border-indigo-700">
                       <div className="flex items-start justify-between gap-3">
@@ -771,6 +828,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                           {quiz.questions.length} {quiz.questions.length === 1 ? "question" : "questions"}
                         </span>
                       </div>
+
                       {latestAttempt ? (
                         <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs dark:bg-slate-800/70">
                           <span className="font-semibold text-slate-600 dark:text-slate-300">
@@ -788,11 +846,13 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                       ) : (
                         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Ready when you are. Take your time and learn from each answer.</p>
                       )}
+
                       {reviewingQuizMap[quiz.id] && latestAttempt && (
                         <div className="mt-3 space-y-2">
                           {(latestAttempt.answers || []).map((answer, index) => {
                             const question = quiz.questions.find((item) => item.id === answer.question_id) || quiz.questions[index];
                             if (!question) return null;
+
                             return (
                               <div key={answer.question_id || index} className="rounded-xl border border-slate-200 p-3 text-xs dark:border-slate-700">
                                 <p className="break-words font-semibold text-slate-800 dark:text-slate-200">{index + 1}. {question.question}</p>
@@ -808,6 +868,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                           })}
                         </div>
                       )}
+
                       <button
                         type="button"
                         onClick={() => startQuiz(quiz.id)}
@@ -821,6 +882,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                 })}
               </div>
             )}
+
             {!isLoading && quizzes.length > 0 && (
               <p className="px-1 text-xs text-slate-400 dark:text-slate-500">
                 {totalQuestions} questions across {quizzes.length} practice {quizzes.length === 1 ? "set" : "sets"} · your attempts are saved to this session.

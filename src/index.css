@@ -2,10 +2,38 @@
 
 :root {
   font-family: "Lexend", sans-serif;
-  background-color: #ffffff;
+  background-color: #f8faf8;
   color-scheme: light;
+  --bg-page: #f8faf8;
+  --bg-surface: #ffffff;
+  --bg-surface-soft: #f4f7f3;
+  --bg-surface-strong: #edf4ee;
+  --bg-card: #ffffff;
+  --border: #e4ece6;
+  --border-subtle: #edf2ee;
+  --text-heading: #17212b;
+  --text-body: #3e4d5c;
+  --text-muted: #64748b;
+  --text-inverse: #f7faf8;
+  --brand: #10b981;
+  --brand-strong: #0c8a62;
+  --brand-soft: #ecfdf5;
+  --accent: #7c3aed;
+  --accent-soft: #f3e8ff;
+  --success: #16a34a;
+  --success-soft: #ecfdf5;
+  --warning: #d97706;
+  --warning-soft: #fff7ed;
+  --danger: #e11d48;
+  --danger-soft: #fff1f2;
+  --info: #2563eb;
+  --info-soft: #eff6ff;
+  --neutral: #64748b;
+  --shadow-soft: 0 1px 2px rgba(15, 23, 42, 0.04), 0 10px 22px -16px rgba(15, 23, 42, 0.18);
+  --shadow-card: 0 10px 28px -18px rgba(15, 23, 42, 0.16);
+  --shadow-modal: 0 20px 50px -20px rgba(15, 23, 42, 0.22);
   --bg-base: #0F1115;
-  --bg-surface: #14171C;
+  --bg-surface-dark: #14171C;
   --card-red-bg: #2A1518;
   --card-green-bg: #1B2119;
   --card-amber-bg: #241D12;
@@ -22,8 +50,8 @@
 
 body {
   margin: 0;
-  background: #f8fafc;
-  color: #0f172a;
+  background: var(--bg-page);
+  color: var(--text-body);
   transition: background-color 180ms ease, color 180ms ease;
   overflow-x: hidden;
 }

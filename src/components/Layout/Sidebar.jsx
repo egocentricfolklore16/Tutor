@@ -263,7 +263,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col border-r-4 border-r-green-600 bg-white font-['Lexend'] text-black transition-all duration-300 ease-out dark-sidebar ${
+        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col border-r border-border-subtle bg-surface font-['Lexend'] text-heading shadow-soft transition-all duration-300 ease-out dark-sidebar ${
           isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
         } md:translate-x-0 md:opacity-100 md:pointer-events-auto`}
       >
@@ -318,15 +318,14 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
                   className={`
                   ${
                     activeItem === item.name
-                      ? "bg-black/15 border-l-2 border-green-600 ml-2"
-                      : "hover:bg-black/5 hover:border-l-2 hover:border-green-600 hover:ml-2"
+                      ? "ml-2 border-l-2 border-brand bg-brand-soft text-brand-strong"
+                      : "ml-0 text-body hover:ml-2 hover:border-l-2 hover:border-brand hover:bg-surface-soft"
                   }
-                  flex items-center h-8 px-3 rounded-lg cursor-pointer 
-                  transition-all duration-300 text-xs whitespace-nowrap overflow-hidden
+                  flex h-10 items-center rounded-xl px-3 text-xs font-semibold whitespace-nowrap overflow-hidden transition-all duration-200 ease-out cursor-pointer
                 `}
                   onClick={() => handleMenuItemClick(item.name)}
                 >
-                  <span className="text-black pr-3">{item.icon}</span>
+                  <span className="pr-3">{item.icon}</span>
                   {isOpen && <span>{item.name}</span>}
                 </li>
               </Link>
@@ -335,7 +334,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         </nav>
 
         {/* Footer Section */}
-        <div className="mt-auto p-4 border-t border-gray-700">
+        <div className="mt-auto border-t border-border-subtle p-4">
           {/* User Info */}
           <div className="flex items-center mb-4">
             {profile?.avatar_url ? <img
@@ -356,7 +355,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
             aria-label="New study session"
             title="New study session"
-            className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+            className="w-full h-10 rounded-xl bg-brand text-white font-semibold transition-colors duration-200 hover:bg-brand-strong focus:outline-none focus-visible:ring-2 focus-visible:ring-brand/60 focus-visible:ring-offset-2 text-sm"
           >
             {isOpen ? "+ New Study Session" : "+"}
           </button>
@@ -366,7 +365,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={handleLogout}
             aria-label="Log out"
             title="Log out"
-            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="mt-3 flex h-10 w-full items-center justify-center gap-2 rounded-xl border border-border bg-surface-soft text-sm font-semibold text-body transition-colors duration-200 hover:border-danger/30 hover:bg-danger-soft hover:text-danger focus:outline-none focus-visible:ring-2 focus-visible:ring-danger/50"
           >
             <LogOut size={15} />
             {isOpen && "Log out"}
@@ -377,7 +376,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             <button
               type="button"
               onClick={() => setFeedbackOpen(true)}
-              className="flex items-center text-gray-700 hover:text-emerald-600 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
+              className="mt-4 flex items-center overflow-hidden whitespace-nowrap text-xs text-body transition-colors hover:text-brand"
             >
               <svg
                 className="mr-2"

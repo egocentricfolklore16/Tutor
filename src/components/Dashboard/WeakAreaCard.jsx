@@ -63,33 +63,33 @@ function WeakAreaCard() {
     return () => { active = false; };
   }, []);
 
-  if (status === "loading") return <section className="rounded-lg border border-slate-200 bg-white" aria-busy="true"><LoadingCompanion message="Checking your focus areas..." /></section>;
+  if (status === "loading") return <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" aria-busy="true"><LoadingCompanion message="Checking your focus areas..." /></section>;
 
   if (!weakArea) {
     return (
-      <section className="rounded-lg border border-slate-200 bg-white p-6" aria-labelledby="still-shaky-title">
-        <div className="flex items-center gap-2 text-slate-500">
+      <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" aria-labelledby="still-shaky-title">
+        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
           <Brain className="h-5 w-5" />
-          <h2 id="still-shaky-title" className="text-xl font-bold text-slate-900">Still shaky on this</h2>
+          <h2 id="still-shaky-title" className="text-xl font-bold text-slate-900 dark:text-slate-100">Still shaky on this</h2>
         </div>
-        <p className="mt-3 text-sm text-slate-600">No concepts need extra attention yet.</p>
+        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">No concepts need extra attention yet.</p>
       </section>
     );
   }
 
   return (
-    <section className="rounded-lg border-2 border-red-200 bg-red-50 p-5 shadow-sm lg:p-6" aria-labelledby="still-shaky-title">
+    <section className="rounded-lg border-2 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 p-5 shadow-sm lg:p-6" aria-labelledby="still-shaky-title">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-red-700"><Brain className="h-4 w-4" /> Focus check-in</p>
-          <h2 id="still-shaky-title" className="text-2xl font-bold text-slate-950">Still shaky on this</h2>
-          <p className="mt-1 text-sm font-semibold text-red-800">{weakArea.concept}</p>
+          <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-red-700 dark:text-red-400"><Brain className="h-4 w-4" /> Focus check-in</p>
+          <h2 id="still-shaky-title" className="text-2xl font-bold text-slate-950 dark:text-slate-100">Still shaky on this</h2>
+          <p className="mt-1 text-sm font-semibold text-red-800 dark:text-red-300">{weakArea.concept}</p>
         </div>
-        <span className="rounded-full bg-white px-3 py-1 text-xs font-semibold text-red-700">{weakArea.timesFailedOrHesitated} missed</span>
+        <span className="rounded-full bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-400 border border-transparent dark:border-red-900/40">{weakArea.timesFailedOrHesitated} missed</span>
       </div>
-      <blockquote className="mt-5 border-l-4 border-red-300 bg-white p-4 text-base font-medium leading-7 text-slate-800">“{weakArea.originalQuestion}”</blockquote>
-      <p className="mt-3 text-xs text-red-800">Last attempted {new Date(weakArea.lastAttemptedAt).toLocaleDateString()}</p>
-      <button onClick={() => navigate(`/Study/${weakArea.sessionId}`)} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700">
+      <blockquote className="mt-5 border-l-4 border-red-300 dark:border-red-700 bg-white dark:bg-slate-900 p-4 text-base font-medium leading-7 text-slate-800 dark:text-slate-200 rounded-r-lg">“{weakArea.originalQuestion}”</blockquote>
+      <p className="mt-3 text-xs text-red-800 dark:text-red-300">Last attempted {new Date(weakArea.lastAttemptedAt).toLocaleDateString()}</p>
+      <button onClick={() => navigate(`/Study/${weakArea.sessionId}`)} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 dark:bg-red-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 dark:hover:bg-red-600">
         Try Again <ArrowRight className="h-4 w-4" />
       </button>
     </section>

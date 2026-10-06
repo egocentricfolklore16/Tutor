@@ -61,13 +61,19 @@ serve(async (req) => {
       });
     }
 
-    // Identify the user from their auth token (falls back to "anonymous" behavior if missing).
+    // Security: Require authorization header and authenticate calling user
     const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabase.auth.getUser(token);
-      userId = userData?.user?.id ?? null;
+    if (!authHeader) {
+      return jsonResponse({ error: "Missing Authorization header" }, 401);
     }
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized: Invalid or expired session token" }, 401);
+    }
+
+    userId = userData.user.id;
 
     const strictness = await resolveStrictness(supabase, userId, strictnessOverride);
     const systemPrompt = `${BASE_SYSTEM_PROMPT}\n\n${STRICTNESS_PROMPTS[strictness]}`;

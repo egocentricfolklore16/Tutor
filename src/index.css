@@ -28,12 +28,25 @@ body {
   overflow-x: hidden;
 }
 
-/* Touch targets and Mobile Input Zoom prevention (minimum 16px font-size) */
+/* Safe Area & Mobile Viewport Utilities */
+.pb-safe { padding-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); }
+.pt-safe { padding-top: max(1rem, env(safe-area-inset-top, 0px)); }
+.mb-safe { margin-bottom: max(1rem, env(safe-area-inset-bottom, 0px)); }
+.min-h-screen-dvh { min-height: 100dvh; }
+.h-screen-dvh { height: 100dvh; }
+
+/* Touch targets (minimum 44x44px) and Mobile Input Zoom prevention (minimum 16px font-size) */
 @media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
     font-size: 16px !important;
+  }
+
+  button,
+  [role="button"],
+  a {
+    min-height: 44px;
   }
 }
 

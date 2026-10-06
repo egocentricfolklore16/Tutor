@@ -1,11 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { Sparkles } from "lucide-react";
-import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
-const GlobalAITutorFab = ({ session }) => {
+const GlobalAITutorFab = () => {
   const {
     isOpen,
     handleToggle,
@@ -17,8 +16,6 @@ const GlobalAITutorFab = ({ session }) => {
     clearMessages,
     isTyping,
   } = useAITutor();
-
-  const { profile } = useProfile();
 
   const handleSendMessage = () => {
     sendMessage();

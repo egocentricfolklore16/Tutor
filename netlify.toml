@@ -1,8 +1,6 @@
-# Netlify configuration for Hyper Tutor
-
 [build]
+  command = "pnpm build"
   publish = "dist"
-  command = "npm run build"
 
 [[redirects]]
   from = "/*"

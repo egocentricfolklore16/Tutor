@@ -71,6 +71,10 @@ function Layout({ session, needsOnboarding }) {
           <div key={location.pathname} className="page-enter">
             {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
               <Outlet />
+            ) : isStudyEnvironment ? (
+              <div className="min-w-0">
+                <Outlet />
+              </div>
             ) : (
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
                 <div className="min-w-0 flex-1">

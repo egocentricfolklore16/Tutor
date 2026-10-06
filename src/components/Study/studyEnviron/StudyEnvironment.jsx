@@ -358,7 +358,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
         }`}
       >
-        <div className="w-full max-w-[1500px]">
+        <div className="mx-auto w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
             <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
               <button
@@ -501,8 +501,12 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
-              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
+            <div className={`mt-6 grid items-start gap-6 ${
+              isAIOpen
+                ? "min-[1900px]:grid-cols-[minmax(0,1.3fr)_minmax(400px,0.7fr)] min-[1900px]:gap-8"
+                : "2xl:grid-cols-[minmax(0,1.3fr)_minmax(400px,0.7fr)] 2xl:gap-8"
+            }`}>
+              <section className="min-w-0 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6 md:p-8">
                 <div className="mb-5 flex items-center gap-3">
                   <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
                   <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : toolItems.find((item) => item.id === activeTool)?.label}</h2>
@@ -514,14 +518,13 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                   <FileText className={`h-5 w-5 ${importanceTheme.accent}`} />
                   <div>
                     <h2 className="text-xl font-bold">Session notes</h2>
-                    <p className="mt-1 text-sm text-slate-500">Your notes stay open while you study.</p>
+                    <p className="mt-1 text-sm text-slate-500">A clear space for ideas worth keeping.</p>
                   </div>
                 </div>
                 <NoteEditor
                   studyId={Studyid || session.id}
                   userId={userId}
                   topic={topic}
-                  theme={importanceTheme}
                   onTimelineEvent={handleTimelineEvent}
                 />
               </section>

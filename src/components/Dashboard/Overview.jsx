@@ -136,30 +136,30 @@ function Overview() {
         </div>
       </div>
       <div className="mt-4 w-full">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
+          <div className="xl:col-span-2 2xl:col-span-2">
             <PerformanceDashboard />
           </div>
-          <div className="lg:col-span-1">
+          <div>
             <StudyCompanion topic={profile?.current_topic || "your studies"} />
           </div>
 
-          <div className="lg:col-span-1">
+          <div>
             <CommunitySpotlight />
           </div>
-          <div className="lg:col-span-1">
+          <div>
             <AchievementsCard />
           </div>
-          <div className="lg:col-span-1">
+          <div>
             <Leaderboard />
           </div>
 
-          <div className="lg:col-span-2 space-y-6">
+          <div className="xl:col-span-2 2xl:col-span-2">
             <StudyStreak streak={streak} />
             <KeepsSlipping userId={userId} />
           </div>
 
-          <div className="lg:col-span-3">
+          <div className="xl:col-span-2 2xl:col-span-3">
             <AISuggestions />
           </div>
         </div>

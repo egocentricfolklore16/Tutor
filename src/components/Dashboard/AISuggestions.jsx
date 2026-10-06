@@ -15,7 +15,7 @@ function AISuggestions() {
   const timeNote = getPreferredTimeNote(profile?.preferred_time);
 
   return (
-    <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
+    <div className="rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />

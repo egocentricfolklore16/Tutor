@@ -372,13 +372,13 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
               <p className="mt-3 text-xs text-slate-400">No content is generated until you ask.</p>
             </div>
           ) : (
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="flex w-full flex-col gap-3">
               {quizzes.map((quiz) => {
                 const attempts = quizAttemptsMap[quiz.id] || [];
                 const latestAttempt = attempts[0];
                 const bestScore = attempts.reduce((best, attempt) => Math.max(best, Number(attempt.score || 0)), 0);
                 return (
-                  <article key={quiz.id} className="rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-200 hover:shadow-sm">
+                  <article key={quiz.id} className="w-full rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-200 hover:shadow-sm">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600">{quiz.source === "ai" ? "Tutor-made" : "Practice set"}</p>

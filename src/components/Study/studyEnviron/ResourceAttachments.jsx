@@ -1,6 +1,7 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { ExternalLink, FileUp, Link2, Loader2, Plus, Trash2, Youtube, FileText } from "lucide-react";
 import supabase from "../../../lib/supabase";
+import ResourcePreviewModal from "../../common/ResourcePreviewModal";
 
 const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -33,6 +34,8 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [deletingId, setDeletingId] = useState(null);
   const [error, setError] = useState("");
+  const [previewResource, setPreviewResource] = useState(null);
+  const closeResourcePreview = useCallback(() => setPreviewResource(null), []);
 
   useEffect(() => {
     const fetchResources = async () => {
@@ -256,11 +259,11 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const renderExtractionBadge = (status) => {
     if (!status) return null;
     const badgeStyles = {
-      pending: "bg-amber-100 text-amber-800 border-amber-200",
-      done: "bg-emerald-100 text-emerald-800 border-emerald-200",
-      failed: "bg-rose-100 text-rose-800 border-rose-200",
-      unsupported: "bg-slate-100 text-slate-700 border-slate-200",
-    }[status] || "bg-slate-100 text-slate-700 border-slate-200";
+      pending: "bg-amber-100 text-amber-800 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-900/70",
+      done: "bg-emerald-100 text-emerald-800 border-emerald-200 dark:bg-emerald-950/40 dark:text-emerald-300 dark:border-emerald-900/70",
+      failed: "bg-rose-100 text-rose-800 border-rose-200 dark:bg-rose-950/40 dark:text-rose-300 dark:border-rose-900/70",
+      unsupported: "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700",
+    }[status] || "bg-slate-100 text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700";
 
     return (
       <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyles}`}>
@@ -274,18 +277,18 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     const ext = resource.title?.split(".").pop()?.toLowerCase();
     const mime = resource.mime_type;
 
-    if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600" />;
-    if (kind === "document") return <FileText className="h-4 w-4 text-blue-600" />;
-    if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600" />;
+    if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600 dark:text-red-400" />;
+    if (kind === "document") return <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+    if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />;
     if (
       ext === "doc" ||
       ext === "docx" ||
       mime === "application/msword" ||
       mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      return <FileText className="h-4 w-4 text-blue-700" />;
+      return <FileText className="h-4 w-4 text-blue-700 dark:text-blue-400" />;
     }
-    return <FileUp className="h-4 w-4 text-emerald-600" />;
+    return <FileUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
   };
 
   const getResourceLabel = (resource) => {
@@ -301,6 +304,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   };
 
   return (
+    <>
     <div className="space-y-5">
       <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
         <button
@@ -339,7 +343,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
           <button
             type="submit"
             disabled={!selectedFile || isSaving || !studyId}
-            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white font-semibold text-xs disabled:opacity-50 ${theme?.resourceAccentButton || "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"}`}
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} Upload File
           </button>
@@ -380,7 +384,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
             <button
               type="submit"
               disabled={!linkTitle.trim() || !linkUrl.trim() || isSaving || !studyId}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-white font-semibold text-xs disabled:opacity-50 ${theme?.resourceAccentButton || "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-500 dark:hover:bg-indigo-400"}`}
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Attach Link
             </button>
@@ -388,42 +392,62 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
         </form>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {isLoading ? (
-        <p className="text-sm text-slate-500">Loading resources...</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading resources...</p>
       ) : resources.length === 0 ? (
-        <p className="text-sm text-slate-500">No resources attached yet.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No resources attached yet.</p>
       ) : (
         <div className="space-y-3">
           {resources.map((resource) => (
-            <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <article
+              key={resource.id}
+              onClick={() => setPreviewResource(resource)}
+              onKeyDown={(event) => {
+                if (event.target === event.currentTarget && (event.key === "Enter" || event.key === " ")) {
+                  event.preventDefault();
+                  setPreviewResource(resource);
+                }
+              }}
+              tabIndex={0}
+              aria-label={`Preview ${resource.title}`}
+              className="flex cursor-pointer flex-col items-stretch justify-between gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-xs transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-green-400 sm:flex-row sm:items-center sm:gap-4"
+            >
               <div className="min-w-0 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
+                <div className="shrink-0 rounded-lg border border-slate-100 bg-slate-50 p-2 dark:border-slate-700 dark:bg-slate-800/70">
                   {renderKindIcon(resource)}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="truncate font-semibold text-slate-800 text-sm">{resource.title}</p>
+                    <p className="truncate text-sm font-semibold text-slate-800 dark:text-slate-100">{resource.title}</p>
                     {renderExtractionBadge(resource.extraction_status)}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-400 capitalize">{getResourceLabel(resource)}</p>
+                  <p className="mt-0.5 text-xs capitalize text-slate-400 dark:text-slate-500">{getResourceLabel(resource)}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">
                 <button
                   type="button"
-                  onClick={() => openResource(resource)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    openResource(resource);
+                  }}
                   title="Open resource"
-                  className={`rounded-md p-2 hover:bg-slate-50 transition ${theme?.accentText || "text-indigo-600"}`}
+                  aria-label="Open resource"
+                  className="rounded-md p-2 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:text-indigo-400 dark:hover:bg-indigo-950/40 dark:focus-visible:ring-green-400"
                 >
                   <ExternalLink className="h-4 w-4" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => removeResource(resource)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    removeResource(resource);
+                  }}
                   disabled={deletingId === resource.id}
                   title="Delete resource"
-                  className="rounded-md p-2 text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                  aria-label="Delete resource"
+                  className="rounded-md p-2 text-red-600 hover:bg-red-50 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-red-400 dark:hover:bg-red-950/40 dark:focus-visible:ring-red-400"
                 >
                   {deletingId === resource.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>
@@ -433,6 +457,8 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
         </div>
       )}
     </div>
+    {previewResource && <ResourcePreviewModal resource={previewResource} onClose={closeResourcePreview} />}
+    </>
   );
 };
 

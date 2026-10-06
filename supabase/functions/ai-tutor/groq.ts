@@ -6,16 +6,17 @@ export interface GroqOptions {
   model: string;
   messages: Message[];
   toolChoice?: "auto" | "none";
+  maxTokens?: number;
 }
 
 export async function callGroq(options: GroqOptions): Promise<any> {
-  const { apiKey, model, messages, toolChoice = "auto" } = options;
+  const { apiKey, model, messages, toolChoice = "auto", maxTokens = 1024 } = options;
 
   const requestPayload: any = {
     model,
     messages,
     temperature: 0.4,
-    max_tokens: 1024,
+    max_tokens: maxTokens,
     stream: false,
   };
 

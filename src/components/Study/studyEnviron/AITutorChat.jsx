@@ -131,7 +131,7 @@ const AITutorChat = ({
                 onClick={() => onActionExecute && onActionExecute({ type: "open_quiz", data })}
                 className="rounded-lg bg-purple-600 px-2.5 py-1 text-xs font-semibold text-white hover:bg-purple-700 transition"
               >
-                Start Quizicle
+                Open practice set
               </button>
             )}
           </div>

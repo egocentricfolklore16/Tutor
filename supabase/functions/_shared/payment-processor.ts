@@ -148,6 +148,16 @@ export async function processVerifiedPayment({
     .eq("user_id", userId)
     .maybeSingle();
 
+  // Concurrent idempotency check: if existingSub was already updated with this payment_id, return early
+  if (existingSub && existingSub.payment_id === paymentRow.id) {
+    return {
+      payment: paymentRow,
+      subscription: existingSub,
+      plan,
+      alreadyProcessed: true,
+    };
+  }
+
   const now = new Date();
   let periodStart = now.toISOString();
   let baseDate = now;

@@ -56,12 +56,28 @@ export const TOOL_SCHEMAS = [
       parameters: {
         type: "object",
         properties: {
-          topic: { type: "string" },
+          topic: { type: "string", description: "The topic to assess, grounded in the current session materials." },
           question_count: { type: "integer", minimum: 1, maximum: 20 },
           difficulty: { type: "string", enum: ["easy", "medium", "hard"] },
-          focus_areas: { type: "array", items: { type: "string" }, description: "Optional. Sub-topics to emphasise." }
+          focus_areas: { type: "array", items: { type: "string" }, description: "Optional. Sub-topics to emphasise." },
+          questions: {
+            type: "array",
+            minItems: 1,
+            maxItems: 20,
+            description: "The complete quiz. Write clear multiple-choice questions with one unambiguous correct answer and a concise teaching explanation.",
+            items: {
+              type: "object",
+              properties: {
+                question: { type: "string" },
+                options: { type: "array", minItems: 2, maxItems: 4, items: { type: "string" } },
+                correct_answer: { type: "string", description: "Must exactly match one option." },
+                explanation: { type: "string" }
+              },
+              required: ["question", "options", "correct_answer", "explanation"]
+            }
+          }
         },
-        required: ["topic", "question_count", "difficulty"]
+        required: ["topic", "question_count", "difficulty", "questions"]
       }
     }
   },

@@ -3,7 +3,6 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import { BookOpen, CalendarCheck, Clock3, Library, Loader2, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
-import PageContainer from "../common/PageContainer";
 import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
 
@@ -90,7 +89,8 @@ function Progress() {
   ];
 
   return (
-    <PageContainer maxWidth="max-w-6xl">
+    <main className="min-h-screen bg-slate-50 px-5 py-8 md:px-10">
+      <div className="mx-auto max-w-6xl">
         <header className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">Your learning journey</p>
           <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Progress</h1>
@@ -115,7 +115,8 @@ function Progress() {
           <AchievementsCard />
           <Leaderboard />
         </section>
-    </PageContainer>
+      </div>
+    </main>
   );
 }
 

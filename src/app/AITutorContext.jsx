@@ -33,7 +33,6 @@ export function AITutorProvider({ children, session }) {
   const [minutesRemaining, setMinutesRemaining] = useState(0);
   const [panel, setPanel] = useState("none");
   const [quizInProgress, setQuizInProgress] = useState(null);
-  const [requestedQuizId, setRequestedQuizId] = useState(null);
 
   // Throttle references
   const lastEventTimeRef = useRef(0);
@@ -225,14 +224,12 @@ export function AITutorProvider({ children, session }) {
         setMinutesRemaining,
         setPanel,
         setQuizInProgress,
-        setRequestedQuizId,
         activeSessionId,
         focusMode,
         pomodoroState,
         minutesRemaining,
         panel,
         quizInProgress,
-        requestedQuizId,
       }}
     >
       {children}
@@ -245,7 +242,6 @@ export function useAITutor() {
     useContext(AITutorContext) || {
       isOpen: false,
       hasUnread: false,
-      handleToggle: () => {},
       messages: [],
       currentMessage: "",
       setCurrentMessage: () => {},
@@ -260,9 +256,6 @@ export function useAITutor() {
       setMinutesRemaining: () => {},
       setPanel: () => {},
       setQuizInProgress: () => {},
-      setRequestedQuizId: () => {},
-      requestedQuizId: null,
-      panel: "none",
     }
   );
 }

@@ -290,74 +290,15 @@ export async function executeTool(
       };
     }
 
-    const { data: quiz, error: quizError } = await supabaseUserClient
-      .from("session_quizzes")
-      .insert({
-        session_id: currentSession?.id || null,
-        user_id: userId,
-        title: args.topic.trim(),
-        source: "ai",
-      })
-      .select("id, title")
-      .single();
-
-    if (quizError || !quiz) {
-      const errorMessage = quizError?.message || "Quiz record was not returned.";
-      return {
-        toolResultText: `Database error creating quiz: ${errorMessage}`,
-        action: {
-          type: "quiz",
-          status: "error",
-          summary: "Failed to save the generated quiz.",
-          data: { error: errorMessage },
-        },
-      };
-    }
-
-    const questionRows = (val.cleanQuestions || []).map((item, index) => ({
-      quiz_id: quiz.id,
-      user_id: userId,
-      position: index + 1,
-      question: item.question,
-      options: item.options,
-      correct_index: item.options.indexOf(item.correct_answer),
-      explanation: item.explanation,
-    }));
-
-    const { error: questionsError } = await supabaseUserClient
-      .from("session_quiz_questions")
-      .insert(questionRows);
-
-    if (questionsError) {
-      const { error: cleanupError } = await supabaseUserClient
-        .from("session_quizzes")
-        .delete()
-        .eq("id", quiz.id);
-      if (cleanupError) {
-        console.error("Failed to remove incomplete AI-generated quiz:", cleanupError);
-      }
-      return {
-        toolResultText: `Database error saving quiz questions: ${questionsError.message}`,
-        action: {
-          type: "quiz",
-          status: "error",
-          summary: "Failed to save the generated quiz questions.",
-          data: { error: questionsError.message },
-        },
-      };
-    }
-
     return {
-      toolResultText: `Successfully created a ${questionRows.length}-question quiz on "${quiz.title}".`,
+      toolResultText: "Quiz request accepted; opening Quizicle.",
       action: {
         type: "quiz",
         status: "success",
-        summary: `Created a ${questionRows.length}-question quiz on "${quiz.title}" (${args.difficulty})`,
+        summary: `Quiz ready on "${args.topic}" (${args.question_count} questions, ${args.difficulty})`,
         data: {
-          quiz_id: quiz.id,
-          title: quiz.title,
           topic: args.topic.trim(),
-          question_count: questionRows.length,
+          question_count: args.question_count,
           difficulty: args.difficulty,
           focus_areas: args.focus_areas || [],
         },

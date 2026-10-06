@@ -204,6 +204,7 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
+    payment_id: "payment-uuid-999",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
   };
@@ -227,6 +228,81 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
   assert.strictEqual(result.alreadyProcessed, true);
   assert.strictEqual(result.payment.reference, "ref_already_processed");
   assert.strictEqual(result.subscription.current_period_start, "2025-05-01T00:00:05.000Z");
+});
+
+test("processVerifiedPayment recovers subscription when payment exists but subscription write was previously missed", async () => {
+  const existingPayment = {
+    id: "payment-uuid-999",
+    user_id: "user-uuid-111",
+    reference: "ref_unrecovered",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-888",
+    user_id: "user-uuid-111",
+    plan_id: "free",
+    status: "active",
+    payment_id: null,
+    current_period_start: "2025-01-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_unrecovered",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.subscription.plan_id, "pro");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-123");
+});
+
+test("processVerifiedPayment handles concurrent race condition when subscription payment_id matches paymentRow.id in step 5", async () => {
+  // Simulate concurrent thread updating subscription right after step 4
+  const existingSub = {
+    id: "sub-uuid-888",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-123", // Matches mocked upsert payment ID
+    current_period_start: "2025-05-01T00:00:00.000Z",
+    current_period_end: "2025-06-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_concurrent_race",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.subscription.current_period_end, "2025-06-01T00:00:00.000Z");
 });
 
 test("processVerifiedPayment extends current_period_end when renewing active same-plan subscription", async () => {
@@ -299,36 +375,4 @@ test("processVerifiedPayment resets period to now when upgrading plan", async ()
 
   assert.strictEqual(result.alreadyProcessed, false);
   assert.notStrictEqual(result.subscription.current_period_start, "2025-01-01T00:00:00.000Z");
-});
-
-test("processVerifiedPayment is idempotent when existing subscription already references current payment_id", async () => {
-  const existingSub = {
-    id: "sub-uuid-111",
-    user_id: "user-uuid-111",
-    plan_id: "pro",
-    status: "active",
-    payment_id: "payment-uuid-123",
-    current_period_start: "2025-05-01T00:00:00.000Z",
-    current_period_end: "2025-06-01T00:00:00.000Z",
-  };
-
-  const mockClient = createMockSupabaseClient({ existingSub });
-
-  const result = await processVerifiedPayment({
-    supabaseClient: mockClient,
-    reference: "ref_concurrent_race_4001",
-    paystackData: {
-      amount: 250000,
-      currency: "NGN",
-      status: "success",
-      metadata: {
-        planId: "pro",
-        userId: "user-uuid-111",
-      },
-    },
-  });
-
-  assert.strictEqual(result.alreadyProcessed, true);
-  assert.strictEqual(result.subscription.payment_id, "payment-uuid-123");
-  assert.strictEqual(result.subscription.current_period_end, "2025-06-01T00:00:00.000Z");
 });

@@ -111,12 +111,15 @@ export async function processVerifiedPayment({
       .eq("user_id", userId)
       .maybeSingle();
 
-    return {
-      payment: existingPayment,
-      subscription: existingSub,
-      plan,
-      alreadyProcessed: true,
-    };
+    // Verify value was actually granted on subscription; if subscription write previously failed or was missed, proceed to step 4-6 to complete entitlement recovery.
+    if (existingSub && existingSub.payment_id === existingPayment.id) {
+      return {
+        payment: existingPayment,
+        subscription: existingSub,
+        plan,
+        alreadyProcessed: true,
+      };
+    }
   }
 
   // 4. Upsert into `payments` table keyed on unique reference (idempotent)
@@ -148,7 +151,7 @@ export async function processVerifiedPayment({
     .eq("user_id", userId)
     .maybeSingle();
 
-  // Concurrent idempotency check: if existingSub was already updated with this payment_id, return early
+  // Concurrent race condition guard: if another thread/webhook updated subscriptions for this payment ID while step 4 was executing, do not double-grant.
   if (existingSub && existingSub.payment_id === paymentRow.id) {
     return {
       payment: paymentRow,

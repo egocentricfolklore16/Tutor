@@ -1,11 +1,10 @@
 import React from "react";
 import { createPortal } from "react-dom";
 import { Sparkles } from "lucide-react";
-import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
-const GlobalAITutorFab = ({ session }) => {
+const GlobalAITutorFab = () => {
   const {
     isOpen,
     handleToggle,
@@ -16,21 +15,10 @@ const GlobalAITutorFab = ({ session }) => {
     sendMessage,
     clearMessages,
     isTyping,
-    setPanel,
-    setRequestedQuizId,
   } = useAITutor();
-
-  const { profile } = useProfile();
 
   const handleSendMessage = () => {
     sendMessage();
-  };
-
-  const handleActionExecute = (action) => {
-    if (action?.type !== "open_quiz" || !action.data?.quiz_id) return;
-    setRequestedQuizId(action.data.quiz_id);
-    setPanel("quizzes");
-    handleToggle();
   };
 
   return (
@@ -73,7 +61,6 @@ const GlobalAITutorFab = ({ session }) => {
             onSendMessage={handleSendMessage}
             onClear={clearMessages}
             isTyping={isTyping}
-            onActionExecute={handleActionExecute}
             width={380}
             theme={{ accentButton: "bg-indigo-600 hover:bg-indigo-700", accentBg: "bg-indigo-100" }}
           />

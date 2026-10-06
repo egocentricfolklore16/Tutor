@@ -1,21 +1,19 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  Award,
-  BookOpen,
   Check,
   CheckCircle2,
   CircleAlert,
   ClipboardList,
   HelpCircle,
   Loader2,
+  Plus,
   RotateCcw,
   Sparkles,
-  Star,
   Target,
   Trophy,
-  XCircle,
   X,
+  XCircle,
 } from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
@@ -42,21 +40,24 @@ function cleanQuizString(value) {
     .replace(/,\s*$/, "")
     .trim();
 
-  if (
-    (cleaned.startsWith("{") && cleaned.endsWith("}")) ||
-    (cleaned.startsWith("[") && cleaned.endsWith("]"))
-  ) {
+  if ((cleaned.startsWith("{") && cleaned.endsWith("}")) || (cleaned.startsWith("[") && cleaned.endsWith("]"))) {
     try {
       const parsed = JSON.parse(cleaned);
       if (typeof parsed === "string") {
         cleaned = parsed;
       } else if (parsed && typeof parsed === "object") {
-        if (parsed.question || parsed.answer || parsed.correct_answer || parsed.correctAnswer || parsed.options) {
+        if (
+          parsed.question ||
+          parsed.answer ||
+          parsed.correct_answer ||
+          parsed.correctAnswer ||
+          parsed.options
+        ) {
           cleaned = parsed.question ?? parsed.answer ?? parsed.correct_answer ?? parsed.correctAnswer ?? "";
         }
       }
     } catch {
-      // fall through to simple string cleanup
+      // fall through to simple cleanup
     }
   }
 
@@ -91,8 +92,8 @@ function normalizeQuizQuestion(row, position) {
     throw new Error(`Question ${position + 1} has no question text.`);
   }
 
-  const rawCorrectIndex = row.correct_index ?? row.correctIndex ?? row.correct_index ?? row.correctIndex;
-  const rawCorrectAnswer = row.correct_answer ?? row.correctAnswer ?? row.answer ?? row.correct ?? null;
+  const rawCorrectIndex = row.correct_index ?? row.correctIndex;
+  const rawCorrectAnswer = row.correct_answer ?? row.correctAnswer ?? row.answer ?? null;
   let correctIndex = -1;
 
   if (typeof rawCorrectIndex === "number" && Number.isInteger(rawCorrectIndex)) {
@@ -154,7 +155,6 @@ function QuizModal({
   const remaining = quiz ? quiz.questions.length - answeredCount : 0;
   const scorePercent = result ? Math.round((result.score / result.total) * 100) : 0;
   const ringColor = scorePercent < 50 ? "text-red-600 dark:text-red-400" : scorePercent < 80 ? "text-amber-600 dark:text-amber-400" : "text-green-600 dark:text-green-400";
-  const scoreIcon = scorePercent < 50 ? <BookOpen className="h-7 w-7 text-red-600 dark:text-red-400" aria-hidden="true" /> : scorePercent < 80 ? <Award className="h-7 w-7 text-amber-600 dark:text-amber-400" aria-hidden="true" /> : <Star className="h-7 w-7 text-green-600 dark:text-green-400" aria-hidden="true" />;
   const headline = scorePercent < 50 ? "Study more!" : scorePercent < 80 ? "Good job!" : "Excellent!";
   const circumference = 2 * Math.PI * 48;
 
@@ -166,13 +166,7 @@ function QuizModal({
   };
 
   const interactionRef = useRef({});
-  interactionRef.current = {
-    quiz,
-    isResults,
-    focusedQuestionIndex,
-    handleClose,
-    onSelectAnswer,
-  };
+  interactionRef.current = { quiz, isResults, focusedQuestionIndex, handleClose, onSelectAnswer };
 
   useEffect(() => {
     if (!result) {
@@ -196,12 +190,12 @@ function QuizModal({
     document.body.style.overflow = "hidden";
     closeButtonRef.current?.focus();
 
-    const isTypingTarget = (target) => target instanceof HTMLElement && (
-      target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.tagName === "SELECT" ||
-      target.isContentEditable
-    );
+    const isTypingTarget = (target) =>
+      target instanceof HTMLElement &&
+      (target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.tagName === "SELECT" ||
+        target.isContentEditable);
 
     const handleKeyDown = (event) => {
       if (isTypingTarget(event.target)) return;
@@ -219,29 +213,6 @@ function QuizModal({
         if (question && selectedIndex < question.options.length) {
           event.preventDefault();
           interactionRef.current.onSelectAnswer(question.id, selectedIndex);
-          const option = modalRef.current?.querySelector(
-            `[data-question-id="${CSS.escape(question.id)}"] [data-option-index="${selectedIndex}"]`
-          );
-          option?.focus();
-        }
-        return;
-      }
-
-      if (event.key === "Tab" && modalRef.current) {
-        const focusable = [...modalRef.current.querySelectorAll(
-          'button:not([disabled]), [tabindex="0"], [role="radio"][tabindex="0"]'
-        )].filter((element) => !element.hasAttribute("hidden"));
-
-        if (!focusable.length) return;
-
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
         }
       }
     };
@@ -262,8 +233,6 @@ function QuizModal({
   const accentSurface = theme?.quizAccentSurface || "bg-green-50 dark:bg-green-950/35";
   const accentBorder = theme?.quizAccentBorder || "border-green-500 dark:border-green-400";
   const accentText = theme?.quizAccentText || "text-green-700 dark:text-green-300";
-
-  const handleFocusQuestion = (index) => setFocusedQuestionIndex(index);
 
   return createPortal(
     <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm dark:bg-black/70">
@@ -321,7 +290,7 @@ function QuizModal({
           )}
         </header>
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6 [&::-webkit-scrollbar]:h-1.5 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-thumb]:bg-slate-300 dark:[&::-webkit-scrollbar-thumb]:bg-slate-700">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
           {isResults ? (
             <div className="space-y-7">
               <section className="flex flex-col items-center text-center">
@@ -345,7 +314,6 @@ function QuizModal({
                     {scorePercent}%
                   </span>
                 </div>
-                <div className="mb-2">{scoreIcon}</div>
                 <h3 className="text-2xl font-extrabold tracking-tight">{headline}</h3>
                 <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
                   {result.score} correct out of {result.total} questions
@@ -430,7 +398,7 @@ function QuizModal({
                   key={question.id}
                   data-question-id={question.id}
                   tabIndex={0}
-                  onFocus={() => handleFocusQuestion(questionIndex)}
+                  onFocus={() => setFocusedQuestionIndex(questionIndex)}
                   className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900/45 dark:focus-visible:ring-slate-500 sm:p-5"
                 >
                   <div className="flex items-start gap-3">
@@ -454,7 +422,7 @@ function QuizModal({
                           role="radio"
                           aria-checked={isSelected}
                           tabIndex={isSelected || (answers[question.id] === undefined && optionIndex === 0) ? 0 : -1}
-                          onFocus={() => handleFocusQuestion(questionIndex)}
+                          onFocus={() => setFocusedQuestionIndex(questionIndex)}
                           onClick={() => onSelectAnswer(question.id, optionIndex)}
                           className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-normal leading-6 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:px-4 ${
                             isSelected
@@ -512,18 +480,31 @@ function QuizModal({
   );
 }
 
+const emptyQuizDraft = {
+  title: "",
+  question: "",
+  optionA: "",
+  optionB: "",
+  optionC: "",
+  optionD: "",
+  correctIndex: 0,
+  explanation: "",
+};
+
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, requestedQuizId, onQuizOpened }) {
-  const { setQuizInProgress, sendTutorEvent, handleToggle, isOpen, setCurrentMessage } = useAITutor();
+  const { setQuizInProgress } = useAITutor();
   const [quizzes, setQuizzes] = useState([]);
+  const [draft, setDraft] = useState(emptyQuizDraft);
   const [quizAttemptsMap, setQuizAttemptsMap] = useState({});
-  const [reviewingQuizMap, setReviewingQuizMap] = useState({});
-  const [activeQuizId, setActiveQuizId] = useState(null);
-  const [answers, setAnswers] = useState({});
-  const [result, setResult] = useState(null);
-  const [lastCompleted, setLastCompleted] = useState(null);
+  const [selectedAnswersMap, setSelectedAnswersMap] = useState({});
+  const [retakingQuizMap, setRetakingQuizMap] = useState({});
+  const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const [activeQuizId, setActiveQuizId] = useState(null);
+  const [answers, setAnswers] = useState({});
+  const [result, setResult] = useState(null);
   const requestedLookupRef = useRef(null);
 
   const loadQuizzes = useCallback(async () => {
@@ -538,36 +519,41 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
     try {
       let activeUserId = userId;
       if (!activeUserId) {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
         if (authError) throw authError;
         activeUserId = user?.id;
       }
 
       const { data: quizData, error: quizError } = await supabase
         .from("session_quizzes")
-        .select(`
-          id, session_id, user_id, title, source, created_at,
-          questions:session_quiz_questions(id, quiz_id, position, question, options, correct_index, explanation)
-        `)
+        .select(
+          `id, session_id, user_id, title, source, created_at, questions:session_quiz_questions(id, quiz_id, position, question, options, correct_index, explanation)`
+        )
         .eq("session_id", studyId)
         .order("created_at", { ascending: false });
 
       if (quizError) throw quizError;
 
-      const quizList = (quizData || []).map((quiz) => ({
+      const normalizedQuizList = (quizData || []).map((quiz) => ({
         ...quiz,
         questions: [...(quiz.questions || [])]
           .sort((a, b) => a.position - b.position)
           .map((question, index) => normalizeQuizQuestion(question, index)),
       }));
 
-      setQuizzes(quizList);
+      setQuizzes(normalizedQuizList);
 
-      if (quizList.length > 0 && activeUserId) {
+      if (normalizedQuizList.length > 0 && activeUserId) {
         const { data: attemptsData, error: attemptsError } = await supabase
           .from("session_quiz_attempts")
           .select("id, quiz_id, score, total, answers, created_at")
-          .in("quiz_id", quizList.map((quiz) => quiz.id))
+          .in(
+            "quiz_id",
+            normalizedQuizList.map((quiz) => quiz.id)
+          )
           .eq("user_id", activeUserId)
           .order("created_at", { ascending: false });
 
@@ -580,8 +566,6 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         });
 
         setQuizAttemptsMap(attemptsByQuiz);
-      } else {
-        setQuizAttemptsMap({});
       }
     } catch (err) {
       setError(err.message || "Failed to load quizzes.");
@@ -599,58 +583,49 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
     [quizzes]
   );
 
-  const activeQuiz = quizzes.find((quiz) => String(quiz.id) === String(activeQuizId));
+  const activeQuiz = useMemo(
+    () => quizzes.find((quiz) => String(quiz.id) === String(activeQuizId)),
+    [quizzes, activeQuizId]
+  );
 
-  const startQuiz = useCallback((quizId) => {
-    const quiz = quizzes.find((item) => String(item.id) === String(quizId));
-    if (!quiz?.questions?.length) {
-      setError("This quiz does not have any questions yet.");
-      return;
-    }
+  const startQuiz = useCallback(
+    (quizId) => {
+      const quiz = quizzes.find((item) => String(item.id) === String(quizId));
+      if (!quiz?.questions?.length) {
+        setError("This quiz does not have any questions yet.");
+        return;
+      }
 
-    setError("");
-    setResult(null);
-    setActiveQuizId(quiz.id);
-    setAnswers({});
-    setLastCompleted(null);
-    setQuizInProgress({
-      quiz_id: quiz.id,
-      title: quiz.title,
-      question_number: 1,
-      total: quiz.questions.length,
-    });
-  }, [quizzes, setQuizInProgress]);
+      setError("");
+      setResult(null);
+      setActiveQuizId(String(quiz.id));
+      setAnswers({});
+      setQuizInProgress({
+        quiz_id: quiz.id,
+        title: quiz.title,
+        question_number: 1,
+        total: quiz.questions.length,
+      });
+    },
+    [quizzes, setQuizInProgress]
+  );
 
   useEffect(() => {
     if (!requestedQuizId || isLoading) return;
 
     const requestedQuiz = quizzes.find((quiz) => String(quiz.id) === String(requestedQuizId));
-    if (requestedQuiz) {
-      startQuiz(requestedQuiz.id);
-      requestedLookupRef.current = null;
-      onQuizOpened?.();
-      return;
-    }
-
-    if (requestedLookupRef.current !== String(requestedQuizId)) {
+    if (requestedQuiz && requestedLookupRef.current !== String(requestedQuizId)) {
       requestedLookupRef.current = String(requestedQuizId);
-      loadQuizzes();
-    } else {
-      setError("That practice set could not be found in this study session. Refresh your library and try again.");
+      startQuiz(requestedQuiz.id);
+      onQuizOpened?.();
     }
-  }, [requestedQuizId, quizzes, isLoading, startQuiz, onQuizOpened, loadQuizzes]);
-
-  const closeQuiz = useCallback(() => {
-    setActiveQuizId(null);
-    setResult(null);
-    setQuizInProgress(null);
-  }, [setQuizInProgress]);
+  }, [requestedQuizId, quizzes, isLoading, startQuiz, onQuizOpened]);
 
   const selectAnswer = useCallback((questionId, selectedIndex) => {
     setAnswers((current) => ({ ...current, [questionId]: selectedIndex }));
   }, []);
 
-  const finishQuiz = async () => {
+  const finishQuiz = useCallback(async () => {
     if (!activeQuiz || savingId) return;
 
     setSavingId(activeQuiz.id);
@@ -659,7 +634,10 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
     try {
       let activeUserId = userId;
       if (!activeUserId) {
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
         if (authError) throw authError;
         activeUserId = user?.id;
       }
@@ -668,10 +646,11 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
 
       const attemptAnswers = activeQuiz.questions.map((question) => {
         const selectedIndex = answers[question.id];
+        const isCorrect = selectedIndex === question.correctIndex;
         return {
           question_id: question.id,
           selected_index: selectedIndex,
-          correct: selectedIndex === question.correctIndex,
+          correct: isCorrect,
         };
       });
 
@@ -690,13 +669,17 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
 
       if (attemptError) throw attemptError;
 
-      setQuizAttemptsMap((previous) => ({
-        ...previous,
-        [activeQuiz.id]: [attempt, ...(previous[activeQuiz.id] || [])],
+      setQuizAttemptsMap((current) => ({
+        ...current,
+        [activeQuiz.id]: [attempt, ...(current[activeQuiz.id] || [])],
       }));
 
-      setLastCompleted({ quizId: activeQuiz.id, score, total: activeQuiz.questions.length });
-      setResult({ quiz: activeQuiz, answers: { ...answers }, score, total: activeQuiz.questions.length });
+      setResult({
+        quiz: activeQuiz,
+        answers,
+        score,
+        total: activeQuiz.questions.length,
+      });
       setActiveQuizId(null);
       setQuizInProgress(null);
 
@@ -705,7 +688,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
           id: crypto.randomUUID(),
           type: "quiz",
           refId: String(activeQuiz.id),
-          title: `Quiz completed: ${activeQuiz.title} (${score}/${activeQuiz.questions.length})`,
+          title: `Quiz completed: ${activeQuiz.title}`,
           timestamp: new Date().toISOString(),
         });
       }
@@ -716,73 +699,268 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         total: activeQuiz.questions.length,
       });
     } catch (err) {
-      setError(`Unable to save your quiz result: ${err.message}`);
+      setError(err.message || "Failed to submit quiz.");
     } finally {
       setSavingId(null);
     }
-  };
+  }, [activeQuiz, answers, onTimelineEvent, savingId, sendTutorEvent, setQuizInProgress, userId]);
 
-  const tryAgain = () => {
-    const quizId = result?.quiz.id;
-    setResult(null);
-    if (quizId) startQuiz(quizId);
-  };
+  const createQuizWithQuestion = async (event) => {
+    event.preventDefault();
 
-  const askTutorToCreateQuiz = () => {
-    setCurrentMessage(`Make me a ${topic ? `quiz on ${topic}` : "quiz"} using my study materials. Start with 5 questions at the session difficulty.`);
-    if (!isOpen) handleToggle();
-  };
+    if (!studyId) {
+      setError("Active study session required to create practice quizzes.");
+      return;
+    }
 
-  const attemptsCount = Object.values(quizAttemptsMap).reduce((count, attempts) => count + attempts.length, 0);
+    const title = draft.title.trim();
+    const question = draft.question.trim();
+    const optionA = draft.optionA.trim();
+    const optionB = draft.optionB.trim();
+    const optionC = draft.optionC.trim();
+    const optionD = draft.optionD.trim();
+
+    if (!title || !question || !optionA || !optionB) {
+      setError("Please provide a quiz title, question, and at least two options.");
+      return;
+    }
+
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError) {
+        setError(authError.message);
+        return;
+      }
+      activeUserId = user?.id;
+    }
+
+    if (!activeUserId) {
+      setError("User session invalid.");
+      return;
+    }
+
+    const optionsArray = [optionA, optionB];
+    if (optionC) optionsArray.push(optionC);
+    if (optionD) optionsArray.push(optionD);
+
+    const correctIndex = Number(draft.correctIndex);
+    if (!Number.isInteger(correctIndex) || correctIndex < 0 || correctIndex >= optionsArray.length) {
+      setError("The correct option must match a valid answer choice.");
+      return;
+    }
+
+    try {
+      const { data: quiz, error: quizError } = await supabase
+        .from("session_quizzes")
+        .insert({
+          session_id: studyId,
+          user_id: activeUserId,
+          title,
+          source: "user",
+        })
+        .select("id, title")
+        .single();
+
+      if (quizError || !quiz) throw quizError || new Error("Could not create quiz.");
+
+      const { error: questionError } = await supabase.from("session_quiz_questions").insert({
+        quiz_id: quiz.id,
+        user_id: activeUserId,
+        position: 1,
+        question,
+        options: optionsArray,
+        correct_index: correctIndex,
+        explanation: draft.explanation.trim() || null,
+      });
+
+      if (questionError) throw questionError;
+
+      if (onTimelineEvent) {
+        onTimelineEvent({
+          id: crypto.randomUUID(),
+          type: "quiz",
+          refId: String(quiz.id),
+          title: `Quiz created: ${title}`,
+          timestamp: new Date().toISOString(),
+        });
+      }
+
+      setDraft(emptyQuizDraft);
+      setIsAdding(false);
+      await loadQuizzes();
+    } catch (err) {
+      setError(err.message || "Failed to create quiz.");
+    }
+  };
 
   return (
     <>
+      {activeQuiz && (
+        <QuizModal
+          quiz={activeQuiz}
+          answers={answers}
+          theme={theme}
+          saving={Boolean(savingId)}
+          onSelectAnswer={selectAnswer}
+          onSubmit={finishQuiz}
+          onClose={() => {
+            setActiveQuizId(null);
+            setAnswers({});
+            setResult(null);
+            setQuizInProgress(null);
+          }}
+          onTryAgain={() => {
+            setAnswers({});
+            setResult(null);
+            setActiveQuizId(String(activeQuiz.id));
+          }}
+          onDone={() => {
+            setActiveQuizId(null);
+            setAnswers({});
+            setResult(null);
+            setQuizInProgress(null);
+          }}
+          result={result}
+        />
+      )}
+
       <div className="mb-8 space-y-6">
         <section className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#18211f]">
           <div className="bg-gradient-to-br from-violet-700 via-indigo-700 to-slate-900 px-6 py-7 text-white dark:from-violet-800 dark:via-indigo-900 dark:to-slate-950 sm:px-8">
             <div className="flex flex-col justify-between gap-5 sm:flex-row sm:items-end">
               <div>
-                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-violet-200 dark:text-violet-200">Quizicle · Active recall</p>
+                <p className="mb-2 text-xs font-bold uppercase tracking-[0.18em] text-violet-200">Quizicle · Active recall</p>
                 <h2 className="text-2xl font-black tracking-tight sm:text-3xl">Practice what you&apos;ve learned</h2>
-                <p className="mt-2 max-w-xl text-sm leading-6 text-indigo-100 dark:text-indigo-100">
+                <p className="mt-2 max-w-xl text-sm leading-6 text-indigo-100">
                   Work through a complete quiz, then review each answer and explanation.
                 </p>
               </div>
 
               <div className="flex gap-3">
-                <div className="rounded-2xl bg-white/10 px-4 py-3 dark:bg-white/5">
+                <div className="rounded-2xl bg-white/10 px-4 py-3">
                   <div className="text-xl font-black">{quizzes.length}</div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100 dark:text-indigo-100">Quizzes</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100">Quizzes</div>
                 </div>
-                <div className="rounded-2xl bg-white/10 px-4 py-3 dark:bg-white/5">
-                  <div className="text-xl font-black">{attemptsCount}</div>
-                  <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100 dark:text-indigo-100">Attempts</div>
+                <div className="rounded-2xl bg-white/10 px-4 py-3">
+                  <div className="text-xl font-black">{totalQuestions}</div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-indigo-100">Questions</div>
                 </div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 p-4 sm:p-6">
-            {error && (
-              <div role="alert" className="flex items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-700 dark:border-red-900/70 dark:bg-red-950/35 dark:text-red-300">
-                <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                <span>{error}</span>
+          <div className="p-5 sm:p-6">
+            <div className="mb-5 flex items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Session practice</h3>
+                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Topic: {topic || "General study"}
+                </p>
               </div>
+
+              <button
+                type="button"
+                onClick={() => setIsAdding((current) => !current)}
+                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f]"
+              >
+                {isAdding ? <X className="h-4 w-4" /> : <Plus className="h-4 w-4" />}
+                {isAdding ? "Cancel" : "Create quiz"}
+              </button>
+            </div>
+
+            {isAdding && (
+              <form onSubmit={createQuizWithQuestion} className="mb-6 grid gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-5 dark:border-slate-700 dark:bg-slate-900/45">
+                <h4 className="font-bold text-slate-900 dark:text-slate-100">Create New Session Quiz</h4>
+                <input
+                  value={draft.title}
+                  onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))}
+                  placeholder="Quiz Title / Topic"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  disabled={!studyId}
+                  required
+                />
+                <textarea
+                  value={draft.question}
+                  onChange={(event) => setDraft((current) => ({ ...current, question: event.target.value }))}
+                  placeholder="Question"
+                  className="min-h-[90px] rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  disabled={!studyId}
+                  required
+                />
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <input
+                    value={draft.optionA}
+                    onChange={(event) => setDraft((current) => ({ ...current, optionA: event.target.value }))}
+                    placeholder="Option A"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    disabled={!studyId}
+                    required
+                  />
+                  <input
+                    value={draft.optionB}
+                    onChange={(event) => setDraft((current) => ({ ...current, optionB: event.target.value }))}
+                    placeholder="Option B"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    disabled={!studyId}
+                    required
+                  />
+                  <input
+                    value={draft.optionC}
+                    onChange={(event) => setDraft((current) => ({ ...current, optionC: event.target.value }))}
+                    placeholder="Option C (optional)"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    disabled={!studyId}
+                  />
+                  <input
+                    value={draft.optionD}
+                    onChange={(event) => setDraft((current) => ({ ...current, optionD: event.target.value }))}
+                    placeholder="Option D (optional)"
+                    className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    disabled={!studyId}
+                  />
+                </div>
+
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
+                  Correct option
+                  <select
+                    value={draft.correctIndex}
+                    onChange={(event) => setDraft((current) => ({ ...current, correctIndex: Number(event.target.value) }))}
+                    className="mt-1 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                    disabled={!studyId}
+                  >
+                    <option value={0}>Option A</option>
+                    <option value={1}>Option B</option>
+                    {draft.optionC.trim() && <option value={2}>Option C</option>}
+                    {draft.optionD.trim() && <option value={3}>Option D</option>}
+                  </select>
+                </label>
+
+                <input
+                  value={draft.explanation}
+                  onChange={(event) => setDraft((current) => ({ ...current, explanation: event.target.value }))}
+                  placeholder="Explanation for the correct answer (optional)"
+                  className="rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-sm outline-none focus:ring-2 focus:ring-purple-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
+                  disabled={!studyId}
+                />
+
+                <button
+                  type="submit"
+                  disabled={!studyId}
+                  className="mt-2 inline-flex w-fit items-center gap-2 rounded-xl bg-slate-900 px-4 py-2.5 text-xs font-bold text-white shadow-md hover:bg-slate-800 disabled:opacity-50"
+                >
+                  <Plus className="h-4 w-4" /> Save Practice Quiz
+                </button>
+              </form>
             )}
 
-            {lastCompleted && !activeQuiz && !result && (
-              <div role="status" className="flex flex-col justify-between gap-3 rounded-2xl border border-green-200 bg-green-50 p-4 dark:border-green-900/70 dark:bg-green-950/30 sm:flex-row sm:items-center">
-                <div>
-                  <p className="font-bold text-green-900 dark:text-green-200">Practice set complete</p>
-                  <p className="mt-1 text-sm text-green-800 dark:text-green-300">You scored {lastCompleted.score} out of {lastCompleted.total}. Your answers and explanations are saved below.</p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => setReviewingQuizMap((previous) => ({ ...previous, [lastCompleted.quizId]: true }))}
-                  className="rounded-lg bg-white px-3 py-2 text-xs font-bold text-green-800 shadow-sm hover:bg-green-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:bg-slate-800 dark:text-green-300 dark:hover:bg-slate-700 dark:focus-visible:ring-green-400"
-                >
-                  Review answers
-                </button>
+            {error && (
+              <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+                {error}
               </div>
             )}
 
@@ -798,30 +976,25 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                 </div>
                 <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100">Your first practice set starts with a conversation</h3>
                 <p className="mx-auto mt-2 max-w-lg text-sm leading-6 text-slate-500 dark:text-slate-400">
-                  Ask your tutor to build questions from this session&apos;s materials. You can choose a topic, difficulty, and what you want to practise.
+                  Ask your tutor to build questions from this session&apos;s materials or create a practice set manually.
                 </p>
-                <button
-                  type="button"
-                  onClick={askTutorToCreateQuiz}
-                  className="mt-5 inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-3 text-sm font-bold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f]"
-                >
-                  <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  Ask my tutor for a quiz
-                </button>
-                <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">No content is generated until you ask.</p>
+                <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">No content is generated until you ask or create one.</p>
               </div>
             ) : (
               <div className="flex w-full flex-col gap-3">
                 {quizzes.map((quiz) => {
                   const attempts = quizAttemptsMap[quiz.id] || [];
                   const latestAttempt = attempts[0];
-                  const bestScore = attempts.reduce((best, attempt) => Math.max(best, Number(attempt.score || 0)), 0);
+                  const isRetaking = retakingQuizMap[quiz.id];
+                  const selectedIndex = selectedAnswersMap[quiz.id];
 
                   return (
                     <article key={quiz.id} className="w-full rounded-2xl border border-slate-200 bg-white p-5 transition hover:border-indigo-300 hover:shadow-sm dark:border-slate-700 dark:bg-slate-900/45 dark:hover:border-indigo-700">
                       <div className="flex items-start justify-between gap-3">
                         <div>
-                          <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">{quiz.source === "ai" ? "Tutor-made" : "Practice set"}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">
+                            {quiz.source === "ai" ? "Tutor-made" : "Practice set"}
+                          </p>
                           <h3 className="mt-1 font-bold text-slate-900 dark:text-slate-100">{quiz.title}</h3>
                         </div>
                         <span className="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -829,40 +1002,78 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                         </span>
                       </div>
 
-                      {latestAttempt ? (
+                      {latestAttempt && !isRetaking ? (
                         <div className="mt-4 flex items-center justify-between rounded-xl bg-slate-50 px-3 py-2.5 text-xs dark:bg-slate-800/70">
                           <span className="font-semibold text-slate-600 dark:text-slate-300">
                             Latest {latestAttempt.score}/{latestAttempt.total}
-                            {attempts.length > 1 && ` · best ${bestScore}/${latestAttempt.total}`}
                           </span>
                           <button
                             type="button"
-                            onClick={() => setReviewingQuizMap((previous) => ({ ...previous, [quiz.id]: !previous[quiz.id] }))}
-                            className="rounded font-bold text-indigo-700 hover:text-indigo-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-300 dark:hover:text-indigo-200 dark:focus-visible:ring-indigo-400"
+                            onClick={() => setRetakingQuizMap((current) => ({ ...current, [quiz.id]: true }))}
+                            className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition dark:bg-slate-900 dark:text-slate-200 dark:border-slate-700"
                           >
-                            {reviewingQuizMap[quiz.id] ? "Hide review" : "Review"}
+                            <RotateCcw className="h-3.5 w-3.5" /> Retake
                           </button>
                         </div>
                       ) : (
                         <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Ready when you are. Take your time and learn from each answer.</p>
                       )}
 
-                      {reviewingQuizMap[quiz.id] && latestAttempt && (
+                      {latestAttempt && isRetaking ? (
+                        <div className="mt-4 space-y-3 rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-700 dark:bg-slate-900/40">
+                          {quiz.questions.map((question, idx) => (
+                            <div key={question.id} className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs dark:border-slate-700 dark:bg-slate-900">
+                              <p className="break-words font-semibold text-slate-800 dark:text-slate-200">
+                                {idx + 1}. {question.question}
+                              </p>
+                              {Array.isArray(question.options) && question.options.map((option, optionIndex) => (
+                                <button
+                                  key={`${question.id}-${optionIndex}`}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedAnswersMap((current) => ({ ...current, [quiz.id]: optionIndex }));
+                                    setRetakingQuizMap((current) => ({ ...current, [quiz.id]: false }));
+                                    setQuizInProgress({
+                                      quiz_id: quiz.id,
+                                      title: quiz.title,
+                                      question_number: 1,
+                                      total: 1,
+                                    });
+                                    setActiveQuizId(String(quiz.id));
+                                    setAnswers({ [question.id]: optionIndex });
+                                  }}
+                                  className="mt-2 block w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-left text-slate-800 hover:border-purple-300 hover:bg-purple-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                                >
+                                  <strong>{String.fromCharCode(65 + optionIndex)}.</strong> {option}
+                                </button>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      ) : null}
+
+                      {latestAttempt && !isRetaking && quiz.questions.length > 0 && (
                         <div className="mt-3 space-y-2">
-                          {(latestAttempt.answers || []).map((answer, index) => {
+                          {latestAttempt.answers?.map((answer, index) => {
                             const question = quiz.questions.find((item) => item.id === answer.question_id) || quiz.questions[index];
                             if (!question) return null;
 
                             return (
                               <div key={answer.question_id || index} className="rounded-xl border border-slate-200 p-3 text-xs dark:border-slate-700">
-                                <p className="break-words font-semibold text-slate-800 dark:text-slate-200">{index + 1}. {question.question}</p>
+                                <p className="break-words font-semibold text-slate-800 dark:text-slate-200">
+                                  {index + 1}. {question.question}
+                                </p>
                                 <p className={`mt-1 font-semibold ${answer.correct ? "text-green-700 dark:text-green-400" : "text-red-700 dark:text-red-400"}`}>
                                   Your answer: {question.options?.[answer.selected_index] || "Not answered"}
                                 </p>
                                 {!answer.correct && (
-                                  <p className="mt-1 text-green-700 dark:text-green-400">Correct answer: {question.options?.[question.correctIndex]}</p>
+                                  <p className="mt-1 text-green-700 dark:text-green-400">
+                                    Correct answer: {question.options?.[question.correctIndex]}
+                                  </p>
                                 )}
-                                {question.explanation && <p className="mt-1 leading-5 text-slate-500 dark:text-slate-400">{question.explanation}</p>}
+                                {question.explanation && (
+                                  <p className="mt-1 leading-5 text-slate-500 dark:text-slate-400">{question.explanation}</p>
+                                )}
                               </div>
                             );
                           })}
@@ -872,7 +1083,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                       <button
                         type="button"
                         onClick={() => startQuiz(quiz.id)}
-                        className={`mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${theme?.quizAccentButton || "bg-green-600 text-white hover:bg-green-700 dark:bg-green-500 dark:hover:bg-green-400"}`}
+                        className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-bold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] bg-violet-700 text-white hover:bg-violet-800"
                       >
                         {latestAttempt ? <RotateCcw className="h-4 w-4" aria-hidden="true" /> : <Check className="h-4 w-4" aria-hidden="true" />}
                         {latestAttempt ? "Retake practice set" : "Start practice set"}
@@ -882,30 +1093,9 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
                 })}
               </div>
             )}
-
-            {!isLoading && quizzes.length > 0 && (
-              <p className="px-1 text-xs text-slate-400 dark:text-slate-500">
-                {totalQuestions} questions across {quizzes.length} practice {quizzes.length === 1 ? "set" : "sets"} · your attempts are saved to this session.
-              </p>
-            )}
           </div>
         </section>
       </div>
-
-      {(activeQuiz || result) && (
-        <QuizModal
-          quiz={activeQuiz}
-          answers={answers}
-          theme={theme}
-          saving={Boolean(savingId)}
-          onSelectAnswer={selectAnswer}
-          onSubmit={finishQuiz}
-          onClose={closeQuiz}
-          onTryAgain={tryAgain}
-          onDone={closeQuiz}
-          result={result}
-        />
-      )}
     </>
   );
 }

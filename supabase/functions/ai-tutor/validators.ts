@@ -190,11 +190,7 @@ export function validateCreateFlashcards(args: any): { valid: boolean; error?: s
   return { valid: true, cleanPairs };
 }
 
-export function validateGenerateQuiz(args: any): {
-  valid: boolean;
-  error?: string;
-  cleanQuestions?: { question: string; options: string[]; correct_answer: string; explanation: string }[];
-} {
+export function validateGenerateQuiz(args: any): { valid: boolean; error?: string } {
   if (!args || typeof args !== "object") {
     return { valid: false, error: "Arguments must be an object" };
   }
@@ -208,37 +204,5 @@ export function validateGenerateQuiz(args: any): {
   if (args.difficulty !== "easy" && args.difficulty !== "medium" && args.difficulty !== "hard") {
     return { valid: false, error: "difficulty must be 'easy', 'medium', or 'hard'" };
   }
-  if (!Array.isArray(args.questions) || args.questions.length !== args.question_count) {
-    return { valid: false, error: "questions must contain exactly question_count items" };
-  }
-
-  const cleanQuestions: { question: string; options: string[]; correct_answer: string; explanation: string }[] = [];
-  for (let i = 0; i < args.questions.length; i++) {
-    const item = args.questions[i];
-    if (!item || typeof item !== "object") {
-      return { valid: false, error: `Question ${i + 1} must be an object` };
-    }
-
-    const question = sanitizeString(item.question, 400);
-    const options = Array.isArray(item.options)
-      ? item.options.map((option: unknown) => sanitizeString(option, 250))
-      : [];
-    const correctAnswer = sanitizeString(item.correct_answer, 250);
-    const explanation = sanitizeString(item.explanation, 500);
-    if (!question || options.length < 2 || options.length > 4 || options.some((option: string) => !option)) {
-      return { valid: false, error: `Question ${i + 1} needs a prompt and 2 to 4 non-empty options` };
-    }
-    if (new Set(options.map((option: string) => option.toLowerCase())).size !== options.length) {
-      return { valid: false, error: `Question ${i + 1} options must be unique` };
-    }
-    if (options.filter((option: string) => option === correctAnswer).length !== 1) {
-      return { valid: false, error: `Question ${i + 1} correct_answer must match exactly one option` };
-    }
-    if (!explanation) {
-      return { valid: false, error: `Question ${i + 1} needs an explanation` };
-    }
-    cleanQuestions.push({ question, options, correct_answer: correctAnswer, explanation });
-  }
-
-  return { valid: true, cleanQuestions };
+  return { valid: true };
 }

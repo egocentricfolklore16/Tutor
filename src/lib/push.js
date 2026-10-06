@@ -1,4 +1,4 @@
-import supabase from "./supabase.js";
+import supabase from "./supabase";
 
 export function urlBase64ToUint8Array(base64String) {
   if (!base64String || typeof base64String !== "string") {
@@ -17,7 +17,7 @@ export function urlBase64ToUint8Array(base64String) {
       outputArray[i] = rawData.charCodeAt(i);
     }
     return outputArray;
-  } catch (_err) {
+  } catch (err) {
     throw new Error("VAPID_KEY_INVALID");
   }
 }
@@ -107,7 +107,7 @@ export async function enablePush(userId) {
   let applicationServerKey;
   try {
     applicationServerKey = urlBase64ToUint8Array(rawVapidKey);
-  } catch (_err) {
+  } catch (err) {
     throw new Error("VAPID_KEY_INVALID");
   }
 
@@ -231,7 +231,7 @@ export async function syncSubscription(userId) {
       let convertedKey;
       try {
         convertedKey = urlBase64ToUint8Array(rawVapidKey);
-      } catch (_e) {
+      } catch (e) {
         return;
       }
       if (convertedKey.length !== 65) return;

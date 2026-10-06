@@ -1,19 +1,30 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Pencil, Plus, Trash2, X } from "lucide-react";
+import ReactMarkdown from "react-markdown";
+import { FileText, Pencil, Plus, Sparkles, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
+import invokeAiTutor from "../../../lib/aiTutor";
 
-const NoteEditor = ({ studyId, userId, theme, onTimelineEvent }) => {
+const NoteEditor = ({ studyId, userId, topic, theme, onTimelineEvent }) => {
   const noteThemes = ["accent-card-chat", "accent-card-plan", "accent-card-read", "accent-card-track"];
   const navigate = useNavigate();
   const [notes, setNotes] = useState([]);
   const [form, setForm] = useState({ title: "", content: "" });
   const [editingId, setEditingId] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!studyId) return;
+    let isCurrent = true;
+    if (!studyId) {
+      setNotes([]);
+      setIsLoading(false);
+      return () => {
+        isCurrent = false;
+      };
+    }
+
     setIsLoading(true);
     supabase
       .from("session_notes")
@@ -21,11 +32,53 @@ const NoteEditor = ({ studyId, userId, theme, onTimelineEvent }) => {
       .eq("session_id", studyId)
       .order("created_at", { ascending: false })
       .then(({ data, error: fetchError }) => {
+        if (!isCurrent) return;
         if (fetchError) setError(fetchError.message);
         else setNotes(data || []);
       })
-      .finally(() => setIsLoading(false));
+      .finally(() => {
+        if (isCurrent) setIsLoading(false);
+      });
+
+    return () => {
+      isCurrent = false;
+    };
   }, [studyId]);
+
+  const persistNote = async ({ title, content, source }) => {
+    let activeUserId = userId;
+    if (!activeUserId) {
+      const { data: { user }, error: userError } = await supabase.auth.getUser();
+      if (userError) throw userError;
+      activeUserId = user?.id;
+    }
+    if (!activeUserId) throw new Error("Please sign in again to save notes.");
+
+    const { data, error: saveError } = await supabase
+      .from("session_notes")
+      .insert({
+        title: title.trim(),
+        content: content.trim(),
+        session_id: studyId,
+        user_id: activeUserId,
+        source,
+      })
+      .select()
+      .single();
+
+    if (saveError) throw saveError;
+    setNotes((current) => [data, ...current]);
+    if (onTimelineEvent) {
+      onTimelineEvent({
+        id: crypto.randomUUID(),
+        type: "note",
+        refId: String(data.id),
+        title: data.title || "Note created",
+        timestamp: new Date().toISOString(),
+      });
+    }
+    return data;
+  };
 
   const saveNote = async (event) => {
     event.preventDefault();
@@ -35,41 +88,59 @@ const NoteEditor = ({ studyId, userId, theme, onTimelineEvent }) => {
     }
     if (!form.title.trim() || !form.content.trim()) return;
 
-    let activeUserId = userId;
-    if (!activeUserId) {
-      const { data: { user } } = await supabase.auth.getUser();
-      activeUserId = user?.id;
-    }
-
-    const payload = {
-      title: form.title.trim(),
-      content: form.content.trim(),
-      session_id: studyId,
-      user_id: activeUserId,
-      source: "user",
-    };
-
-    const query = editingId
-      ? supabase.from("session_notes").update({ title: payload.title, content: payload.content }).eq("id", editingId).select().single()
-      : supabase.from("session_notes").insert(payload).select().single();
-
-    const { data, error: saveError } = await query;
-    if (saveError) {
-      setError(saveError.message);
-    } else {
-      setError("");
-      if (!editingId && onTimelineEvent && data) {
-        onTimelineEvent({
-          id: crypto.randomUUID(),
-          type: "note",
-          refId: String(data.id),
-          title: data.title || "Note created",
-          timestamp: new Date().toISOString(),
+    try {
+      let data;
+      if (editingId) {
+        const { data: updatedNote, error: saveError } = await supabase
+          .from("session_notes")
+          .update({ title: form.title.trim(), content: form.content.trim() })
+          .eq("id", editingId)
+          .select()
+          .single();
+        if (saveError) throw saveError;
+        data = updatedNote;
+        setNotes((current) => current.map((note) => note.id === editingId ? data : note));
+      } else {
+        data = await persistNote({
+          title: form.title,
+          content: form.content,
+          source: "user",
         });
       }
-      setNotes((current) => editingId ? current.map((note) => note.id === editingId ? data : note) : [data, ...current]);
+      setError("");
       setForm({ title: "", content: "" });
       setEditingId(null);
+    } catch (saveError) {
+      setError(saveError.message || "Unable to save this note.");
+    }
+  };
+
+  const generateAiNote = async () => {
+    if (!studyId || isGenerating) return;
+    setIsGenerating(true);
+    setError("");
+
+    try {
+      const result = await invokeAiTutor({
+        sessionId: studyId,
+        messages: [{
+          role: "user",
+          content: "Create beautifully organized study notes for this session using the session topic and any available notes or readable resources.",
+        }],
+        clientState: { intent: "generate_notes" },
+      });
+
+      if (result.error) throw new Error(result.error.message || "Unable to generate AI notes.");
+      const content = result.reply?.trim();
+      if (!content) throw new Error("The AI returned an empty note. Please try again.");
+
+      const title = `${topic || "Study session"} — Study Notes`;
+      await persistNote({ title, content, source: "ai" });
+      setError("");
+    } catch (generationError) {
+      setError(generationError.message || "Unable to generate AI notes.");
+    } finally {
+      setIsGenerating(false);
     }
   };
 
@@ -87,6 +158,26 @@ const NoteEditor = ({ studyId, userId, theme, onTimelineEvent }) => {
           <button onClick={() => setError("")}><X className="h-4 w-4" /></button>
         </div>
       )}
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-violet-200 bg-gradient-to-r from-violet-50 to-indigo-50 p-4 dark:border-violet-900/50 dark:from-violet-950/30 dark:to-indigo-950/30">
+        <div className="flex items-start gap-3">
+          <div className="rounded-lg bg-white p-2 text-violet-600 shadow-sm dark:bg-slate-900 dark:text-violet-300">
+            <Sparkles className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="font-semibold text-slate-900 dark:text-slate-100">Build organized notes with AI</p>
+            <p className="mt-1 text-xs leading-5 text-slate-600 dark:text-slate-400">Creates a session note from your topic and available study materials.</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={generateAiNote}
+          disabled={!studyId || isGenerating}
+          className="inline-flex items-center gap-2 rounded-lg bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          <Sparkles className={`h-4 w-4 ${isGenerating ? "animate-pulse" : ""}`} />
+          {isGenerating ? "Creating notes..." : "Generate AI notes"}
+        </button>
+      </div>
       <form onSubmit={saveNote} className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
         <input
           value={form.title}
@@ -138,7 +229,27 @@ const NoteEditor = ({ studyId, userId, theme, onTimelineEvent }) => {
               >
                 {note.title}
               </button>
-              <p className="mt-3 line-clamp-3 text-sm text-gray-800">{note.content}</p>
+              <div className="mt-3 max-h-24 overflow-hidden text-sm leading-5 text-gray-800">
+                <ReactMarkdown
+                  components={{
+                    h1: ({ children }) => <h3 className="mb-1 font-bold">{children}</h3>,
+                    h2: ({ children }) => <h3 className="mb-1 font-bold">{children}</h3>,
+                    h3: ({ children }) => <h3 className="mb-1 font-semibold">{children}</h3>,
+                    p: ({ children }) => <p className="mb-1 last:mb-0">{children}</p>,
+                    ul: ({ children }) => <ul className="mb-1 list-disc pl-4">{children}</ul>,
+                    ol: ({ children }) => <ol className="mb-1 list-decimal pl-4">{children}</ol>,
+                    li: ({ children }) => <li>{children}</li>,
+                    strong: ({ children }) => <strong className="font-bold">{children}</strong>,
+                  }}
+                >
+                  {note.content}
+                </ReactMarkdown>
+              </div>
+              {note.source === "ai" && (
+                <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-white/70 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-800">
+                  <Sparkles className="h-3 w-3" /> AI organized
+                </span>
+              )}
               <div className="mt-4 flex gap-3 border-t border-black/10 pt-3">
                 <button
                   onClick={() => { setEditingId(note.id); setForm({ title: note.title, content: note.content }); }}

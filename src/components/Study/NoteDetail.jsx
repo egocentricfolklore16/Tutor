@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { ArrowLeft, FileText } from "lucide-react";
+import ReactMarkdown from "react-markdown";
 import { useNavigate, useParams } from "react-router-dom";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
@@ -60,7 +61,24 @@ function NoteDetail() {
               <p className="mt-2 text-sm text-slate-400 dark:text-slate-500">{new Date(note.created_at).toLocaleDateString()}</p>
             </div>
           </div>
-          <div className="break-words whitespace-pre-wrap text-base leading-8 text-slate-700 dark:text-slate-300">{note.content}</div>
+          <div className="break-words text-base leading-8 text-slate-700 dark:text-slate-300">
+            <ReactMarkdown
+              components={{
+                h1: ({ children }) => <h2 className="mb-3 mt-7 text-2xl font-bold text-slate-900 first:mt-0 dark:text-slate-100">{children}</h2>,
+                h2: ({ children }) => <h2 className="mb-3 mt-7 text-xl font-bold text-slate-900 first:mt-0 dark:text-slate-100">{children}</h2>,
+                h3: ({ children }) => <h3 className="mb-2 mt-5 text-lg font-semibold text-slate-900 dark:text-slate-100">{children}</h3>,
+                p: ({ children }) => <p className="mb-4 last:mb-0">{children}</p>,
+                ul: ({ children }) => <ul className="mb-4 list-disc space-y-1 pl-6">{children}</ul>,
+                ol: ({ children }) => <ol className="mb-4 list-decimal space-y-1 pl-6">{children}</ol>,
+                li: ({ children }) => <li className="pl-1">{children}</li>,
+                strong: ({ children }) => <strong className="font-bold text-slate-900 dark:text-slate-100">{children}</strong>,
+                blockquote: ({ children }) => <blockquote className="my-4 border-l-4 border-emerald-300 pl-4 text-slate-600 dark:border-emerald-700 dark:text-slate-400">{children}</blockquote>,
+                code: ({ children }) => <code className="rounded bg-slate-100 px-1.5 py-0.5 text-sm dark:bg-slate-800">{children}</code>,
+              }}
+            >
+              {note.content}
+            </ReactMarkdown>
+          </div>
         </article>
       </div>
       </main>

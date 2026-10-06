@@ -295,9 +295,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   const secondsLeft = timeLeft % 60;
 
   const renderTool = () => {
-    if (activeTool === "notes") {
-      return <NoteEditor studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
-    }
     if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     if (activeTool === "quizzicle") return <PracticeQuestions theme={importanceTheme} studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} requestedQuizId={requestedQuizId || requestedQuizIdFromRoute} onQuizOpened={handleQuizOpened} />;
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
@@ -349,7 +346,6 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   const toolItems = [
     { id: "pomodoro", label: "Pomodoro Timer", icon: Clock },
-    { id: "notes", label: "Notes", icon: FileText },
     { id: "flashcards", label: "Flashcards", icon: Library },
     { id: "quizzicle", label: "Quizicle", icon: HelpCircle },
     { id: "resources", label: "Resources", icon: BookOpen },
@@ -505,13 +501,31 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
-              <div className="mb-5 flex items-center gap-3">
-                <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
-                <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
-              </div>
-              {renderTool()}
-            </section>
+            <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
+                <div className="mb-5 flex items-center gap-3">
+                  <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
+                  <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : toolItems.find((item) => item.id === activeTool)?.label}</h2>
+                </div>
+                {renderTool()}
+              </section>
+              <section id="session-notes" className="min-w-0 scroll-mt-6 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 md:p-6">
+                <div className="mb-5 flex items-center gap-3">
+                  <FileText className={`h-5 w-5 ${importanceTheme.accent}`} />
+                  <div>
+                    <h2 className="text-xl font-bold">Session notes</h2>
+                    <p className="mt-1 text-sm text-slate-500">Your notes stay open while you study.</p>
+                  </div>
+                </div>
+                <NoteEditor
+                  studyId={Studyid || session.id}
+                  userId={userId}
+                  topic={topic}
+                  theme={importanceTheme}
+                  onTimelineEvent={handleTimelineEvent}
+                />
+              </section>
+            </div>
           </div>
         </div>
       </main>

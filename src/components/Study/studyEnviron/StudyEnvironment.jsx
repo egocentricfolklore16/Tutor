@@ -497,7 +497,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+            <div className="mt-6 grid grid-cols-1 items-start gap-6">
               <section className="min-w-0 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
                 <div className="mb-5 flex items-center gap-3">
                   <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />

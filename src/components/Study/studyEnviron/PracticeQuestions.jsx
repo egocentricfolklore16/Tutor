@@ -16,6 +16,7 @@ import {
   XCircle,
   X,
 } from "lucide-react";
+import { createPortal } from "react-dom";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 
@@ -233,7 +234,7 @@ function QuizModal({
     };
   }, [modalOpen]);
 
-  if (!quiz && !result) return null;
+  if ((!quiz && !result) || typeof document === "undefined") return null;
 
   const activeQuiz = result?.quiz || quiz;
   const activeAnswers = result?.answers || answers;
@@ -244,14 +245,14 @@ function QuizModal({
 
   const handleFocusQuestion = (index) => setFocusedQuestionIndex(index);
 
-  return (
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-1 backdrop-blur-sm dark:bg-black/70 sm:p-4">
+  return createPortal((
+    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm dark:bg-black/70">
       <section
         ref={modalRef}
         role="dialog"
         aria-modal="true"
         aria-labelledby="quiz-modal-title"
-        className="motion-dialog flex h-[calc(100dvh-0.5rem)] w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100 sm:max-h-[min(90dvh,900px)] sm:h-auto"
+        className="motion-dialog flex max-h-[90dvh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100"
       >
         <header className="relative shrink-0 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-7">
           <div className="flex items-center justify-between gap-4">
@@ -298,7 +299,7 @@ function QuizModal({
           )}
         </header>
 
-        <div className="quiz-modal-scroll min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
           {isResults ? (
             <div className="space-y-7">
               <section className="flex flex-col items-center text-center">
@@ -473,7 +474,7 @@ function QuizModal({
         )}
       </section>
     </div>
-  );
+  ), document.body);
 }
 
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, requestedQuizId, onQuizOpened }) {

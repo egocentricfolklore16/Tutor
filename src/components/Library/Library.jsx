@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -26,6 +26,7 @@ import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
+import ResourcePreviewModal from "../common/ResourcePreviewModal";
 
 const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -44,6 +45,13 @@ const ALLOWED_MIME_TYPES = [
 const ALLOWED_EXTENSIONS = ["pdf", "doc", "docx", "png", "jpg", "jpeg", "webp", "txt", "md", "csv"];
 
 const getSafeFileName = (fileName) => fileName.replace(/[^a-zA-Z0-9._-]/g, "_");
+const getResourceDomain = (url) => {
+  try {
+    return url ? new URL(url).hostname : "";
+  } catch {
+    return "";
+  }
+};
 
 function LibraryItem({
   variant,
@@ -56,29 +64,52 @@ function LibraryItem({
   preview,
   actions,
   children,
+  onPreview,
 }) {
+  const handleCardKeyDown = (event) => {
+    if (!onPreview || event.target !== event.currentTarget) return;
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onPreview();
+    }
+  };
+
   if (variant === "list") {
     return (
-      <article className="flex min-h-16 min-w-0 flex-wrap items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-2 transition-colors hover:border-slate-300 hover:bg-slate-50 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 sm:gap-3 sm:px-3">
-        <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
-          {React.createElement(Icon, { className: `h-4 w-4 ${iconClass}`, "aria-hidden": true })}
+      <article
+        onClick={onPreview}
+        onKeyDown={handleCardKeyDown}
+        tabIndex={onPreview ? 0 : undefined}
+        aria-label={onPreview ? `Preview ${title}` : undefined}
+        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-green-400 sm:flex-row sm:items-start ${onPreview ? "cursor-pointer" : ""}`}
+      >
+        <div className="flex min-w-0 flex-1 items-start gap-3">
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
+            {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
+          </div>
+          <div className="min-w-0 flex-1">
+            <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
+            <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
+            <div className="mt-2 min-w-0">{category}</div>
+            <p className="mt-2 line-clamp-3 min-w-0 break-words text-xs leading-5 text-slate-600 dark:text-slate-300" title={preview}>
+              {preview}
+            </p>
+            {children && <div className="mt-3 min-w-0">{children}</div>}
+          </div>
         </div>
-        <div className="min-w-0 flex-1">
-          <h3 className="truncate text-sm font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
-          <p className="truncate text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
-        </div>
-        <div className="max-w-[5.5rem] shrink-0 truncate sm:max-w-[10rem]">{category}</div>
-        <p className="hidden min-w-0 flex-1 truncate text-xs text-slate-500 dark:text-slate-400 md:block" title={preview}>
-          {preview}
-        </p>
-        <div className="flex shrink-0 items-center justify-end gap-1">{actions}</div>
-        {children && <div className="basis-full min-w-0 border-t border-slate-100 pt-2 dark:border-slate-700">{children}</div>}
+        <div className="flex shrink-0 items-center justify-end gap-1 border-t border-slate-100 pt-2 dark:border-slate-700 sm:border-0 sm:pt-0">{actions}</div>
       </article>
     );
   }
 
   return (
-    <article className="flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 sm:p-5">
+    <article
+      onClick={onPreview}
+      onKeyDown={handleCardKeyDown}
+      tabIndex={onPreview ? 0 : undefined}
+      aria-label={onPreview ? `Preview ${title}` : undefined}
+      className={`flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 sm:p-5 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:focus-visible:ring-green-400" : ""}`}
+    >
       <div className="flex min-w-0 items-start gap-3">
         <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
           {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
@@ -113,6 +144,8 @@ function Library({ session }) {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
   const [deletingId, setDeletingId] = useState(null);
+  const [previewResource, setPreviewResource] = useState(null);
+  const closeResourcePreview = useCallback(() => setPreviewResource(null), []);
 
   // Data states
   const [notes, setNotes] = useState([]);
@@ -176,7 +209,7 @@ function Library({ session }) {
           .order("created_at", { ascending: false }),
         supabase
           .from("session_resources")
-          .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, source, created_at")
+          .select("id, session_id, user_id, title, kind, file_path, url, mime_type, extraction_status, extracted_text, source, created_at")
           .eq("user_id", userId)
           .order("created_at", { ascending: false }),
         supabase
@@ -280,6 +313,7 @@ function Library({ session }) {
     return (
       <Link
         to={`/Study/${sessionId}`}
+        onClick={(event) => event.stopPropagation()}
         className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
         title="Open Session"
       >
@@ -1111,6 +1145,11 @@ function Library({ session }) {
                       category={(
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           {renderSessionBadge(res.session_id)}
+                          {getResourceDomain(res.url) && (
+                            <span className="max-w-full truncate rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                              {getResourceDomain(res.url)}
+                            </span>
+                          )}
                           {res.extraction_status && (
                             <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
                               res.extraction_status === "done"
@@ -1124,12 +1163,16 @@ function Library({ session }) {
                           )}
                         </div>
                       )}
-                      preview={res.mime_type || res.kind}
+                      preview={res.extracted_text || res.mime_type || res.kind}
+                      onPreview={() => setPreviewResource(res)}
                       actions={(
                         <>
                           <button
                             type="button"
-                            onClick={() => handleOpenResource(res)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleOpenResource(res);
+                            }}
                             className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/50 dark:focus-visible:ring-indigo-400"
                             title="Open resource"
                             aria-label="Open resource"
@@ -1138,7 +1181,10 @@ function Library({ session }) {
                           </button>
                           <button
                             type="button"
-                            onClick={() => handleDeleteResource(res)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              handleDeleteResource(res);
+                            }}
                             disabled={deletingId === res.id}
                             className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
                             title="Delete resource"
@@ -1269,6 +1315,9 @@ function Library({ session }) {
               </section>
             )}
           </div>
+        )}
+        {previewResource && (
+          <ResourcePreviewModal resource={previewResource} onClose={closeResourcePreview} />
         )}
     </PageContainer>
   );

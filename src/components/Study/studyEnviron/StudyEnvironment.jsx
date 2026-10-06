@@ -300,7 +300,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} theme={importanceTheme} onTimelineEvent={handleTimelineEvent} />;
     return (
       <div>
-        <div className="grid grid-cols-3 gap-3">
+        <div className={`grid gap-3 ${isAIOpen ? "grid-cols-2" : "grid-cols-3"}`}>
           {[
             [formattedTime(hoursLeft), "Hours", "accent-card-chat"],
             [formattedTime(minutesLeft), "Minutes", "accent-card-plan"],
@@ -354,7 +354,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <main className="min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10">
-        <div className="mx-auto w-full max-w-[1500px]">
+        <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
             <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
               <button
@@ -497,12 +497,8 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <div className={`mt-6 grid items-start gap-6 ${
-              isAIOpen
-                ? "min-[1900px]:grid-cols-[minmax(0,1.3fr)_minmax(400px,0.7fr)] min-[1900px]:gap-8"
-                : "2xl:grid-cols-[minmax(0,1.3fr)_minmax(400px,0.7fr)] 2xl:gap-8"
-            }`}>
-              <section className="min-w-0 rounded-2xl bg-white p-5 shadow-sm ring-1 ring-slate-200 sm:p-6 md:p-8">
+            <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(360px,0.8fr)]">
+              <section className="min-w-0 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
                 <div className="mb-5 flex items-center gap-3">
                   <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
                   <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : toolItems.find((item) => item.id === activeTool)?.label}</h2>

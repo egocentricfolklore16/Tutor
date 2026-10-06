@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import supabase from "../lib/supabase.js";
 import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
+import { getAccessibilityFlags } from "../lib/accessibility.js";
 
 const ProfileContext = createContext(null);
 
@@ -22,6 +23,12 @@ export function ProfileProvider({ user, children }) {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    const { hasLargerText, hasHighContrast } = getAccessibilityFlags(profile?.accessibility_needs);
+    document.documentElement.classList.toggle("accessibility-larger-text", hasLargerText);
+    document.documentElement.classList.toggle("accessibility-high-contrast", hasHighContrast);
+  }, [profile?.accessibility_needs]);
 
   const touchLastSeenThrottled = async () => {
     if (!user?.id) return;

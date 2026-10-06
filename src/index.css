@@ -325,6 +325,15 @@ form { animation: form-enter 260ms ease-out both; }
   background-size: 120%;
 }
 
+/* Accessibility display preferences */
+html.accessibility-larger-text {
+  font-size: 112.5%;
+}
+
+html.accessibility-high-contrast {
+  filter: contrast(1.25);
+}
+
 /* Semantic dark-mode surfaces take precedence over legacy utility overrides. */
 .dark .dark-surface { background: var(--bg-surface) !important; color: var(--text-primary) !important; }
 .dark .dark-session-surface { background: var(--card-red-bg) !important; color: var(--text-primary) !important; }

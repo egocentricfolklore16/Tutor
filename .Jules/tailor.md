@@ -4,14 +4,14 @@
 |---|---|---|---|---|---|
 | `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
-| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt, Overview badge | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
-| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
+| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Planner, Settings, AISuggestions | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner | Used |
-| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner session length calculation | Used |
-| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time | Used |
-| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
-| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner header highlights | Used |
+| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, AISuggestions | Used |
+| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt, AISuggestions | Used |
+| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt, UI Root (Font Scaling & High Contrast) | Used |
 | `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
 
 ## Journal
@@ -27,3 +27,7 @@
 ## 2026-10-02 - Connecting Learner Type to Dashboard AI Suggestions & Settings
 **Learning:** `learner_type` was collected in Onboarding step 0 ("Which learner sounds most like you?"), stored in `profiles.learner_type`, and passed into the AI Tutor Edge Function system prompt, but was omitted from Dashboard recommendations and editable Settings controls.
 **Action:** Create `getLearnerTypeSuggestion` helper to surface personalized study strategy badges and recommendations on the Dashboard `AISuggestions` card, and add a Learner Type selector in `Settings.jsx` so preferences can be edited with instant UI propagation via `ProfileContext`.
+
+## 2026-10-18 - Connecting Accessibility Needs to UI Font Scaling and Contrast Mode
+**Learning:** `accessibility_needs` was collected in Onboarding step 3 ("Would any accessibility support help?"), saved to `profiles.accessibility_needs`, passed to the AI tutor prompt, and editable in Settings, but selections like "Larger text" or "High contrast" never affected web UI rendering.
+**Action:** Create `getAccessibilityFlags` helper in `src/lib/accessibility.js` and connect it in `ProfileContext.jsx` to dynamically toggle `accessibility-larger-text` and `accessibility-high-contrast` classes on `document.documentElement`, applying font scale and contrast filters defined in `src/index.css`.

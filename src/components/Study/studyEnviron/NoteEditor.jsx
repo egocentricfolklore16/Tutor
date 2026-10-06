@@ -145,11 +145,11 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
         <div className="space-y-3">
           {notes.map((note) => (
             <article key={note.id} className="rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-slate-600">
-              <div className="flex items-start justify-between gap-4">
+              <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                 <button
                   type="button"
                   onClick={() => navigate(`/Study/${studyId}/notes/${note.id}`)}
-                  className="min-w-0 flex-1 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
+                  className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
                 >
                   <span className="block break-words font-semibold leading-6 text-slate-900 hover:text-violet-700 dark:text-slate-100 dark:hover:text-violet-300">
                     {note.title}

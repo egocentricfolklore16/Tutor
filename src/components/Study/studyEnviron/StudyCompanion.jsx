@@ -47,16 +47,16 @@ function StudyCompanion({ theme, topic }) {
           </div>
         </div>
 
-        <div className="flex min-h-[19rem] w-full flex-col rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-5 shadow-sm">
+        <div className="flex min-h-[19rem] w-full flex-col rounded-2xl border border-amber-200 dark:border-amber-900/50 bg-amber-50 dark:bg-amber-950/30 p-5 shadow-sm" aria-live="polite">
           <div className="flex items-center justify-between gap-3">
-            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400"><Lightbulb className="h-5 w-5" aria-hidden="true" /><h2 className="font-bold">Quick riddle</h2></div>
-            <button type="button" title="Get a new riddle" aria-label="Get a new riddle" onClick={nextRiddle} className="rounded-lg p-2 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><RefreshCw className="h-4 w-4" aria-hidden="true" /></button>
+            <div className="flex items-center gap-2 text-amber-800 dark:text-amber-400"><Lightbulb className="h-5 w-5" /><h2 className="font-bold">Quick riddle</h2></div>
+            <button type="button" title="New riddle" aria-label="New riddle" onClick={nextRiddle} className="rounded-lg p-2 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"><RefreshCw className="h-4 w-4" /></button>
           </div>
           <p className="mt-4 flex-1 text-sm font-semibold leading-6 text-slate-800 dark:text-slate-200">{riddle.question}</p>
           {showAnswer ? (
             <p role="status" aria-live="polite" className="mt-3 rounded-lg bg-white dark:bg-slate-800 p-3 text-sm font-bold text-amber-900 dark:text-amber-300">Answer: {riddle.answer}</p>
           ) : (
-            <button type="button" onClick={() => setShowAnswer(true)} className="mt-4 rounded-md text-sm font-bold text-amber-800 dark:text-amber-400 underline decoration-amber-300 dark:decoration-amber-600 underline-offset-4 hover:text-amber-950 dark:hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">Reveal answer</button>
+            <button type="button" onClick={() => setShowAnswer(true)} className="mt-4 rounded text-sm font-bold text-amber-800 dark:text-amber-400 underline decoration-amber-300 dark:decoration-amber-600 underline-offset-4 hover:text-amber-950 dark:hover:text-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500">Reveal answer</button>
           )}
         </div>
       </div>

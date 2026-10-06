@@ -3,6 +3,7 @@ import { CalendarDays, Plus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import { getLearnerTypeSuggestion } from "../../lib/learnerType.js";
+import { getPreferredTimeNote } from "../../lib/preferredTime.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
@@ -11,6 +12,7 @@ function AISuggestions() {
   const weeklyHours = profile?.weekly_hours || 5;
   const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
+  const timeNote = getPreferredTimeNote(profile?.preferred_time);
 
   return (
     <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
@@ -27,7 +29,7 @@ function AISuggestions() {
         <p className="rounded-xl border border-slate-200/50 bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-200">
           Start with {subjects} and plan {weeklyHours} focused hours this week.
           Your {learningStyle} approach will work well with a short active-recall
-          session, followed by practice questions and a quick review tomorrow.
+          session, followed by practice questions and a quick review tomorrow. {timeNote}
           <br />
           <br />
           <span className="font-semibold text-slate-900 dark:text-slate-100">

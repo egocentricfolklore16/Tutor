@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-import supabase from "../lib/supabase";
+import supabase from "../lib/supabase.js";
 import {
   disablePush,
   enablePush,
   getPermissionState,
   syncSubscription,
-} from "../lib/push";
+} from "../lib/push.js";
 
 const defaultPreferences = {
   push_enabled: true,

@@ -13,6 +13,7 @@ import AchievementsCard from "./AchievementsCard";
 import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
+import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
 
 // Typing Animation Component
@@ -94,10 +95,9 @@ function Overview() {
   }, [isProfileLoading, profile]);
 
   return (
-    <>
-      <div>
-        <div className="px-3 sm:px-4 md:px-6">
-          <section className="rounded-2xl bg-transparent px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
+    <PageContainer maxWidth="max-w-7xl">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2 2xl:grid-cols-12">
+          <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />{streak?.display_current_streak || 0}d Streak</span>
@@ -130,40 +130,40 @@ function Overview() {
   </button>
 </div>
           </section>
-          <DashboardStatsBar />
-          <QuickShortcuts />
-        </div>
-      </div>
-      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 lg:px-6">
-        <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-          <div className="lg:col-span-2">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <DashboardStatsBar />
+          </div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <QuickShortcuts />
+          </div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-8">
             <PerformanceDashboard />
           </div>
-          <div className="lg:col-span-1">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-4">
             <StudyCompanion topic={profile?.current_topic || "your studies"} />
           </div>
 
-          <div className="lg:col-span-1">
+          <div className="min-w-0 2xl:col-span-4">
             <CommunitySpotlight />
           </div>
-          <div className="lg:col-span-1">
+          <div className="min-w-0 2xl:col-span-4">
             <AchievementsCard />
           </div>
-          <div className="lg:col-span-1">
+          <div className="min-w-0 2xl:col-span-4">
             <Leaderboard />
           </div>
 
-          <div className="lg:col-span-2 space-y-6">
+          <div className="min-w-0 2xl:col-span-4">
             <StudyStreak streak={streak} />
+          </div>
+          <div className="min-w-0 2xl:col-span-8">
             <KeepsSlipping userId={userId} />
           </div>
-
-          <div className="lg:col-span-3">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <AISuggestions />
           </div>
-        </div>
       </div>
-      {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+      {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
         <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">
@@ -172,7 +172,7 @@ function Overview() {
           <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950">×</button>
         </div>
       </div>}
-    </>
+    </PageContainer>
   );
 }
 

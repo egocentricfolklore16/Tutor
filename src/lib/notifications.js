@@ -101,7 +101,7 @@ export function getStoredNotifications() {
     console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
     try {
       localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
-    } catch {
+    } catch (_e) {
       // ignore
     }
     return [];
@@ -155,7 +155,7 @@ export async function hasActivePushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
-  } catch {
+  } catch (_e) {
     return false;
   }
 }
@@ -277,7 +277,7 @@ export function getNotificationPreferences() {
     console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
     try {
       localStorage.removeItem(KEY);
-    } catch {
+    } catch (_e) {
       // ignore
     }
     return normalizeNotificationPreferences(defaultNotificationPreferences);

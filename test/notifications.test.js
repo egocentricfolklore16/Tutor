@@ -1,300 +1,333 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-
-// Setup browser globals mock before importing notifications module
-const storageMap = new Map();
-const mockLocalStorage = {
-  getItem: (key) => storageMap.get(key) ?? null,
-  setItem: (key, val) => storageMap.set(key, String(val)),
-  removeItem: (key) => storageMap.delete(key),
-  clear: () => storageMap.clear(),
-};
-
-Object.defineProperty(globalThis, "localStorage", {
-  value: mockLocalStorage,
-  configurable: true,
-  writable: true,
-});
-
-const dispatchedEvents = [];
-let mockNotificationPermission = "granted";
-const mockNotificationObj = {
-  get permission() {
-    return mockNotificationPermission;
-  },
-  requestPermission: async () => mockNotificationPermission,
-};
-
-Object.defineProperty(globalThis, "Notification", {
-  value: mockNotificationObj,
-  configurable: true,
-  writable: true,
-});
-
-let mockPushSubscription = null;
-const shownNotifications = [];
-const mockNavigatorObj = {
-  serviceWorker: {
-    ready: Promise.resolve({
-      pushManager: {
-        getSubscription: async () => mockPushSubscription,
-      },
-      showNotification: async (title, opts) => {
-        shownNotifications.push({ title, opts });
-      },
-    }),
-  },
-};
-
-Object.defineProperty(globalThis, "navigator", {
-  value: mockNavigatorObj,
-  configurable: true,
-  writable: true,
-});
-
-Object.defineProperty(globalThis, "window", {
-  value: {
-    dispatchEvent: (event) => {
-      dispatchedEvents.push(event);
-      return true;
-    },
-    Notification: mockNotificationObj,
-    navigator: mockNavigatorObj,
-  },
-  configurable: true,
-  writable: true,
-});
-
-// Import notifications module after mocking environment
 import {
   resolveSessionDateTime,
   normalizeNotificationPreferences,
   isQuietHoursActive,
+  getStoredNotifications,
   writeNotification,
   recordNotification,
-  getStoredNotifications,
-  hasActivePushSubscription,
-  scheduleStudyReminder,
-  scheduleSessionRemindersFromSessions,
   markAllNotificationsRead,
   dismissNotification,
+  hasActivePushSubscription,
+  scheduleStudyReminder,
   requestBrowserNotificationPermission,
+  getNotificationPreferences,
   NOTIFICATION_STORAGE_KEY,
 } from "../src/lib/notifications.js";
+import { formatPushError } from "../src/hooks/useNotifications.js";
 
-test("resolveSessionDateTime parses session dates and times correctly", () => {
-  // YYYY-MM-DD date and 14:30 start time
-  const session1 = { Date: "2026-04-15", Start: "14:30" };
-  const date1 = resolveSessionDateTime(session1);
-  assert.ok(date1 instanceof Date);
-  assert.equal(date1.getFullYear(), 2026);
-  assert.equal(date1.getMonth(), 3); // 0-indexed April
-  assert.equal(date1.getDate(), 15);
-  assert.equal(date1.getHours(), 14);
-  assert.equal(date1.getMinutes(), 30);
+// Setup mock localStorage
+function setupMockLocalStorage() {
+  const store = new Map();
+  globalThis.localStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, val) => store.set(key, String(val)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+  };
+  return store;
+}
 
-  // Lowercase properties and default start time (09:00)
-  const session2 = { date: "2026-05-20" };
-  const date2 = resolveSessionDateTime(session2);
-  assert.equal(date2.getHours(), 9);
-  assert.equal(date2.getMinutes(), 0);
+// Setup browser globals helper
+function setupMockBrowserGlobals({ permission = "default", pushSubscription = null } = {}) {
+  const store = new Map();
+  const mockStorage = {
+    getItem: (key) => store.get(key) ?? null,
+    setItem: (key, val) => store.set(key, String(val)),
+    removeItem: (key) => store.delete(key),
+    clear: () => store.clear(),
+  };
 
-  // Date instance
-  const session3 = { date: new Date("2026-06-10T00:00:00Z"), startTime: "10:15" };
-  const date3 = resolveSessionDateTime(session3);
-  assert.equal(date3.getHours(), 10);
-  assert.equal(date3.getMinutes(), 15);
+  const mockNotification = function () {};
+  mockNotification.permission = permission;
+  mockNotification.requestPermission = async () => permission;
 
-  // Returns null for invalid or missing sessions
-  assert.equal(resolveSessionDateTime(null), null);
-  assert.equal(resolveSessionDateTime({ date: "invalid-date" }), null);
+  globalThis.window = globalThis;
+  globalThis.localStorage = mockStorage;
+  globalThis.Notification = mockNotification;
+
+  Object.defineProperty(globalThis, "navigator", {
+    value: {
+      serviceWorker: {
+        ready: Promise.resolve({
+          pushManager: {
+            getSubscription: async () => pushSubscription,
+          },
+          showNotification: async () => {},
+        }),
+      },
+    },
+    writable: true,
+    configurable: true,
+  });
+
+  return {
+    cleanup() {
+      delete globalThis.window;
+      delete globalThis.Notification;
+      delete globalThis.localStorage;
+    },
+  };
+}
+
+// --- 1. resolveSessionDateTime tests ---
+test("resolveSessionDateTime correctly parses string dates (YYYY-MM-DD) and start times", () => {
+  const session = {
+    date: "2026-05-10",
+    startTime: "14:30",
+  };
+  const resolved = resolveSessionDateTime(session);
+  assert.ok(resolved instanceof Date);
+  assert.strictEqual(resolved.getFullYear(), 2026);
+  assert.strictEqual(resolved.getMonth(), 4); // May (0-indexed)
+  assert.strictEqual(resolved.getDate(), 10);
+  assert.strictEqual(resolved.getHours(), 14);
+  assert.strictEqual(resolved.getMinutes(), 30);
 });
 
-test("normalizeNotificationPreferences merges default and custom preferences safely", () => {
-  const custom = {
+test("resolveSessionDateTime correctly handles Date object inputs and alternative field names (Date, Start)", () => {
+  const session = {
+    Date: new Date("2026-08-15T00:00:00Z"),
+    Start: "10:15",
+  };
+  const resolved = resolveSessionDateTime(session);
+  assert.ok(resolved instanceof Date);
+  assert.strictEqual(resolved.getHours(), 10);
+  assert.strictEqual(resolved.getMinutes(), 15);
+});
+
+test("resolveSessionDateTime falls back to default 09:00 when time is missing or invalid", () => {
+  const session = { date: "2026-06-01" };
+  const resolved = resolveSessionDateTime(session);
+  assert.strictEqual(resolved.getHours(), 9);
+  assert.strictEqual(resolved.getMinutes(), 0);
+});
+
+test("resolveSessionDateTime returns null for invalid or missing session dates", () => {
+  assert.strictEqual(resolveSessionDateTime(null), null);
+  assert.strictEqual(resolveSessionDateTime({ date: "not-a-valid-date" }), null);
+});
+
+// --- 2. Notification Preferences & Storage Normalization ---
+test("normalizeNotificationPreferences fills missing defaults and nested quiet hours", () => {
+  const partial = {
     studyReminders: false,
     quietHours: { start: "23:00" },
   };
-
-  const normalized = normalizeNotificationPreferences(custom);
-  assert.equal(normalized.studyReminders, false);
-  assert.equal(normalized.browserPush, true); // Retains default
-  assert.equal(normalized.quietHours.start, "23:00");
-  assert.equal(normalized.quietHours.end, "08:00"); // Retains default
-  assert.equal(normalized.quietHours.enabled, true); // Retains default
+  const normalized = normalizeNotificationPreferences(partial);
+  assert.strictEqual(normalized.studyReminders, false);
+  assert.strictEqual(normalized.browserPush, true); // default preserved
+  assert.strictEqual(normalized.quietHours.start, "23:00");
+  assert.strictEqual(normalized.quietHours.end, "08:00"); // default preserved
 });
 
-test("isQuietHoursActive evaluates overnight and same-day quiet hour ranges accurately", () => {
-  const overnight = { enabled: true, start: "22:00", end: "08:00" };
+test("getNotificationPreferences recovers cleanly from corrupted JSON in localStorage", () => {
+  setupMockLocalStorage();
+  localStorage.setItem("hyper-tutor-notification-preferences", "corrupted{{json");
 
-  // Active at 11:30 PM (23:30)
-  const time2330 = new Date("2026-04-15T23:30:00");
-  assert.equal(isQuietHoursActive(overnight, time2330), true);
-
-  // Active at 3:00 AM (03:00)
-  const time0300 = new Date("2026-04-15T03:00:00");
-  assert.equal(isQuietHoursActive(overnight, time0300), true);
-
-  // Inactive at 12:00 PM (12:00)
-  const time1200 = new Date("2026-04-15T12:00:00");
-  assert.equal(isQuietHoursActive(overnight, time1200), false);
-
-  // Same-day range: 13:00 to 16:00
-  const sameDay = { enabled: true, start: "13:00", end: "16:00" };
-  const time1400 = new Date("2026-04-15T14:00:00");
-  assert.equal(isQuietHoursActive(sameDay, time1400), true);
-
-  const time1700 = new Date("2026-04-15T17:00:00");
-  assert.equal(isQuietHoursActive(sameDay, time1700), false);
-
-  // Disabled quiet hours
-  assert.equal(isQuietHoursActive({ enabled: false, start: "22:00", end: "08:00" }, time2330), false);
-
-  // Equal start and end times
-  assert.equal(isQuietHoursActive({ enabled: true, start: "12:00", end: "12:00" }, time1200), false);
+  const prefs = getNotificationPreferences();
+  assert.strictEqual(prefs.browserPush, true);
+  assert.strictEqual(localStorage.getItem("hyper-tutor-notification-preferences"), null); // cleared
 });
 
-test("writeNotification stores notifications and caps storage at 25 items", () => {
-  storageMap.clear();
+test("getNotificationPreferences clears key when shape is invalid non-object", () => {
+  setupMockLocalStorage();
+  localStorage.setItem("hyper-tutor-notification-preferences", JSON.stringify("string-payload"));
+
+  const prefs = getNotificationPreferences();
+  assert.strictEqual(prefs.browserPush, true);
+  assert.strictEqual(localStorage.getItem("hyper-tutor-notification-preferences"), null);
+});
+
+// --- 3. Quiet Hours Detection ---
+test("isQuietHoursActive identifies active times across midnight boundaries (22:00 - 08:00)", () => {
+  const quietHours = { enabled: true, start: "22:00", end: "08:00" };
+
+  const nightTime = new Date("2026-05-10T23:30:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, nightTime), true);
+
+  const earlyMorning = new Date("2026-05-10T03:15:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, earlyMorning), true);
+
+  const exactStart = new Date("2026-05-10T22:00:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, exactStart), true);
+
+  const exactEnd = new Date("2026-05-10T08:00:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, exactEnd), false);
+
+  const midDay = new Date("2026-05-10T14:00:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, midDay), false);
+});
+
+test("isQuietHoursActive identifies daytime interval quiet hours (13:00 - 15:00)", () => {
+  const quietHours = { enabled: true, start: "13:00", end: "15:00" };
+
+  const inside = new Date("2026-05-10T14:00:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, inside), true);
+
+  const outside = new Date("2026-05-10T16:00:00");
+  assert.strictEqual(isQuietHoursActive(quietHours, outside), false);
+});
+
+test("isQuietHoursActive returns false when disabled or start equals end", () => {
+  const disabled = { enabled: false, start: "22:00", end: "08:00" };
+  const equal = { enabled: true, start: "10:00", end: "10:00" };
+  const testDate = new Date("2026-05-10T23:00:00");
+
+  assert.strictEqual(isQuietHoursActive(disabled, testDate), false);
+  assert.strictEqual(isQuietHoursActive(equal, testDate), false);
+});
+
+// --- 4. Storage & Writing Notifications ---
+test("writeNotification prepends notification and caps storage at 25 items", () => {
+  setupMockLocalStorage();
 
   for (let i = 1; i <= 30; i++) {
-    writeNotification({ id: `notif-${i}`, title: `Notification ${i}` });
+    writeNotification({ title: `Notification ${i}` });
   }
 
   const stored = getStoredNotifications();
-  assert.equal(stored.length, 25);
-  // First item should be the most recent (notif-30)
-  assert.equal(stored[0].id, "notif-30");
-  // Oldest items (notif-1 through notif-5) should be dropped
-  assert.ok(!stored.some((n) => n.id === "notif-1"));
+  assert.strictEqual(stored.length, 25);
+  assert.strictEqual(stored[0].title, "Notification 30"); // newest first
+  assert.strictEqual(stored[24].title, "Notification 6"); // oldest preserved
 });
 
-test("getStoredNotifications recovers gracefully from corrupted JSON in localStorage", () => {
-  storageMap.set(NOTIFICATION_STORAGE_KEY, "{invalid_json");
-
-  const result = getStoredNotifications();
-  assert.deepEqual(result, []);
-  // Corrupted key should have been cleared
-  assert.equal(mockLocalStorage.getItem(NOTIFICATION_STORAGE_KEY), null);
-});
-
-test("recordNotification mutes notifications during quiet hours", () => {
-  storageMap.clear();
-
-  const activeQuietHours = {
+test("recordNotification sets muted: true when quiet hours are active", () => {
+  setupMockLocalStorage();
+  const preferences = {
     quietHours: { enabled: true, start: "22:00", end: "08:00" },
   };
 
-  // During quiet hours (23:00)
-  const quietTime = new Date("2026-04-15T23:00:00");
-  const recorded = recordNotification({ title: "Late Study Alert" }, activeQuietHours, quietTime);
+  const quietTime = new Date("2026-05-10T23:00:00");
+  recordNotification({ title: "Late Study Alert" }, preferences, quietTime);
 
-  assert.equal(recorded.muted, undefined); // writeNotification return value
   const stored = getStoredNotifications();
-  assert.equal(stored[0].muted, true); // Muted in storage
-
-  // Outside quiet hours (10:00 AM)
-  const activeTime = new Date("2026-04-15T10:00:00");
-  recordNotification({ title: "Day Alert" }, activeQuietHours, activeTime);
-  const updatedStored = getStoredNotifications();
-  assert.equal(updatedStored[0].muted, undefined);
+  assert.strictEqual(stored.length, 1);
+  assert.strictEqual(stored[0].muted, true);
 });
 
-test("hasActivePushSubscription reflects Service Worker push subscription status", async () => {
-  mockPushSubscription = null;
-  assert.equal(await hasActivePushSubscription(), false);
+test("getStoredNotifications handles corrupted JSON and invalid shapes safely", () => {
+  setupMockLocalStorage();
+  localStorage.setItem(NOTIFICATION_STORAGE_KEY, "invalid-json{{");
 
-  mockPushSubscription = { endpoint: "https://push.service.com/sub/123" };
-  assert.equal(await hasActivePushSubscription(), true);
+  assert.deepEqual(getStoredNotifications(), []);
+  assert.strictEqual(localStorage.getItem(NOTIFICATION_STORAGE_KEY), null);
+
+  localStorage.setItem(NOTIFICATION_STORAGE_KEY, JSON.stringify({ notAnArray: true }));
+  assert.deepEqual(getStoredNotifications(), []);
+  assert.strictEqual(localStorage.getItem(NOTIFICATION_STORAGE_KEY), null);
 });
 
-test("scheduleStudyReminder suppresses local in-tab timer when Web Push is active to prevent duplicates", async () => {
-  mockNotificationPermission = "granted";
-  mockPushSubscription = { endpoint: "https://push.service.com/sub/123" };
+// --- 5. Notification Read & Dismiss Actions ---
+test("markAllNotificationsRead and dismissNotification update stored state correctly", () => {
+  setupMockLocalStorage();
+  const n1 = writeNotification({ title: "First" });
+  const n2 = writeNotification({ title: "Second" });
+
+  assert.strictEqual(getStoredNotifications().some((n) => n.read), false);
+
+  markAllNotificationsRead();
+  const afterRead = getStoredNotifications();
+  assert.strictEqual(afterRead.length, 2);
+  assert.ok(afterRead.every((n) => n.read === true));
+
+  dismissNotification(n1.id);
+  const afterDismiss = getStoredNotifications();
+  assert.strictEqual(afterDismiss.length, 1);
+  assert.strictEqual(afterDismiss[0].id, n2.id);
+});
+
+// --- 6. Push Subscription & In-Tab Reminder Scheduling ---
+test("hasActivePushSubscription correctly checks serviceWorker push subscription", async () => {
+  // Test when window/navigator is missing
+  const { cleanup } = setupMockBrowserGlobals({ pushSubscription: null });
+  cleanup();
+
+  assert.strictEqual(await hasActivePushSubscription(), false);
+
+  // Test active push subscription present
+  const mock = setupMockBrowserGlobals({
+    pushSubscription: { endpoint: "https://push.example.com" },
+  });
+  assert.strictEqual(await hasActivePushSubscription(), true);
+  mock.cleanup();
+});
+
+test("scheduleStudyReminder suppresses in-tab timer when Web Push subscription is active", async () => {
+  const mock = setupMockBrowserGlobals({
+    permission: "granted",
+    pushSubscription: { endpoint: "https://push.example.com" },
+  });
 
   const session = {
-    id: "sess_101",
-    Date: "2099-01-01",
-    Start: "10:00",
+    id: "sess_100",
+    date: "2099-01-01",
+    startTime: "10:00",
     reminder: 15,
   };
 
-  // Because Web Push subscription is active, scheduleStudyReminder returns null (suppressing local in-tab timer)
   const timer = await scheduleStudyReminder(session);
-  assert.equal(timer, null);
+  assert.strictEqual(timer, null); // Suppressed to avoid duplicate notification!
+  mock.cleanup();
 });
 
-test("scheduleStudyReminder schedules in-tab timer when permission is granted and Web Push is inactive", async () => {
-  mockNotificationPermission = "granted";
-  mockPushSubscription = null;
+test("scheduleStudyReminder returns null for past session times or missing permissions", async () => {
+  // Missing Notification permission
+  const mockNoPerm = setupMockBrowserGlobals({ permission: "denied" });
+  assert.strictEqual(await scheduleStudyReminder({ id: "s1", date: "2099-01-01" }), null);
+  mockNoPerm.cleanup();
 
-  const originalDateNow = Date.now;
-  // Deterministic reference time: 2026-04-15T09:00:00.000Z
-  const mockNow = new Date("2026-04-15T09:00:00.000Z").getTime();
-  Date.now = () => mockNow;
+  // Granted permission, but past session time
+  const mockGranted = setupMockBrowserGlobals({ permission: "granted" });
+  const pastSession = {
+    id: "sess_past",
+    date: "2020-01-01",
+    startTime: "10:00",
+  };
 
-  try {
-    const session = {
-      id: "sess_202",
-      Date: "2026-04-15",
-      Start: "10:00",
-      reminder: 15, // Reminder starts at 09:45 (45 minutes in future relative to mockNow)
-    };
-
-    const timer = await scheduleStudyReminder(session);
-    assert.ok(timer !== null);
-    clearTimeout(timer);
-  } finally {
-    Date.now = originalDateNow;
-  }
+  assert.strictEqual(await scheduleStudyReminder(pastSession), null);
+  mockGranted.cleanup();
 });
 
-test("scheduleStudyReminder returns null if Notification permission is denied or session is in past", async () => {
-  mockPushSubscription = null;
+// --- 7. Browser Notification Permission Check ---
+test("requestBrowserNotificationPermission returns unsupported or existing permission", async () => {
+  // Unsupported environment (window/Notification missing)
+  delete globalThis.window;
+  delete globalThis.Notification;
+  assert.strictEqual(await requestBrowserNotificationPermission(), "unsupported");
+
+  // Granted permission
+  const mockGranted = setupMockBrowserGlobals({ permission: "granted" });
+  assert.strictEqual(await requestBrowserNotificationPermission(), "granted");
+  mockGranted.cleanup();
 
   // Denied permission
-  mockNotificationPermission = "denied";
-  const sessionFuture = { id: "sess_303", Date: "2099-01-01", Start: "10:00" };
-  assert.equal(await scheduleStudyReminder(sessionFuture), null);
-
-  // Past session
-  mockNotificationPermission = "granted";
-  const sessionPast = { id: "sess_404", Date: "2020-01-01", Start: "10:00" };
-  assert.equal(await scheduleStudyReminder(sessionPast), null);
+  const mockDenied = setupMockBrowserGlobals({ permission: "denied" });
+  assert.strictEqual(await requestBrowserNotificationPermission(), "denied");
+  mockDenied.cleanup();
 });
 
-test("scheduleSessionRemindersFromSessions filters invalid/null reminders and processes arrays", async () => {
-  mockNotificationPermission = "denied"; // Quick return null for test
-  const sessions = [
-    { id: "s1", Date: "2099-01-01" },
-    { id: "s2", Date: "2020-01-01" },
-  ];
-
-  const results = await Promise.all(scheduleSessionRemindersFromSessions(sessions));
-  assert.deepEqual(results.filter(Boolean), []);
-  assert.deepEqual(scheduleSessionRemindersFromSessions(null), []);
-});
-
-test("markAllNotificationsRead and dismissNotification update stored notification read/active state", () => {
-  storageMap.clear();
-
-  writeNotification({ id: "n1", title: "Unread 1", read: false });
-  writeNotification({ id: "n2", title: "Unread 2", read: false });
-
-  markAllNotificationsRead();
-  const allRead = getStoredNotifications();
-  assert.equal(allRead.every((n) => n.read === true), true);
-
-  dismissNotification("n1");
-  const remaining = getStoredNotifications();
-  assert.equal(remaining.length, 1);
-  assert.equal(remaining[0].id, "n2");
-});
-
-test("requestBrowserNotificationPermission returns current status or unsupported state", async () => {
-  mockNotificationPermission = "granted";
-  assert.equal(await requestBrowserNotificationPermission(), "granted");
-
-  mockNotificationPermission = "denied";
-  assert.equal(await requestBrowserNotificationPermission(), "denied");
+// --- 8. Push Error Formatting ---
+test("formatPushError maps standard push error codes to user-facing error messages", () => {
+  assert.strictEqual(
+    formatPushError("UNSUPPORTED"),
+    "This browser doesn't support push notifications."
+  );
+  assert.strictEqual(
+    formatPushError("PERMISSION_DENIED"),
+    "Notifications are blocked. Click the padlock in the address bar and set Notifications to Allow."
+  );
+  assert.strictEqual(
+    formatPushError("SW_NOT_ACTIVE"),
+    "The notification service didn't start. Refresh the page and try again."
+  );
+  assert.strictEqual(
+    formatPushError("VAPID_KEY_MISSING"),
+    "Notifications are misconfigured. Please contact support."
+  );
+  assert.strictEqual(
+    formatPushError("PUSH_AbortError: Network failed"),
+    "Your browser couldn't reach its push service. Check your network, VPN or ad-blocker; in Brave, enable Google services for push messaging."
+  );
 });

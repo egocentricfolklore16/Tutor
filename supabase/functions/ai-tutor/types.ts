@@ -9,6 +9,7 @@ export interface ClientState {
   focus_mode?: string;
   pomodoro_state?: "idle" | "focus" | "break" | "unknown";
   minutes_remaining?: number | null;
+  intent?: "generate_notes";
 }
 
 export interface RequestBody {

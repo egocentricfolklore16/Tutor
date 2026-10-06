@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { verifyAuthorization } from "./authorization.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -61,13 +62,15 @@ serve(async (req) => {
       });
     }
 
-    // Identify the user from their auth token (falls back to "anonymous" behavior if missing).
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabase.auth.getUser(token);
-      userId = userData?.user?.id ?? null;
+    // Security: Require Authorization header and authenticate calling user
+    const authResult = await verifyAuthorization(
+      req.headers.get("Authorization"),
+      supabase.auth
+    );
+    if (authResult.status !== 200) {
+      return jsonResponse({ error: authResult.error }, authResult.status);
     }
+    userId = authResult.userId!;
 
     const strictness = await resolveStrictness(supabase, userId, strictnessOverride);
     const systemPrompt = `${BASE_SYSTEM_PROMPT}\n\n${STRICTNESS_PROMPTS[strictness]}`;

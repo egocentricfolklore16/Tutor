@@ -49,9 +49,24 @@ serve(async (req) => {
   }
 
   const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+
   let userId: string | null = null;
 
   try {
+    // Security: Require Authorization header and authenticate calling user to prevent API quota drain / IDOR
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return jsonResponse({ error: "Missing Authorization header" }, 401);
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const { data: userData, error: userError } = await supabase.auth.getUser(token);
+    if (userError || !userData?.user) {
+      return jsonResponse({ error: "Unauthorized: Invalid or expired token" }, 401);
+    }
+
+    userId = userData.user.id;
+
     const { message, conversationHistory = [], sessionId, strictnessOverride } = await req.json();
 
     if (!message || typeof message !== "string") {
@@ -59,14 +74,6 @@ serve(async (req) => {
       return jsonResponse({
         reply: "I didn't catch a question there — could you type what you'd like help with?",
       });
-    }
-
-    // Identify the user from their auth token (falls back to "anonymous" behavior if missing).
-    const authHeader = req.headers.get("Authorization");
-    if (authHeader) {
-      const token = authHeader.replace("Bearer ", "");
-      const { data: userData } = await supabase.auth.getUser(token);
-      userId = userData?.user?.id ?? null;
     }
 
     const strictness = await resolveStrictness(supabase, userId, strictnessOverride);

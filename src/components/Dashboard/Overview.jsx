@@ -112,14 +112,8 @@ function Overview() {
               <button type="button" onClick={() => navigate("/Study")} className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 sm:w-auto"><Bot className="h-4 w-4" />Ask AI &amp; Study</button>
             </div>
 
-            <p className="mt-2 truncate pl-14 text-sm text-slate-600">{greeting.paragraph}</p>
-            {(profile?.education_level || profile?.primary_goal) && (
-              <p className="mt-1 pl-14 text-xs text-slate-500">
-                <span className="font-semibold text-slate-700">{getEducationLevelInfo(profile?.education_level).badge}</span>
-                {profile?.primary_goal ? <> · Focus: <span className="font-semibold text-slate-700">{profile.primary_goal}</span></> : null}
-                {profile?.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
-              </p>
-            )}
+            <p className="mt-2 truncate pl-0 sm:pl-14 text-sm text-slate-600 dark:text-slate-300">{greeting.paragraph}</p>
+            {profile?.primary_goal && <p className="mt-1 pl-0 sm:pl-14 text-xs text-slate-500 dark:text-slate-400">Focus: <span className="font-semibold text-slate-700 dark:text-slate-200">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
 
            <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
   <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
@@ -170,7 +164,7 @@ function Overview() {
           </div>
         </div>
       </div>
-      {feedbackVisible && <div className="fixed bottom-6 right-6 z-50 hidden sm:block">
+      {feedbackVisible && <div className="fixed bottom-6 right-36 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
         <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">

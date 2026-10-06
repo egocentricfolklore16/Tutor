@@ -7,6 +7,7 @@ import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 import { deleteSession } from "../../lib/sessionService";
+import { useAITutor } from "../../app/AITutorContext";
 import {
   BookOpen,
   Play,
@@ -18,6 +19,7 @@ import {
 } from "lucide-react";
 
 function Study() {
+  const { isOpen: isAIOpen } = useAITutor();
   const toTitleCase = (value) =>
     String(value || "")
       .toLowerCase()
@@ -437,7 +439,7 @@ function Study() {
             </p>
           </div>
         ) : (
-          <div className="grid w-full grid-cols-1 gap-4 p-2 sm:grid-cols-2 xl:grid-cols-3">
+          <div className={`grid w-full grid-cols-1 gap-4 p-2 sm:grid-cols-2 ${isAIOpen ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
             {sessions.map((sessionItem, index) => {
               const isMuted = sessionItem.muted;
               const isDeleting = loadingStates[`${sessionItem.id}_delete`];

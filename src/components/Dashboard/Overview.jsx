@@ -96,9 +96,8 @@ function Overview() {
 
   return (
     <PageContainer maxWidth="max-w-7xl">
-      <div>
-        <div className="px-1 sm:px-2">
-          <section className="rounded-2xl bg-transparent py-2" aria-labelledby="dashboard-greeting-title">
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2 2xl:grid-cols-12">
+          <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />{streak?.display_current_streak || 0}d Streak</span>
@@ -131,38 +130,38 @@ function Overview() {
   </button>
 </div>
           </section>
-          <DashboardStatsBar />
-          <QuickShortcuts />
-        </div>
-      </div>
-      <div className="mt-4 w-full">
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-2 2xl:grid-cols-3">
-          <div className="xl:col-span-2 2xl:col-span-2">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <DashboardStatsBar />
+          </div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <QuickShortcuts />
+          </div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-8">
             <PerformanceDashboard />
           </div>
-          <div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-4">
             <StudyCompanion topic={profile?.current_topic || "your studies"} />
           </div>
 
-          <div>
+          <div className="min-w-0 2xl:col-span-4">
             <CommunitySpotlight />
           </div>
-          <div>
+          <div className="min-w-0 2xl:col-span-4">
             <AchievementsCard />
           </div>
-          <div>
+          <div className="min-w-0 2xl:col-span-4">
             <Leaderboard />
           </div>
 
-          <div className="xl:col-span-2 2xl:col-span-2">
+          <div className="min-w-0 2xl:col-span-4">
             <StudyStreak streak={streak} />
+          </div>
+          <div className="min-w-0 2xl:col-span-8">
             <KeepsSlipping userId={userId} />
           </div>
-
-          <div className="xl:col-span-2 2xl:col-span-3">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <AISuggestions />
           </div>
-        </div>
       </div>
       {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />

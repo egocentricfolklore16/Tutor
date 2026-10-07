@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|
 | `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
-| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, Dashboard header & AI Suggestions, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner | Used |
@@ -27,3 +27,7 @@
 ## 2026-10-02 - Connecting Learner Type to Dashboard AI Suggestions & Settings
 **Learning:** `learner_type` was collected in Onboarding step 0 ("Which learner sounds most like you?"), stored in `profiles.learner_type`, and passed into the AI Tutor Edge Function system prompt, but was omitted from Dashboard recommendations and editable Settings controls.
 **Action:** Create `getLearnerTypeSuggestion` helper to surface personalized study strategy badges and recommendations on the Dashboard `AISuggestions` card, and add a Learner Type selector in `Settings.jsx` so preferences can be edited with instant UI propagation via `ProfileContext`.
+
+## 2026-10-05 - Connecting Education Level to Dashboard Overview Header & AI Suggestions
+**Learning:** `education_level` was collected in Onboarding step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and sent to the AI Tutor prompt, but was not visibly displayed on the Dashboard or used to personalize study suggestions.
+**Action:** Create `getEducationLevelInfo` pure helper to map education levels ("High school", "College / university", "Working professional", "Independent learner") to level badges and study guidance notes, render an Education Level badge in the Dashboard `Overview` header, and append tailored education level advice to `AISuggestions`.

@@ -33,7 +33,7 @@ export function BottomNavBar() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[95] flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md md:hidden dark:border-slate-800 dark:bg-[#14171c]/95"
+        className="fixed bottom-0 left-0 right-0 z-[95] flex h-[calc(4rem+env(safe-area-inset-bottom))] items-center justify-around border-t border-slate-200 bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden dark:border-slate-800 dark:bg-[#14171c]/95"
         aria-label="Mobile navigation"
       >
         {primaryItems.map((item) => {

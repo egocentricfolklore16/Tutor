@@ -421,7 +421,7 @@ function Study() {
             </button>
           </div>
         )}
-        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 dark:text-white mb-6">
+        <h1 className="px-2 sm:px-4 lg:px-0 text-2xl font-bold text-gray-800 dark:text-white mb-6">
           Active &amp; Paused Study Sessions
         </h1>
 
@@ -768,7 +768,7 @@ function Study() {
         createPortal(
           <button
             onClick={toggleShow}
-            className="fixed bottom-20 left-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:left-8"
+            className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:left-8"
             title="Create New Session"
           >
             <svg

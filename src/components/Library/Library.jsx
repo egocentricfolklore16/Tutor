@@ -633,8 +633,8 @@ function Library({ session }) {
         </header>
 
         {/* Navigation Tabs and Create Action Bar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
-          <div className="flex flex-wrap gap-1.5">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4">
+          <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {[
               { id: "all", label: `All Items (${totalItemsCount})`, icon: LibraryIcon },
               { id: "notes", label: `Notes (${notes.length})`, icon: FileText },
@@ -648,7 +648,7 @@ function Library({ session }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                  className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                     isActive
                       ? "bg-slate-900 text-white shadow-sm"
                       : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"

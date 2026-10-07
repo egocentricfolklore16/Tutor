@@ -237,7 +237,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         onClick={toggleSidebar2}
         aria-label="Open navigation menu"
         title="Open navigation menu"
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
           isOpen ? "hidden" : ""
         }`}
       >

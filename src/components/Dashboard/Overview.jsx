@@ -163,12 +163,12 @@ function Overview() {
           </div>
         </div>
       </div>
-      {feedbackVisible && <div className="fixed bottom-6 right-36 z-50 hidden sm:block">
-        <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
-        <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
-        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100">
+      {feedbackVisible && <div className="fixed bottom-20 right-4 sm:bottom-24 sm:right-6 z-50 hidden sm:block">
+        <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md dark:bg-slate-800" aria-hidden="true" />
+        <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm dark:bg-slate-800" aria-hidden="true" />
+        <div className="relative flex items-center gap-3 rounded-2xl bg-white dark:bg-slate-800 dark:text-slate-100 px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:ring-slate-700">
           <span>Give us feedback!</span>
-          <MessageSquare className="h-4 w-4 text-emerald-600" aria-hidden="true" />
+          <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950">×</button>
         </div>
       </div>}

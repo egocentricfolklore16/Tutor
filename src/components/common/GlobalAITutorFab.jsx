@@ -24,7 +24,7 @@ const GlobalAITutorFab = () => {
   return (
     <>
       {/* Floating Action Button (FAB) */}
-      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[90] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]">
+      <div className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] right-4 z-[90] md:bottom-6 md:right-6 pr-[env(safe-area-inset-right)]">
         <button
           type="button"
           onClick={handleToggle}

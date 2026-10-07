@@ -10,9 +10,10 @@ import DashboardStatsBar from "./DashboardStatsBar";
 import QuickShortcuts from "./QuickShortcuts";
 import CommunitySpotlight from "./CommunitySpotlight";
 import AchievementsCard from "./AchievementsCard";
-import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
+import { ArrowRight, Bot, CalendarCheck2, Flame, GraduationCap, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
+import { getEducationLevelInfo } from "../../lib/educationLevel.js";
 import supabase from "../../lib/supabase";
 
 // Typing Animation Component
@@ -58,6 +59,7 @@ function Overview() {
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
+  const educationLevelInfo = getEducationLevelInfo(profile?.education_level);
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
@@ -100,6 +102,7 @@ function Overview() {
           <section className="rounded-2xl bg-transparent px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><GraduationCap className="h-3.5 w-3.5" />{educationLevelInfo.badge}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700"><Flame className="h-3.5 w-3.5" />{streak?.display_current_streak || 0}d Streak</span>
             </div>
 

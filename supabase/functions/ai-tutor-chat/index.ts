@@ -17,6 +17,8 @@ const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
 type Strictness = "always_guide" | "hints_then_answer" | "direct_help";
 
+const VALID_STRICTNESS = new Set<string>(["always_guide", "hints_then_answer", "direct_help"]);
+
 const STRICTNESS_PROMPTS: Record<Strictness, string> = {
   always_guide: `You are in ALWAYS GUIDE mode. Never give the final answer, even if asked directly
 or if the student is frustrated. Respond only with leading questions, analogies, and small
@@ -98,9 +100,12 @@ serve(async (req) => {
 async function resolveStrictness(
   supabase: ReturnType<typeof createClient>,
   userId: string | null,
-  override?: Strictness,
+  override?: unknown,
 ): Promise<Strictness> {
-  if (override && STRICTNESS_PROMPTS[override]) return override;
+  // Security: Explicitly check override against allowed strictness enum to prevent prototype property lookup injection (e.g. override = "toString")
+  if (typeof override === "string" && VALID_STRICTNESS.has(override)) {
+    return override as Strictness;
+  }
   if (!userId) return "hints_then_answer"; // sensible default for logged-out/demo use
 
   const { data } = await supabase
@@ -109,7 +114,12 @@ async function resolveStrictness(
     .eq("user_id", userId)
     .maybeSingle();
 
-  return (data?.socratic_strictness as Strictness) ?? "hints_then_answer";
+  const dbStrictness = data?.socratic_strictness as string;
+  if (dbStrictness && VALID_STRICTNESS.has(dbStrictness)) {
+    return dbStrictness as Strictness;
+  }
+
+  return "hints_then_answer";
 }
 
 async function getAiReplyWithFallback(

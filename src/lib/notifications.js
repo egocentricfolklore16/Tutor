@@ -61,10 +61,10 @@ export function normalizeNotificationPreferences(value) {
   };
 }
 
-export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours) {
+export function isQuietHoursActive(quietHours = defaultNotificationPreferences.quietHours, date = new Date()) {
   if (!quietHours?.enabled) return false;
 
-  const now = new Date();
+  const now = date instanceof Date ? date : new Date();
   const currentMinutes = now.getHours() * 60 + now.getMinutes();
   const parseTime = (time) => {
     if (!time || typeof time !== "string") return 0;
@@ -101,7 +101,7 @@ export function getStoredNotifications() {
     console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
     try {
       localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
-    } catch (e) {
+    } catch {
       // ignore
     }
     return [];
@@ -135,9 +135,9 @@ export function writeNotification(notification) {
   return nextNotification;
 }
 
-export function recordNotification(notification, preferences = null) {
+export function recordNotification(notification, preferences = null, date = new Date()) {
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours);
+  const quietHoursActive = isQuietHoursActive(mergedPreferences.quietHours, date);
   const notificationRecord = writeNotification(notification);
 
   if (quietHoursActive) {
@@ -155,7 +155,7 @@ export async function hasActivePushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
-  } catch (e) {
+  } catch {
     return false;
   }
 }
@@ -164,7 +164,7 @@ export async function scheduleStudyReminder(session, preferences = null) {
   if (!session || !session.id) return null;
 
   // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
-  if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
+  if (typeof window === "undefined" || !("Notification" in window) || window.Notification.permission !== "granted") {
     return null;
   }
 
@@ -249,10 +249,10 @@ export async function requestBrowserNotificationPermission() {
     return "unsupported";
   }
 
-  if (Notification.permission === "granted") return "granted";
-  if (Notification.permission === "denied") return "denied";
+  if (window.Notification.permission === "granted") return "granted";
+  if (window.Notification.permission === "denied") return "denied";
 
-  return Notification.requestPermission();
+  return window.Notification.requestPermission();
 }
 
 export function persistNotificationPreferences(preferences) {
@@ -277,7 +277,7 @@ export function getNotificationPreferences() {
     console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
     try {
       localStorage.removeItem(KEY);
-    } catch (e) {
+    } catch {
       // ignore
     }
     return normalizeNotificationPreferences(defaultNotificationPreferences);

@@ -9,3 +9,9 @@
 **Learning:** Database RPCs and UI controls may store user preferences as snake_case enums (`hints_then_answer`, `direct_help`), while system prompts use display labels ("Hints Then Answer"). Normalization functions must lower-case and strip string representations to match both formats, or user settings fall back to default strictness. Additionally, `countGenuineAttempts` must filter multi-word answer demands ("tell me the solution", "solve it for me") and non-substantive text so students cannot bypass answer locking by repeating demands.
 
 **Action:** Always test both UI label strings and database enum values against preference resolvers, and test non-attempt demand phrases against `countGenuineAttempts`.
+
+## 2026-10-02 - Filtering Prompt Injection and Demand Bypass in Server-Side Answer Unlocking
+
+**Learning:** Server-side pedagogical unlock counters like `countGenuineAttempts` must explicitly filter prompt injection / jailbreak phrases ("ignore previous instructions", "system override", "developer mode") and answer demands containing justification keywords ("give me the answer because..."). If unhandled, adversarial messages count as genuine student attempts, triggering `SERVER-ENFORCED STATE: UNLOCKED` on the server side and compromising Socratic tutoring rules.
+
+**Action:** Always test prompt injection phrases and demand sentences with conjunctions against server-side attempt counter functions to ensure they do not increment genuine attempt counts.

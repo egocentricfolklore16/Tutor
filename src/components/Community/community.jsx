@@ -130,13 +130,13 @@ const Community = () => {
               Phase 2 Development • Social Learning Features
             </div>
 
-            <h1 className="text-6xl font-bold bg-gradient-to-r from-[#00A651] to-[#00C853] bg-clip-text text-transparent mb-6">
+            <h1 className="text-3xl sm:text-5xl md:text-6xl font-bold bg-gradient-to-r from-[#00A651] to-[#00C853] bg-clip-text text-transparent mb-6">
               Community Hub
             </h1>
-            <h2 className="text-3xl font-bold text-slate-700 mb-6">
+            <h2 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-700 dark:text-slate-200 mb-6">
               Coming Soon to Hyper Tutor
             </h2>
-            <p className="text-xl text-slate-600 leading-relaxed mb-8 max-w-3xl mx-auto">
+            <p className="text-base sm:text-lg md:text-xl text-slate-600 dark:text-slate-300 leading-relaxed mb-8 max-w-3xl mx-auto">
               Transform your solo study sessions into collaborative learning
               experiences. Connect with peers, join study groups, and accelerate
               your academic success through the power of community.
@@ -151,9 +151,9 @@ const Community = () => {
             </div>
             <div className="mb-10">
               <img
-                className="rounded-lg border border-gray-200 shadow-2xl"
+                className="w-full max-w-full h-auto rounded-lg border border-gray-200 dark:border-slate-800 shadow-2xl"
                 src="comm.jpg"
-                alt=""
+                alt="Community preview"
               />
             </div>
 

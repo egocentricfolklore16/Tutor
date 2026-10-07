@@ -4,7 +4,22 @@ import assert from "node:assert/strict";
 import {
   processVerifiedPayment,
   timingSafeEqualStrings,
+  addMonths,
 } from "../supabase/functions/_shared/payment-processor.ts";
+
+test("addMonths correctly handles end-of-month dates without overflow", () => {
+  const jan31 = new Date("2025-01-31T12:00:00.000Z");
+  const febAdded = addMonths(jan31, 1);
+  assert.strictEqual(febAdded.toISOString().slice(0, 10), "2025-02-28");
+
+  const dec31 = new Date("2025-12-31T12:00:00.000Z");
+  const janNext = addMonths(dec31, 1);
+  assert.strictEqual(janNext.toISOString().slice(0, 10), "2026-01-31");
+
+  const leapJan31 = new Date("2024-01-31T12:00:00.000Z");
+  const leapFebAdded = addMonths(leapJan31, 1);
+  assert.strictEqual(leapFebAdded.toISOString().slice(0, 10), "2024-02-29");
+});
 
 test("timingSafeEqualStrings compares strings in constant time", () => {
   assert.strictEqual(timingSafeEqualStrings("abc", "abc"), true);
@@ -375,4 +390,91 @@ test("processVerifiedPayment resets period to now when upgrading plan", async ()
 
   assert.strictEqual(result.alreadyProcessed, false);
   assert.notStrictEqual(result.subscription.current_period_start, "2025-01-01T00:00:00.000Z");
+});
+
+test("processVerifiedPayment rejects inactive plan", async () => {
+  const mockClient = createMockSupabaseClient({
+    plan: { id: "pro_legacy", price_kobo: 250000, price_naira: 2500, billing_interval: "month", is_active: false },
+  });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_test_inactive",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro_legacy",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Plan is no longer active: pro_legacy",
+    }
+  );
+});
+
+test("processVerifiedPayment records failed payment attempt in database before throwing", async () => {
+  let recordedPayment = null;
+  const mockClient = {
+    from(tableName) {
+      if (tableName === "plans") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async single() {
+                    return { data: { id: "pro", price_kobo: 250000 }, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (tableName === "payments") {
+        return {
+          upsert(payload) {
+            recordedPayment = payload;
+            return { async select() { return { async single() { return { data: payload, error: null }; } }; } };
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${tableName}`);
+    },
+  };
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_failed_1001",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "failed",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-999",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment verification failed: status is failed",
+    }
+  );
+
+  assert.notStrictEqual(recordedPayment, null);
+  assert.strictEqual(recordedPayment.reference, "ref_failed_1001");
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.user_id, "user-uuid-999");
 });

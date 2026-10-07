@@ -22,6 +22,13 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
     return { status: 403, error: "Forbidden: Payment user ID mismatch" };
   }
 
+  if (paystackData?.data?.status && paystackData.data.status !== "success") {
+    return {
+      status: 400,
+      error: `Payment status is ${paystackData.data.status}. No subscription was granted.`,
+    };
+  }
+
   return { status: 200, authorized: true };
 }
 
@@ -51,10 +58,23 @@ test("verifyPaymentAuthorization returns 403 if user.id does not match payment m
 test("verifyPaymentAuthorization succeeds when user.id matches payment metadata user_id", () => {
   const paystackData = {
     data: {
+      status: "success",
       metadata: { userId: "user_owner_456" },
     },
   };
   const result = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackData);
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.authorized, true);
+});
+
+test("verifyPaymentAuthorization returns 400 if transaction status is non-success (failed or abandoned)", () => {
+  const paystackData = {
+    data: {
+      status: "failed",
+      metadata: { userId: "user_owner_456" },
+    },
+  };
+  const result = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackData);
+  assert.strictEqual(result.status, 400);
+  assert.strictEqual(result.error, "Payment status is failed. No subscription was granted.");
 });

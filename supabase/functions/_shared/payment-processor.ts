@@ -18,6 +18,19 @@ export function timingSafeEqualStrings(a: string, b: string): boolean {
   return mismatch === 0;
 }
 
+/**
+ * Safely adds months to a Date object without day-of-month overflow (e.g., Jan 31 + 1 month -> Feb 28/29).
+ */
+export function addMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  const targetMonth = (result.getMonth() + months) % 12;
+  result.setMonth(result.getMonth() + months);
+  if (result.getMonth() !== targetMonth) {
+    result.setDate(0);
+  }
+  return result;
+}
+
 export interface ProcessPaymentParams {
   supabaseClient: any;
   reference: string;
@@ -73,8 +86,26 @@ export async function processVerifiedPayment({
     throw new Error(`Plan not found: ${planId}`);
   }
 
+  if (plan.is_active === false) {
+    throw new Error(`Plan is no longer active: ${planId}`);
+  }
+
   // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
   if (paystackData.status !== "success") {
+    if (userId && reference) {
+      await supabaseClient.from("payments").upsert(
+        {
+          user_id: userId,
+          reference: reference,
+          amount: paystackData.amount || 0,
+          currency: (paystackData.currency || "NGN").toUpperCase(),
+          status: paystackData.status || "failed",
+          purpose: `subscription:${planId}`,
+          verified_at: new Date().toISOString(),
+        },
+        { onConflict: "reference" }
+      );
+    }
     throw new Error(`Payment verification failed: status is ${paystackData.status}`);
   }
 
@@ -181,13 +212,13 @@ export async function processVerifiedPayment({
     }
   }
 
-  const periodEnd = new Date(baseDate);
+  let periodEnd: Date;
 
   if (plan.billing_interval === "year") {
-    periodEnd.setFullYear(periodEnd.getFullYear() + 1);
+    periodEnd = addMonths(baseDate, 12);
   } else {
     // Default to monthly billing
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
+    periodEnd = addMonths(baseDate, 1);
   }
 
   // 6. Upsert into `subscriptions` table (one active subscription per user)

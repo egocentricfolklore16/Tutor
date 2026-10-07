@@ -99,7 +99,26 @@ Deno.serve(async (req) => {
     // 2. Initialize Supabase Service Role client to bypass RLS for write actions
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
-    // 3. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
+    // 3. Handle non-success transaction statuses with database recording and HTTP 400 response
+    if (paystackData?.data?.status && paystackData.data.status !== "success") {
+      try {
+        await processVerifiedPayment({
+          supabaseClient,
+          reference,
+          paystackData: paystackData.data,
+        });
+      } catch (_e) {
+        // Expected throw from processVerifiedPayment for non-success status after database audit recording
+      }
+      return new Response(
+        JSON.stringify({
+          error: `Payment status is ${paystackData.data.status}. No subscription was granted.`,
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // 4. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
     const result = await processVerifiedPayment({
       supabaseClient,
       reference,

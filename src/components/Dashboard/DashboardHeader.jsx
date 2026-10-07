@@ -110,6 +110,17 @@ function DashboardHeader({ toggleSidebar }) {
   }, []);
 
   useEffect(() => {
+    if (!searchOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") {
+        setSearchOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [searchOpen]);
+
+  useEffect(() => {
     return () => {
       clearTimeout(streakCloseTimer.current);
       clearTimeout(xpCloseTimer.current);
@@ -490,12 +501,12 @@ function DashboardHeader({ toggleSidebar }) {
 
     {searchOpen && (
       <div className="fixed inset-0 z-[200] flex items-start justify-center bg-slate-950/35 px-4 pt-20 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setSearchOpen(false)}>
-        <section className="motion-dialog w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
+        <section role="dialog" aria-modal="true" aria-label="Search" className="motion-dialog w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
           <form onSubmit={runSearch} className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-            <Search className="h-5 w-5 text-slate-400" />
+            <Search className="h-5 w-5 text-slate-400" aria-hidden="true" />
             <input autoFocus value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search notes, flashcards, and resources" className="min-w-0 flex-1 text-base outline-none dark:bg-slate-900 dark:text-slate-100" />
-            <button type="button" onClick={() => setSearchOpen(false)} title="Close search" className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
-              <X className="h-4 w-4" />
+            <button type="button" onClick={() => setSearchOpen(false)} title="Close search" aria-label="Close search" className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+              <X className="h-4 w-4" aria-hidden="true" />
             </button>
           </form>
           <div className="max-h-[60vh] overflow-y-auto p-3">

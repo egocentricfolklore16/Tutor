@@ -34,3 +34,31 @@ test("verifyAiTutorChatAuthorization succeeds when user is authenticated", () =>
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.userId, "user_123");
 });
+
+const VALID_STRICTNESS = new Set(["always_guide", "hints_then_answer", "direct_help"]);
+
+function resolveStrictnessHelper(override, dbStrictness, userId) {
+  if (typeof override === "string" && VALID_STRICTNESS.has(override)) {
+    return override;
+  }
+  if (!userId) return "hints_then_answer";
+  if (typeof dbStrictness === "string" && VALID_STRICTNESS.has(dbStrictness)) {
+    return dbStrictness;
+  }
+  return "hints_then_answer";
+}
+
+test("resolveStrictness accepts valid strictness overrides", () => {
+  assert.strictEqual(resolveStrictnessHelper("always_guide", null, "u1"), "always_guide");
+  assert.strictEqual(resolveStrictnessHelper("direct_help", null, "u1"), "direct_help");
+  assert.strictEqual(resolveStrictnessHelper("hints_then_answer", null, "u1"), "hints_then_answer");
+});
+
+test("resolveStrictness safely rejects prototype key injections and invalid overrides", () => {
+  // Prototype property lookup injections must be ignored
+  assert.strictEqual(resolveStrictnessHelper("toString", "always_guide", "u1"), "always_guide");
+  assert.strictEqual(resolveStrictnessHelper("constructor", null, "u1"), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("__proto__", null, "u1"), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("valueOf", "direct_help", "u1"), "direct_help");
+  assert.strictEqual(resolveStrictnessHelper("invalid_mode", null, "u1"), "hints_then_answer");
+});

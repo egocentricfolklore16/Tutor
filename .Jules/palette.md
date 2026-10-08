@@ -9,3 +9,7 @@
 ## 2025-03-02 - Keyboard dismissal and ARIA dialog roles for overlay search components
 **Learning:** Search overlays and custom modal overlays rendered directly without native `<dialog>` leave keyboard-only users trapped unless an explicit `Escape` key listener is attached to dismiss the modal, and lack screen reader context without `role="dialog"`, `aria-modal="true"`, and `aria-label`.
 **Action:** Always attach an `Escape` keydown listener when an overlay or modal opens, add `role="dialog"` and `aria-modal="true"`, and set `aria-hidden="true"` on decorative search/close icon SVGs.
+
+## 2025-03-09 - Radio group semantics and focus indicators for segmented controls
+**Learning:** Custom segmented pill controls presenting a set of single-select options lack screen reader selection state and group context when built with plain buttons.
+**Action:** Wrap single-select segmented control buttons in a container with `role="radiogroup"` and `aria-labelledby`/`aria-label`, add `role="radio"` and `aria-checked` to each option button, and apply visible focus ring indicators (`focus-visible:ring-2`).

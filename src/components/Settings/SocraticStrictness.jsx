@@ -60,18 +60,24 @@ export default function SocraticStrictness() {
 
   return (
     <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-sm text-white">
-      <h3 className="text-xl font-bold text-white mb-4">Socratic Strictness</h3>
+      <h3 id="socratic-strictness-heading" className="text-xl font-bold text-white mb-4">Socratic Strictness</h3>
 
       {/* Segmented pill control */}
-      <div className="inline-flex w-full sm:w-auto items-center p-1 bg-zinc-900 rounded-full border border-zinc-800 gap-1">
+      <div
+        role="radiogroup"
+        aria-labelledby="socratic-strictness-heading"
+        className="inline-flex w-full sm:w-auto items-center p-1 bg-zinc-900 rounded-full border border-zinc-800 gap-1"
+      >
         {STRICTNESS_OPTIONS.map((option) => {
           const isSelected = strictness === option.value;
           return (
             <button
               key={option.value}
               type="button"
+              role="radio"
+              aria-checked={isSelected}
               onClick={() => handleSelect(option.value)}
-              className={`flex-1 sm:flex-initial rounded-full px-4 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95 ${
+              className={`flex-1 sm:flex-initial rounded-full px-4 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95 focus-visible:ring-2 focus-visible:ring-emerald-500 outline-none ${
                 isSelected
                   ? "bg-green-900/40 text-green-400"
                   : "text-zinc-300 hover:text-white bg-transparent"

@@ -59,13 +59,30 @@ export async function processVerifiedPayment({
   reference,
   paystackData,
 }: ProcessPaymentParams) {
-  const metadata = paystackData.metadata || {};
+  let metadata: any = paystackData.metadata || {};
+  if (typeof metadata === "string") {
+    try {
+      metadata = JSON.parse(metadata);
+    } catch (_e) {
+      metadata = {};
+    }
+  }
+
+  let customerMetadata: any = paystackData.customer?.metadata || {};
+  if (typeof customerMetadata === "string") {
+    try {
+      customerMetadata = JSON.parse(customerMetadata);
+    } catch (_e) {
+      customerMetadata = {};
+    }
+  }
+
   const planId = metadata.planId || metadata.plan_id;
   const userId =
     metadata.userId ||
     metadata.user_id ||
-    paystackData.customer?.metadata?.userId ||
-    paystackData.customer?.metadata?.user_id;
+    customerMetadata.userId ||
+    customerMetadata.user_id;
 
   if (!planId) {
     throw new Error("Missing planId in Paystack metadata");
@@ -86,12 +103,7 @@ export async function processVerifiedPayment({
     throw new Error(`Plan not found: ${planId}`);
   }
 
-  if (plan.is_active === false) {
-    throw new Error(`Plan is no longer active: ${planId}`);
-  }
-
-  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
-  if (paystackData.status !== "success") {
+  const recordFailedPayment = async (statusOverride?: string) => {
     if (userId && reference) {
       await supabaseClient.from("payments").upsert(
         {
@@ -99,19 +111,30 @@ export async function processVerifiedPayment({
           reference: reference,
           amount: paystackData.amount || 0,
           currency: (paystackData.currency || "NGN").toUpperCase(),
-          status: paystackData.status || "failed",
+          status: statusOverride || paystackData.status || "failed",
           purpose: `subscription:${planId}`,
           verified_at: new Date().toISOString(),
         },
         { onConflict: "reference" }
       );
     }
+  };
+
+  if (plan.is_active === false) {
+    await recordFailedPayment("failed");
+    throw new Error(`Plan is no longer active: ${planId}`);
+  }
+
+  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
+  if (paystackData.status !== "success") {
+    await recordFailedPayment();
     throw new Error(`Payment verification failed: status is ${paystackData.status}`);
   }
 
   const receivedCurrency = (paystackData.currency || "NGN").toUpperCase();
   const expectedCurrency = "NGN";
   if (receivedCurrency !== expectedCurrency) {
+    await recordFailedPayment("failed");
     throw new Error(
       `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
     );
@@ -123,6 +146,7 @@ export async function processVerifiedPayment({
       : plan.price_naira * 100;
 
   if (paystackData.amount !== expectedAmountKobo) {
+    await recordFailedPayment("failed");
     throw new Error(
       `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
     );

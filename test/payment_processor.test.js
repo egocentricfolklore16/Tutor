@@ -151,8 +151,58 @@ test("processVerifiedPayment processes a valid payment and updates subscription"
   assert.strictEqual(result.subscription.status, "active");
 });
 
-test("processVerifiedPayment rejects currency mismatch", async () => {
+test("processVerifiedPayment processes payment when metadata is passed as a stringified JSON string", async () => {
   const mockClient = createMockSupabaseClient();
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_test_string_metadata",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: JSON.stringify({
+        planId: "pro",
+        userId: "user-uuid-111",
+      }),
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_test_string_metadata");
+  assert.strictEqual(result.subscription.plan_id, "pro");
+});
+
+test("processVerifiedPayment rejects currency mismatch and records failed payment in database", async () => {
+  let recordedPayment = null;
+  const mockClient = {
+    from(tableName) {
+      if (tableName === "plans") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async single() {
+                    return { data: { id: "pro", price_kobo: 250000 }, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (tableName === "payments") {
+        return {
+          upsert(payload) {
+            recordedPayment = payload;
+            return { async select() { return { async single() { return { data: payload, error: null }; } }; } };
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${tableName}`);
+    },
+  };
+
   await assert.rejects(
     async () => {
       await processVerifiedPayment({
@@ -174,10 +224,44 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
       message: "Currency mismatch: expected NGN, received USD",
     }
   );
+
+  assert.notStrictEqual(recordedPayment, null);
+  assert.strictEqual(recordedPayment.reference, "ref_test_1002");
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.currency, "USD");
 });
 
-test("processVerifiedPayment rejects amount mismatch", async () => {
-  const mockClient = createMockSupabaseClient();
+test("processVerifiedPayment rejects amount mismatch and records failed payment in database", async () => {
+  let recordedPayment = null;
+  const mockClient = {
+    from(tableName) {
+      if (tableName === "plans") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async single() {
+                    return { data: { id: "pro", price_kobo: 250000 }, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (tableName === "payments") {
+        return {
+          upsert(payload) {
+            recordedPayment = payload;
+            return { async select() { return { async single() { return { data: payload, error: null }; } }; } };
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${tableName}`);
+    },
+  };
+
   await assert.rejects(
     async () => {
       await processVerifiedPayment({
@@ -199,6 +283,11 @@ test("processVerifiedPayment rejects amount mismatch", async () => {
       message: "Amount mismatch: expected 250000 kobo, received 100000 kobo",
     }
   );
+
+  assert.notStrictEqual(recordedPayment, null);
+  assert.strictEqual(recordedPayment.reference, "ref_test_1003");
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.amount, 100000);
 });
 
 test("processVerifiedPayment is idempotent when replaying duplicate reference", async () => {

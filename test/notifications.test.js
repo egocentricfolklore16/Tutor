@@ -299,6 +299,196 @@ test("scheduleStudyReminder suppresses local timer when active Web Push subscrip
   });
 });
 
+test("scheduleStudyReminder returns null for past sessions (delayMs <= 0)", async () => {
+  const originalWindow = globalThis.window;
+  const originalNavigator = globalThis.navigator;
+
+  globalThis.window = {
+    Notification: { permission: "granted" },
+    dispatchEvent: () => {},
+  };
+
+  const fakeServiceWorker = {
+    ready: Promise.resolve({
+      pushManager: {
+        getSubscription: async () => null,
+      },
+    }),
+  };
+
+  Object.defineProperty(globalThis, "navigator", {
+    value: { serviceWorker: fakeServiceWorker },
+    writable: true,
+    configurable: true,
+  });
+
+  const pastSession = {
+    id: "session-past",
+    date: "2020-01-01",
+    startTime: "10:00",
+    reminder: 15,
+  };
+
+  const timer = await scheduleStudyReminder(pastSession);
+  assert.equal(timer, null);
+
+  globalThis.window = originalWindow;
+  Object.defineProperty(globalThis, "navigator", {
+    value: originalNavigator,
+    writable: true,
+    configurable: true,
+  });
+});
+
+test("scheduleStudyReminder timer execution records in-app notification and invokes service worker showNotification", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+
+  const originalWindow = globalThis.window;
+  const originalNavigator = globalThis.navigator;
+
+  globalThis.window = {
+    Notification: { permission: "granted" },
+    dispatchEvent: () => {},
+  };
+
+  let shownNotification = null;
+  const fakeServiceWorker = {
+    ready: Promise.resolve({
+      pushManager: {
+        getSubscription: async () => null,
+      },
+      showNotification: (title, options) => {
+        shownNotification = { title, options };
+      },
+    }),
+  };
+
+  Object.defineProperty(globalThis, "navigator", {
+    value: { serviceWorker: fakeServiceWorker },
+    writable: true,
+    configurable: true,
+  });
+
+  // Calculate a future date 10 minutes from now
+  const futureDate = new Date(Date.now() + 10 * 60 * 1000);
+  const dateStr = futureDate.toISOString().slice(0, 10);
+  const hoursStr = String(futureDate.getHours()).padStart(2, "0");
+  const minsStr = String(futureDate.getMinutes()).padStart(2, "0");
+
+  const session = {
+    id: "session-timer-test",
+    date: dateStr,
+    startTime: `${hoursStr}:${minsStr}`,
+    reminder: 5,
+    Subject: "Mathematics",
+    Topic: "Calculus Limits",
+  };
+
+  // Turn off quiet hours so notification is not muted
+  const prefs = { quietHours: { enabled: false } };
+
+  const timer = await scheduleStudyReminder(session, prefs);
+  assert.notEqual(timer, null);
+
+  // Fast forward mock timers to trigger timeout
+  t.mock.timers.tick(10 * 60 * 1000);
+
+  // Allow microtasks (Service Worker promise) to settle
+  await Promise.resolve();
+  await Promise.resolve();
+
+  // Verify in-app notification was recorded
+  const stored = getStoredNotifications();
+  assert.equal(stored.length, 1);
+  assert.equal(stored[0].title, "Study session starting soon");
+  assert.equal(stored[0].body, "Mathematics - Calculus Limits starts in 5 minutes");
+  assert.equal(stored[0].type, "studyReminders");
+
+  // Verify Service Worker showNotification call
+  assert.notEqual(shownNotification, null);
+  assert.equal(shownNotification.title, "Study session starting soon");
+  assert.equal(shownNotification.options.body, "Mathematics - Calculus Limits starts in 5 minutes");
+  assert.equal(shownNotification.options.tag, `session-session-timer-test-${dateStr}`);
+  assert.equal(shownNotification.options.data.url, "/Study/session-timer-test");
+
+  globalThis.window = originalWindow;
+  Object.defineProperty(globalThis, "navigator", {
+    value: originalNavigator,
+    writable: true,
+    configurable: true,
+  });
+});
+
+test("scheduleStudyReminder zero-minute reminder formats body as starts now and mutes during quiet hours", async (t) => {
+  t.mock.timers.enable({ apis: ["setTimeout"] });
+
+  const originalWindow = globalThis.window;
+  const originalNavigator = globalThis.navigator;
+
+  globalThis.window = {
+    Notification: { permission: "granted" },
+    dispatchEvent: () => {},
+  };
+
+  let shownNotification = null;
+  const fakeServiceWorker = {
+    ready: Promise.resolve({
+      pushManager: {
+        getSubscription: async () => null,
+      },
+      showNotification: (title, options) => {
+        shownNotification = { title, options };
+      },
+    }),
+  };
+
+  Object.defineProperty(globalThis, "navigator", {
+    value: { serviceWorker: fakeServiceWorker },
+    writable: true,
+    configurable: true,
+  });
+
+  const futureDate = new Date(Date.now() + 5 * 60 * 1000);
+  const dateStr = futureDate.toISOString().slice(0, 10);
+  const hoursStr = String(futureDate.getHours()).padStart(2, "0");
+  const minsStr = String(futureDate.getMinutes()).padStart(2, "0");
+
+  const session = {
+    id: "session-zero-min",
+    date: dateStr,
+    startTime: `${hoursStr}:${minsStr}`,
+    reminder: 0,
+    title: "Physics Lab",
+    subject: "Physics",
+  };
+
+  // Enable quiet hours covering 00:00 to 23:59 so it's guaranteed active when timer fires
+  const prefs = {
+    quietHours: { enabled: true, start: "00:00", end: "23:59" },
+  };
+
+  const timer = await scheduleStudyReminder(session, prefs);
+  assert.notEqual(timer, null);
+
+  t.mock.timers.tick(5 * 60 * 1000);
+  await Promise.resolve();
+  await Promise.resolve();
+
+  const stored = getStoredNotifications();
+  assert.equal(stored[0].title, "Study session starting soon");
+  assert.equal(stored[0].body, "Physics - Physics Lab starts now");
+  assert.equal(stored[0].muted, true);
+
+  assert.equal(shownNotification.options.body, "Physics - Physics Lab starts now");
+
+  globalThis.window = originalWindow;
+  Object.defineProperty(globalThis, "navigator", {
+    value: originalNavigator,
+    writable: true,
+    configurable: true,
+  });
+});
+
 test("scheduleStudyReminder sets timer for future session and replaces existing timer on reschedule", async () => {
   const originalWindow = globalThis.window;
   const originalNavigator = globalThis.navigator;
@@ -322,10 +512,12 @@ test("scheduleStudyReminder sets timer for future session and replaces existing 
     configurable: true,
   });
 
+  // Calculate a near-future date (1 hour from now) to avoid setTimeout 32-bit integer overflow (> 24.8 days)
+  const nearFuture = new Date(Date.now() + 60 * 60 * 1000);
   const futureSession = {
     id: "session-future-1",
-    date: "2099-12-31",
-    startTime: "18:00",
+    date: nearFuture.toISOString().slice(0, 10),
+    startTime: `${String(nearFuture.getHours()).padStart(2, "0")}:${String(nearFuture.getMinutes()).padStart(2, "0")}`,
     reminder: 15,
   };
 
@@ -341,7 +533,8 @@ test("scheduleStudyReminder sets timer for future session and replaces existing 
   clearTimeout(timer2);
 
   // Test scheduleSessionRemindersFromSessions
-  const timers = scheduleSessionRemindersFromSessions([futureSession]);
+  const timersPromises = scheduleSessionRemindersFromSessions([futureSession]);
+  const timers = await Promise.all(timersPromises);
   timers.forEach((t) => clearTimeout(t));
 
   // Restore globals

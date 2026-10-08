@@ -329,12 +329,12 @@ const PlannerPage = () => {
   );
 
   return (
-    <div className="min-h-screen max-w-7xl bg-white px-3 py-5 sm:px-4 sm:py-6 md:mx-auto md:px-6">
+    <div className="min-h-screen max-w-7xl bg-white dark:bg-slate-950 px-3 py-5 sm:px-4 sm:py-6 md:mx-auto md:px-6">
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 truncate text-2xl font-bold text-gray-900 lg:text-3xl"><CalendarDays className="h-6 w-6 shrink-0 text-blue-600" />Study Planner</h1>
-          <p className="mt-1 truncate text-sm text-gray-600">Plan your week and track progress</p>
+          <h1 className="flex items-center gap-2 truncate text-2xl font-bold text-gray-900 dark:text-slate-100 lg:text-3xl"><CalendarDays className="h-6 w-6 shrink-0 text-blue-600 dark:text-blue-400" />Study Planner</h1>
+          <p className="mt-1 truncate text-sm text-gray-600 dark:text-slate-400">Plan your week and track progress</p>
         </div>
         <button
           onClick={() => handleAddActivity(selectedDate)}
@@ -352,12 +352,12 @@ const PlannerPage = () => {
       </div>
 
       {fetchError && (
-        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-lg border border-red-300">
+        <div className="mb-6 p-4 bg-red-100 dark:bg-red-950/50 text-red-700 dark:text-red-300 rounded-lg border border-red-300 dark:border-red-800">
           <div className="flex items-center justify-between">
             <span>{fetchError}</span>
             <button
               onClick={() => setFetchError("")}
-              className="text-red-800 hover:text-red-900"
+              className="text-red-800 dark:text-red-200 hover:text-red-900 dark:hover:text-white"
             >
               <span className="sr-only">Close</span>×
             </button>
@@ -371,20 +371,20 @@ const PlannerPage = () => {
         <>
           <PlannerStatsBar />
           <DeadlineManager sessions={sessions} onAddActivity={() => handleAddActivity(selectedDate, "deadline")} />
-          <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2">
+          <div className="mb-6 rounded-2xl bg-slate-50 dark:bg-slate-900 p-2 sm:bg-white sm:dark:bg-slate-900 sm:py-2 border border-slate-200/60 dark:border-slate-800">
             <div className="flex min-w-0 items-center gap-1">
-              <button type="button" onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }} className="min-h-11 shrink-0 rounded-full bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100">Today</button>
-              <button type="button" onClick={() => navigateWeek(-1)} title="Previous week" aria-label="Previous week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronLeft className="h-5 w-5" /></button>
-              <button type="button" onClick={() => navigateWeek(1)} title="Next week" aria-label="Next week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronRight className="h-5 w-5" /></button>
-              <h2 className="min-w-0 flex-1 text-center text-sm font-bold text-slate-900 sm:text-xl">{formatWeekRange()}</h2>
+              <button type="button" onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }} className="min-h-11 shrink-0 rounded-full bg-blue-50 dark:bg-blue-950/50 px-4 py-2.5 text-sm font-semibold text-blue-700 dark:text-blue-300 transition-colors hover:bg-blue-100 dark:hover:bg-blue-900/50">Today</button>
+              <button type="button" onClick={() => navigateWeek(-1)} title="Previous week" aria-label="Previous week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"><ChevronLeft className="h-5 w-5" /></button>
+              <button type="button" onClick={() => navigateWeek(1)} title="Next week" aria-label="Next week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 dark:text-slate-400 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100"><ChevronRight className="h-5 w-5" /></button>
+              <h2 className="min-w-0 flex-1 text-center text-sm font-bold text-slate-900 dark:text-slate-100 sm:text-xl">{formatWeekRange()}</h2>
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
-            <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-sm sm:gap-2 sm:px-4 sm:text-sm">
-              <CalendarDays className="h-4 w-4 text-slate-500" /><span className="sr-only">Select date</span>
-              <input type="date" value={selectedDate.toISOString().slice(0, 10)} onChange={setPlannerDate} className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-700 outline-none sm:w-[125px] sm:text-sm" />
+            <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white dark:bg-slate-800 px-2 py-2 text-xs text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200/50 dark:border-slate-700 sm:gap-2 sm:px-4 sm:text-sm">
+              <CalendarDays className="h-4 w-4 text-slate-500 dark:text-slate-400" /><span className="sr-only">Select date</span>
+              <input type="date" value={selectedDate.toISOString().slice(0, 10)} onChange={setPlannerDate} className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-700 dark:text-slate-200 outline-none sm:w-[125px] sm:text-sm" />
             </label>
-            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Timer className="h-4 w-4" />Focus</button>
-            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Filter className="h-4 w-4" />Filters</button>
+            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white dark:bg-slate-800 px-2 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200/50 dark:border-slate-700 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 sm:gap-2 sm:px-4 sm:text-sm"><Timer className="h-4 w-4 text-slate-500 dark:text-slate-400" />Focus</button>
+            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white dark:bg-slate-800 px-2 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 shadow-sm border border-slate-200/50 dark:border-slate-700 transition-colors hover:bg-slate-50 dark:hover:bg-slate-700 sm:gap-2 sm:px-4 sm:text-sm"><Filter className="h-4 w-4 text-slate-500 dark:text-slate-400" />Filters</button>
             </div>
           </div>
 

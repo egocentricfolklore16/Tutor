@@ -159,19 +159,19 @@ const Community = () => {
 
             {/* Stats Preview */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-2xl mx-auto mb-12">
-              <div className="bg-white/60 backdrop-blur rounded-xl p-4 text-center shadow-xl">
-                <div className="text-2xl font-bold text-red-600">10,000+</div>
-                <div className="text-sm text-slate-600">
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur rounded-xl p-4 text-center shadow-xl border border-slate-200/50 dark:border-slate-800/50">
+                <div className="text-2xl font-bold text-red-600 dark:text-red-400">10,000+</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">
                   Expected Community Members
                 </div>
               </div>
-              <div className="bg-white/60 backdrop-blur rounded-xl p-4 text-center shadow-xl">
-                <div className="text-2xl font-bold text-yellow-600">24/7</div>
-                <div className="text-sm text-slate-600">Active Study Rooms</div>
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur rounded-xl p-4 text-center shadow-xl border border-slate-200/50 dark:border-slate-800/50">
+                <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">24/7</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Active Study Rooms</div>
               </div>
-              <div className="bg-white/60 backdrop-blur rounded-xl p-4 text-center shadow-xl">
-                <div className="text-2xl font-bold text-green-600">50+</div>
-                <div className="text-sm text-slate-600">Subject Categories</div>
+              <div className="bg-white/60 dark:bg-slate-900/60 backdrop-blur rounded-xl p-4 text-center shadow-xl border border-slate-200/50 dark:border-slate-800/50">
+                <div className="text-2xl font-bold text-green-600 dark:text-green-400">50+</div>
+                <div className="text-sm text-slate-600 dark:text-slate-300">Subject Categories</div>
               </div>
             </div>
           </div>
@@ -180,11 +180,11 @@ const Community = () => {
 
       {/* Countdown Timer */}
       <div className="container mx-auto px-4 mb-16">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-4xl mx-auto border border-slate-200">
-          <h3 className="text-3xl font-bold text-center text-slate-800 mb-2">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 max-w-4xl mx-auto border border-slate-200 dark:border-slate-800">
+          <h3 className="text-3xl font-bold text-center text-slate-800 dark:text-slate-100 mb-2">
             Launch Countdown
           </h3>
-          <p className="text-center text-slate-600 mb-8">
+          <p className="text-center text-slate-600 dark:text-slate-400 mb-8">
             Expected launch in Phase 2 development cycle
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -227,10 +227,10 @@ const Community = () => {
       {/* Features Section */}
       <div className="container mx-auto px-4 mb-16">
         <div className="text-center mb-12">
-          <h3 className="text-4xl font-bold text-slate-800 mb-4">
+          <h3 className="text-4xl font-bold text-slate-800 dark:text-slate-100 mb-4">
             What's Coming to Community
           </h3>
-          <p className="text-xl text-slate-600 max-w-2xl mx-auto">
+          <p className="text-xl text-slate-600 dark:text-slate-300 max-w-2xl mx-auto">
             Powerful social learning features designed to enhance collaboration,
             motivation, and academic success
           </p>
@@ -240,20 +240,20 @@ const Community = () => {
           {communityFeatures.map((feature, index) => (
             <div
               key={index}
-              className="group bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-slate-200"
+              className="group bg-white dark:bg-slate-900 rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 p-8 border border-slate-200 dark:border-slate-800"
             >
               <div className="flex items-start space-x-4">
-                <div className="flex-shrink-0 p-4 bg-green-100 rounded-xl text-green-600 group-hover:scale-110 transition-transform duration-300">
+                <div className="flex-shrink-0 p-4 bg-green-100 dark:bg-green-950/50 rounded-xl text-green-600 dark:text-green-400 group-hover:scale-110 transition-transform duration-300">
                   {feature.icon}
                 </div>
                 <div className="flex-1">
-                  <h4 className="text-xl font-bold text-slate-800 mb-2">
+                  <h4 className="text-xl font-bold text-slate-800 dark:text-slate-100 mb-2">
                     {feature.title}
                   </h4>
-                  <div className="text-sm font-medium text-green-600 mb-3">
+                  <div className="text-sm font-medium text-green-600 dark:text-green-400 mb-3">
                     {feature.highlight}
                   </div>
-                  <p className="text-slate-600 leading-relaxed">
+                  <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
                     {feature.description}
                   </p>
                 </div>
@@ -276,10 +276,10 @@ const Community = () => {
             {additionalFeatures.map((feature, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 bg-white rounded-lg p-4 shadow-sm"
+                className="flex items-center space-x-3 bg-white/10 dark:bg-slate-900/60 backdrop-blur rounded-lg p-4 shadow-sm border border-white/20 dark:border-slate-800"
               >
-                <div className="text-blue-400">{feature.icon}</div>
-                <span className="text-black font-medium">{feature.text}</span>
+                <div className="text-emerald-300">{feature.icon}</div>
+                <span className="text-white font-medium">{feature.text}</span>
               </div>
             ))}
           </div>
@@ -288,16 +288,16 @@ const Community = () => {
 
       {/* Email Signup */}
       <div className="container mx-auto px-4 mb-16">
-        <div className="bg-white rounded-3xl shadow-2xl p-8 max-w-2xl mx-auto text-center border border-slate-200">
+        <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl p-8 max-w-2xl mx-auto text-center border border-slate-200 dark:border-slate-800">
           {!isSubscribed ? (
             <>
               <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-400 rounded-full mb-6">
                 <Bell className="w-8 h-8 text-white" />
               </div>
-              <h3 className="text-2xl font-bold text-slate-800 mb-4">
+              <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 mb-4">
                 Be First in Line
               </h3>
-              <p className="text-slate-600 mb-6 text-lg">
+              <p className="text-slate-600 dark:text-slate-300 mb-6 text-lg">
                 Join our waitlist and get exclusive early access when Community
                 features launch. Plus, receive development updates and beta
                 testing opportunities!
@@ -309,7 +309,7 @@ const Community = () => {
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyPress={handleKeyPress}
                   placeholder="Enter your email address"
-                  className="flex-1 px-6 py-4 border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:outline-none text-slate-700 text-lg"
+                  className="flex-1 px-6 py-4 border-2 border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 rounded-xl focus:border-emerald-500 focus:outline-none text-slate-700 dark:text-slate-100 placeholder-slate-400 text-lg"
                 />
                 <button
                   onClick={handleEmailSubmit}
@@ -355,13 +355,13 @@ const Community = () => {
       {/* Footer Info */}
       <div className="container mx-auto px-4 pb-16">
         <div className="text-center">
-          <div className="inline-flex items-center bg-slate-100 rounded-full px-6 py-3 text-slate-700">
-            <Calendar className="w-5 h-5 mr-2" />
+          <div className="inline-flex items-center bg-slate-100 dark:bg-slate-800 rounded-full px-6 py-3 text-slate-700 dark:text-slate-300">
+            <Calendar className="w-5 h-5 mr-2 text-emerald-600 dark:text-emerald-400" />
             <span className="font-medium">
               Development Timeline: Phase 2 (Months 5-8) • Enhanced Features
             </span>
           </div>
-          <p className="text-slate-500 mt-4 max-w-2xl mx-auto">
+          <p className="text-slate-500 dark:text-slate-400 mt-4 max-w-2xl mx-auto">
             Community features are part of Hyper Tutor's Phase 2 development,
             focusing on social learning capabilities that will set us apart from
             traditional study platforms.

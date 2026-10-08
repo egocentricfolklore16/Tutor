@@ -204,7 +204,7 @@ function Library({ session }) {
   const renderSessionBadge = (sessionId) => {
     if (!sessionId) {
       return (
-        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600">
+        <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:text-slate-300">
           Standalone Library Item
         </span>
       );
@@ -218,7 +218,7 @@ function Library({ session }) {
     return (
       <Link
         to={`/Study/${sessionId}`}
-        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 hover:bg-indigo-100 transition"
+        className="inline-flex items-center gap-1 rounded-full bg-indigo-50 dark:bg-indigo-950/50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/50 transition"
         title="Open Session"
       >
         <span>{label}</span>
@@ -605,35 +605,35 @@ function Library({ session }) {
   const totalItemsCount = notes.length + flashcards.length + resources.length + quizzes.length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-10">
+    <main className="min-h-screen bg-slate-50 dark:bg-slate-950 px-4 py-8 sm:px-6 lg:px-10">
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">
+            <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-indigo-600 dark:text-indigo-400">
               <LibraryIcon className="h-4 w-4" /> Personal Knowledge Base
             </div>
-            <h1 className="text-3xl font-black text-slate-900 md:text-4xl">My Library</h1>
-            <p className="mt-2 text-slate-500">
+            <h1 className="text-3xl font-black text-slate-900 dark:text-slate-100 md:text-4xl">My Library</h1>
+            <p className="mt-2 text-slate-500 dark:text-slate-400">
               Your comprehensive repository of notes, flashcards, resources, and quizzes.
             </p>
           </div>
 
           {/* Search bar */}
           <label className="relative block w-full md:max-w-sm">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
             <input
               type="search"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search all library items..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-3 pl-10 pr-4 text-sm text-slate-900 dark:text-slate-100 placeholder-slate-400 dark:placeholder-slate-500 outline-none transition focus:border-indigo-400 dark:focus:border-indigo-500 focus:ring-2 focus:ring-indigo-100 dark:focus:ring-indigo-950"
             />
           </label>
         </header>
 
         {/* Navigation Tabs and Create Action Bar */}
-        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 pb-4">
+        <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between border-b border-slate-200 dark:border-slate-800 pb-4">
           <div className="no-scrollbar flex items-center gap-1.5 overflow-x-auto pb-1 sm:pb-0">
             {[
               { id: "all", label: `All Items (${totalItemsCount})`, icon: LibraryIcon },
@@ -650,8 +650,8 @@ function Library({ session }) {
                   onClick={() => setActiveTab(tab.id)}
                   className={`inline-flex shrink-0 items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
                     isActive
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 shadow-sm"
+                      : "bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-800"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -663,7 +663,7 @@ function Library({ session }) {
 
           {/* Standalone Add Buttons */}
           <div className="flex flex-wrap items-center gap-2">
-            <span className="text-xs font-semibold text-slate-400 mr-1 hidden sm:inline">Add standalone:</span>
+            <span className="text-xs font-semibold text-slate-400 dark:text-slate-500 mr-1 hidden sm:inline">Add standalone:</span>
             <button
               onClick={() => setCreationType(creationType === "note" ? null : "note")}
               className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
@@ -703,12 +703,12 @@ function Library({ session }) {
 
         {/* Creation Forms */}
         {creationType && (
-          <div className="mb-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-md animate-in fade-in slide-in-from-top-2">
-            <div className="mb-4 flex items-center justify-between border-b border-slate-100 pb-3">
-              <h3 className="text-base font-bold text-slate-900 capitalize">
+          <div className="mb-8 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6 shadow-md animate-in fade-in slide-in-from-top-2">
+            <div className="mb-4 flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-3">
+              <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 capitalize">
                 Create Standalone {creationType}
               </h3>
-              <button onClick={() => setCreationType(null)} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => setCreationType(null)} className="text-slate-400 hover:text-slate-600 dark:hover:text-slate-200">
                 <X className="h-5 w-5" />
               </button>
             </div>
@@ -721,21 +721,21 @@ function Library({ session }) {
                   value={noteForm.title}
                   onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                   placeholder="Note Title"
-                  className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-900"
                   required
                 />
                 <textarea
                   value={noteForm.content}
                   onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                   placeholder="Write your note content here..."
-                  className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="min-h-32 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-emerald-200 dark:focus:ring-emerald-900"
                   required
                 />
                 <div className="flex justify-end gap-2">
                   <button
                     type="button"
                     onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
@@ -758,14 +758,14 @@ function Library({ session }) {
                     value={flashcardForm.question}
                     onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
                     placeholder="Front / Question"
-                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                    className="min-h-24 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-900"
                     required
                   />
                   <textarea
                     value={flashcardForm.answer}
                     onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
                     placeholder="Back / Answer"
-                    className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:ring-2 focus:ring-amber-200"
+                    className="min-h-24 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-amber-200 dark:focus:ring-amber-900"
                     required
                   />
                 </div>
@@ -773,7 +773,7 @@ function Library({ session }) {
                   <button
                     type="button"
                     onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
@@ -791,12 +791,12 @@ function Library({ session }) {
             {/* Resource Form */}
             {creationType === "resource" && (
               <form onSubmit={handleCreateResource} className="space-y-4">
-                <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
+                <div className="flex items-center gap-2 border-b border-slate-100 dark:border-slate-800 pb-2">
                   <button
                     type="button"
                     onClick={() => setResourceMode("file")}
                     className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                      resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                      resourceMode === "file" ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     Upload File
@@ -805,7 +805,7 @@ function Library({ session }) {
                     type="button"
                     onClick={() => setResourceMode("link")}
                     className={`px-3 py-1 text-xs font-bold rounded-lg transition ${
-                      resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                      resourceMode === "link" ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                     }`}
                   >
                     Add Link / URL
@@ -813,8 +813,8 @@ function Library({ session }) {
                 </div>
 
                 {resourceMode === "file" ? (
-                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
-                    <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
+                  <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 p-4 text-sm text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700/50">
+                    <FileUp className="h-5 w-5 shrink-0 text-slate-400 dark:text-slate-500" />
                     <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
                     <input
                       type="file"
@@ -830,7 +830,7 @@ function Library({ session }) {
                       value={linkTitle}
                       onChange={(e) => setLinkTitle(e.target.value)}
                       placeholder="Resource Title"
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none"
+                      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-slate-100 outline-none"
                       required
                     />
                     <input
@@ -838,7 +838,7 @@ function Library({ session }) {
                       value={linkUrl}
                       onChange={(e) => setLinkUrl(e.target.value)}
                       placeholder="https://..."
-                      className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none sm:col-span-2"
+                      className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-slate-100 outline-none sm:col-span-2"
                       required
                     />
                   </div>
@@ -848,7 +848,7 @@ function Library({ session }) {
                   <button
                     type="button"
                     onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
@@ -871,14 +871,14 @@ function Library({ session }) {
                   value={quizForm.title}
                   onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
                   placeholder="Quiz Title / Topic"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm font-semibold outline-none focus:ring-2 focus:ring-purple-200"
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-sm font-semibold text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900"
                   required
                 />
                 <textarea
                   value={quizForm.question}
                   onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
                   placeholder="Question text..."
-                  className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs outline-none focus:ring-2 focus:ring-purple-200"
+                  className="min-h-20 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-3 text-xs text-slate-900 dark:text-slate-100 outline-none focus:ring-2 focus:ring-purple-200 dark:focus:ring-purple-900"
                   required
                 />
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -887,7 +887,7 @@ function Library({ session }) {
                     value={quizForm.optionA}
                     onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
                     placeholder="Option A (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 outline-none"
                     required
                   />
                   <input
@@ -895,7 +895,7 @@ function Library({ session }) {
                     value={quizForm.optionB}
                     onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
                     placeholder="Option B (required)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 outline-none"
                     required
                   />
                   <input
@@ -903,22 +903,22 @@ function Library({ session }) {
                     value={quizForm.optionC}
                     onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
                     placeholder="Option C (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 outline-none"
                   />
                   <input
                     type="text"
                     value={quizForm.optionD}
                     onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
                     placeholder="Option D (optional)"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                    className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 outline-none"
                   />
                 </div>
-                <label className="block text-xs font-bold text-slate-700">
+                <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
                   Correct Option
                   <select
                     value={quizForm.correctIndex}
                     onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-2 text-xs"
+                    className="mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2 text-xs"
                   >
                     <option value={0}>Option A</option>
                     <option value={1}>Option B</option>
@@ -931,13 +931,13 @@ function Library({ session }) {
                   value={quizForm.explanation}
                   onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
                   placeholder="Explanation (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 outline-none"
+                  className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-slate-900 dark:text-slate-100 outline-none"
                 />
                 <div className="flex justify-end gap-2 mt-2">
                   <button
                     type="button"
                     onClick={() => setCreationType(null)}
-                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                    className="rounded-lg px-4 py-2 text-xs font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                   >
                     Cancel
                   </button>
@@ -956,14 +956,14 @@ function Library({ session }) {
 
         {/* Content Display */}
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20">
+          <div className="flex items-center justify-center rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 py-20">
             <LoadingCompanion message="Loading your library..." />
           </div>
         ) : totalItemsCount === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center">
-            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300" />
-            <h3 className="text-lg font-bold text-slate-800">Your Library is Empty</h3>
-            <p className="mt-1 text-xs text-slate-500">
+          <div className="rounded-2xl border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-16 text-center">
+            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
+            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Your Library is Empty</h3>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
               Create standalone materials or complete study sessions to populate your library.
             </p>
           </div>
@@ -972,24 +972,24 @@ function Library({ session }) {
             {/* 1. NOTES SECTION */}
             {(activeTab === "all" || activeTab === "notes") && filteredNotes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <FileText className="h-5 w-5 text-emerald-600" /> Notes ({filteredNotes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Notes ({filteredNotes.length})
                   </h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredNotes.map((note) => (
                     <article
                       key={note.id}
-                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition"
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between gap-2">
-                          <h3 className="font-bold text-slate-900 line-clamp-1">{note.title}</h3>
+                          <h3 className="font-bold text-slate-900 dark:text-slate-100 line-clamp-1">{note.title}</h3>
                           <button
                             onClick={() => handleDeleteNote(note.id)}
                             disabled={deletingId === note.id}
-                            className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                            className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition disabled:opacity-50"
                             title="Delete note"
                             aria-label="Delete note"
                           >
@@ -1000,11 +1000,11 @@ function Library({ session }) {
                             )}
                           </button>
                         </div>
-                        <p className="text-xs text-slate-600 line-clamp-4 leading-relaxed">{note.content}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-300 line-clamp-4 leading-relaxed">{note.content}</p>
                       </div>
-                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                      <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between">
                         {renderSessionBadge(note.session_id)}
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
                           {new Date(note.created_at).toLocaleDateString()}
                         </span>
                       </div>
@@ -1017,9 +1017,9 @@ function Library({ session }) {
             {/* 2. FLASHCARDS SECTION */}
             {(activeTab === "all" || activeTab === "flashcards") && filteredFlashcards.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <Layers3 className="h-5 w-5 text-amber-600" /> Flashcards ({filteredFlashcards.length})
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <Layers3 className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Flashcards ({filteredFlashcards.length})
                   </h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -1028,17 +1028,17 @@ function Library({ session }) {
                     return (
                       <div
                         key={card.id}
-                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs hover:border-slate-300 transition"
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition"
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-2">
-                            <span className="text-[10px] font-bold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full uppercase">
+                            <span className="text-[10px] font-bold text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-950/50 px-2 py-0.5 rounded-full uppercase">
                               {isFlipped ? "Answer" : "Question"}
                             </span>
                             <button
                               onClick={() => handleDeleteFlashcard(card.id)}
                               disabled={deletingId === card.id}
-                              className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                              className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition disabled:opacity-50"
                               title="Delete flashcard"
                               aria-label="Delete flashcard"
                             >
@@ -1050,21 +1050,21 @@ function Library({ session }) {
                             </button>
                           </div>
 
-                          <p className="text-sm font-semibold text-slate-900 min-h-16 flex items-center">
+                          <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 min-h-16 flex items-center">
                             {isFlipped ? card.answer : card.question}
                           </p>
 
                           <button
                             onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
-                            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 hover:text-amber-700 transition"
+                            className="inline-flex items-center gap-1.5 text-xs font-bold text-amber-600 dark:text-amber-400 hover:text-amber-700 dark:hover:text-amber-300 transition"
                           >
                             <RotateCcw className="h-3.5 w-3.5" /> {isFlipped ? "Show Question" : "Show Answer"}
                           </button>
                         </div>
 
-                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                        <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between">
                           {renderSessionBadge(card.session_id)}
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
                             {new Date(card.created_at).toLocaleDateString()}
                           </span>
                         </div>
@@ -1078,41 +1078,41 @@ function Library({ session }) {
             {/* 3. RESOURCES SECTION */}
             {(activeTab === "all" || activeTab === "resources") && filteredResources.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <BookOpen className="h-5 w-5 text-indigo-600" /> Resources ({filteredResources.length})
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Resources ({filteredResources.length})
                   </h2>
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {filteredResources.map((res) => (
                     <article
                       key={res.id}
-                      className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-xs hover:border-slate-300 transition"
+                      className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs hover:border-slate-300 dark:hover:border-slate-700 transition"
                     >
                       <div className="space-y-2">
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex items-center gap-2.5">
-                            <div className="p-2 rounded-xl bg-slate-50 border border-slate-100 shrink-0">
+                            <div className="p-2 rounded-xl bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0">
                               {res.kind === "youtube" ? (
-                                <Youtube className="h-4 w-4 text-red-600" />
+                                <Youtube className="h-4 w-4 text-red-600 dark:text-red-400" />
                               ) : res.kind === "document" ? (
-                                <FileText className="h-4 w-4 text-blue-600" />
+                                <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />
                               ) : res.kind === "link" ? (
-                                <Link2 className="h-4 w-4 text-indigo-600" />
+                                <Link2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />
                               ) : (
-                                <FileUp className="h-4 w-4 text-emerald-600" />
+                                <FileUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                               )}
                             </div>
                             <div className="min-w-0">
-                              <h3 className="font-bold text-slate-900 text-sm truncate">{res.title}</h3>
-                              <p className="text-[10px] text-slate-400 capitalize">{res.mime_type || res.kind}</p>
+                              <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">{res.title}</h3>
+                              <p className="text-[10px] text-slate-400 dark:text-slate-500 capitalize">{res.mime_type || res.kind}</p>
                             </div>
                           </div>
 
                           <div className="flex items-center gap-1 shrink-0">
                             <button
                               onClick={() => handleOpenResource(res)}
-                              className="p-1.5 text-indigo-600 hover:bg-indigo-50 rounded-lg transition"
+                              className="p-1.5 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/50 rounded-lg transition"
                               title="Open resource"
                               aria-label="Open resource"
                             >
@@ -1121,7 +1121,7 @@ function Library({ session }) {
                             <button
                               onClick={() => handleDeleteResource(res)}
                               disabled={deletingId === res.id}
-                              className="p-1.5 text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                              className="p-1.5 text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition disabled:opacity-50"
                               title="Delete resource"
                               aria-label="Delete resource"
                             >
@@ -1138,10 +1138,10 @@ function Library({ session }) {
                           <span
                             className={`inline-block px-2 py-0.5 text-[10px] font-bold rounded uppercase ${
                               res.extraction_status === "done"
-                                ? "bg-emerald-50 text-emerald-700"
+                                ? "bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-300"
                                 : res.extraction_status === "pending"
-                                ? "bg-amber-50 text-amber-700"
-                                : "bg-slate-100 text-slate-600"
+                                ? "bg-amber-50 dark:bg-amber-950/50 text-amber-700 dark:text-amber-300"
+                                : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300"
                             }`}
                           >
                             Status: {res.extraction_status}
@@ -1149,9 +1149,9 @@ function Library({ session }) {
                         )}
                       </div>
 
-                      <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                      <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between">
                         {renderSessionBadge(res.session_id)}
-                        <span className="text-[10px] text-slate-400">
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500">
                           {new Date(res.created_at).toLocaleDateString()}
                         </span>
                       </div>
@@ -1164,9 +1164,9 @@ function Library({ session }) {
             {/* 4. QUIZZES SECTION */}
             {(activeTab === "all" || activeTab === "quizzes") && filteredQuizzes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                  <h2 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                    <HelpCircle className="h-5 w-5 text-purple-600" /> Quizzes ({filteredQuizzes.length})
+                <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2">
+                  <h2 className="text-lg font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
+                    <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" /> Quizzes ({filteredQuizzes.length})
                   </h2>
                 </div>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -1179,21 +1179,21 @@ function Library({ session }) {
                     return (
                       <article
                         key={quiz.id}
-                        className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-5 shadow-xs space-y-4"
+                        className="flex flex-col justify-between rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-5 shadow-xs space-y-4"
                       >
                         <div className="space-y-3">
                           <div className="flex items-center justify-between gap-2">
-                            <h3 className="font-bold text-slate-900 text-base">{quiz.title}</h3>
+                            <h3 className="font-bold text-slate-900 dark:text-slate-100 text-base">{quiz.title}</h3>
                             <div className="flex items-center gap-2">
                               {attemptsList.length > 0 && (
-                                <span className="rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700">
+                                <span className="rounded-full bg-slate-100 dark:bg-slate-800 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 dark:text-slate-300">
                                   {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} (Latest: {latestAttempt.score}/{latestAttempt.total})
                                 </span>
                               )}
                               <button
                                 onClick={() => handleDeleteQuiz(quiz.id)}
                                 disabled={deletingId === quiz.id}
-                                className="text-slate-400 hover:text-red-600 transition disabled:opacity-50"
+                                className="text-slate-400 dark:text-slate-500 hover:text-red-600 dark:hover:text-red-400 transition disabled:opacity-50"
                                 title="Delete quiz"
                                 aria-label="Delete quiz"
                               >
@@ -1208,11 +1208,11 @@ function Library({ session }) {
 
                           {question && (
                             <div className="space-y-3 pt-1">
-                              <p className="text-xs font-semibold text-slate-800">{question.question}</p>
+                              <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">{question.question}</p>
 
                               {latestAttempt && !isRetaking ? (
-                                <div className="space-y-2 rounded-xl bg-slate-50 p-3 text-xs">
-                                  <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700" : "text-rose-700"}`}>
+                                <div className="space-y-2 rounded-xl bg-slate-50 dark:bg-slate-800 p-3 text-xs">
+                                  <div className={`flex items-center justify-between font-bold ${latestAttempt.score > 0 ? "text-emerald-700 dark:text-emerald-400" : "text-rose-700 dark:text-rose-400"}`}>
                                     <span className="flex items-center gap-1.5">
                                       {latestAttempt.score > 0 ? <Check className="h-4 w-4" /> : <CircleAlert className="h-4 w-4" />}
                                       {latestAttempt.score > 0 ? "Passed" : "Needs Review"} ({latestAttempt.score}/{latestAttempt.total})
@@ -1220,19 +1220,19 @@ function Library({ session }) {
                                     <button
                                       type="button"
                                       onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                                      className="inline-flex items-center gap-1 rounded-lg bg-white px-2.5 py-1 text-slate-700 border border-slate-200 hover:bg-slate-100 font-bold transition"
+                                      className="inline-flex items-center gap-1 rounded-lg bg-white dark:bg-slate-900 px-2.5 py-1 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 font-bold transition"
                                     >
                                       <RotateCcw className="h-3 w-3" /> Retake
                                     </button>
                                   </div>
 
                                   {Array.isArray(latestAttempt.answers) && latestAttempt.answers[0]?.selected_index !== undefined && (
-                                    <p className="text-slate-600">
+                                    <p className="text-slate-600 dark:text-slate-300">
                                       Your answer: {question.options?.[latestAttempt.answers[0].selected_index]}
                                     </p>
                                   )}
 
-                                  <p className="text-slate-600">
+                                  <p className="text-slate-600 dark:text-slate-300">
                                     Correct answer: {question.options?.[question.correct_index]}
                                   </p>
                                 </div>
@@ -1244,7 +1244,7 @@ function Library({ session }) {
                                         key={idx}
                                         disabled={quizSavingId === quiz.id}
                                         onClick={() => handleRecordAttempt(quiz, idx)}
-                                        className="rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 hover:border-purple-300 hover:bg-purple-50 transition"
+                                        className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 p-2.5 text-left text-xs font-medium text-slate-800 dark:text-slate-200 hover:border-purple-300 dark:hover:border-purple-700 hover:bg-purple-50 dark:hover:bg-purple-950/30 transition"
                                       >
                                         <strong>{String.fromCharCode(65 + idx)}.</strong> {opt}
                                       </button>
@@ -1255,9 +1255,9 @@ function Library({ session }) {
                           )}
                         </div>
 
-                        <div className="mt-4 border-t border-slate-100 pt-3 flex items-center justify-between">
+                        <div className="mt-4 border-t border-slate-100 dark:border-slate-800 pt-3 flex items-center justify-between">
                           {renderSessionBadge(quiz.session_id)}
-                          <span className="text-[10px] text-slate-400">
+                          <span className="text-[10px] text-slate-400 dark:text-slate-500">
                             {new Date(quiz.created_at).toLocaleDateString()}
                           </span>
                         </div>

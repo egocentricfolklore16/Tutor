@@ -256,11 +256,11 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const renderExtractionBadge = (status) => {
     if (!status) return null;
     const badgeStyles = {
-      pending: "bg-amber-100 text-amber-800 border-amber-200",
-      done: "bg-emerald-100 text-emerald-800 border-emerald-200",
-      failed: "bg-rose-100 text-rose-800 border-rose-200",
-      unsupported: "bg-slate-100 text-slate-700 border-slate-200",
-    }[status] || "bg-slate-100 text-slate-700 border-slate-200";
+      pending: "bg-amber-100 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border-amber-200 dark:border-amber-800",
+      done: "bg-emerald-100 dark:bg-emerald-950/50 text-emerald-800 dark:text-emerald-300 border-emerald-200 dark:border-emerald-800",
+      failed: "bg-rose-100 dark:bg-rose-950/50 text-rose-800 dark:text-rose-300 border-rose-200 dark:border-rose-800",
+      unsupported: "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700",
+    }[status] || "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700";
 
     return (
       <span className={`inline-flex items-center rounded-md border px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider ${badgeStyles}`}>
@@ -274,18 +274,18 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
     const ext = resource.title?.split(".").pop()?.toLowerCase();
     const mime = resource.mime_type;
 
-    if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600" />;
-    if (kind === "document") return <FileText className="h-4 w-4 text-blue-600" />;
-    if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600" />;
+    if (kind === "youtube") return <Youtube className="h-4 w-4 text-red-600 dark:text-red-400" />;
+    if (kind === "document") return <FileText className="h-4 w-4 text-blue-600 dark:text-blue-400" />;
+    if (kind === "link") return <Link2 className="h-4 w-4 text-indigo-600 dark:text-indigo-400" />;
     if (
       ext === "doc" ||
       ext === "docx" ||
       mime === "application/msword" ||
       mime === "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      return <FileText className="h-4 w-4 text-blue-700" />;
+      return <FileText className="h-4 w-4 text-blue-700 dark:text-blue-400" />;
     }
-    return <FileUp className="h-4 w-4 text-emerald-600" />;
+    return <FileUp className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />;
   };
 
   const getResourceLabel = (resource) => {
@@ -302,12 +302,12 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
 
   return (
     <div className="space-y-5">
-      <div className="flex items-center gap-2 border-b border-slate-200 pb-2">
+      <div className="flex items-center gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
         <button
           type="button"
           onClick={() => setMode("file")}
           className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-            mode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            mode === "file" ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           }`}
         >
           Upload File
@@ -316,7 +316,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
           type="button"
           onClick={() => setMode("link")}
           className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-            mode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+            mode === "link" ? "bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900" : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
           }`}
         >
           Add Link / URL
@@ -324,9 +324,9 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
       </div>
 
       {mode === "file" ? (
-        <form onSubmit={saveFileUpload} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4 md:flex-row md:items-center">
-          <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 bg-white p-3 text-sm text-slate-500">
-            <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
+        <form onSubmit={saveFileUpload} className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4 md:flex-row md:items-center">
+          <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 p-3 text-sm text-slate-500 dark:text-slate-400">
+            <FileUp className="h-5 w-5 shrink-0 text-slate-400 dark:text-slate-500" />
             <span className="truncate">{selectedFile?.name || "Choose a file to attach (PDF, Word .doc/.docx, images, txt, md, csv - max 10MB)"}</span>
             <input
               type="file"
@@ -339,20 +339,20 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
           <button
             type="submit"
             disabled={!selectedFile || isSaving || !studyId}
-            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+            className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-3 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"}`}
           >
             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <FileUp className="h-4 w-4" />} Upload File
           </button>
         </form>
       ) : (
-        <form onSubmit={saveLinkResource} className="flex flex-col gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <form onSubmit={saveLinkResource} className="flex flex-col gap-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 p-4">
           <div className="grid gap-3 sm:grid-cols-3">
             <input
               type="text"
               value={linkTitle}
               onChange={(e) => setLinkTitle(e.target.value)}
               placeholder="Resource Title (e.g. Lecture Video)"
-              className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none sm:col-span-1"
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2.5 text-xs outline-none sm:col-span-1"
               required
               disabled={!studyId}
             />
@@ -361,7 +361,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
               value={linkUrl}
               onChange={(e) => setLinkUrl(e.target.value)}
               placeholder="https://..."
-              className="rounded-lg border border-slate-200 bg-white p-2.5 text-xs outline-none sm:col-span-2"
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 p-2.5 text-xs outline-none sm:col-span-2"
               required
               disabled={!studyId}
             />
@@ -370,7 +370,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
             <select
               value={linkKind}
               onChange={(e) => setLinkKind(e.target.value)}
-              className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700"
+              className="rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-2 text-xs font-semibold text-slate-700 dark:text-slate-200"
               disabled={!studyId}
             >
               <option value="link">Web Link</option>
@@ -380,7 +380,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
             <button
               type="submit"
               disabled={!linkTitle.trim() || !linkUrl.trim() || isSaving || !studyId}
-              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700"}`}
+              className={`inline-flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 text-white font-semibold text-xs disabled:opacity-50 ${theme?.accentButton || "bg-indigo-600 hover:bg-indigo-700 dark:bg-indigo-600 dark:hover:bg-indigo-500"}`}
             >
               {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Attach Link
             </button>
@@ -388,25 +388,25 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
         </form>
       )}
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p className="text-sm text-red-600 dark:text-red-400">{error}</p>}
       {isLoading ? (
-        <p className="text-sm text-slate-500">Loading resources...</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">Loading resources...</p>
       ) : resources.length === 0 ? (
-        <p className="text-sm text-slate-500">No resources attached yet.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">No resources attached yet.</p>
       ) : (
         <div className="space-y-3">
           {resources.map((resource) => (
-            <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
+            <article key={resource.id} className="flex items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-4 shadow-xs">
               <div className="min-w-0 flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-slate-50 border border-slate-100 shrink-0">
+                <div className="p-2 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-100 dark:border-slate-700 shrink-0">
                   {renderKindIcon(resource)}
                 </div>
                 <div className="min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="truncate font-semibold text-slate-800 text-sm">{resource.title}</p>
+                    <p className="truncate font-semibold text-slate-800 dark:text-slate-100 text-sm">{resource.title}</p>
                     {renderExtractionBadge(resource.extraction_status)}
                   </div>
-                  <p className="mt-0.5 text-xs text-slate-400 capitalize">{getResourceLabel(resource)}</p>
+                  <p className="mt-0.5 text-xs text-slate-400 dark:text-slate-500 capitalize">{getResourceLabel(resource)}</p>
                 </div>
               </div>
               <div className="flex shrink-0 items-center gap-3">
@@ -414,7 +414,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
                   type="button"
                   onClick={() => openResource(resource)}
                   title="Open resource"
-                  className={`rounded-md p-2 hover:bg-slate-50 transition ${theme?.accentText || "text-indigo-600"}`}
+                  className={`rounded-md p-2 hover:bg-slate-50 dark:hover:bg-slate-800 transition ${theme?.accentText || "text-indigo-600 dark:text-indigo-400"}`}
                 >
                   <ExternalLink className="h-4 w-4" />
                 </button>
@@ -423,7 +423,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
                   onClick={() => removeResource(resource)}
                   disabled={deletingId === resource.id}
                   title="Delete resource"
-                  className="rounded-md p-2 text-red-600 hover:bg-red-50 transition disabled:opacity-50"
+                  className="rounded-md p-2 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/50 transition disabled:opacity-50"
                 >
                   {deletingId === resource.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
                 </button>

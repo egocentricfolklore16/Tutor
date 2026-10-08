@@ -164,11 +164,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   if (error || !session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 px-6 text-center">
-        <p className="text-red-600 mb-4">{error || "Study session not found."}</p>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-6 text-center">
+        <p className="text-red-600 dark:text-red-400 mb-4">{error || "Study session not found."}</p>
         <button
           onClick={() => navigate("/Study")}
-          className="inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700"
+          className="inline-flex items-center gap-2 rounded-lg bg-red-600 dark:bg-red-500 px-4 py-2 text-sm font-semibold text-white hover:bg-red-700 dark:hover:bg-red-600"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to sessions
@@ -179,24 +179,24 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
   if (isCompleted) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white px-6 py-12 text-center text-slate-900">
+      <main className="flex min-h-screen items-center justify-center bg-white dark:bg-slate-950 px-6 py-12 text-center text-slate-900 dark:text-slate-100">
         <div className="motion-dialog flex w-full max-w-xl flex-col items-center">
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating your completed study session" className="h-64 w-64 object-contain sm:h-80 sm:w-80" />
-          <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600">Session complete</p>
+          <p className="mt-5 text-sm font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Session complete</p>
           <h1 className="mt-2 text-3xl font-black tracking-tight sm:text-4xl">You&apos;re done with this session!</h1>
           {completionError ? (
-            <div className="mt-4 rounded-xl bg-red-50 px-5 py-3 border border-red-200">
-              <span className="text-sm font-semibold text-red-700">{completionError}</span>
+            <div className="mt-4 rounded-xl bg-red-50 dark:bg-red-950/50 px-5 py-3 border border-red-200 dark:border-red-800">
+              <span className="text-sm font-semibold text-red-700 dark:text-red-300">{completionError}</span>
             </div>
           ) : (
-            <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 px-5 py-2.5 border border-emerald-200">
-              <span className="text-sm font-bold text-emerald-800"> You got 50 XP and 5 Gems!</span>
+            <div className="mt-4 flex items-center justify-center gap-3 rounded-full bg-emerald-50 dark:bg-emerald-950/50 px-5 py-2.5 border border-emerald-200 dark:border-emerald-800">
+              <span className="text-sm font-bold text-emerald-800 dark:text-emerald-300"> You got 50 XP and 5 Gems!</span>
             </div>
           )}
-          <p className="mt-3 max-w-md text-base leading-7 text-slate-500">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
+          <p className="mt-3 max-w-md text-base leading-7 text-slate-500 dark:text-slate-400">Great work staying focused. Your streak starts today, so keep the momentum going.</p>
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
             <button type="button" onClick={() => navigate("/Study")} className="rounded-full bg-emerald-600 px-5 py-3 text-sm font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700">Back to all sessions</button>
-            <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 px-5 py-3 text-sm font-bold text-slate-700 transition hover:bg-slate-200">Back to dashboard</button>
+            <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 dark:bg-slate-800 px-5 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 transition hover:bg-slate-200 dark:hover:bg-slate-700">Back to dashboard</button>
           </div>
         </div>
       </main>
@@ -319,7 +319,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
         <div className="mt-6 flex flex-wrap items-center gap-3">
           <button
             onClick={isStudying ? pause : resume}
-            className="inline-flex items-center gap-2 rounded-lg bg-black px-5 py-3 font-semibold text-white hover:bg-slate-900"
+            className="inline-flex items-center gap-2 rounded-lg bg-black dark:bg-slate-100 dark:text-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-900 dark:hover:bg-slate-200 transition"
           >
             {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {isStudying ? "Pause timer" : "Resume timer"}
@@ -329,7 +329,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               setTimeLeft(durationSeconds);
               resume();
             }}
-            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-5 py-3 font-semibold text-slate-600 hover:bg-slate-50"
+            className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-5 py-3 font-semibold text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 transition"
           >
             <RotateCcw className="h-4 w-4" />
             Reset
@@ -357,7 +357,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
   ];
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100">
       <main
         className={`min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10 transition-all duration-300 ${
           isAIOpen ? "xl:mr-[370px]" : "mr-0"
@@ -365,10 +365,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
       >
         <div className="w-full max-w-[1500px]">
           <div className="min-w-0 w-full">
-            <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm">
+            <div className="mb-6 flex flex-wrap min-h-12 items-center justify-between gap-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 shadow-sm">
               <button
                 onClick={handleLeaveSession}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm hover:bg-slate-100"
+                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-600 dark:text-slate-300 shadow-sm hover:bg-slate-100 dark:hover:bg-slate-800"
               >
                 <ArrowLeft className="h-4 w-4" />
                 Back to all sessions (Pause)
@@ -385,7 +385,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                       className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors ${
                         isActive
                           ? `${importanceTheme.accentBg} ${importanceTheme.accentText} border ${importanceTheme.accentBorder || "border-red-200"}`
-                          : "text-slate-600 hover:bg-slate-100"
+                          : "text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800"
                       }`}
                     >
                       <item.icon className="h-4 w-4" />
@@ -409,7 +409,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               <div className="relative md:hidden">
                 <button
                   onClick={() => setIsToolsOpen((prev) => !prev)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-50"
+                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 px-3 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 shadow-sm hover:bg-slate-50 dark:hover:bg-slate-800"
                 >
                   {(() => {
                     const current = toolItems.find((t) => t.id === activeTool) || toolItems[0];
@@ -425,7 +425,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                 </button>
 
                 {isToolsOpen && (
-                  <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-xl border border-slate-200 bg-white p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
+                  <div className="absolute right-0 top-full mt-2 z-50 min-w-[200px] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-2 shadow-xl animate-in fade-in slide-in-from-top-2">
                     <div className="flex flex-col gap-1">
                       {toolItems.map((item) => {
                         const isActive = activeTool === item.id;
@@ -439,7 +439,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                             className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition-colors ${
                               isActive
                                 ? `${importanceTheme.accentBg} ${importanceTheme.accentText}`
-                                : "text-slate-700 hover:bg-slate-100"
+                                : "text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
                             }`}
                           >
                             <item.icon className="h-4 w-4" />
@@ -455,11 +455,11 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
 
             {/* Goal Reached Dialog Prompt */}
             {isGoalReached && (
-              <div className="mb-6 rounded-2xl bg-amber-50 border border-amber-300 p-5 shadow-sm">
+              <div className="mb-6 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 p-5 shadow-sm">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div>
-                    <h3 className="text-lg font-bold text-amber-900">Goal Reached! 🎉</h3>
-                    <p className="text-sm text-amber-800 mt-1">You have completed your target study time. Would you like to finish and record this session?</p>
+                    <h3 className="text-lg font-bold text-amber-900 dark:text-amber-200">Goal Reached! 🎉</h3>
+                    <p className="text-sm text-amber-800 dark:text-amber-300 mt-1">You have completed your target study time. Would you like to finish and record this session?</p>
                   </div>
                   <div className="flex gap-3">
                     <button
@@ -468,7 +468,7 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
                         setTimeLeft(1800); // 30 extra minutes
                         resume();
                       }}
-                      className="rounded-lg bg-white px-4 py-2 text-sm font-semibold text-slate-700 border border-slate-300 hover:bg-slate-50"
+                      className="rounded-lg bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700"
                     >
                       Study 30m More
                     </button>
@@ -506,10 +506,10 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
               </div>
             </section>
 
-            <section className="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-slate-200 md:p-8">
+            <section className="mt-6 rounded-2xl bg-white dark:bg-slate-900 p-6 shadow-sm ring-1 ring-slate-200 dark:ring-slate-800 md:p-8">
               <div className="mb-5 flex items-center gap-3">
                 <BookOpen className={`h-5 w-5 ${importanceTheme.accent}`} />
-                <h2 className="text-xl font-bold">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
+                <h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">{activeTool === "pomodoro" ? "Focus timer" : activeTool}</h2>
               </div>
               {renderTool()}
             </section>

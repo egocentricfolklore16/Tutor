@@ -15,3 +15,9 @@
 **Learning:** Server-side pedagogical unlock counters like `countGenuineAttempts` must explicitly filter prompt injection / jailbreak phrases ("ignore previous instructions", "system override", "developer mode") and answer demands containing justification keywords ("give me the answer because..."). If unhandled, adversarial messages count as genuine student attempts, triggering `SERVER-ENFORCED STATE: UNLOCKED` on the server side and compromising Socratic tutoring rules.
 
 **Action:** Always test prompt injection phrases and demand sentences with conjunctions against server-side attempt counter functions to ensure they do not increment genuine attempt counts.
+
+## 2026-10-03 - Filtering Demand Adjectives and Injection Variants in Socratic Unlock Counting
+
+**Learning:** Demand phrases inserted with adjectives/adverbs ("give me the final answer", "provide the correct solution", "show me the full step-by-step answer") or alternate demand verbs ("provide", "share", "output", "print") can bypass strict single-word noun matching in `countGenuineAttempts`. Similarly, prompt injection variants targeting system guardrails ("override instructions", "forget system rules", "ignore your safety guardrails") require regex matches with flexible zero-or-more modifier sequences.
+
+**Action:** Ensure demand and injection regexes allow multiple stacked adjectives, synonyms for answer/solution, and guardrail/constraint nouns so adversarial demand variations cannot trigger false-positive genuine attempt increments.

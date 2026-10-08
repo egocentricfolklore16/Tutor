@@ -3,9 +3,11 @@ export function countGenuineAttempts(messages: any[]): number {
 
   const nonAttemptExactRegex = /^(?:idk|i\s*don'?t\s*know|dont\s*know|no\s*idea|no\s*clue|pass|help|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
-  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve|reveal|unlock)\s*(?:me\s*)?(?:the\s*)?(?:answer|solution)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:answer|solution)|(?:answer|solution)\s*(?:please|pls)|(?:solve|do|write)\s*it\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell)\s*(?:it|me|answer|solution)?/i;
+  const nonAttemptDemandRegex =
+    /(?:give|tell|show|send|write|solve|reveal|unlock|provide|share|output|print)\s*(?:me\s*|us\s*)?(?:the\s*)?(?:(?:final|correct|full|actual|exact|complete|entire|whole|step-by-step|real)[\s-]*)*(?:answer|solution|result)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:(?:final|correct|full|actual|exact|complete|entire|whole|step-by-step|real)[\s-]*)*(?:answer|solution|result)|(?:answer|solution)\s*(?:please|pls)|(?:solve|do|write)\s*it\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell|provide|share)\s*(?:it|me|us|answer|solution)?/i;
 
-  const promptInjectionRegex = /(?:ignore|disregard|forget)\s*(?:all|previous|your|these)?\s*(?:instructions|rules|system\s*prompt)|system\s*(?:override|prompt)|developer\s*mode|jailbreak|bypass\s*(?:the|your)?\s*rules/i;
+  const promptInjectionRegex =
+    /(?:ignore|disregard|forget|override)\s*(?:all|previous|prior|your|these|system|safety|\s+)*\s*(?:instructions|rules|system\s*prompt|guardrails|constraints)|system\s*(?:override|prompt)|developer\s*mode|jailbreak|bypass\s*(?:the|your|all|safety|\s+)*\s*(?:rules|guardrails|instructions|constraints)/i;
 
   let attemptCount = 0;
   let hasAssistantResponded = false;

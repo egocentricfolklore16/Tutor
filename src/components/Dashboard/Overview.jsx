@@ -15,6 +15,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import { getEducationLevelInfo } from "../../lib/educationLevel.js";
 import supabase from "../../lib/supabase";
+import PageContainer from "../common/PageContainer";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -96,10 +97,10 @@ function Overview() {
   }, [isProfileLoading, profile]);
 
   return (
-    <>
+    <PageContainer>
       <div>
-        <div className="px-3 sm:px-4 md:px-6">
-          <section className="rounded-2xl bg-transparent px-4 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
+        <div className="px-0">
+          <section className="rounded-2xl bg-transparent px-2 py-4 md:px-5" aria-labelledby="dashboard-greeting-title">
             <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
               <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-50 px-3 py-1.5 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"><GraduationCap className="h-3.5 w-3.5" />{educationLevelInfo.badge}</span>
@@ -137,7 +138,7 @@ function Overview() {
           <QuickShortcuts />
         </div>
       </div>
-      <div className="mx-auto w-full max-w-7xl px-3 py-4 sm:px-4 lg:px-6">
+      <div className="mt-4">
         <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
           <div className="lg:col-span-2">
             <PerformanceDashboard />
@@ -175,7 +176,7 @@ function Overview() {
           <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950">×</button>
         </div>
       </div>}
-    </>
+    </PageContainer>
   );
 }
 

@@ -22,6 +22,7 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
+import PageContainer from "../common/PageContainer";
 
 const STORAGE_BUCKET = "resources";
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10 MB
@@ -605,7 +606,7 @@ function Library({ session }) {
   const totalItemsCount = notes.length + flashcards.length + resources.length + quizzes.length;
 
   return (
-    <main className="min-h-screen bg-slate-50 px-4 py-8 sm:px-6 lg:px-10">
+    <PageContainer>
       <div className="mx-auto max-w-7xl">
         {/* Header */}
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
@@ -1270,7 +1271,7 @@ function Library({ session }) {
           </div>
         )}
       </div>
-    </main>
+    </PageContainer>
   );
 }
 

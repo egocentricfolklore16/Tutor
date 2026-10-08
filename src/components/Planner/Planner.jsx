@@ -19,6 +19,7 @@ import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
 import NotificationPromptCard from "../Notifications/NotificationPromptCard";
+import PageContainer from "../common/PageContainer";
 import { getNotificationPreferences, recordNotification, scheduleSessionRemindersFromSessions, scheduleStudyReminder } from "../../lib/notifications";
 
 const PlannerPage = () => {
@@ -329,7 +330,7 @@ const PlannerPage = () => {
   );
 
   return (
-    <div className="min-h-screen max-w-7xl bg-white px-3 py-5 sm:px-4 sm:py-6 md:mx-auto md:px-6">
+    <PageContainer>
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
@@ -419,7 +420,7 @@ const PlannerPage = () => {
         onClose={() => setActivityMode(null)}
         onSubmit={handleCreateActivity}
       />
-    </div>
+    </PageContainer>
   );
 };
 

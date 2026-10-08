@@ -10,6 +10,7 @@ import {
   persistNotificationPreferences,
   recordNotification,
 } from "../../lib/notifications";
+import PageContainer from "../common/PageContainer";
 
 const STORAGE_BUCKET = "user-images";
 const levels = ["9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
@@ -144,7 +145,7 @@ function Settings() {
 
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];
 
-  return <main className="settings-page min-h-screen px-4 pb-24 pt-6 text-slate-900 dark:text-slate-100 sm:px-6 md:px-10 md:pb-14 md:pt-10"><div className="mx-auto max-w-5xl"><header className="mb-7"><h1 className="text-3xl font-black tracking-tight sm:text-4xl dark:text-white">Settings</h1><p className="mt-2 text-base text-slate-500 dark:text-slate-400">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-1 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1 sm:rounded-full dark:bg-slate-800/80" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`flex min-h-[44px] shrink-0 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 active:scale-95 ${activeTab === tab ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:bg-white/50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-200"}`}>{tab}</button>)}</nav><div className="settings-card">
+  return <PageContainer className="settings-page"><div className="mx-auto max-w-5xl"><header className="mb-7"><h1 className="text-3xl font-black tracking-tight sm:text-4xl dark:text-white">Settings</h1><p className="mt-2 text-base text-slate-500 dark:text-slate-400">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-1 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1 sm:rounded-full dark:bg-slate-800/80" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`flex min-h-[44px] shrink-0 items-center justify-center rounded-full px-5 py-2.5 text-sm font-semibold transition duration-200 active:scale-95 ${activeTab === tab ? "bg-white text-slate-900 shadow-sm dark:bg-slate-900 dark:text-white" : "text-slate-500 hover:bg-white/50 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-700/50 dark:hover:text-slate-200"}`}>{tab}</button>)}</nav><div className="settings-card">
     {activeTab === "Privacy" ? <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900 dark:text-white">Privacy</h2><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Privacy settings are not available yet.</p></div> : null}
     {activeTab === "Billing" && <Billing user={resolvedUser} />}
     {activeTab === "Profile" && <div className="space-y-10"><div><h2 className="text-2xl font-bold text-slate-900 dark:text-white">Profile</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Your personal details</p></div>
@@ -309,7 +310,7 @@ function Settings() {
         </div>
       </div>
     </Section>}
-  </div>{error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}{activeTab === "Profile" && <button type="button" onClick={save} disabled={isSaving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {isSaving ? "Saving..." : "Save All Settings"}</button>}</div></main>;
+  </div>{error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}{activeTab === "Profile" && <button type="button" onClick={save} disabled={isSaving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {isSaving ? "Saving..." : "Save All Settings"}</button>}</div></PageContainer>;
 }
 
 export default Settings;

@@ -5,6 +5,7 @@ import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
 import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
+import PageContainer from "../common/PageContainer";
 
 const dateKey = (value) => {
   const date = new Date(value);
@@ -89,7 +90,7 @@ function Progress() {
   ];
 
   return (
-    <main className="min-h-screen bg-slate-50 px-5 py-8 md:px-10">
+    <PageContainer>
       <div className="mx-auto max-w-6xl">
         <header className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">Your learning journey</p>
@@ -116,7 +117,7 @@ function Progress() {
           <Leaderboard />
         </section>
       </div>
-    </main>
+    </PageContainer>
   );
 }
 

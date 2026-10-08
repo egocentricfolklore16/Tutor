@@ -5,6 +5,7 @@ import supabase from "../../lib/supabase";
 import StudyEnvironment from "./studyEnviron/StudyEnvironment";
 import LoadingCompanion from "../common/LoadingCompanion";
 import ResponsiveSheet from "../common/ResponsiveSheet";
+import PageContainer from "../common/PageContainer";
 import { deleteSession } from "../../lib/sessionService";
 import {
   BookOpen,
@@ -401,7 +402,7 @@ function Study() {
   }, [dropdownIndex]);
 
   return (
-    <div className="relative min-h-screen">
+    <PageContainer className="relative">
       {activeSession && (
         <StudyEnvironment
           session={activeSession}
@@ -409,7 +410,7 @@ function Study() {
           user={currentUser || undefined}
         />
       )}
-      <div className="p-6">
+      <div className="px-0 py-2">
         {fetchError && (
           <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-300 text-center font-medium">
             {fetchError}
@@ -768,8 +769,9 @@ function Study() {
         createPortal(
           <button
             onClick={toggleShow}
-            className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-6 z-40 p-4 rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:left-8"
+            className="fixed bottom-[calc(4.5rem+env(safe-area-inset-bottom))] left-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-green-600 text-white shadow-lg transition-all duration-300 ease-in-out hover:scale-110 hover:bg-green-700 hover:shadow-xl sm:bottom-24 sm:left-8"
             title="Create New Session"
+            aria-label="Create New Session"
           >
             <svg
               className="w-6 h-6"
@@ -788,7 +790,7 @@ function Study() {
           </button>,
           document.body
         )}
-    </div>
+    </PageContainer>
   );
 }
 

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import PageContainer from "../common/PageContainer";
 
 const Community = () => {
   const { profile } = useProfile();
@@ -114,7 +115,7 @@ const Community = () => {
   ];
 
   return (
-    <div className="min-h-screen">
+    <PageContainer>
       {/* Hero Section */}
       <div className="relative overflow-hidden">
         <div className="absolute "></div>
@@ -368,7 +369,7 @@ const Community = () => {
           </p>
         </div>
       </div>
-    </div>
+    </PageContainer>
   );
 };
 

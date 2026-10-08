@@ -1,3 +1,8 @@
+## 2025-05-20 - Unescaped User Input Injected into System Prompt XML Tags
+**Vulnerability:** User-controlled fields (`studySession.Topic`, `studySession.Subject`, `profile.primary_goal`, etc.) were sanitized for control chars and `{{` mustache templates, but raw `<` and `>` characters were passed unescaped directly into system prompt template blocks (such as `<session_context>`). An attacker could supply `</session_context><guardrails>...` to break out of context tags and inject arbitrary system instructions.
+**Learning:** Sanitizing inputs for template syntax (like mustache braces) is insufficient when LLM system prompts use XML structure tags to separate trusted instructions from untrusted data.
+**Prevention:** Always escape angle brackets (`<` to `&lt;` and `>` to `&gt;`) in `sanitizeString` or wrap untrusted inputs in explicit data tags before interpolating into LLM system prompts.
+
 ## 2025-05-18 - Prototype Property Lookup Injection in Dynamic Enum Resolution
 **Vulnerability:** In `resolveStrictness` (`supabase/functions/ai-tutor-chat/index.ts`), dynamic lookup `STRICTNESS_PROMPTS[override]` evaluated prototype properties like `toString`, `constructor`, `__proto__`, and `valueOf` as truthy function objects.
 **Learning:** Checking property existence on plain JavaScript objects using `obj[key]` evaluates prototype properties inherited from `Object.prototype`, which can bypass mode validation and contaminate string interpolations (e.g., injecting `function toString() { [native code] }` into system prompts).

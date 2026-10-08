@@ -4,6 +4,8 @@ export function sanitizeString(input: string, maxLength: number = 1000): string 
   let clean = input.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, "");
   // Strip double braces {{ or }}
   clean = clean.replace(/\{\{|\}\}/g, "");
+  // Escape angle brackets < and > to prevent XML/HTML prompt tag injection
+  clean = clean.replace(/</g, "&lt;").replace(/>/g, "&gt;");
   // Limit length
   if (clean.length > maxLength) {
     clean = clean.slice(0, maxLength);

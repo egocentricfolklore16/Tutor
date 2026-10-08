@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import { getLearnerTypeSuggestion } from "../../lib/learnerType.js";
 import { getEducationLevelInfo } from "../../lib/educationLevel.js";
+import { getPreferredTimeNote } from "../../lib/preferredTime.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
@@ -13,6 +14,7 @@ function AISuggestions() {
   const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
   const educationLevelInfo = getEducationLevelInfo(profile?.education_level);
+  const preferredTimeNote = getPreferredTimeNote(profile?.preferred_time);
 
   return (
     <div className="min-h-[360px] rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
@@ -37,6 +39,9 @@ function AISuggestions() {
           </span>{" "}
           <span className="text-slate-700 dark:text-slate-300">
             {educationLevelInfo.note}
+          </span>{" "}
+          <span className="text-emerald-800 dark:text-emerald-300 font-medium">
+            {preferredTimeNote}
           </span>
         </p>
         <div className="mt-6 space-y-3">

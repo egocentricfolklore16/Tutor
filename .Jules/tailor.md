@@ -9,7 +9,7 @@
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner session length calculation | Used |
-| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time | Used |
+| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Dashboard AI Suggestions, Planner default start time, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
 | `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
@@ -31,3 +31,7 @@
 ## 2026-10-05 - Connecting Education Level to Dashboard Overview Header & AI Suggestions
 **Learning:** `education_level` was collected in Onboarding step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and sent to the AI Tutor prompt, but was not visibly displayed on the Dashboard or used to personalize study suggestions.
 **Action:** Create `getEducationLevelInfo` pure helper to map education levels ("High school", "College / university", "Working professional", "Independent learner") to level badges and study guidance notes, render an Education Level badge in the Dashboard `Overview` header, and append tailored education level advice to `AISuggestions`.
+
+## 2026-10-08 - Connecting Preferred Time to Dashboard AI Suggestions & Settings
+**Learning:** `preferred_time` was collected in Onboarding step 2 ("When do you focus best?"), stored in `profiles.preferred_time`, and used silently for Planner default start times, but was omitted from Dashboard study guidance and editable Settings controls.
+**Action:** Create `getPreferredTimeNote` pure helper to map preferred times ("Morning", "Afternoon", "Evening", "Flexible") to actionable time-management guidance on Dashboard `AISuggestions`, and add a Preferred Focus Time selector in `Settings.jsx` for instant UI updates via `ProfileContext`.

@@ -60,11 +60,21 @@ function PlannerStatsBar() {
         return;
       }
 
+      // BOLT OPTIMIZATION: Single-pass iteration to compute tasksDone and exams count in O(N) time with 0 extra array allocations
+      let tasksDone = 0;
+      let exams = 0;
+      if (Array.isArray(sessions)) {
+        for (const session of sessions) {
+          if (session.completed) tasksDone++;
+          if (session.activity_type === "exam") exams++;
+        }
+      }
+
       setStats({
-        tasksDone: (sessions || []).filter((session) => session.completed).length,
+        tasksDone,
         tasksTotal: sessions?.length || 0,
         pomodoros: pomodoros || 0,
-        exams: (sessions || []).filter((session) => session.activity_type === "exam").length,
+        exams,
       });
     };
     loadStats();
@@ -78,14 +88,19 @@ function PlannerStatsBar() {
 
   return (
     <section className="mb-6 grid grid-cols-3 gap-2 sm:gap-4" aria-label="This week planner statistics">
-      {cards.map(({ key, label, subtext, icon: Icon, background, iconColor }) => (
-        <div key={key} className={`relative min-h-32 min-w-0 rounded-2xl ${background} p-3 sm:p-5`}>
-          <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white sm:right-4 sm:top-4 sm:h-9 sm:w-9 ${iconColor}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
-          <p className={`text-xs font-bold uppercase tracking-[0.18em] ${iconColor}`}>{label}</p>
-          <p className="mt-8 truncate text-2xl font-bold leading-none text-slate-950 sm:mt-5 sm:text-3xl">{values[key]}</p>
-          <p className="mt-2 truncate text-[11px] font-medium text-slate-600 sm:text-sm">{subtext}</p>
-        </div>
-      ))}
+      {cards.map((card) => {
+        const IconComponent = card.icon;
+        return (
+          <div key={card.key} className={`relative min-h-32 min-w-0 rounded-2xl ${card.background} p-3 sm:p-5`}>
+            <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white sm:right-4 sm:top-4 sm:h-9 sm:w-9 ${card.iconColor}`}>
+              <IconComponent className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+            </div>
+            <p className={`text-xs font-bold uppercase tracking-[0.18em] ${card.iconColor}`}>{card.label}</p>
+            <p className="mt-8 truncate text-2xl font-bold leading-none text-slate-950 sm:mt-5 sm:text-3xl">{values[card.key]}</p>
+            <p className="mt-2 truncate text-[11px] font-medium text-slate-600 sm:text-sm">{card.subtext}</p>
+          </div>
+        );
+      })}
     </section>
   );
 }

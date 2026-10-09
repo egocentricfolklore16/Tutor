@@ -9,3 +9,7 @@
 ## 2025-03-02 - Keyboard dismissal and ARIA dialog roles for overlay search components
 **Learning:** Search overlays and custom modal overlays rendered directly without native `<dialog>` leave keyboard-only users trapped unless an explicit `Escape` key listener is attached to dismiss the modal, and lack screen reader context without `role="dialog"`, `aria-modal="true"`, and `aria-label`.
 **Action:** Always attach an `Escape` keydown listener when an overlay or modal opens, add `role="dialog"` and `aria-modal="true"`, and set `aria-hidden="true"` on decorative search/close icon SVGs.
+
+## 2025-03-30 - Replace non-semantic card container onClick with native buttons and un-nest interactive controls
+**Learning:** Rendering interactive cards as non-semantic `<div onClick={...}>` with nested `<button>` controls creates invalid HTML (nested interactive controls) and prevents keyboard users from discovering or activating card actions.
+**Action:** Convert clickable card containers to `<button type="button">` with focus-visible rings (`focus-visible:ring-2 focus-visible:ring-emerald-500 ...`) and descriptive `aria-label`s, replacing internal `<button>`s with non-interactive `<span>` styled elements.

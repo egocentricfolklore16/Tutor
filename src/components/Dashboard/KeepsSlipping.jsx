@@ -118,17 +118,17 @@ function KeepsSlipping({ userId }) {
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${hasSlips ? "bg-red-100 dark:bg-red-950/50" : "bg-emerald-100 dark:bg-emerald-950/50"}`}>
               {hasSlips ? (
-                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
+                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" aria-hidden="true" />
               ) : (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
               )}
             </div>
             <h2 className="text-xl font-bold text-slate-900 dark:text-white">Keeps Slipping</h2>
           </div>
           {hasSlips ? (
-            <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
+            <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" aria-hidden="true" />
           ) : (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
+            <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
           )}
         </div>
         <p className="text-sm text-slate-600 dark:text-slate-400">
@@ -148,18 +148,19 @@ function KeepsSlipping({ userId }) {
           /* Empty State */
           <div className="flex flex-col items-center justify-center text-center py-8 px-4 space-y-3">
             <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-full border border-emerald-100 dark:border-emerald-900/50">
-              <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
+              <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400" aria-hidden="true" />
             </div>
             <p className="text-base font-semibold text-slate-800 dark:text-slate-200">On Top of Your Game!</p>
             <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
               No missed sessions or broken streaks logged. Keep up the consistent study habits!
             </p>
             <button
+              type="button"
               onClick={() => navigate("/Study")}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 transition-colors"
             >
               <span>Go to Workspace</span>
-              <ArrowRight className="h-4 w-4" />
+              <ArrowRight className="h-4 w-4" aria-hidden="true" />
             </button>
           </div>
         ) : (
@@ -168,7 +169,7 @@ function KeepsSlipping({ userId }) {
             {hasSlips ? (
               <div>
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                  <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                   Recent Slips
                 </h3>
                 <div className="space-y-3">
@@ -217,7 +218,7 @@ function KeepsSlipping({ userId }) {
               </div>
             ) : (
               <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" aria-hidden="true" />
                 <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">
                   No active slip events! Your streak and schedule are intact.
                 </p>
@@ -228,7 +229,7 @@ function KeepsSlipping({ userId }) {
             {sessionStats && sessionStats.topSubjects.length > 0 && (
               <div>
                 <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
+                  <AlertCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" aria-hidden="true" />
                   Areas to Refocus On
                 </h3>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -237,21 +238,23 @@ function KeepsSlipping({ userId }) {
                     const color = getColorByIndex(index);
 
                     return (
-                      <div
+                      <button
                         key={subjectName}
-                        className={`p-4 rounded-lg border-2 ${color.border} ${color.bg} transition-all hover:shadow-md cursor-pointer group`}
+                        type="button"
                         onClick={() => navigate("/Study")}
+                        aria-label={`Start session for ${subjectName}, ${count} ${count === 1 ? "session" : "sessions"} scheduled`}
+                        className={`w-full text-left p-4 rounded-lg border-2 ${color.border} ${color.bg} transition-all hover:shadow-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 group`}
                       >
                         <div className="flex items-start justify-between mb-2">
                           <p className={`font-semibold ${color.text} group-hover:underline`}>{subjectName}</p>
                           <span className={`px-2 py-1 text-xs font-bold rounded ${color.badge}`}>{count}</span>
                         </div>
                         <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Sessions scheduled</p>
-                        <button className={`text-xs font-semibold ${color.text} flex items-center gap-1 hover:gap-2 transition-all`}>
+                        <span className={`text-xs font-semibold ${color.text} inline-flex items-center gap-1 group-hover:gap-2 transition-all`}>
                           <span>Start session</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      </div>
+                          <ArrowRight className="h-3 w-3" aria-hidden="true" />
+                        </span>
+                      </button>
                     );
                   })}
                 </div>
@@ -261,18 +264,19 @@ function KeepsSlipping({ userId }) {
             {/* Call to Action */}
             <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
               <div className="flex items-start gap-3">
-                <RotateCcw className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                <RotateCcw className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
                 <div className="grow min-w-0">
                   <p className="font-semibold text-emerald-900 dark:text-emerald-300 mb-1 sm:mb-2">Get Back on Track</p>
                   <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-3 sm:mb-4">
                     Complete at least one study session today to rebuild or maintain your streak.
                   </p>
                   <button
+                    type="button"
                     onClick={() => navigate("/Study")}
-                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 transition-colors flex items-center gap-2"
                   >
                     <span>Create a session</span>
-                    <ArrowRight className="h-4 w-4" />
+                    <ArrowRight className="h-4 w-4" aria-hidden="true" />
                   </button>
                 </div>
               </div>

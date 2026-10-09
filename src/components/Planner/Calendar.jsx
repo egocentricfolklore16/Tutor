@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Plus, Play, Pause } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { isPreferredStudyDay } from '../../lib/studyDays.js';
 
 const Calendar = ({
   currentDate,
@@ -9,6 +10,7 @@ const Calendar = ({
   setSelectedSession,
   selectedSession,
   onAddActivity,
+  studyDays = [],
 }) => {
   const navigate = useNavigate();
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
@@ -118,21 +120,34 @@ const Calendar = ({
     return (
       <div className="grid min-w-[1180px] grid-cols-8 gap-2 h-96">
         <div className="text-sm font-semibold text-gray-600">Time</div>
-        {weekDays.map((day) => (
-          <div
-            key={day.toDateString()}
-            className="text-sm font-semibold text-gray-600 text-center"
-          >
-            <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+        {weekDays.map((day) => {
+          const dayName = day.toLocaleDateString("en-US", { weekday: "short" });
+          const isTarget = isPreferredStudyDay(dayName, studyDays);
+          return (
             <div
-              className={`text-lg ${
-                day.toDateString() === new Date().toDateString()
-                  ? "text-blue-600 font-bold"
-                  : ""
-              }`}
+              key={day.toDateString()}
+              className="text-sm font-semibold text-gray-600 text-center"
             >
-              {day.getDate()}
-            </div>
+              <div className="flex items-center justify-center gap-1">
+                <span>{dayName}</span>
+                {isTarget && (
+                  <span
+                    title="Preferred study day"
+                    className="rounded bg-emerald-100 px-1 py-0.5 text-[9px] font-bold text-emerald-800"
+                  >
+                    Target
+                  </span>
+                )}
+              </div>
+              <div
+                className={`text-lg ${
+                  day.toDateString() === new Date().toDateString()
+                    ? "text-blue-600 font-bold"
+                    : ""
+                }`}
+              >
+                {day.getDate()}
+              </div>
             <button
               type="button"
               onClick={() => onAddActivity(new Date(day))}
@@ -142,7 +157,8 @@ const Calendar = ({
               Add
             </button>
           </div>
-        ))}
+        );
+        })}
 
         {[...Array(12)].map((_, hour) => {
           const slotHour = hour + 8;

@@ -8,7 +8,7 @@
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner | Used |
-| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner session length calculation | Used |
+| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner duration & Calendar target day headers, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
@@ -31,3 +31,7 @@
 ## 2026-10-05 - Connecting Education Level to Dashboard Overview Header & AI Suggestions
 **Learning:** `education_level` was collected in Onboarding step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and sent to the AI Tutor prompt, but was not visibly displayed on the Dashboard or used to personalize study suggestions.
 **Action:** Create `getEducationLevelInfo` pure helper to map education levels ("High school", "College / university", "Working professional", "Independent learner") to level badges and study guidance notes, render an Education Level badge in the Dashboard `Overview` header, and append tailored education level advice to `AISuggestions`.
+
+## 2026-10-08 - Connecting Target Study Days to Planner Calendar & Settings
+**Learning:** `study_days` was collected in Onboarding step 2 ("Which days work best?"), stored in `profiles.study_days`, and used in Planner duration calculation, but target study days were never indicated visually on the Planner week calendar or editable in Settings.
+**Action:** Create `isPreferredStudyDay` helper in `src/lib/studyDays.js` to render "Target" day badges on preferred study days in `Planner/Calendar.jsx` headers, and add a Target Study Days day-picker control in `Settings.jsx` so changes propagate immediately via `ProfileContext`.

@@ -399,6 +399,7 @@ const PlannerPage = () => {
                 setSelectedSession={setSelectedSession}
                 selectedSession={selectedSession}
                 onAddActivity={handleAddActivity}
+                studyDays={profile?.study_days}
               />
           </div>
 

@@ -38,7 +38,7 @@ export async function updateStreakForActivity(userId, options = {}) {
           }
         : null;
 
-      const { calculateStreakUpdate } = await import("./streaksCore");
+      const { calculateStreakUpdate } = await import("./streaksCore.js");
       const next = calculateStreakUpdate(prev, activityDate);
 
       const { data: updatedStreak, error: upsertError } = await supabase
@@ -127,7 +127,7 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
         error: slipError,
       });
     }
-    return { data: { reason: "streak_broken", daysMissed: daysSinceActivity }, wasSlipping: true };
+    return { data: { reason: slipReason, daysMissed: daysSinceActivity }, wasSlipping: true };
   }
   
   return { data: null, wasSlipping: false };

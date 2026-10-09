@@ -11,3 +11,7 @@
 ## 2026-04-12 - Notification Permission & Deterministic Quiet Hours Testing
 **Learning:** In Node unit tests, accessing `Notification.permission` directly throws `ReferenceError` when `Notification` is defined on mocked `window` object. Using `window.Notification` explicitly and injecting an optional `date = new Date()` parameter into `isQuietHoursActive` and `recordNotification` allows deterministic time testing across daytime, overnight, and boundary quiet hour windows without relying on system clocks.
 **Action:** Always access browser web APIs via `window.*` when testing client utilities, and inject date/time parameters for time-dependent functions.
+
+## 2026-04-18 - Deterministic Streak Slip Date Offsets & Dynamic Module Extension
+**Learning:** Dynamic imports inside module functions (like `import("./streaksCore.js")` in `streaks.js`) require explicit `.js` extensions under Node ESM. When testing date-dependent functions like `checkAndLogStreakSlip`, computing `last_active_date` relative to the current local cutoff date (`getActivityDate(new Date(), timeZone, cutoffHour)`) guarantees deterministic day gap calculations (`daysSinceActivity === 2`) regardless of when the test runner executes.
+**Action:** Always compute test dates as offsets from `getActivityDate(new Date(), ...)` rather than hardcoding static calendar dates, and ensure dynamic import paths contain `.js` extensions.

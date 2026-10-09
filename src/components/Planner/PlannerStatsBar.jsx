@@ -60,11 +60,23 @@ function PlannerStatsBar() {
         return;
       }
 
+      // BOLT OPTIMIZATION:
+      // Compute tasksDone and exams in a single O(N) pass over sessions
+      // to avoid allocating intermediate arrays and scanning sessions twice.
+      let tasksDone = 0;
+      let exams = 0;
+      if (Array.isArray(sessions)) {
+        for (const session of sessions) {
+          if (session.completed) tasksDone++;
+          if (session.activity_type === "exam") exams++;
+        }
+      }
+
       setStats({
-        tasksDone: (sessions || []).filter((session) => session.completed).length,
+        tasksDone,
         tasksTotal: sessions?.length || 0,
         pomodoros: pomodoros || 0,
-        exams: (sessions || []).filter((session) => session.activity_type === "exam").length,
+        exams,
       });
     };
     loadStats();

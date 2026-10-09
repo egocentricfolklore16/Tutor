@@ -60,7 +60,32 @@ export const pauseSessionBeacon = ({ id, time_left, elapsed_seconds }) => {
 
   const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
   const supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || "";
-  const endpoint = `${supabaseUrl}/rest/v1/Study?id=eq.${id}&session_status=neq.completed`;
+  // Security: URL-encode the session id parameter to prevent PostgREST URL filter injection
+  const endpoint = `${supabaseUrl}/rest/v1/Study?id=eq.${encodeURIComponent(id)}&session_status=neq.completed`;
+
+  // Security: Use authenticated user JWT token if present in session storage to satisfy PostgREST RLS
+  let authToken = supabaseKey;
+  if (typeof window !== "undefined" && window.localStorage) {
+    try {
+      const storage = window.localStorage;
+      for (let i = 0; i < storage.length; i++) {
+        const key = storage.key(i);
+        if (key && key.startsWith("sb-") && key.endsWith("-auth-token")) {
+          const raw = storage.getItem(key);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            const token = parsed?.access_token || parsed?.currentSession?.access_token;
+            if (token) {
+              authToken = token;
+              break;
+            }
+          }
+        }
+      }
+    } catch {
+      // Fall back to anon key
+    }
+  }
 
   try {
     if (typeof fetch === "function") {
@@ -69,13 +94,13 @@ export const pauseSessionBeacon = ({ id, time_left, elapsed_seconds }) => {
         headers: {
           "Content-Type": "application/json",
           apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
+          Authorization: `Bearer ${authToken}`,
           Prefer: "return=minimal",
         },
         body: payload,
         keepalive: true,
       }).catch((err) => console.error("Error sending pause keepalive fetch:", err));
-    } else if (navigator?.sendBeacon) {
+    } else if (typeof navigator !== "undefined" && navigator?.sendBeacon) {
       const blob = new Blob([payload], { type: "application/json" });
       navigator.sendBeacon(endpoint, blob);
     }

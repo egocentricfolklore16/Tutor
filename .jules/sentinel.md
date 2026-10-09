@@ -1,3 +1,8 @@
+## 2025-05-25 - PostgREST Query Filter Injection in Client Keepalive Beacons
+**Vulnerability:** Direct string interpolation of `id` in REST endpoints (`/rest/v1/Study?id=eq.${id}&...`) permitted PostgREST query parameter injection, while passing `Authorization: Bearer ${anonKey}` caused RLS policies checking `auth.uid()` to reject unauthenticated session pause beacons.
+**Learning:** Raw string interpolation in REST API endpoint strings permits URL parameter injection (e.g. `123&session_status=eq.active`), and client beacons sending direct PostgREST requests fail under RLS if they fall back blindly to anonymous tokens instead of reading the active user session JWT from storage.
+**Prevention:** Always wrap URL query parameters with `encodeURIComponent()` and extract stored user session JWT tokens for keepalive REST fetch calls.
+
 ## 2025-05-18 - Prototype Property Lookup Injection in Dynamic Enum Resolution
 **Vulnerability:** In `resolveStrictness` (`supabase/functions/ai-tutor-chat/index.ts`), dynamic lookup `STRICTNESS_PROMPTS[override]` evaluated prototype properties like `toString`, `constructor`, `__proto__`, and `valueOf` as truthy function objects.
 **Learning:** Checking property existence on plain JavaScript objects using `obj[key]` evaluates prototype properties inherited from `Object.prototype`, which can bypass mode validation and contaminate string interpolations (e.g., injecting `function toString() { [native code] }` into system prompts).

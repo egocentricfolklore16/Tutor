@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deleteSession, completeSession } from "../src/lib/sessionService.js";
+import { deleteSession, completeSession, pauseSessionBeacon } from "../src/lib/sessionService.js";
 import supabase from "../src/lib/supabase.js";
 
 test("deleteSession returns error if session ID is missing", async () => {
@@ -19,7 +19,7 @@ test("deleteSession only deletes the Study record and does not delete Library ma
       delete: () => {
         deletedTables.push(tableName);
         return {
-          eq: (col, val) => {
+          eq: () => {
             return Promise.resolve({ error: null });
           },
         };
@@ -161,5 +161,59 @@ test("completeSession calls complete_study_session RPC with required parameters"
     assert.equal(res.data.history_id, "hist_123");
   } finally {
     supabase.rpc = originalRpc;
+  }
+});
+
+test("pauseSessionBeacon encodes session id parameter and uses user session token if available", async () => {
+  let fetchUrl = null;
+  let fetchOptions = null;
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (url, options) => {
+    fetchUrl = url;
+    fetchOptions = options;
+    return new Response(null, { status: 200 });
+  };
+
+  // Mock window.localStorage safely for Node 22+
+  const storage = new Map();
+  storage.set("sb-test-auth-token", JSON.stringify({ access_token: "jwt_user_secret_token_123" }));
+
+  const mockLocalStorage = {
+    get length() {
+      return storage.size;
+    },
+    key: (i) => Array.from(storage.keys())[i],
+    getItem: (k) => storage.get(k) || null,
+  };
+
+  const originalWindow = globalThis.window;
+  Object.defineProperty(globalThis, "window", {
+    value: { localStorage: mockLocalStorage },
+    configurable: true,
+    writable: true,
+  });
+
+  try {
+    const maliciousId = "101&session_status=eq.active";
+    pauseSessionBeacon({ id: maliciousId, time_left: 300, elapsed_seconds: 600 });
+
+    assert.ok(fetchUrl, "Fetch should have been called");
+    assert.ok(
+      fetchUrl.includes("id=eq.101%26session_status%3Deq.active"),
+      "Session ID must be URL encoded to prevent PostgREST query injection"
+    );
+    assert.equal(
+      fetchOptions.headers.Authorization,
+      "Bearer jwt_user_secret_token_123",
+      "Authorization header should use the authenticated user access token"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    if (originalWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = originalWindow;
+    }
   }
 });

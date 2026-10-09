@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Sparkles, Trash2, X } from "lucide-react";
+import { FileText, Loader2, Sparkles, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import invokeAiTutor from "../../../lib/aiTutor";
 
@@ -10,10 +10,12 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
   const [resources, setResources] = useState([]);
   const [selectedResourceIds, setSelectedResourceIds] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingResources, setIsLoadingResources] = useState(false);
   const [isGenerating, setIsGenerating] = useState(false);
   const [showResourceOptions, setShowResourceOptions] = useState(false);
   const [useResources, setUseResources] = useState(true);
   const [error, setError] = useState("");
+  const knownResourceIdsRef = useRef(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -45,36 +47,66 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
     };
   }, [studyId]);
 
-  useEffect(() => {
-    let isCurrent = true;
+  const fetchResources = useCallback(async () => {
     if (!studyId) {
       setResources([]);
       setSelectedResourceIds([]);
-      return () => {
-        isCurrent = false;
-      };
+      setIsLoadingResources(false);
+      return;
     }
 
-    supabase
+    setIsLoadingResources(true);
+    let query = supabase
       .from("session_resources")
-      .select("id,title,kind,mime_type,file_path,url")
+      .select("id,session_id,user_id,title,kind,mime_type,file_path,url,created_at")
       .eq("session_id", studyId)
-      .order("created_at", { ascending: false })
-      .then(({ data, error: resourceError }) => {
-        if (!isCurrent) return;
-        if (resourceError) {
-          setError(resourceError.message);
-          return;
-        }
-        const loadedResources = data || [];
-        setResources(loadedResources);
-        setSelectedResourceIds(loadedResources.map((resource) => String(resource.id)));
-      });
+      .order("created_at", { ascending: false });
+    if (userId) query = query.eq("user_id", userId);
+
+    const { data, error: resourceError } = await query;
+    if (resourceError) {
+      setError(resourceError.message);
+      setIsLoadingResources(false);
+      return;
+    }
+
+    const loadedResources = data || [];
+    const loadedIds = new Set(loadedResources.map((resource) => String(resource.id)));
+    const previouslyKnownIds = knownResourceIdsRef.current;
+    setSelectedResourceIds((currentIds) => [
+      ...currentIds.filter((id) => loadedIds.has(id)),
+      ...[...loadedIds].filter((id) => !previouslyKnownIds?.has(id)),
+    ]);
+    knownResourceIdsRef.current = loadedIds;
+    setResources(loadedResources);
+    setIsLoadingResources(false);
+  }, [studyId, userId]);
+
+  useEffect(() => {
+    let isCurrent = true;
+    const refreshResources = () => {
+      if (isCurrent) void fetchResources();
+    };
+
+    refreshResources();
+    if (!studyId) return () => { isCurrent = false; };
+
+    const channel = supabase
+      .channel(`note-resources-${studyId}-${userId || "current-user"}`)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
+        refreshResources
+      )
+      .subscribe();
+    window.addEventListener("focus", refreshResources);
 
     return () => {
       isCurrent = false;
+      window.removeEventListener("focus", refreshResources);
+      supabase.removeChannel(channel);
     };
-  }, [studyId]);
+  }, [fetchResources, studyId, userId]);
 
   const persistNote = async ({ title, content, source }) => {
     let activeUserId = userId;
@@ -163,7 +195,10 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
         <p className="text-sm text-slate-500 dark:text-slate-400">Keep key ideas close while you study.</p>
         <button
           type="button"
-          onClick={() => setShowResourceOptions(true)}
+          onClick={() => {
+            setShowResourceOptions(true);
+            void fetchResources();
+          }}
           disabled={!studyId || isGenerating}
           className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
         >
@@ -226,7 +261,11 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
 
             {useResources && (
               <div className="mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-                {resources.length === 0 ? (
+                {isLoadingResources ? (
+                  <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                    <Loader2 className="h-4 w-4 animate-spin" /> Checking uploaded resources...
+                  </p>
+                ) : resources.length === 0 ? (
                   <p className="text-sm text-slate-500 dark:text-slate-400">No uploaded resources in this session.</p>
                 ) : resources.map((resource) => (
                   <label key={resource.id} className="flex cursor-pointer items-center gap-3 py-1 text-sm text-slate-700 dark:text-slate-200">
@@ -262,7 +301,7 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
               <button
                 type="button"
                 onClick={generateAiNote}
-                disabled={isGenerating || (useResources && resources.length > 0 && selectedResourceIds.length === 0)}
+                disabled={isGenerating || isLoadingResources || (useResources && resources.length > 0 && selectedResourceIds.length === 0)}
                 className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Sparkles className="h-4 w-4" /> Create notes

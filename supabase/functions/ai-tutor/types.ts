@@ -1,6 +1,6 @@
 export interface Message {
   role: "user" | "assistant" | "system" | "tool";
-  content?: string;
+  content?: any;
   tool_calls?: any[];
   tool_call_id?: string;
 }
@@ -10,6 +10,8 @@ export interface ClientState {
   pomodoro_state?: "idle" | "focus" | "break" | "unknown";
   minutes_remaining?: number | null;
   intent?: "generate_notes";
+  use_resources?: boolean;
+  resource_ids?: string[];
 }
 
 export interface RequestBody {

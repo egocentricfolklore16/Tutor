@@ -12,6 +12,10 @@ Hyper Tutor is an intelligent learning companion designed to boost student produ
 - **AI Tutoring Assistant**  
   Natural language Q&A, step-by-step explanations, and curriculum-based practice questions.  
 
+### AI Tutor Provider
+
+The AI Tutor uses OpenAI automatically when an API key beginning with `sk-` is configured; otherwise it uses the configured Groq key. To switch to OpenAI, replace the existing provider secret with your OpenAI API key or set `OPENAI_API_KEY`. No code or model setting is required; OpenAI defaults to `gpt-4o-mini`. Keep provider keys in Supabase Edge Function secrets, never in frontend environment variables. OpenAI vision is used for uploaded images; PDFs with selectable text, DOCX, TXT, Markdown, and CSV files are extracted server-side. Scanned PDFs and web links are not extracted.
+
 - **Interactive Study Sessions**  
   Pomodoro timer, active recall, spaced repetition, digital flashcards, and AI-organized notes.  
 

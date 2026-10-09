@@ -271,7 +271,7 @@ const AITutorChat = ({
           </div>
           <div>
             <h2 className="font-bold text-slate-900 dark:text-white">AI Tutor</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Groq Socratic Companion</p>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Socratic Study Companion</p>
           </div>
         </div>
         <div className="flex items-center gap-1">

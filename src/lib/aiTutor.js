@@ -27,11 +27,11 @@ export async function invokeAiTutor({ sessionId, messages = [], clientState = {}
   });
 
   if (error) {
-    let message = "An error occurred while connecting to the AI Tutor.";
+    let message = "An error occurred while connecting to Lumo.";
     if (error.status === 401) message = "Please sign in again.";
     else if (error.status === 404) message = "This session no longer exists.";
     else if (error.status === 429) message = "You've reached the request limit. Please take a short break.";
-    else if (error.status === 502 || error.status === 503) message = "The tutor is busy, try again shortly.";
+    else if (error.status === 502 || error.status === 503) message = "Lumo is busy, try again shortly.";
     return { error: { code: "HTTP_ERROR", message } };
   }
 
@@ -88,19 +88,11 @@ export async function sendAiTutorMessage({
   ];
 
   const res = await invokeAiTutor({
-    sessionId: sessionId || 1,
+    sessionId,
     messages: formattedMessages,
-    clientState: {},
   });
 
-  if (res.error) {
-    throw new Error(res.error.message || "Failed to communicate with AI Tutor.");
-  }
-
-  return {
-    reply: res.reply,
-    actions_taken: res.actions || [],
-  };
+  return res;
 }
 
 export default invokeAiTutor;

@@ -65,13 +65,13 @@ const AITutorChat = ({
   }, []);
 
   useEffect(() => {
-    const el = messagesContainerRef.current;
-    if (!el) return;
-    if (isPinnedRef.current) {
-      el.scrollTo({
-        top: el.scrollHeight,
-        behavior: reducedMotion ? "auto" : "smooth",
-      });
+    if (messages.length > 0 || isTyping) {
+      if (isPinnedRef.current) {
+        messagesEndRef.current?.scrollIntoView({
+          behavior: reducedMotion ? "auto" : "smooth",
+          block: "end",
+        });
+      }
     }
   }, [messages, isTyping, reducedMotion]);
 
@@ -86,11 +86,12 @@ const AITutorChat = ({
 
   const handleCopy = async (text) => {
     if (!text) return;
+    const key = text.slice(0, 32);
     try {
       await navigator.clipboard.writeText(text);
-      setCopyState((prev) => ({ ...prev, [text.slice(0, 32)]: true }));
+      setCopyState((prev) => ({ ...prev, [key]: true }));
       setTimeout(() => {
-        setCopyState((prev) => ({ ...prev, [text.slice(0, 32)]: false }));
+        setCopyState((prev) => ({ ...prev, [key]: false }));
       }, 1200);
     } catch (err) {
       console.error("Copy failed", err);

@@ -7,3 +7,7 @@
 ## 2025-05-21 - Subscription Month Rollover Clamping and Failed Payment Database Auditing
 **Learning:** Native JS `Date.prototype.setMonth()` causes day-of-month rollover bugs when adding months to end-of-month dates (e.g. Jan 31 + 1 month becomes Mar 3 in non-leap years, skipping February). Additionally, unhandled non-success Paystack statuses (`failed`, `abandoned`) throw unhandled errors causing HTTP 500 responses without recording audit logs in the `payments` table.
 **Action:** Use an `addMonths` utility that clamps month overflow to the target month's last day, verify `plan.is_active`, record failed payment attempts in `payments` before erroring, and return HTTP 400 Bad Request on payment verification failure.
+
+## 2025-05-22 - Cross-User Payment Reference Hijacking & Mismatch Audit Recording
+**Learning:** Payment verification handlers without user ownership verification allow users to pass transaction references from another user to verify/claim subscriptions. Furthermore, currency or amount mismatch validation errors thrown prior to writing to the `payments` table leave payment attempts unrecorded. Webhook endpoints must also process `charge.failed` events to record failed attempts asynchronously.
+**Action:** Always check `existingPayment.user_id === userId` before returning existing payment records, invoke `recordFailedPayment` on amount or currency mismatches before throwing, and register `charge.failed` in Paystack webhook event listeners.

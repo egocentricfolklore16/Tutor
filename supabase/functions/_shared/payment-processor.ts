@@ -90,8 +90,7 @@ export async function processVerifiedPayment({
     throw new Error(`Plan is no longer active: ${planId}`);
   }
 
-  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
-  if (paystackData.status !== "success") {
+  const recordFailedPayment = async (status: string) => {
     if (userId && reference) {
       await supabaseClient.from("payments").upsert(
         {
@@ -99,19 +98,25 @@ export async function processVerifiedPayment({
           reference: reference,
           amount: paystackData.amount || 0,
           currency: (paystackData.currency || "NGN").toUpperCase(),
-          status: paystackData.status || "failed",
+          status: status,
           purpose: `subscription:${planId}`,
           verified_at: new Date().toISOString(),
         },
         { onConflict: "reference" }
       );
     }
+  };
+
+  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
+  if (paystackData.status !== "success") {
+    await recordFailedPayment(paystackData.status || "failed");
     throw new Error(`Payment verification failed: status is ${paystackData.status}`);
   }
 
   const receivedCurrency = (paystackData.currency || "NGN").toUpperCase();
   const expectedCurrency = "NGN";
   if (receivedCurrency !== expectedCurrency) {
+    await recordFailedPayment("failed");
     throw new Error(
       `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
     );
@@ -123,33 +128,40 @@ export async function processVerifiedPayment({
       : plan.price_naira * 100;
 
   if (paystackData.amount !== expectedAmountKobo) {
+    await recordFailedPayment("failed");
     throw new Error(
       `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
     );
   }
 
-  // 3. Idempotency check: return existing record if payment with this reference was already processed
+  // 3. Idempotency & User Ownership check: return existing record if payment with this reference was already processed
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
     .eq("reference", reference)
     .maybeSingle();
 
-  if (existingPayment && existingPayment.status === "success") {
-    const { data: existingSub } = await supabaseClient
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+  if (existingPayment) {
+    if (existingPayment.user_id !== userId) {
+      throw new Error("Forbidden: Payment reference belongs to a different user");
+    }
 
-    // Verify value was actually granted on subscription; if subscription write previously failed or was missed, proceed to step 4-6 to complete entitlement recovery.
-    if (existingSub && existingSub.payment_id === existingPayment.id) {
-      return {
-        payment: existingPayment,
-        subscription: existingSub,
-        plan,
-        alreadyProcessed: true,
-      };
+    if (existingPayment.status === "success") {
+      const { data: existingSub } = await supabaseClient
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      // Verify value was actually granted on subscription; if subscription write previously failed or was missed, proceed to step 4-6 to complete entitlement recovery.
+      if (existingSub && existingSub.payment_id === existingPayment.id) {
+        return {
+          payment: existingPayment,
+          subscription: existingSub,
+          plan,
+          alreadyProcessed: true,
+        };
+      }
     }
   }
 

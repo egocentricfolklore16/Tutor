@@ -151,8 +151,37 @@ test("processVerifiedPayment processes a valid payment and updates subscription"
   assert.strictEqual(result.subscription.status, "active");
 });
 
-test("processVerifiedPayment rejects currency mismatch", async () => {
-  const mockClient = createMockSupabaseClient();
+test("processVerifiedPayment rejects currency mismatch and records failed audit entry", async () => {
+  let recordedPayment = null;
+  const mockClient = {
+    from(tableName) {
+      if (tableName === "plans") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async single() {
+                    return { data: { id: "pro", price_kobo: 250000 }, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (tableName === "payments") {
+        return {
+          upsert(payload) {
+            recordedPayment = payload;
+            return { async select() { return { async single() { return { data: payload, error: null }; } }; } };
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${tableName}`);
+    },
+  };
+
   await assert.rejects(
     async () => {
       await processVerifiedPayment({
@@ -174,10 +203,44 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
       message: "Currency mismatch: expected NGN, received USD",
     }
   );
+
+  assert.notStrictEqual(recordedPayment, null);
+  assert.strictEqual(recordedPayment.reference, "ref_test_1002");
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.currency, "USD");
 });
 
-test("processVerifiedPayment rejects amount mismatch", async () => {
-  const mockClient = createMockSupabaseClient();
+test("processVerifiedPayment rejects amount mismatch and records failed audit entry", async () => {
+  let recordedPayment = null;
+  const mockClient = {
+    from(tableName) {
+      if (tableName === "plans") {
+        return {
+          select() {
+            return {
+              eq() {
+                return {
+                  async single() {
+                    return { data: { id: "pro", price_kobo: 250000 }, error: null };
+                  },
+                };
+              },
+            };
+          },
+        };
+      }
+      if (tableName === "payments") {
+        return {
+          upsert(payload) {
+            recordedPayment = payload;
+            return { async select() { return { async single() { return { data: payload, error: null }; } }; } };
+          },
+        };
+      }
+      throw new Error(`Unexpected table: ${tableName}`);
+    },
+  };
+
   await assert.rejects(
     async () => {
       await processVerifiedPayment({
@@ -197,6 +260,46 @@ test("processVerifiedPayment rejects amount mismatch", async () => {
     {
       name: "Error",
       message: "Amount mismatch: expected 250000 kobo, received 100000 kobo",
+    }
+  );
+
+  assert.notStrictEqual(recordedPayment, null);
+  assert.strictEqual(recordedPayment.reference, "ref_test_1003");
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.amount, 100000);
+});
+
+test("processVerifiedPayment rejects existing reference if user_id does not match", async () => {
+  const existingPayment = {
+    id: "payment-uuid-999",
+    user_id: "user-uuid-111", // Owner is user 111
+    reference: "ref_user_111_only",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_user_111_only",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-attacker-222", // Attacker trying to re-verify owner's reference
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Forbidden: Payment reference belongs to a different user",
     }
   );
 });

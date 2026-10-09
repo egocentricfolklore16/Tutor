@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const payload = JSON.parse(rawBody);
     const event = payload.event;
 
-    if (event === "charge.success") {
+    if (event === "charge.success" || event === "charge.failed") {
       const eventData = payload.data;
       const reference = eventData.reference;
 
@@ -66,11 +66,15 @@ Deno.serve(async (req) => {
 
       if (supabaseUrl && supabaseServiceRoleKey) {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-        await processVerifiedPayment({
-          supabaseClient,
-          reference,
-          paystackData: eventData,
-        });
+        try {
+          await processVerifiedPayment({
+            supabaseClient,
+            reference,
+            paystackData: eventData,
+          });
+        } catch (procErr: any) {
+          console.warn(`Payment processing note for event ${event}:`, procErr.message);
+        }
       }
     }
 

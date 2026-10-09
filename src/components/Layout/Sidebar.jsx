@@ -237,7 +237,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         onClick={toggleSidebar2}
         aria-label="Open navigation menu"
         title="Open navigation menu"
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-200 border border-slate-300 rounded-full p-2.5 min-h-[44px] min-w-[44px] flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600 ${
           isOpen ? "hidden" : ""
         }`}
       >
@@ -272,7 +272,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           <div className="flex items-center">
             {isOpen && <img src="logo.svg" alt="Logo" className="w-12 h-7" />}
             {isOpen && (
-              <Link to={"/Dashboard"} className="text-black no-underline">
+              <Link to={"/Dashboard"} className="text-slate-900 dark:text-white no-underline">
                 <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
                   Hyper Tutor
                 </h1>
@@ -284,7 +284,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={toggleSidebar2}
             aria-label={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
             title={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
-            className="p-1 rounded-lg text-black hover:bg-black/5 hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+            className="p-1 rounded-lg text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-600"
           >
             <svg
               stroke="currentColor"
@@ -312,7 +312,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               <Link
                 key={item.name}
                 to={"/" + item.name}
-                className="block text-black no-underline"
+                className="block text-slate-900 dark:text-slate-100 no-underline"
               >
                 <li
                   className={`
@@ -341,9 +341,9 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               src={profile.avatar_url}
               className="w-8 h-8 rounded-full"
               alt="Profile"
-            /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900">{(profile?.full_name || username).charAt(0).toUpperCase()}</div>}
+            /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900 dark:bg-emerald-950 dark:text-emerald-300">{(profile?.full_name || username).charAt(0).toUpperCase()}</div>}
             {isOpen && (
-              <h4 className="ml-4 text-black text-sm font-medium">
+              <h4 className="ml-4 text-slate-900 dark:text-white text-sm font-medium truncate">
                 {isLoading ? "Loading..." : username}
               </h4>
             )}

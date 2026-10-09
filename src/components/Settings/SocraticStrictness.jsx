@@ -59,11 +59,11 @@ export default function SocraticStrictness() {
   };
 
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-sm text-white">
-      <h3 className="text-xl font-bold text-white mb-4">Socratic Strictness</h3>
+    <div className="rounded-2xl bg-slate-50 border border-slate-200 p-6 shadow-sm text-slate-900 dark:bg-slate-900/60 dark:border-slate-800 dark:text-white">
+      <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-4">Socratic Strictness</h3>
 
       {/* Segmented pill control */}
-      <div className="inline-flex w-full sm:w-auto items-center p-1 bg-zinc-900 rounded-full border border-zinc-800 gap-1">
+      <div className="inline-flex w-full sm:w-auto items-center p-1 bg-white dark:bg-slate-950 rounded-full border border-slate-200 dark:border-slate-800 gap-1">
         {STRICTNESS_OPTIONS.map((option) => {
           const isSelected = strictness === option.value;
           return (
@@ -73,8 +73,8 @@ export default function SocraticStrictness() {
               onClick={() => handleSelect(option.value)}
               className={`flex-1 sm:flex-initial rounded-full px-4 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95 ${
                 isSelected
-                  ? "bg-green-900/40 text-green-400"
-                  : "text-zinc-300 hover:text-white bg-transparent"
+                  ? "bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border dark:border-emerald-800"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white bg-transparent"
               }`}
             >
               {option.label}
@@ -83,7 +83,7 @@ export default function SocraticStrictness() {
         })}
       </div>
 
-      <p className="mt-3 text-xs text-zinc-400">
+      <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">
         This preference controls whether the tutor guides, hints, or answers directly.
       </p>
     </div>

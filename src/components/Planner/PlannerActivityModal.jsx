@@ -19,7 +19,7 @@ function PlannerActivityModal({ mode, form, setForm, subjects, isSaving, onClose
     deadline: ["Add upcoming deadline", "Keep an important due date visible."],
     timeblock: ["Add time block", "Reserve time for focused work."],
   };
-  const [title, subtitle] = titles[mode];
+  const [title] = titles[mode];
   const isTimeBlock = mode === "timeblock";
   const isDeadline = mode === "deadline";
   const dateValue = form.date instanceof Date ? form.date.toISOString().slice(0, 10) : form.date;

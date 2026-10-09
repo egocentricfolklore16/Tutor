@@ -69,7 +69,7 @@ function Library({ session }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-  const [linkKind, setLinkKind] = useState("link");
+  const [linkKind] = useState("link");
 
   // Quiz creation form
   const [quizForm, setQuizForm] = useState({

@@ -258,7 +258,7 @@ function DashboardHeader({ toggleSidebar }) {
           </button>
 
           {streakDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-[calc(100vw-2rem)] max-w-xs sm:w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Flame className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
                 <div className="relative flex items-center justify-between">
@@ -368,7 +368,7 @@ function DashboardHeader({ toggleSidebar }) {
             <Zap className="h-3.5 w-3.5 text-brand-strong dark:text-amber-400" />{xpPoints} XP
           </span>
           {xpDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-[calc(100vw-2rem)] max-w-xs sm:w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Zap className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
                 <p className="relative text-2xl font-extrabold text-amber-500 dark:text-amber-300">{xpPoints} XP</p>
@@ -416,7 +416,7 @@ function DashboardHeader({ toggleSidebar }) {
             <GemIcon className="h-3.5 w-3.5 text-accent dark:text-cyan-400" />{gemsCount}
           </span>
           {gemsDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-[calc(100vw-2rem)] max-w-xs sm:w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-cyan-100 p-5 dark:bg-cyan-500/10">
                 <GemIcon className="absolute -right-3 -top-2 h-24 w-24 text-cyan-300/60 dark:text-cyan-500/15" />
                 <p className="relative text-2xl font-extrabold text-cyan-500 dark:text-cyan-300">{gemsCount} Gems</p>

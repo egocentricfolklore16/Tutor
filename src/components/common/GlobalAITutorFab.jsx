@@ -1,6 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
-import { Sparkles } from "lucide-react";
+import LumoAvatar from "./LumoAvatar";
 import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
@@ -43,10 +43,10 @@ const GlobalAITutorFab = ({ session }) => {
           onClick={handleToggle}
           aria-label="Open Lumo"
           title="Open Lumo"
-          className="group relative inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-emerald-400 px-4 py-3 text-white shadow-xl shadow-violet-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
+          className="group relative inline-flex items-center gap-2.5 rounded-full bg-slate-900 px-4 py-2.5 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-800 dark:focus:ring-offset-slate-900"
         >
-          <div className="relative">
-            <Sparkles className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
+          <div className="relative flex items-center justify-center">
+            <LumoAvatar size="sm" className="transition-transform duration-300 group-hover:rotate-6" />
             {hasUnread && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />

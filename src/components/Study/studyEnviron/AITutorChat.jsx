@@ -16,9 +16,9 @@ import {
   Minimize2,
   RefreshCw,
   Send,
-  Sparkles,
   X,
 } from "lucide-react";
+import LumoAvatar from "../../common/LumoAvatar";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -217,8 +217,12 @@ const AITutorChat = ({
 
       return (
         <div className="group flex gap-3">
-          <div className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-white shadow-sm ${isError ? "bg-rose-500" : panelAccent}`}>
-            {isError ? <AlertCircle className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
+          <div className="flex h-7 w-7 shrink-0 items-center justify-center">
+            {isError ? (
+              <AlertCircle className="h-5 w-5 text-rose-500" />
+            ) : (
+              <LumoAvatar size="xs" />
+            )}
           </div>
 
           <div className="min-w-0 flex-1">
@@ -384,9 +388,7 @@ const AITutorChat = ({
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-md shadow-violet-500/20">
-            <Sparkles className="h-5 w-5" />
-          </div>
+          <LumoAvatar size="sm" />
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">Lumo</h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">Your AI study partner</p>
@@ -441,8 +443,9 @@ const AITutorChat = ({
           {messages.length === 0 && !isTyping && (
             <div className="flex min-h-full items-center justify-center pt-2">
               <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-md shadow-violet-500/20">
-                  <Sparkles className="h-5 w-5" />
+                <div className="relative mx-auto mb-4 flex items-center justify-center">
+                  <div className="absolute h-20 w-20 rounded-full bg-emerald-500/20 blur-xl dark:bg-emerald-400/20" aria-hidden="true" />
+                  <LumoAvatar size="lg" className="relative z-10 animate-lumo-gentle-float" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -467,8 +470,8 @@ const AITutorChat = ({
 
           {isTyping && (
             <div className="flex items-center gap-3">
-              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-sm">
-                <Sparkles className="h-4 w-4" />
+              <div className="flex h-7 w-7 shrink-0 items-center justify-center">
+                <LumoAvatar size="xs" className="animate-lumo-head-tilt" />
               </div>
               <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
                 <span>Lumo is thinking</span>

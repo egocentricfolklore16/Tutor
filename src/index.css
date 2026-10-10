@@ -414,11 +414,31 @@ form { animation: form-enter 260ms ease-out both; }
   animation: splash-wordmark-enter 0.4s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both;
 }
 
+@keyframes lumo-gentle-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes lumo-head-tilt {
+  0%, 100% { transform: rotate(-4deg); }
+  50% { transform: rotate(4deg); }
+}
+
+.animate-lumo-gentle-float {
+  animation: lumo-gentle-float 3s ease-in-out infinite;
+}
+
+.animate-lumo-head-tilt {
+  animation: lumo-head-tilt 2s ease-in-out infinite;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .animate-splash-bg,
   .animate-splash-owl,
   .animate-splash-glow,
-  .animate-splash-wordmark {
+  .animate-splash-wordmark,
+  .animate-lumo-gentle-float,
+  .animate-lumo-head-tilt {
     animation: splash-bg-enter 0.3s ease-out both !important;
     transform: none !important;
   }

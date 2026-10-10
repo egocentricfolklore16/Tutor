@@ -16,6 +16,12 @@ import {
   X,
   Loader2,
   Pause,
+  Plus,
+  Clock3,
+  Trophy,
+  Sparkles,
+  Target,
+  ChevronRight,
 } from "lucide-react";
 
 function Study() {
@@ -42,20 +48,17 @@ function Study() {
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
 
-  // History Filter states
   const [historySubjectFilter, setHistorySubjectFilter] = useState("all");
   const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
   const [historyDateFilter, setHistoryDateFilter] = useState("all");
   const [deletingHistoryId, setDeletingHistoryId] = useState(null);
 
-  // Fetch sessions and history from Supabase on mount
   useEffect(() => {
     const fetchSessionsAndHistory = async () => {
       try {
         setIsLoadingSessions(true);
         setFetchError("");
 
-        // Get the current user
         const {
           data: { user },
         } = await supabase.auth.getUser();
@@ -74,9 +77,7 @@ function Study() {
           ]);
 
         if (activeError) {
-          setFetchError(
-            "An error occurred while loading study sessions: " + activeError.message
-          );
+          setFetchError("An error occurred while loading study sessions: " + activeError.message);
           console.error("Supabase fetch error:", activeError);
         } else {
           setSessions(activeData || []);
@@ -141,6 +142,7 @@ function Study() {
       document.body.style.overflow = "";
     };
   }, [isOpen]);
+
   const formRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
@@ -153,19 +155,19 @@ function Study() {
   }, [location, navigate]);
 
   const getTypeIcon = () => {
-    return <BookOpen className="h-4 w-4 text-slate-400" />;
+    return <BookOpen className="h-4 w-4 text-slate-500" />;
   };
 
   const getPriorityColor = (status) => {
     switch (normalizeStatus(status)) {
       case "very important":
-        return "border border-red-900/50 bg-red-950/40 rounded-2xl";
+        return "border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-rose-100/70 rounded-3xl";
       case "not so important":
-        return "border border-emerald-900/50 bg-emerald-950/40 rounded-2xl";
+        return "border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/80 rounded-3xl";
       case "medium":
-        return "border border-amber-900/50 bg-amber-950/40 rounded-2xl";
+        return "border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-100/80 rounded-3xl";
       default:
-        return "border border-slate-800 bg-slate-900 rounded-2xl";
+        return "border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 rounded-3xl";
     }
   };
 
@@ -173,26 +175,26 @@ function Study() {
     switch (normalizeStatus(status)) {
       case "very important":
         return (
-          <span className="px-2.5 py-1 text-xs font-medium bg-red-950/60 text-red-400 rounded-full border border-red-800/50 flex items-center gap-1">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-rose-700 uppercase">
             <AlertCircle className="h-3 w-3" />
-            Very Important
+            High priority
           </span>
         );
       case "not so important":
         return (
-          <span className="px-2.5 py-1 text-xs font-medium bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50">
-            Not so Important
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-emerald-700 uppercase">
+            Light
           </span>
         );
       case "medium":
         return (
-          <span className="px-2.5 py-1 text-xs font-medium bg-amber-950/60 text-amber-400 rounded-full border border-amber-800/50">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-100 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-amber-700 uppercase">
             Medium
           </span>
         );
       default:
         return (
-          <span className="px-2.5 py-1 text-xs font-medium bg-slate-800 text-slate-300 rounded-full border border-slate-700">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-slate-600 uppercase">
             {status}
           </span>
         );
@@ -390,6 +392,15 @@ function Study() {
     return true;
   });
 
+  const focusHours = sessions.reduce((sum, sessionItem) => sum + Number(sessionItem.Duration || 0), 0);
+  const completedMinutes = sessionHistory.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
+  const summaryMetrics = [
+    { label: "Active sessions", value: sessions.length, detail: "Ready to continue", accent: "emerald" },
+    { label: "Focus hours", value: `${focusHours + Math.round(completedMinutes / 60)}h`, detail: "Total planned time", accent: "violet" },
+    { label: "Completed", value: sessionHistory.length, detail: "Recent wins", accent: "sky" },
+    { label: "Streak", value: "7 days", detail: "Momentum intact", accent: "amber" },
+  ];
+
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (!event.target.closest(".dropdown-container")) {
@@ -412,151 +423,227 @@ function Study() {
           user={currentUser || undefined}
         />
       )}
-      <div className="p-2 sm:p-4">
+
+      <div className="study-page-shell p-2 sm:p-4 md:p-6">
         {fetchError && (
-          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded border border-red-300 text-center font-medium">
-            {fetchError}
-            <button
-              onClick={() => setFetchError("")}
-              className="ml-2 text-red-800 hover:text-red-900"
-            >
-              <X className="h-4 w-4 inline" />
+          <div className="mb-5 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
+            <span>{fetchError}</span>
+            <button onClick={() => setFetchError("")} className="rounded-full p-1 hover:bg-rose-100">
+              <X className="h-4 w-4" />
             </button>
           </div>
         )}
-        <h1 className="px-10 lg:px-0 text-2xl font-bold text-gray-800 dark:text-white mb-6">
-          Active &amp; Paused Study Sessions
-        </h1>
 
-        {isLoadingSessions ? (
-          <LoadingCompanion message="Loading your study sessions..." />
-        ) : sessions.length === 0 ? (
-          <div className="text-center py-12 bg-white dark:bg-[#18211f] rounded-2xl border border-dashed border-gray-300 dark:border-slate-700 p-8">
-            <BookOpen className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 text-lg mb-2">No active or paused study sessions</p>
-            <p className="text-gray-400 text-sm">
-              Click the + button below to create a new session
-            </p>
+        <header className="study-hero relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/80 p-5 shadow-[0_30px_80px_-36px_rgba(15,23,42,0.35)] backdrop-blur-sm sm:p-7">
+          <div className="study-hero-orb left-[-100px] top-[-100px]" />
+          <div className="study-hero-orb bottom-[-90px] right-[-70px] bg-emerald-400/20" />
+
+          <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
+            <div className="max-w-2xl">
+              <div className="mb-3 inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-[10px] font-semibold tracking-[0.18em] text-emerald-700 uppercase">
+                <Sparkles className="h-3.5 w-3.5" />
+                Study dashboard
+              </div>
+              <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl xl:text-5xl">
+                Keep your learning momentum alive.
+              </h1>
+              <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
+                Turn your next study block into a focused session, track wins, and keep every lesson moving forward.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-3 sm:flex-row xl:flex-col xl:items-end">
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800"
+              >
+                <Plus className="h-4 w-4" />
+                New study session
+              </button>
+              <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-medium text-slate-600">
+                <Target className="h-3.5 w-3.5 text-emerald-600" />
+                {sessions.length} active focus blocks
+              </div>
+            </div>
           </div>
-        ) : (
-          <div className={`grid w-full grid-cols-1 gap-4 p-2 sm:grid-cols-2 ${isAIOpen ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
-            {sessions.map((sessionItem, index) => {
-              const isMuted = sessionItem.muted;
-              const isDeleting = loadingStates[`${sessionItem.id}_delete`];
-              const isMuting = loadingStates[`${sessionItem.id}_mute`];
-              const isPaused = sessionItem.session_status === "paused";
+        </header>
 
-              return (
-                <div
-                  key={sessionItem.id || index}
-                  className={`relative w-full min-w-0 p-5 transition-all hover:shadow-md cursor-pointer ${
-                    isMuted
-                      ? "bg-slate-900/60 border border-slate-800 rounded-2xl"
-                      : getPriorityColor(sessionItem.Status)
-                  } ${isDeleting ? "opacity-50" : ""}`}
-                >
-                  <div className="flex min-w-0 flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-3 mb-2 flex-wrap">
-                        <div className="flex items-center gap-2 text-gray-600">
-                          {getTypeIcon()}
-                        </div>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          {summaryMetrics.map((metric) => (
+            <div key={metric.label} className="study-stat-card">
+              <div className={`mb-4 h-10 w-10 rounded-2xl bg-${metric.accent}-100 flex items-center justify-center`}>
+                {metric.accent === "emerald" && <BookOpen className="h-4 w-4 text-emerald-700" />}
+                {metric.accent === "violet" && <Clock3 className="h-4 w-4 text-violet-700" />}
+                {metric.accent === "sky" && <Trophy className="h-4 w-4 text-sky-700" />}
+                {metric.accent === "amber" && <Sparkles className="h-4 w-4 text-amber-700" />}
+              </div>
+              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
+              <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{metric.value}</p>
+              <p className="mt-2 text-sm text-slate-500">{metric.detail}</p>
+            </div>
+          ))}
+        </div>
+
+        <section className="mt-8">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Study list</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Active &amp; paused sessions</h2>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsOpen(true)}
+              className="inline-flex items-center gap-2 self-start rounded-full border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-700 shadow-sm transition hover:border-slate-300 hover:bg-slate-50"
+            >
+              <Plus className="h-4 w-4" />
+              Create session
+            </button>
+          </div>
+
+          {isLoadingSessions ? (
+            <LoadingCompanion message="Loading your study sessions..." />
+          ) : sessions.length === 0 ? (
+            <div className="overflow-hidden rounded-[28px] border border-dashed border-slate-300 bg-white/80 p-10 text-center shadow-sm">
+              <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <BookOpen className="h-9 w-9" />
+              </div>
+              <p className="mt-6 text-xl font-bold text-slate-800">No active or paused study sessions</p>
+              <p className="mt-2 text-sm text-slate-500">Create a new session to start a focused learning block.</p>
+              <button
+                type="button"
+                onClick={() => setIsOpen(true)}
+                className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/25 transition hover:bg-emerald-500"
+              >
+                <Plus className="h-4 w-4" />
+                Create session
+              </button>
+            </div>
+          ) : (
+            <div className={`grid w-full grid-cols-1 gap-4 sm:grid-cols-2 ${isAIOopen ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
+              {sessions.map((sessionItem, index) => {
+                const isMuted = sessionItem.muted;
+                const isDeleting = loadingStates[`${sessionItem.id}_delete`];
+                const isMuting = loadingStates[`${sessionItem.id}_mute`];
+                const isPaused = sessionItem.session_status === "paused";
+
+                return (
+                  <div
+                    key={sessionItem.id || index}
+                    className={`study-session-card ${isDeleting ? "opacity-60" : ""} ${
+                      isMuted ? "bg-slate-900 text-white shadow-black/10" : getPriorityColor(sessionItem.Status)
+                    }`}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex items-center gap-2 text-slate-500">
+                        {getTypeIcon()}
                         {!isMuted && getStatusBadge(sessionItem.Status)}
+                      </div>
+
+                      <div className="relative flex items-center gap-2 dropdown-container">
+                        <button
+                          className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${
+                            isPaused
+                              ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
+                              : "bg-emerald-600 text-white hover:bg-emerald-500"
+                          }`}
+                          onClick={() => navigate(`/Study/${encodeURIComponent(sessionItem.id)}`)}
+                          disabled={isDeleting || isMuting}
+                        >
+                          <Play className="h-3.5 w-3.5 fill-current" />
+                          {isPaused ? "Resume" : "Start"}
+                        </button>
+
+                        <button
+                          className="rounded-xl p-1.5 text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 disabled:opacity-50"
+                          onClick={() => handleDropdown(index)}
+                          disabled={isDeleting || isMuting}
+                        >
+                          {isDeleting || isMuting ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : (
+                            <MoreHorizontal className="h-4 w-4" />
+                          )}
+                        </button>
+
+                        {dropdownIndex === index && !isDeleting && !isMuting && (
+                          <div className="absolute right-0 top-10 z-20 min-w-[140px] overflow-hidden rounded-2xl border border-slate-200 bg-white p-1 shadow-[0_18px_40px_-20px_rgba(15,23,42,0.5)]">
+                            <button
+                              className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-slate-700 transition hover:bg-slate-100"
+                              onClick={() => handleMuteToggle(sessionItem.id)}
+                            >
+                              {isMuted ? "Unmute" : "Mute"}
+                            </button>
+                            <button
+                              className="block w-full rounded-xl px-3 py-2 text-left text-sm font-medium text-rose-600 transition hover:bg-rose-50"
+                              onClick={() => handleDelete(sessionItem.id)}
+                            >
+                              Delete
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="mt-5 space-y-3">
+                      <div className="flex items-center gap-2">
                         {isPaused ? (
-                          <span className="px-2.5 py-1 text-xs font-semibold bg-amber-500/20 text-amber-300 rounded-full border border-amber-500/40 flex items-center gap-1">
-                            <Pause className="h-3 w-3" /> Paused
+                          <span className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-amber-700">
+                            <Pause className="h-3 w-3" />
+                            Paused
                           </span>
                         ) : (
-                          <span className="px-2.5 py-1 text-xs font-semibold bg-emerald-500/20 text-emerald-300 rounded-full border border-emerald-500/40 flex items-center gap-1">
-                            <Play className="h-3 w-3" /> Active
+                          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-700">
+                            <Play className="h-3 w-3 fill-current" />
+                            Active
                           </span>
                         )}
                       </div>
 
-                      <h2 className="font-semibold text-lg text-white mb-1">
-                        {toTitleCase(sessionItem.Subject || "")}
-                      </h2>
-                      <h3 className="text-sm text-slate-300 mb-2">
-                        {toTitleCase(sessionItem.Topic || "")}
-                      </h3>
-                      <p className="text-xs text-slate-400 mb-1">
-                        {sessionItem.Date}{" "}
-                        {sessionItem.Start && (
-                          <span className="ml-2 text-slate-400">
-                            at {sessionItem.Start}
-                          </span>
-                        )}
-                      </p>
-                      <p className="text-xs font-medium text-slate-300">
-                        {sessionItem.Duration} hour(s)
-                      </p>
-                    </div>
+                      <div>
+                        <h3 className="text-xl font-black tracking-tight text-slate-900">
+                          {toTitleCase(sessionItem.Subject || "")}
+                        </h3>
+                        <p className="mt-1 text-sm text-slate-600">{toTitleCase(sessionItem.Topic || "")}</p>
+                      </div>
 
-                    <div className="relative flex items-center gap-2 dropdown-container">
-                      <button
-                        className={`flex items-center gap-1.5 px-3 py-2 text-xs font-bold rounded-lg transition-colors disabled:opacity-50 ${
-                          isPaused
-                            ? "bg-amber-500 text-slate-950 hover:bg-amber-400 shadow-sm"
-                            : "bg-emerald-500 text-slate-950 hover:bg-emerald-400"
-                        }`}
-                        onClick={() => navigate(`/Study/${encodeURIComponent(sessionItem.id)}`)}
-                        disabled={isDeleting || isMuting}
-                      >
-                        {isPaused ? <Play className="h-3.5 w-3.5 fill-current" /> : <Play className="h-3.5 w-3.5 fill-current" />}
-                        {isPaused ? "Resume" : "Start"}
-                      </button>
-
-                      <button
-                        className="p-1.5 text-slate-400 hover:text-white transition-colors disabled:opacity-50 rounded-lg"
-                        onClick={() => handleDropdown(index)}
-                        disabled={isDeleting || isMuting}
-                      >
-                        {isDeleting || isMuting ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <MoreHorizontal className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      {dropdownIndex === index && !isDeleting && !isMuting && (
-                        <div className="absolute right-0 top-9 bg-slate-800 border border-slate-700 rounded-xl shadow-xl z-10 min-w-[120px] overflow-hidden py-1">
-                          <button
-                            className="block w-full text-left px-4 py-2 text-sm text-slate-200 hover:bg-slate-700 disabled:opacity-50"
-                            onClick={() => handleMuteToggle(sessionItem.id)}
-                          >
-                            {isMuted ? "Unmute" : "Mute"}
-                          </button>
-                          <button
-                            className="block w-full text-left px-4 py-2 text-sm text-red-400 hover:bg-slate-700 disabled:opacity-50"
-                            onClick={() => handleDelete(sessionItem.id)}
-                          >
-                            Delete
-                          </button>
+                      <div className="rounded-2xl border border-slate-200/80 bg-white/60 p-3 text-sm text-slate-600">
+                        <div className="flex items-center justify-between gap-3">
+                          <span className="font-medium text-slate-500">Date</span>
+                          <span className="font-semibold text-slate-800">{sessionItem.Date}</span>
                         </div>
-                      )}
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <span className="font-medium text-slate-500">Time</span>
+                          <span className="font-semibold text-slate-800">{sessionItem.Start || "—"}</span>
+                        </div>
+                        <div className="mt-2 flex items-center justify-between gap-3">
+                          <span className="font-medium text-slate-500">Length</span>
+                          <span className="font-semibold text-slate-800">{sessionItem.Duration} hour(s)</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+                );
+              })}
+            </div>
+          )}
+        </section>
 
-        {/* Session History Section */}
-        <div className="mt-12">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-            <h2 className="text-xl font-bold text-gray-800 dark:text-white">
-              Session History (Completed Sessions)
-            </h2>
+        <section className="mt-12">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Progress</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Session history</h2>
+            </div>
 
             {sessionHistory.length > 0 && (
               <div className="flex flex-wrap items-center gap-2">
                 <select
                   value={historySubjectFilter}
                   onChange={(e) => setHistorySubjectFilter(e.target.value)}
-                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
                 >
-                  <option value="all">All Subjects</option>
+                  <option value="all">All subjects</option>
                   {uniqueSubjects.map((sub) => (
                     <option key={sub} value={sub}>
                       {toTitleCase(sub)}
@@ -567,55 +654,58 @@ function Study() {
                 <select
                   value={historyDateFilter}
                   onChange={(e) => setHistoryDateFilter(e.target.value)}
-                  className="rounded-lg border border-gray-200 dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-semibold text-gray-700 dark:text-slate-200 outline-none min-h-[44px]"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 outline-none transition focus:border-emerald-300 focus:ring-2 focus:ring-emerald-100"
                 >
-                  <option value="all">All Time</option>
-                  <option value="7days">Last 7 Days</option>
-                  <option value="30days">Last 30 Days</option>
+                  <option value="all">All time</option>
+                  <option value="7days">Last 7 days</option>
+                  <option value="30days">Last 30 days</option>
                 </select>
               </div>
             )}
           </div>
 
           {filteredSessionHistory.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-gray-300 dark:border-slate-700 bg-white dark:bg-[#18211f] p-8 text-center text-gray-500 dark:text-slate-400">
-              <BookOpen className="h-10 w-10 mx-auto mb-2 text-gray-300 dark:text-slate-600" />
-              <p className="font-medium text-sm">No session history records match filters.</p>
+            <div className="rounded-[24px] border border-dashed border-slate-300 bg-white/80 p-8 text-center">
+              <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300" />
+              <p className="text-sm font-medium text-slate-500">No session history matches your filters yet.</p>
             </div>
           ) : (
             <div className="space-y-3">
               {filteredSessionHistory.map((item) => {
-                const dateStr = item.completedAt ? new Date(item.completedAt).toLocaleDateString([], { month: "short", day: "numeric", year: "numeric", hour: "2-digit", minute: "2-digit" }) : "Recently";
+                const dateStr = item.completedAt
+                  ? new Date(item.completedAt).toLocaleDateString([], {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })
+                  : "Recent session";
                 const isDeletingThis = deletingHistoryId === item.id;
 
                 return (
                   <div
                     key={item.id}
                     onClick={() => navigate(`/Study/history/${item.id}`)}
-                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 rounded-2xl border border-slate-800 bg-slate-900 p-4 shadow-sm cursor-pointer hover:border-slate-700 transition-colors"
+                    className="study-history-item flex flex-col justify-between gap-4 rounded-[22px] border border-slate-200 bg-white p-4 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-md sm:flex-row sm:items-center"
                   >
                     <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-white text-base truncate">
+                      <div className="mb-2 flex flex-wrap items-center gap-2">
+                        <span className="text-lg font-black tracking-tight text-slate-900">
                           {toTitleCase(item.subject)}
                         </span>
-                        <span className="px-2.5 py-0.5 text-xs font-semibold bg-emerald-950/60 text-emerald-400 rounded-full border border-emerald-800/50 shrink-0">
+                        <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-700">
                           Completed
                         </span>
                       </div>
-                      <p className="text-sm font-medium text-slate-400 truncate">
-                        {toTitleCase(item.topic)}
-                      </p>
-                      <p className="text-xs text-slate-500 mt-1">
-                        {dateStr}
-                      </p>
+                      <p className="truncate text-sm font-medium text-slate-600">{toTitleCase(item.topic)}</p>
+                      <p className="mt-1 text-xs text-slate-500">{dateStr}</p>
                     </div>
-                    <div className="flex items-center justify-between sm:justify-end gap-4 text-right border-t border-slate-800/60 sm:border-0 pt-2 sm:pt-0">
+
+                    <div className="flex items-center justify-between gap-4 sm:justify-end">
                       <div className="text-left sm:text-right">
-                        <p className="text-sm font-bold text-white">
-                          {item.durationMinutes} min
-                        </p>
-                        <p className="text-xs font-bold text-amber-400 mt-0.5">
+                        <p className="text-lg font-black text-slate-900">{item.durationMinutes} min</p>
+                        <p className="text-xs font-semibold uppercase tracking-[0.15em] text-amber-600">
                           +{item.xpEarned || 50} XP
                         </p>
                       </div>
@@ -625,13 +715,9 @@ function Study() {
                         onClick={(e) => handleDeleteHistoryItem(item.id, e)}
                         disabled={isDeletingThis}
                         title="Delete this history entry"
-                        className="flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 transition-colors disabled:opacity-50"
+                        className="flex h-11 w-11 items-center justify-center rounded-2xl border border-slate-200 bg-slate-50 text-slate-500 transition hover:border-rose-200 hover:bg-rose-50 hover:text-rose-600"
                       >
-                        {isDeletingThis ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <X className="h-4 w-4" />
-                        )}
+                        {isDeletingThis ? <Loader2 className="h-4 w-4 animate-spin" /> : <X className="h-4 w-4" />}
                       </button>
                     </div>
                   </div>
@@ -639,23 +725,17 @@ function Study() {
               })}
             </div>
           )}
-        </div>
+        </section>
       </div>
 
-      {/* Responsive Sheet Modal */}
       <ResponsiveSheet
         isOpen={isOpen}
         onClose={() => setIsOpen(false)}
         title="Create Study Session"
       >
-        <form
-          className="space-y-4 text-slate-800 dark:text-slate-100"
-          onSubmit={addSession}
-        >
+        <form className="space-y-4 text-slate-800" onSubmit={addSession}>
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Subject *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Subject *</label>
             <input
               required
               type="text"
@@ -663,15 +743,13 @@ function Study() {
               value={session.subject}
               onChange={handleChange}
               placeholder="e.g., Mathematics, Biology"
-              className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               disabled={loadingStates.form_submit}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Topic *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Topic *</label>
             <input
               required
               type="text"
@@ -679,21 +757,19 @@ function Study() {
               value={session.topic}
               onChange={handleChange}
               placeholder="e.g., Calculus, Cell Division"
-              className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               disabled={loadingStates.form_submit}
             />
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Status *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Status *</label>
             <select
               required
               name="status"
               value={session.status}
               onChange={handleChange}
-              className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               disabled={loadingStates.form_submit}
             >
               <option value="">Select status</option>
@@ -705,9 +781,7 @@ function Study() {
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Date *
-              </label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Date *</label>
               <input
                 required
                 type="date"
@@ -715,30 +789,26 @@ function Study() {
                 name="date"
                 value={session.date}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                 disabled={loadingStates.form_submit}
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-                Start Time *
-              </label>
+              <label className="mb-1 block text-sm font-medium text-slate-700">Start time *</label>
               <input
                 required
                 type="time"
                 name="time"
                 value={session.time}
                 onChange={handleChange}
-                className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
                 disabled={loadingStates.form_submit}
               />
             </div>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">
-              Study Duration (hours) *
-            </label>
+            <label className="mb-1 block text-sm font-medium text-slate-700">Study duration (hours) *</label>
             <input
               required
               type="number"
@@ -749,49 +819,43 @@ function Study() {
               min="0.5"
               step="0.5"
               max="100"
-              className="w-full border border-gray-300 rounded-xl p-3 text-base outline-none focus:ring-2 focus:ring-emerald-400 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-base text-slate-800 outline-none transition focus:border-emerald-300 focus:bg-white focus:ring-4 focus:ring-emerald-100"
               disabled={loadingStates.form_submit}
             />
           </div>
 
           <button
             type="submit"
-            className="w-full bg-emerald-600 text-white py-3.5 rounded-xl hover:bg-emerald-700 transition-colors font-bold mt-6 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="mt-6 flex w-full items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3.5 text-base font-bold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-500 disabled:opacity-50"
             disabled={loadingStates.form_submit}
           >
             {loadingStates.form_submit ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
-                Creating Session...
+                Creating session...
               </>
             ) : (
-              "Create Session"
+              "Create session"
             )}
           </button>
         </form>
       </ResponsiveSheet>
 
-      {/* Floating Action Button */}
       {!activeSession &&
         createPortal(
           <button
             onClick={toggleShow}
-            className="fixed bottom-36 right-4 z-[85] p-3.5 rounded-full bg-emerald-600 text-white shadow-xl transition-all duration-300 ease-in-out hover:scale-105 hover:bg-emerald-700 hover:shadow-2xl md:bottom-24 md:right-6"
+            className="fixed bottom-36 right-4 z-[85] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-[0_18px_40px_-12px_rgba(16,185,129,0.7)] transition duration-300 hover:scale-105 hover:shadow-[0_24px_48px_-16px_rgba(16,185,129,0.8)]"
             title="Create New Session"
           >
             <svg
-              className="w-6 h-6"
+              className="h-7 w-7"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
               xmlns="http://www.w3.org/2000/svg"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-              />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           </button>,
           document.body
@@ -801,3 +865,112 @@ function Study() {
 }
 
 export default Study;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

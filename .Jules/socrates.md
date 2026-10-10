@@ -15,3 +15,9 @@
 **Learning:** Prompt injection attempts ("ignore previous instructions", "system prompt", "you are now") in student messages can spoof genuine attempts and prematurely unlock answers if not filtered server-side by `countGenuineAttempts`. However, demand filters must be specifically bounded to injection/bypass phrases rather than generic verb-object patterns like `(?:give|tell|show)\s*me` to avoid misclassifying valid questions ("Can you tell me if x = 5?") as non-attempts.
 
 **Action:** Ensure demand/injection filters in server-side turn counters target explicit bypass phrases and answer demands without matching standard conversational student queries.
+
+## 2026-10-10 - Bounding Word Boundaries and Imperative Verb Sequences for Answer Demands
+
+**Learning:** Unanchored regexes in server-side attempt counters (`countGenuineAttempts`) without word boundaries (`\b`) can accidentally flag past-tense descriptions of work ("I just solved it", "I wrote the equation") as non-attempts, or fail to match demand variants like "provide the final answer", "output the correct solution", or "share the exact answer" if whitespace or modifier rules are too loose.
+
+**Action:** Wrap demand verbs (`provide`, `share`, `output`, `print`, `display`, `reveal`, `get`) and target nouns (`answer`, `solution`, `steps`, `result`) in explicit word boundaries (`\b`) and require explicit whitespace before target nouns so imperative demands are caught without misclassifying past-tense student explanations.

@@ -1,50 +1,67 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { AlertCircle, TrendingDown, Calendar, RotateCcw, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { getUserSlippingData } from "../../lib/streaks";
 import supabase from "../../lib/supabase";
+
+// BOLT OPTIMIZATION:
+// Move static color configurations, days array, and pure helper functions outside
+// component render cycle. In Overview.jsx, a typing animation triggers re-renders every 75ms.
+// Declaring these outside render eliminates repeated array/object allocations and functions on every tick.
+
+const SLIP_COLORS = [
+  {
+    name: "red",
+    bg: "bg-red-50 dark:bg-red-950/30",
+    border: "border-red-200 dark:border-red-900/50",
+    text: "text-red-700 dark:text-red-400",
+    badge: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
+    icon: "text-red-600 dark:text-red-400",
+  },
+  {
+    name: "green",
+    bg: "bg-green-50 dark:bg-green-950/30",
+    border: "border-green-200 dark:border-green-900/50",
+    text: "text-green-700 dark:text-green-400",
+    badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+    icon: "text-green-600 dark:text-green-400",
+  },
+  {
+    name: "amber",
+    bg: "bg-amber-50 dark:bg-amber-950/30",
+    border: "border-amber-200 dark:border-amber-900/50",
+    text: "text-amber-700 dark:text-amber-400",
+    badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
+    icon: "text-amber-600 dark:text-amber-400",
+  },
+  {
+    name: "purple",
+    bg: "bg-purple-50 dark:bg-purple-950/30",
+    border: "border-purple-200 dark:border-purple-900/50",
+    text: "text-purple-700 dark:text-purple-400",
+    badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
+    icon: "text-purple-600 dark:text-purple-400",
+  },
+];
+
+const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+
+const getColorByIndex = (index) => SLIP_COLORS[index % SLIP_COLORS.length];
+
+const parseSlipDate = (dateStr) => {
+  if (!dateStr) return new Date();
+  if (typeof dateStr === "string" && dateStr.includes("-") && !dateStr.includes("T")) {
+    const [year, month, day] = dateStr.split("-").map(Number);
+    return new Date(year, month - 1, day);
+  }
+  return new Date(dateStr);
+};
 
 function KeepsSlipping({ userId }) {
   const navigate = useNavigate();
   const [slippingData, setSlippingData] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
   const [sessionStats, setSessionStats] = useState(null);
-
-  // Accent colors with dark mode support
-  const colors = [
-    {
-      name: "red",
-      bg: "bg-red-50 dark:bg-red-950/30",
-      border: "border-red-200 dark:border-red-900/50",
-      text: "text-red-700 dark:text-red-400",
-      badge: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
-      icon: "text-red-600 dark:text-red-400",
-    },
-    {
-      name: "green",
-      bg: "bg-green-50 dark:bg-green-950/30",
-      border: "border-green-200 dark:border-green-900/50",
-      text: "text-green-700 dark:text-green-400",
-      badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-      icon: "text-green-600 dark:text-green-400",
-    },
-    {
-      name: "amber",
-      bg: "bg-amber-50 dark:bg-amber-950/30",
-      border: "border-amber-200 dark:border-amber-900/50",
-      text: "text-amber-700 dark:text-amber-400",
-      badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
-      icon: "text-amber-600 dark:text-amber-400",
-    },
-    {
-      name: "purple",
-      bg: "bg-purple-50 dark:bg-purple-950/30",
-      border: "border-purple-200 dark:border-purple-900/50",
-      text: "text-purple-700 dark:text-purple-400",
-      badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
-      icon: "text-purple-600 dark:text-purple-400",
-    },
-  ];
 
   useEffect(() => {
     const fetchData = async () => {
@@ -95,20 +112,24 @@ function KeepsSlipping({ userId }) {
     fetchData();
   }, [userId]);
 
-  const getColorByIndex = (index) => colors[index % colors.length];
-  // Standard JavaScript Sunday-Saturday array matching Date.prototype.getDay()
-  const daysOfWeek = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
-  const parseSlipDate = (dateStr) => {
-    if (!dateStr) return new Date();
-    if (typeof dateStr === "string" && dateStr.includes("-") && !dateStr.includes("T")) {
-      const [year, month, day] = dateStr.split("-").map(Number);
-      return new Date(year, month - 1, day);
-    }
-    return new Date(dateStr);
-  };
-
   const hasSlips = slippingData.length > 0;
+
+  // Memoize processed slip items so date formatting and color assignments
+  // do not re-run on frequent parent re-renders (e.g., Overview.jsx typing animation)
+  const processedSlips = useMemo(() => {
+    return slippingData.slice(0, 3).map((slip, index) => {
+      const color = getColorByIndex(index);
+      const slipDate = parseSlipDate(slip.slip_date);
+      const dayName = DAYS_OF_WEEK[slipDate.getDay()];
+      const dateStr = slipDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+      return {
+        ...slip,
+        color,
+        dayName,
+        dateStr,
+      };
+    });
+  }, [slippingData]);
 
   return (
     <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
@@ -172,11 +193,8 @@ function KeepsSlipping({ userId }) {
                   Recent Slips
                 </h3>
                 <div className="space-y-3">
-                  {slippingData.slice(0, 3).map((slip, index) => {
-                    const color = getColorByIndex(index);
-                    const slipDate = parseSlipDate(slip.slip_date);
-                    const dayName = daysOfWeek[slipDate.getDay()];
-                    const dateStr = slipDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+                  {processedSlips.map((slip) => {
+                    const { color, dayName, dateStr } = slip;
 
                     return (
                       <div

@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useLocation, useNavigate } from "react-router-dom";
 import supabase from "../../lib/supabase";
@@ -9,19 +9,18 @@ import ResponsiveSheet from "../common/ResponsiveSheet";
 import { deleteSession } from "../../lib/sessionService";
 import { useAITutor } from "../../app/AITutorContext";
 import {
-  BookOpen,
-  Play,
-  MoreHorizontal,
   AlertCircle,
-  X,
-  Loader2,
-  Pause,
-  Plus,
+  BookOpen,
   Clock3,
-  Trophy,
+  Loader2,
+  MoreHorizontal,
+  Pause,
+  Play,
+  Plus,
   Sparkles,
   Target,
-  ChevronRight,
+  Trophy,
+  X,
 } from "lucide-react";
 
 function Study() {
@@ -47,9 +46,7 @@ function Study() {
   const [currentUser, setCurrentUser] = useState(null);
   const [loadingStates, setLoadingStates] = useState({});
   const [isLoadingSessions, setIsLoadingSessions] = useState(true);
-
   const [historySubjectFilter, setHistorySubjectFilter] = useState("all");
-  const [historyStatusFilter, setHistoryStatusFilter] = useState("all");
   const [historyDateFilter, setHistoryDateFilter] = useState("all");
   const [deletingHistoryId, setDeletingHistoryId] = useState(null);
 
@@ -90,7 +87,6 @@ function Study() {
               subject: item.subject,
               topic: item.topic,
               durationMinutes: item.duration_minutes,
-              startedAt: item.started_at,
               completedAt: item.completed_at,
               status: item.status || "completed",
               xpEarned: item.xp_earned,
@@ -104,6 +100,7 @@ function Study() {
         setIsLoadingSessions(false);
       }
     };
+
     fetchSessionsAndHistory();
   }, []);
 
@@ -117,7 +114,6 @@ function Study() {
           subject: entry.subject,
           topic: entry.topic,
           durationMinutes: entry.duration_minutes,
-          startedAt: entry.started_at,
           completedAt: entry.completed_at,
           status: entry.status || "completed",
           xpEarned: entry.xp_earned,
@@ -143,7 +139,6 @@ function Study() {
     };
   }, [isOpen]);
 
-  const formRef = useRef(null);
   const location = useLocation();
   const navigate = useNavigate();
 
@@ -154,20 +149,18 @@ function Study() {
     }
   }, [location, navigate]);
 
-  const getTypeIcon = () => {
-    return <BookOpen className="h-4 w-4 text-slate-500" />;
-  };
+  const getTypeIcon = () => <BookOpen className="h-4 w-4 text-slate-500" />;
 
   const getPriorityColor = (status) => {
     switch (normalizeStatus(status)) {
       case "very important":
-        return "border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-rose-100/70 rounded-3xl";
+        return "border border-rose-200 bg-gradient-to-br from-rose-50 via-white to-rose-100/80 rounded-[28px]";
       case "not so important":
-        return "border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/80 rounded-3xl";
+        return "border border-emerald-200 bg-gradient-to-br from-emerald-50 via-white to-emerald-100/80 rounded-[28px]";
       case "medium":
-        return "border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-100/80 rounded-3xl";
+        return "border border-amber-200 bg-gradient-to-br from-amber-50 via-white to-yellow-100/80 rounded-[28px]";
       default:
-        return "border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 rounded-3xl";
+        return "border border-slate-200 bg-gradient-to-br from-slate-50 via-white to-slate-100/80 rounded-[28px]";
     }
   };
 
@@ -177,7 +170,7 @@ function Study() {
         return (
           <span className="inline-flex items-center gap-1.5 rounded-full border border-rose-200 bg-rose-100 px-2.5 py-1 text-[10px] font-semibold tracking-[0.12em] text-rose-700 uppercase">
             <AlertCircle className="h-3 w-3" />
-            High priority
+            High
           </span>
         );
       case "not so important":
@@ -201,78 +194,59 @@ function Study() {
     }
   };
 
-  const toggleShow = () => {
-    setIsOpen(!isOpen);
-  };
-
   const setLoadingState = (id, type, isLoading) => {
-    setLoadingStates((prev) => ({
-      ...prev,
-      [`${id}_${type}`]: isLoading,
-    }));
+    setLoadingStates((prev) => ({ ...prev, [`${id}_${type}`]: isLoading }));
   };
 
   const addSession = async (e) => {
     e.preventDefault();
-    if (
-      session.subject &&
-      session.topic &&
-      session.status &&
-      session.date &&
-      session.time &&
-      session.hours
-    ) {
-      try {
-        setLoadingState("form", "submit", true);
+    if (!session.subject || !session.topic || !session.status || !session.date || !session.time || !session.hours) {
+      return;
+    }
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
+    try {
+      setLoadingState("form", "submit", true);
 
-        if (!user) {
-          setFetchError("User not authenticated");
-          return;
-        }
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-        const { data, error } = await supabase
-          .from("Study")
-          .insert([
-            {
-              Subject: session.subject,
-              Topic: session.topic,
-              Status: session.status,
-              Date: session.date,
-              Start: session.time,
-              Duration: session.hours,
-              session_status: "active",
-              muted: false,
-              user_id: user.id,
-            },
-          ])
-          .select("*");
-
-        if (error) {
-          setFetchError("Failed to create session: " + error.message);
-          console.error("Supabase insert error:", error);
-        } else if (data && data.length > 0) {
-          setSessions((prev) => [...prev, data[0]]);
-          setSession({
-            subject: "",
-            topic: "",
-            status: "",
-            date: "",
-            time: "",
-            hours: "",
-          });
-          setIsOpen(false);
-          setFetchError("");
-        }
-      } catch (err) {
-        setFetchError("An unexpected error occurred while creating session");
-        console.error("Unexpected error:", err);
-      } finally {
-        setLoadingState("form", "submit", false);
+      if (!user) {
+        setFetchError("User not authenticated");
+        return;
       }
+
+      const { data, error } = await supabase
+        .from("Study")
+        .insert([
+          {
+            Subject: session.subject,
+            Topic: session.topic,
+            Status: session.status,
+            Date: session.date,
+            Start: session.time,
+            Duration: session.hours,
+            session_status: "active",
+            muted: false,
+            user_id: user.id,
+          },
+        ])
+        .select("*");
+
+      if (error) {
+        setFetchError("Failed to create session: " + error.message);
+        console.error("Supabase insert error:", error);
+      } else if (data && data.length > 0) {
+        setSessions((prev) => [...prev, data[0]]);
+        setSession({ subject: "", topic: "", status: "", date: "", time: "", hours: "" });
+        setIsOpen(false);
+        setFetchError("");
+      }
+    } catch (err) {
+      setFetchError("An unexpected error occurred while creating session");
+      console.error("Unexpected error:", err);
+    } finally {
+      setLoadingState("form", "submit", false);
     }
   };
 
@@ -306,9 +280,7 @@ function Study() {
         setFetchError("Failed to update mute state: " + error.message);
       } else {
         setSessions((prevSessions) =>
-          prevSessions.map((session) =>
-            session.id === id ? { ...session, muted: newMutedState } : session
-          )
+          prevSessions.map((item) => (item.id === id ? { ...item, muted: newMutedState } : item))
         );
         setFetchError("");
         setDropdownIndex(null);
@@ -333,7 +305,7 @@ function Study() {
       if (error) {
         setFetchError("Failed to delete session: " + error.message);
       } else {
-        setSessions((prevSessions) => prevSessions.filter((session) => session.id !== id));
+        setSessions((prevSessions) => prevSessions.filter((item) => item.id !== id));
         setFetchError("");
         setDropdownIndex(null);
       }
@@ -367,15 +339,10 @@ function Study() {
     }
   };
 
-  const uniqueSubjects = Array.from(
-    new Set(sessionHistory.map((item) => item.subject).filter(Boolean))
-  );
+  const uniqueSubjects = Array.from(new Set(sessionHistory.map((item) => item.subject).filter(Boolean)));
 
   const filteredSessionHistory = sessionHistory.filter((item) => {
     if (historySubjectFilter !== "all" && item.subject?.toLowerCase() !== historySubjectFilter.toLowerCase()) {
-      return false;
-    }
-    if (historyStatusFilter !== "all" && item.status?.toLowerCase() !== historyStatusFilter.toLowerCase()) {
       return false;
     }
     if (historyDateFilter !== "all" && item.completedAt) {
@@ -392,7 +359,7 @@ function Study() {
     return true;
   });
 
-  const focusHours = sessions.reduce((sum, sessionItem) => sum + Number(sessionItem.Duration || 0), 0);
+  const focusHours = sessions.reduce((sum, item) => sum + Number(item.Duration || 0), 0);
   const completedMinutes = sessionHistory.reduce((sum, item) => sum + Number(item.durationMinutes || 0), 0);
   const summaryMetrics = [
     { label: "Active sessions", value: sessions.length, detail: "Ready to continue", accent: "emerald" },
@@ -426,7 +393,7 @@ function Study() {
 
       <div className="study-page-shell p-2 sm:p-4 md:p-6">
         {fetchError && (
-          <div className="mb-5 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
+          <div className="mb-6 flex items-center justify-between rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3 text-sm font-medium text-rose-700 shadow-sm">
             <span>{fetchError}</span>
             <button onClick={() => setFetchError("")} className="rounded-full p-1 hover:bg-rose-100">
               <X className="h-4 w-4" />
@@ -434,9 +401,9 @@ function Study() {
           </div>
         )}
 
-        <header className="study-hero relative overflow-hidden rounded-[28px] border border-slate-200 bg-white/80 p-5 shadow-[0_30px_80px_-36px_rgba(15,23,42,0.35)] backdrop-blur-sm sm:p-7">
-          <div className="study-hero-orb left-[-100px] top-[-100px]" />
-          <div className="study-hero-orb bottom-[-90px] right-[-70px] bg-emerald-400/20" />
+        <header className="study-hero relative overflow-hidden rounded-[32px] border border-white/40 bg-white/80 p-5 shadow-[0_32px_90px_-35px_rgba(15,23,42,0.38)] backdrop-blur-xl sm:p-7">
+          <div className="study-hero-orb left-[-90px] top-[-80px]" />
+          <div className="study-hero-orb bottom-[-80px] right-[-70px] bg-emerald-400/20" />
 
           <div className="relative flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
             <div className="max-w-2xl">
@@ -444,11 +411,11 @@ function Study() {
                 <Sparkles className="h-3.5 w-3.5" />
                 Study dashboard
               </div>
-              <h1 className="text-3xl font-black tracking-tight text-slate-900 sm:text-4xl xl:text-5xl">
+              <h1 className="text-3xl font-black tracking-[-0.06em] text-slate-900 sm:text-4xl xl:text-5xl">
                 Keep your learning momentum alive.
               </h1>
               <p className="mt-3 max-w-xl text-sm leading-6 text-slate-600 sm:text-base">
-                Turn your next study block into a focused session, track wins, and keep every lesson moving forward.
+                Turn each focus block into a polished learning ritual—clear priorities, steady progress, and fewer distractions.
               </p>
             </div>
 
@@ -456,7 +423,7 @@ function Study() {
               <button
                 type="button"
                 onClick={() => setIsOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-lg shadow-slate-900/15 transition hover:-translate-y-0.5 hover:bg-slate-800"
+                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3 text-sm font-semibold text-white shadow-[0_18px_35px_-18px_rgba(15,23,42,0.65)] transition hover:-translate-y-0.5 hover:bg-slate-800"
               >
                 <Plus className="h-4 w-4" />
                 New study session
@@ -472,13 +439,13 @@ function Study() {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           {summaryMetrics.map((metric) => (
             <div key={metric.label} className="study-stat-card">
-              <div className={`mb-4 h-10 w-10 rounded-2xl bg-${metric.accent}-100 flex items-center justify-center`}>
+              <div className={`mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-${metric.accent}-100`}>
                 {metric.accent === "emerald" && <BookOpen className="h-4 w-4 text-emerald-700" />}
                 {metric.accent === "violet" && <Clock3 className="h-4 w-4 text-violet-700" />}
                 {metric.accent === "sky" && <Trophy className="h-4 w-4 text-sky-700" />}
                 {metric.accent === "amber" && <Sparkles className="h-4 w-4 text-amber-700" />}
               </div>
-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">{metric.label}</p>
               <p className="mt-3 text-3xl font-black tracking-tight text-slate-900">{metric.value}</p>
               <p className="mt-2 text-sm text-slate-500">{metric.detail}</p>
             </div>
@@ -488,7 +455,7 @@ function Study() {
         <section className="mt-8">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Study list</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Study list</p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Active &amp; paused sessions</h2>
             </div>
             <button
@@ -520,7 +487,7 @@ function Study() {
               </button>
             </div>
           ) : (
-            <div className={`grid w-full grid-cols-1 gap-4 sm:grid-cols-2 ${isAIOopen ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
+            <div className={`grid w-full grid-cols-1 gap-4 sm:grid-cols-2 ${isAIOpen ? "xl:grid-cols-2" : "xl:grid-cols-3"}`}>
               {sessions.map((sessionItem, index) => {
                 const isMuted = sessionItem.muted;
                 const isDeleting = loadingStates[`${sessionItem.id}_delete`];
@@ -535,7 +502,7 @@ function Study() {
                     }`}
                   >
                     <div className="flex items-start justify-between gap-3">
-                      <div className="flex items-center gap-2 text-slate-500">
+                      <div className="flex items-center gap-2">
                         {getTypeIcon()}
                         {!isMuted && getStatusBadge(sessionItem.Status)}
                       </div>
@@ -543,9 +510,7 @@ function Study() {
                       <div className="relative flex items-center gap-2 dropdown-container">
                         <button
                           className={`inline-flex items-center gap-1.5 rounded-xl px-3 py-2 text-xs font-bold transition ${
-                            isPaused
-                              ? "bg-amber-500 text-slate-950 hover:bg-amber-400"
-                              : "bg-emerald-600 text-white hover:bg-emerald-500"
+                            isPaused ? "bg-amber-500 text-slate-950 hover:bg-amber-400" : "bg-emerald-600 text-white hover:bg-emerald-500"
                           }`}
                           onClick={() => navigate(`/Study/${encodeURIComponent(sessionItem.id)}`)}
                           disabled={isDeleting || isMuting}
@@ -632,7 +597,7 @@ function Study() {
         <section className="mt-12">
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <div>
-              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500">Progress</p>
+              <p className="text-[11px] font-semibold uppercase tracking-[0.2em] text-slate-500">Progress</p>
               <h2 className="mt-1 text-2xl font-black tracking-tight text-slate-900">Session history</h2>
             </div>
 
@@ -691,9 +656,7 @@ function Study() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="mb-2 flex flex-wrap items-center gap-2">
-                        <span className="text-lg font-black tracking-tight text-slate-900">
-                          {toTitleCase(item.subject)}
-                        </span>
+                        <span className="text-lg font-black tracking-tight text-slate-900">{toTitleCase(item.subject)}</span>
                         <span className="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.15em] text-emerald-700">
                           Completed
                         </span>
@@ -728,11 +691,7 @@ function Study() {
         </section>
       </div>
 
-      <ResponsiveSheet
-        isOpen={isOpen}
-        onClose={() => setIsOpen(false)}
-        title="Create Study Session"
-      >
+      <ResponsiveSheet isOpen={isOpen} onClose={() => setIsOpen(false)} title="Create Study Session">
         <form className="space-y-4 text-slate-800" onSubmit={addSession}>
           <div>
             <label className="mb-1 block text-sm font-medium text-slate-700">Subject *</label>
@@ -844,17 +803,11 @@ function Study() {
       {!activeSession &&
         createPortal(
           <button
-            onClick={toggleShow}
+            onClick={() => setIsOpen(true)}
             className="fixed bottom-36 right-4 z-[85] flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-[0_18px_40px_-12px_rgba(16,185,129,0.7)] transition duration-300 hover:scale-105 hover:shadow-[0_24px_48px_-16px_rgba(16,185,129,0.8)]"
             title="Create New Session"
           >
-            <svg
-              className="h-7 w-7"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-              xmlns="http://www.w3.org/2000/svg"
-            >
+            <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
             </svg>
           </button>,
@@ -865,112 +818,3 @@ function Study() {
 }
 
 export default Study;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

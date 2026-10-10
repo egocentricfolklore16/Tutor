@@ -23,6 +23,7 @@ const GlobalAITutorFab = ({ session }) => {
   } = useAITutor();
 
   const { profile } = useProfile();
+  const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
 
   const handleSendMessage = () => {
     sendMessage();
@@ -46,7 +47,7 @@ const GlobalAITutorFab = ({ session }) => {
           className="group relative inline-flex items-center gap-2.5 rounded-full bg-slate-900 px-4 py-2.5 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-800 dark:focus:ring-offset-slate-900"
         >
           <div className="relative flex items-center justify-center">
-            <LumoAvatar size="sm" className="transition-transform duration-300 group-hover:rotate-6" />
+            <LumoAvatar size="sm" state={lumoState} className="transition-transform duration-300 group-hover:rotate-6" />
             {hasUnread && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
                 <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />

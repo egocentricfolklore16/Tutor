@@ -100,6 +100,7 @@ const AITutorChat = ({
   }, [mode, setMode]);
 
   const charCount = currentMessage.length;
+  const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
 
   const handleCopy = async (text) => {
     if (!text) return;
@@ -221,7 +222,7 @@ const AITutorChat = ({
             {isError ? (
               <AlertCircle className="h-5 w-5 text-rose-500" />
             ) : (
-              <LumoAvatar size="xs" />
+              <LumoAvatar size="xs" state="replied" />
             )}
           </div>
 
@@ -388,7 +389,7 @@ const AITutorChat = ({
           >
             <ArrowLeft className="h-5 w-5" />
           </button>
-          <LumoAvatar size="sm" />
+          <LumoAvatar size="sm" state={lumoState} />
           <div>
             <h2 className="text-base font-bold text-slate-900 dark:text-white">Lumo</h2>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">Your AI study partner</p>
@@ -445,7 +446,7 @@ const AITutorChat = ({
               <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
                 <div className="relative mx-auto mb-4 flex items-center justify-center">
                   <div className="absolute h-20 w-20 rounded-full bg-emerald-500/20 blur-xl dark:bg-emerald-400/20" aria-hidden="true" />
-                  <LumoAvatar size="lg" className="relative z-10 animate-lumo-gentle-float" />
+                  <LumoAvatar size="lg" state="thinking" className="relative z-10 animate-lumo-gentle-float" />
                 </div>
                 <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
                 <div className="mt-5 flex flex-wrap justify-center gap-2">
@@ -471,7 +472,7 @@ const AITutorChat = ({
           {isTyping && (
             <div className="flex items-center gap-3">
               <div className="flex h-7 w-7 shrink-0 items-center justify-center">
-                <LumoAvatar size="xs" className="animate-lumo-head-tilt" />
+                <LumoAvatar size="xs" state="thinking" />
               </div>
               <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
                 <span>Lumo is thinking</span>

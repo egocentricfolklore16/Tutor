@@ -35,14 +35,13 @@ const GlobalAITutorFab = ({ session }) => {
 
   return (
     <>
-      {/* Floating Action Button (FAB) */}
-      <div className="fixed bottom-20 right-4 md:bottom-6 md:right-6 z-[90] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)]">
+      <div className="fixed bottom-20 right-4 z-[90] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] md:bottom-6 md:right-6">
         <button
           type="button"
           onClick={handleToggle}
-          aria-label="Open AI Tutor"
-          title="Open AI Tutor"
-          className="group relative inline-flex items-center gap-2.5 rounded-full bg-indigo-600 px-4 py-3 text-white shadow-xl transition-all duration-300 hover:bg-indigo-700 hover:scale-105 hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+          aria-label="Open Lumo"
+          title="Open Lumo"
+          className="group relative inline-flex items-center gap-2.5 rounded-full bg-gradient-to-r from-violet-500 via-indigo-500 to-emerald-400 px-4 py-3 text-white shadow-xl shadow-violet-500/20 transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-violet-500 focus:ring-offset-2 dark:focus:ring-offset-slate-900"
         >
           <div className="relative">
             <Sparkles className="h-5 w-5 transition-transform duration-300 group-hover:rotate-12" />
@@ -53,15 +52,14 @@ const GlobalAITutorFab = ({ session }) => {
               </span>
             )}
           </div>
-          <span className="text-sm font-semibold tracking-wide">AI Tutor</span>
+          <span className="text-sm font-semibold tracking-wide">Lumo</span>
         </button>
       </div>
 
-      {/* Slide-over Overlay via createPortal */}
       {createPortal(
         <div
           className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ease-in-out ${
-            isOpen ? "translate-x-0" : "translate-x-full pointer-events-none"
+            isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
           }`}
         >
           <AITutorChat
@@ -75,7 +73,7 @@ const GlobalAITutorFab = ({ session }) => {
             isTyping={isTyping}
             onActionExecute={handleActionExecute}
             width={380}
-            theme={{ accentButton: "bg-indigo-600 hover:bg-indigo-700", accentBg: "bg-indigo-100" }}
+            theme={{ accentButton: "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600", accentBg: "bg-violet-100 dark:bg-violet-900/40" }}
           />
         </div>,
         document.body

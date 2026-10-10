@@ -100,7 +100,7 @@ export function AITutorProvider({ children, session }) {
           ...msgs,
           {
             sender: "ai",
-            text: res.error.message || "Failed to reach AI Tutor. Please try again.",
+            text: res.error.message || "Failed to reach Lumo. Please try again.",
             actions: [],
             isError: true,
           },
@@ -124,7 +124,7 @@ export function AITutorProvider({ children, session }) {
         ...msgs,
         {
           sender: "ai",
-          text: `Error: ${err.message || "Failed to reach AI Tutor. Please try again."}`,
+          text: `Error: ${err.message || "Failed to reach Lumo. Please try again."}`,
           actions: [],
           isError: true,
         },
@@ -167,7 +167,7 @@ export function AITutorProvider({ children, session }) {
     try {
       const res = await invokeAiTutor({
         sessionId: activeSessionId || extra.session_id || 1,
-        messages: messages, // existing history
+        messages: messages,
         clientState,
       });
 
@@ -218,7 +218,6 @@ export function AITutorProvider({ children, session }) {
         clearMessages,
         isTyping,
         getTutorClientState,
-        // State setters for components to update live client state
         setActiveSessionId,
         setFocusMode,
         setPomodoroState,

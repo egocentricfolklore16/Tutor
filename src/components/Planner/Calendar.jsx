@@ -2,6 +2,8 @@ import React, { useMemo } from 'react';
 import { Plus, Play, Pause } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ResponsiveSheet from '../common/ResponsiveSheet';
+import { useProfile } from '../../app/ProfileContext';
+import { isPreferredStudyDay } from '../../lib/studyDays.js';
 
 const Calendar = ({
   currentDate,
@@ -12,6 +14,7 @@ const Calendar = ({
   onAddActivity,
 }) => {
   const navigate = useNavigate();
+  const { profile } = useProfile();
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
 
   // BOLT OPTIMIZATION:
@@ -98,12 +101,14 @@ const Calendar = ({
           {weekDays.map((day) => {
             const isSelected = day.toDateString() === currentDate.toDateString();
             const isToday = day.toDateString() === new Date().toDateString();
+            const isTargetDay = isPreferredStudyDay(day, profile?.study_days);
             return (
               <button
                 key={day.toDateString()}
                 type="button"
                 onClick={() => onAddActivity(new Date(day))}
-                className={`flex min-w-[48px] flex-col items-center rounded-2xl p-2.5 transition ${
+                title={isTargetDay ? "Target study day" : undefined}
+                className={`relative flex min-w-[48px] flex-col items-center rounded-2xl p-2.5 transition ${
                   isSelected
                     ? "bg-blue-600 text-white shadow-md font-bold"
                     : isToday
@@ -113,6 +118,12 @@ const Calendar = ({
               >
                 <span className="text-[10px] uppercase">{day.toLocaleDateString("en-US", { weekday: "short" })}</span>
                 <span className="text-base font-extrabold">{day.getDate()}</span>
+                {isTargetDay && (
+                  <span
+                    aria-label="Target study day"
+                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${isSelected ? "bg-emerald-300" : "bg-emerald-500"}`}
+                  />
+                )}
               </button>
             );
           })}
@@ -152,31 +163,42 @@ const Calendar = ({
     return (
       <div className="hidden md:grid min-w-[1000px] grid-cols-8 gap-2 h-96">
         <div className="text-sm font-semibold text-gray-600">Time</div>
-        {weekDays.map((day) => (
-          <div
-            key={day.toDateString()}
-            className="text-sm font-semibold text-gray-600 text-center"
-          >
-            <div>{day.toLocaleDateString("en-US", { weekday: "short" })}</div>
+        {weekDays.map((day) => {
+          const isTargetDay = isPreferredStudyDay(day, profile?.study_days);
+          return (
             <div
-              className={`text-lg ${
-                day.toDateString() === new Date().toDateString()
-                  ? "text-blue-600 font-bold"
-                  : ""
-              }`}
+              key={day.toDateString()}
+              className="text-sm font-semibold text-gray-600 text-center"
             >
-              {day.getDate()}
+              <div className="flex items-center justify-center gap-1">
+                <span>{day.toLocaleDateString("en-US", { weekday: "short" })}</span>
+                {isTargetDay && (
+                  <span
+                    title="Target study day"
+                    className="inline-block h-1.5 w-1.5 rounded-full bg-emerald-500"
+                  />
+                )}
+              </div>
+              <div
+                className={`text-lg ${
+                  day.toDateString() === new Date().toDateString()
+                    ? "text-blue-600 font-bold"
+                    : ""
+                }`}
+              >
+                {day.getDate()}
+              </div>
+              <button
+                type="button"
+                onClick={() => onAddActivity(new Date(day))}
+                className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 py-2 text-xs font-semibold text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Add
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => onAddActivity(new Date(day))}
-              className="mt-2 inline-flex w-full items-center justify-center gap-1 rounded border border-gray-200 bg-white px-2 py-2 text-xs font-semibold text-gray-600 transition-colors hover:border-blue-300 hover:bg-blue-50 hover:text-blue-700"
-            >
-              <Plus className="h-3.5 w-3.5" />
-              Add
-            </button>
-          </div>
-        ))}
+          );
+        })}
 
         {[...Array(12)].map((_, hour) => {
           const slotHour = hour + 8;

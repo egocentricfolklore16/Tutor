@@ -4,7 +4,55 @@ import assert from "node:assert/strict";
 import {
   processVerifiedPayment,
   timingSafeEqualStrings,
+  addMonths,
+  addYears,
 } from "../supabase/functions/_shared/payment-processor.ts";
+
+test("addMonths handles standard and month-end date overflows accurately", () => {
+  // Jan 31 -> Feb 28 (non-leap year)
+  const jan31 = new Date("2025-01-31T12:00:00Z");
+  assert.strictEqual(
+    addMonths(jan31, 1).toISOString(),
+    "2025-02-28T12:00:00.000Z"
+  );
+
+  // Jan 31 -> Feb 29 (leap year 2024)
+  const jan31Leap = new Date("2024-01-31T12:00:00Z");
+  assert.strictEqual(
+    addMonths(jan31Leap, 1).toISOString(),
+    "2024-02-29T12:00:00.000Z"
+  );
+
+  // Aug 31 -> Sep 30
+  const aug31 = new Date("2025-08-31T12:00:00Z");
+  assert.strictEqual(
+    addMonths(aug31, 1).toISOString(),
+    "2025-09-30T12:00:00.000Z"
+  );
+
+  // Jan 15 -> Feb 15 (no overflow)
+  const jan15 = new Date("2025-01-15T12:00:00Z");
+  assert.strictEqual(
+    addMonths(jan15, 1).toISOString(),
+    "2025-02-15T12:00:00.000Z"
+  );
+});
+
+test("addYears handles leap-year February 29 overflow accurately", () => {
+  // Feb 29 2024 -> Feb 28 2025
+  const feb29Leap = new Date("2024-02-29T12:00:00Z");
+  assert.strictEqual(
+    addYears(feb29Leap, 1).toISOString(),
+    "2025-02-28T12:00:00.000Z"
+  );
+
+  // Jan 15 2025 -> Jan 15 2026
+  const jan15 = new Date("2025-01-15T12:00:00Z");
+  assert.strictEqual(
+    addYears(jan15, 1).toISOString(),
+    "2026-01-15T12:00:00.000Z"
+  );
+});
 
 test("timingSafeEqualStrings compares strings in constant time", () => {
   assert.strictEqual(timingSafeEqualStrings("abc", "abc"), true);
@@ -227,6 +275,44 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
   assert.strictEqual(result.alreadyProcessed, true);
   assert.strictEqual(result.payment.reference, "ref_already_processed");
   assert.strictEqual(result.subscription.current_period_start, "2025-05-01T00:00:05.000Z");
+});
+
+test("processVerifiedPayment handles month-end renewal without overflowing into subsequent month", async () => {
+  // Renewal for a subscription expiring in the future on Jan 31 of next year
+  const nextYear = new Date().getUTCFullYear() + 1;
+  const futureJan31End = new Date(Date.UTC(nextYear, 0, 31, 12, 0, 0));
+
+  const existingSub = {
+    id: "sub-uuid-jan31",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    current_period_start: new Date(Date.UTC(nextYear - 1, 11, 31, 12, 0, 0)).toISOString(),
+    current_period_end: futureJan31End.toISOString(),
+  };
+
+  const mockClient = createMockSupabaseClient({ existingSub });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_month_end_renewal",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  // Expect target month to be February (month index 1)
+  const actualEnd = new Date(result.subscription.current_period_end);
+  assert.strictEqual(actualEnd.getUTCMonth(), 1);
+  // Expect date to be clamped to month end (28th or 29th)
+  assert.ok(actualEnd.getUTCDate() === 28 || actualEnd.getUTCDate() === 29);
 });
 
 test("processVerifiedPayment extends current_period_end when renewing active same-plan subscription", async () => {

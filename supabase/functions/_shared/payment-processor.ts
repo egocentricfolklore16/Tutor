@@ -1,4 +1,31 @@
 /**
+ * Adds months to a Date while safely handling month-end overflow (e.g. Jan 31 + 1 month -> Feb 28/29) in UTC.
+ */
+export function addMonths(date: Date, months: number): Date {
+  const result = new Date(date);
+  const targetMonth = (result.getUTCMonth() + months) % 12;
+  const expectedMonth = targetMonth < 0 ? targetMonth + 12 : targetMonth;
+  result.setUTCMonth(result.getUTCMonth() + months);
+  if (result.getUTCMonth() !== expectedMonth) {
+    result.setUTCDate(0);
+  }
+  return result;
+}
+
+/**
+ * Adds years to a Date while safely handling leap-year overflow (e.g. Feb 29 + 1 year -> Feb 28) in UTC.
+ */
+export function addYears(date: Date, years: number): Date {
+  const result = new Date(date);
+  const expectedMonth = result.getUTCMonth();
+  result.setUTCFullYear(result.getUTCFullYear() + years);
+  if (result.getUTCMonth() !== expectedMonth) {
+    result.setUTCDate(0);
+  }
+  return result;
+}
+
+/**
  * Compares two strings in constant time to prevent timing attacks on signatures/hashes.
  */
 export function timingSafeEqualStrings(a: string, b: string): boolean {
@@ -178,14 +205,10 @@ export async function processVerifiedPayment({
     }
   }
 
-  const periodEnd = new Date(baseDate);
-
-  if (plan.billing_interval === "year") {
-    periodEnd.setFullYear(periodEnd.getFullYear() + 1);
-  } else {
-    // Default to monthly billing
-    periodEnd.setMonth(periodEnd.getMonth() + 1);
-  }
+  const periodEnd =
+    plan.billing_interval === "year"
+      ? addYears(baseDate, 1)
+      : addMonths(baseDate, 1);
 
   // 6. Upsert into `subscriptions` table (one active subscription per user)
   const { data: subRow, error: subError } = await supabaseClient

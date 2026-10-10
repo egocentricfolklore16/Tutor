@@ -10,7 +10,7 @@ const leaderboard = [
 
 function Leaderboard() {
   return (
-    <section className="relative h-full overflow-hidden rounded-2xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm lg:p-6" aria-labelledby="leaderboard-title">
+    <section className="relative h-full overflow-hidden rounded-2xl border border-slate-800 dark:border-slate-800 bg-slate-950 p-5 text-white shadow-sm lg:p-6" aria-labelledby="leaderboard-title">
       <div className="absolute -right-16 -top-20 h-52 w-52 rounded-full bg-emerald-400/15 blur-3xl" />
       <div className="absolute -bottom-24 left-16 h-48 w-48 rounded-full bg-amber-300/10 blur-3xl" />
 

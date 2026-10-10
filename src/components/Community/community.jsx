@@ -126,7 +126,7 @@ const Community = () => {
               <Users className="w-12 h-12 text-white" />
             </div>
 
-            <div className="inline-flex items-center bg-green-100 text-green-500 px-4 py-2 rounded-full text-sm font-medium mb-6">
+            <div className="inline-flex items-center bg-emerald-100 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 px-4 py-2 rounded-full text-sm font-semibold mb-6">
               <Zap className="w-4 h-4 mr-2" />
               Phase 2 Development • Social Learning Features
             </div>
@@ -189,35 +189,35 @@ const Community = () => {
             Expected launch in Phase 2 development cycle
           </p>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <div className="bg-lime-400 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold mb-1">
+            <div className="bg-lime-500 dark:bg-lime-600 text-slate-950 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform shadow-md">
+              <div className="text-4xl font-black mb-1">
                 {String(timeLeft.days).padStart(2, "0")}
               </div>
-              <div className="text-sm uppercase tracking-wider opacity-90">
+              <div className="text-sm font-bold uppercase tracking-wider opacity-90">
                 Days
               </div>
             </div>
-            <div className="bg-emerald-700 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold mb-1">
+            <div className="bg-emerald-700 dark:bg-emerald-600 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform shadow-md">
+              <div className="text-4xl font-black mb-1">
                 {String(timeLeft.hours).padStart(2, "0")}
               </div>
-              <div className="text-sm uppercase tracking-wider opacity-90">
+              <div className="text-sm font-bold uppercase tracking-wider opacity-90">
                 Hours
               </div>
             </div>
-            <div className="bg-teal-500 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold mb-1">
+            <div className="bg-teal-600 dark:bg-teal-500 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform shadow-md">
+              <div className="text-4xl font-black mb-1">
                 {String(timeLeft.minutes).padStart(2, "0")}
               </div>
-              <div className="text-sm uppercase tracking-wider opacity-90">
+              <div className="text-sm font-bold uppercase tracking-wider opacity-90">
                 Minutes
               </div>
             </div>
-            <div className="bg-yellow-400 text-white rounded-2xl p-6 text-center transform hover:scale-105 transition-transform">
-              <div className="text-4xl font-bold mb-1">
+            <div className="bg-yellow-500 dark:bg-yellow-500 text-slate-950 rounded-2xl p-6 text-center transform hover:scale-105 transition-transform shadow-md">
+              <div className="text-4xl font-black mb-1">
                 {String(timeLeft.seconds).padStart(2, "0")}
               </div>
-              <div className="text-sm uppercase tracking-wider opacity-90">
+              <div className="text-sm font-bold uppercase tracking-wider opacity-90">
                 Seconds
               </div>
             </div>
@@ -277,7 +277,7 @@ const Community = () => {
             {additionalFeatures.map((feature, index) => (
               <div
                 key={index}
-                className="flex items-center space-x-3 bg-white dark:bg-slate-900 rounded-lg p-4 shadow-sm"
+                className="flex items-center space-x-3 bg-white/90 dark:bg-slate-900/90 backdrop-blur rounded-lg p-4 shadow-sm"
               >
                 <div className="text-blue-400 dark:text-blue-300">{feature.icon}</div>
                 <span className="text-slate-900 dark:text-slate-100 font-medium">{feature.text}</span>

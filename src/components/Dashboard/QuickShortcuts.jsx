@@ -10,7 +10,35 @@ const shortcuts = [
 
 function QuickShortcuts() {
   const navigate = useNavigate();
-  return <section className="mt-6" aria-labelledby="quick-shortcuts-title"><p id="quick-shortcuts-title" className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500">Quick Shortcuts</p><div className="grid grid-cols-2 gap-3">{shortcuts.map(({ title, description, tag, path, icon: Icon, accent }, index) => <button key={title} type="button" onClick={() => navigate(path)} className={`group flex min-h-[148px] min-w-0 flex-col rounded-lg border p-3 text-left shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4 ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} ${accent}`}><div className="flex items-start justify-between gap-2"><Icon className="h-5 w-5 shrink-0" /><span className="shrink-0 rounded-full bg-white/70 px-2 py-1 text-[9px] font-bold tracking-wide">{tag}</span></div><p className="mt-5 truncate text-sm font-bold text-gray-900">{title}</p><p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600">{description}</p><ArrowRight className="mt-auto h-4 w-4 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" /></button>)}</div></section>;
+  return (
+    <section className="mt-6" aria-labelledby="quick-shortcuts-title">
+      <p id="quick-shortcuts-title" className="mb-3 text-xs font-bold uppercase tracking-[0.18em] text-gray-500 dark:text-gray-400">
+        Quick Shortcuts
+      </p>
+      <div className="grid grid-cols-2 gap-3">
+        {shortcuts.map(({ title, description, tag, path, icon: ShortcutIcon, accent }, index) => (
+          <button
+            key={title}
+            type="button"
+            onClick={() => navigate(path)}
+            className={`group flex min-h-[148px] min-w-0 flex-col rounded-lg border p-3 text-left shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md sm:p-4 ${
+              index % 2 === 0 ? "rotate-1" : "-rotate-1"
+            } ${accent}`}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <ShortcutIcon className="h-5 w-5 shrink-0" />
+              <span className="shrink-0 rounded-full bg-white/70 dark:bg-slate-800/80 dark:text-slate-200 px-2 py-1 text-[9px] font-bold tracking-wide">
+                {tag}
+              </span>
+            </div>
+            <p className="mt-5 truncate text-sm font-bold text-gray-900 dark:text-slate-100">{title}</p>
+            <p className="mt-1 line-clamp-2 text-xs leading-5 text-gray-600 dark:text-slate-300">{description}</p>
+            <ArrowRight className="mt-auto h-4 w-4 opacity-0 transition group-hover:translate-x-1 group-hover:opacity-100" />
+          </button>
+        ))}
+      </div>
+    </section>
+  );
 }
 
 export default QuickShortcuts;

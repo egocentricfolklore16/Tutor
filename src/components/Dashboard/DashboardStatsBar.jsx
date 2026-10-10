@@ -27,7 +27,7 @@ function DashboardStatsBar() {
     { value: stats.gaps, label: "concepts to revisit" },
   ];
 
-  return <section className="rounded-2xl bg-white dark:bg-slate-900 mt-5 p-2 shadow-sm border border-transparent dark:border-slate-800" aria-label="Study statistics"><div className="grid grid-cols-3">{items.map(({ value, label }, index) => <div key={label} className={`relative flex min-h-20 min-w-0 items-center justify-center px-1 py-3 text-center md:py-5 ${index > 0 ? "border-l border-gray-100 dark:border-slate-800" : ""}`}><div className="min-w-0"><p className="truncate text-xl font-bold text-gray-900 dark:text-slate-100 sm:text-2xl">{value}</p><p className="truncate text-[10px] leading-4 text-gray-500 dark:text-slate-400 sm:text-sm">{label}</p></div></div>)}</div></section>;
+  return <section className="rounded-2xl bg-white dark:bg-slate-900 mt-5 p-2 shadow-sm border border-gray-200 dark:border-slate-800" aria-label="Study statistics"><div className="grid grid-cols-3">{items.map(({ value, label }, index) => <div key={label} className={`relative flex min-h-20 min-w-0 items-center justify-center px-1 py-3 text-center md:py-5 ${index > 0 ? "border-l border-gray-100 dark:border-slate-800" : ""}`}><div className="min-w-0"><p className="truncate text-xl font-bold text-gray-900 dark:text-slate-100 sm:text-2xl">{value}</p><p className="truncate text-[10px] leading-4 text-gray-500 dark:text-slate-400 sm:text-sm">{label}</p></div></div>)}</div></section>;
 }
 
 export default DashboardStatsBar;

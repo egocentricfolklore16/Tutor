@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
+  ArrowLeft,
   ArrowUp,
   BookOpen,
   Calendar,
@@ -11,6 +12,8 @@ import {
   HelpCircle,
   Layers,
   ListTodo,
+  Maximize2,
+  Minimize2,
   RefreshCw,
   Send,
   Sparkles,
@@ -30,6 +33,8 @@ const suggestionPrompts = [
 
 const AITutorChat = ({
   isOpen,
+  mode = "popout",
+  setMode,
   onClose,
   messages = [],
   currentMessage = "",
@@ -81,6 +86,18 @@ const AITutorChat = ({
     const nextHeight = Math.min(textareaRef.current.scrollHeight, 140);
     textareaRef.current.style.height = `${nextHeight}px`;
   }, [currentMessage]);
+
+  useEffect(() => {
+    if (mode !== "fullpage") return;
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        e.preventDefault();
+        if (setMode) setMode("popout");
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [mode, setMode]);
 
   const charCount = currentMessage.length;
 
@@ -350,11 +367,23 @@ const AITutorChat = ({
 
   return (
     <div
-      className="flex h-full w-full max-w-full flex-col border-l border-slate-200 bg-white shadow-2xl transition-all duration-300 dark:border-slate-800 dark:bg-[#101826]"
-      style={{ width: typeof width === "number" ? `${width}px` : width, maxWidth: "100vw" }}
+      className="flex h-full w-full max-w-full flex-col border-l border-slate-200 bg-white shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-[#101826]"
+      style={{
+        width: mode === "fullpage" ? "100%" : typeof width === "number" ? `${width}px` : width,
+        maxWidth: "100vw",
+      }}
     >
       <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 p-4 dark:border-slate-800 dark:bg-[#151f2d]/90">
         <div className="flex items-center gap-3">
+          <button
+            type="button"
+            title="Back"
+            aria-label="Back"
+            onClick={onClose}
+            className="rounded-full p-1 text-slate-500 transition hover:bg-slate-200 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 md:hidden"
+          >
+            <ArrowLeft className="h-5 w-5" />
+          </button>
           <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-md shadow-violet-500/20">
             <Sparkles className="h-5 w-5" />
           </div>
@@ -374,122 +403,147 @@ const AITutorChat = ({
           >
             <Eraser className="h-4 w-4" />
           </button>
+          {mode === "popout" ? (
+            <button
+              type="button"
+              title="Expand to full page"
+              aria-label="Expand to full page"
+              onClick={() => setMode && setMode("fullpage")}
+              className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex"
+            >
+              <Maximize2 className="h-4 w-4" />
+            </button>
+          ) : mode === "fullpage" ? (
+            <button
+              type="button"
+              title="Return to pop-out chat"
+              aria-label="Return to pop-out chat"
+              onClick={() => setMode && setMode("popout")}
+              className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex"
+            >
+              <Minimize2 className="h-4 w-4" />
+            </button>
+          ) : null}
           <button
             type="button"
             title="Close Lumo"
             aria-label="Close Lumo"
             onClick={onClose}
-            className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200"
+            className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
       </div>
 
-      <div ref={messagesContainerRef} className="flex-1 space-y-4 overflow-y-auto p-4 lg:p-5" role="log" aria-live="polite">
-        {messages.length === 0 && !isTyping && (
-          <div className="flex min-h-full items-center justify-center pt-2">
-            <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-md shadow-violet-500/20">
-                <Sparkles className="h-5 w-5" />
+      <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 lg:p-5" role="log" aria-live="polite">
+        <div className={`mx-auto w-full space-y-4 ${mode === "fullpage" ? "max-w-3xl" : ""}`}>
+          {messages.length === 0 && !isTyping && (
+            <div className="flex min-h-full items-center justify-center pt-2">
+              <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-slate-50/80 p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-md shadow-violet-500/20">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
+                <div className="mt-5 flex flex-wrap justify-center gap-2">
+                  {suggestionPrompts.map((prompt) => (
+                    <button
+                      key={prompt}
+                      type="button"
+                      onClick={() => onMessageChange && onMessageChange(prompt)}
+                      className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-violet-500/60 dark:hover:text-violet-200"
+                    >
+                      {prompt}
+                    </button>
+                  ))}
+                </div>
               </div>
-              <h3 className="text-xl font-semibold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
-              <div className="mt-5 flex flex-wrap justify-center gap-2">
-                {suggestionPrompts.map((prompt) => (
-                  <button
-                    key={prompt}
-                    type="button"
-                    onClick={() => onMessageChange && onMessageChange(prompt)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-violet-500/60 dark:hover:text-violet-200"
-                  >
-                    {prompt}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {messages.map((msg, idx) => (
-          <MessageBubble key={`${msg.sender}-${idx}`} message={msg} />
-        ))}
-
-        {isTyping && (
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-sm">
-              <Sparkles className="h-4 w-4" />
-            </div>
-            <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
-              <span>Lumo is thinking</span>
-              <span className="flex items-center gap-1">
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 dark:bg-slate-300" />
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:120ms] dark:bg-slate-300" />
-                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:240ms] dark:bg-slate-300" />
-              </span>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      <div className="border-t border-slate-200 bg-slate-50/90 p-3 dark:border-slate-800 dark:bg-[#151f2d]/90">
-        {messages.length > 0 && (
-          <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-            {suggestionPrompts.map((prompt) => (
-              <button
-                key={`quick-${prompt}`}
-                type="button"
-                onClick={() => onMessageChange && onMessageChange(prompt)}
-                className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-violet-500/60 dark:hover:text-violet-200"
-              >
-                {prompt}
-              </button>
-            ))}
-          </div>
-        )}
-
-        <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/20 dark:border-slate-700 dark:bg-slate-800">
-          <div className="flex items-end gap-2 p-2">
-            <label htmlFor="lumo-input" className="sr-only">Message Lumo</label>
-            <textarea
-              id="lumo-input"
-              ref={textareaRef}
-              rows={1}
-              value={currentMessage}
-              onChange={(e) => onMessageChange && onMessageChange(e.target.value.slice(0, 4000))}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && !e.shiftKey) {
-                  e.preventDefault();
-                  if (currentMessage.trim() && !isTyping && onSendMessage) {
-                    onSendMessage();
-                  }
-                }
-              }}
-              placeholder="Message Lumo..."
-              aria-label="Message Lumo"
-              className="min-h-[42px] max-h-[140px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
-            />
-            <button
-              type="button"
-              onClick={onSendMessage}
-              disabled={!currentMessage.trim() || isTyping}
-              aria-label="Send message"
-              title="Send message"
-              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md transition focus:outline-none focus:ring-2 focus:ring-violet-500/60 disabled:cursor-not-allowed disabled:opacity-40 ${panelAccent}`}
-            >
-              <ArrowUp className="h-4 w-4" />
-            </button>
-          </div>
-        </div>
-
-        <div className="mt-2 flex items-center justify-between gap-2">
-          {charCount > 3500 && (
-            <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
-              {charCount} / 4000
             </div>
           )}
-          <div className="ml-auto text-[10px] text-slate-500 dark:text-slate-400">Lumo can make mistakes. Double-check important info.</div>
+
+          {messages.map((msg, idx) => (
+            <MessageBubble key={`${msg.sender}-${idx}`} message={msg} />
+          ))}
+
+          {isTyping && (
+            <div className="flex items-center gap-3">
+              <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-violet-500 via-indigo-500 to-emerald-400 text-white shadow-sm">
+                <Sparkles className="h-4 w-4" />
+              </div>
+              <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
+                <span>Lumo is thinking</span>
+                <span className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 dark:bg-slate-300" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:120ms] dark:bg-slate-300" />
+                  <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 [animation-delay:240ms] dark:bg-slate-300" />
+                </span>
+              </div>
+            </div>
+          )}
+
+          <div ref={messagesEndRef} />
+        </div>
+      </div>
+
+      <div className="border-t border-slate-200 bg-slate-50/90 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-slate-800 dark:bg-[#151f2d]/90">
+        <div className={`mx-auto w-full ${mode === "fullpage" ? "max-w-3xl" : ""}`}>
+          {messages.length > 0 && (
+            <div className="mb-3 flex gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              {suggestionPrompts.map((prompt) => (
+                <button
+                  key={`quick-${prompt}`}
+                  type="button"
+                  onClick={() => onMessageChange && onMessageChange(prompt)}
+                  className="whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-violet-500/60 dark:hover:text-violet-200"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+          )}
+
+          <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/20 dark:border-slate-700 dark:bg-slate-800">
+            <div className="flex items-end gap-2 p-2">
+              <label htmlFor="lumo-input" className="sr-only">Message Lumo</label>
+              <textarea
+                id="lumo-input"
+                ref={textareaRef}
+                rows={1}
+                value={currentMessage}
+                onChange={(e) => onMessageChange && onMessageChange(e.target.value.slice(0, 4000))}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    if (currentMessage.trim() && !isTyping && onSendMessage) {
+                      onSendMessage();
+                    }
+                  }
+                }}
+                placeholder="Message Lumo..."
+                aria-label="Message Lumo"
+                className="min-h-[42px] max-h-[140px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+              />
+              <button
+                type="button"
+                onClick={onSendMessage}
+                disabled={!currentMessage.trim() || isTyping}
+                aria-label="Send message"
+                title="Send message"
+                className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md transition focus:outline-none focus:ring-2 focus:ring-violet-500/60 disabled:cursor-not-allowed disabled:opacity-40 ${panelAccent}`}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-2 flex items-center justify-between gap-2">
+            {charCount > 3500 && (
+              <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                {charCount} / 4000
+              </div>
+            )}
+            <div className="ml-auto text-[10px] text-slate-500 dark:text-slate-400">Lumo can make mistakes. Double-check important info.</div>
+          </div>
         </div>
       </div>
     </div>

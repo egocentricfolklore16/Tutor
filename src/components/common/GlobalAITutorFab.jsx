@@ -7,6 +7,8 @@ import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
 const GlobalAITutorFab = ({ session }) => {
   const {
+    mode,
+    setMode,
     isOpen,
     handleToggle,
     hasUnread,
@@ -58,12 +60,18 @@ const GlobalAITutorFab = ({ session }) => {
 
       {createPortal(
         <div
-          className={`fixed inset-y-0 right-0 z-[100] transition-transform duration-300 ease-in-out ${
-            isOpen ? "translate-x-0" : "pointer-events-none translate-x-full"
-          }`}
+          className={
+            mode === "closed"
+              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[100] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
+              : mode === "fullpage"
+              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[100] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[100] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+          }
         >
           <AITutorChat
             isOpen={isOpen}
+            mode={mode}
+            setMode={setMode}
             onClose={handleToggle}
             messages={messages}
             currentMessage={currentMessage}
@@ -72,7 +80,7 @@ const GlobalAITutorFab = ({ session }) => {
             onClear={clearMessages}
             isTyping={isTyping}
             onActionExecute={handleActionExecute}
-            width={380}
+            width={mode === "fullpage" ? "100%" : 380}
             theme={{ accentButton: "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600", accentBg: "bg-violet-100 dark:bg-violet-900/40" }}
           />
         </div>,

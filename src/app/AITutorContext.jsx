@@ -18,10 +18,79 @@ export function mapPathToScreen(pathname) {
   return "dashboard";
 }
 
+function useMediaQuery(query) {
+  const [matches, setMatches] = useState(() => {
+    if (typeof window !== "undefined") {
+      return window.matchMedia(query).matches;
+    }
+    return false;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia(query);
+    const listener = (e) => setMatches(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, [query]);
+
+  return matches;
+}
+
 export function AITutorProvider({ children, session }) {
   const location = useLocation();
-  const [isOpen, setIsOpen] = useState(false);
+  const isDesktop = useMediaQuery("(min-width: 768px)");
+  const [mode, setModeState] = useState("closed");
+  const previousDesktopModeRef = useRef("popout");
   const [hasUnread, setHasUnread] = useState(false);
+
+  const isOpen = mode !== "closed";
+
+  const setMode = React.useCallback((newModeOrFn) => {
+    setModeState((prev) => {
+      const next = typeof newModeOrFn === "function" ? newModeOrFn(prev) : newModeOrFn;
+      if (next !== "closed" && isDesktop) {
+        previousDesktopModeRef.current = next;
+      }
+      return next;
+    });
+  }, [isDesktop]);
+
+  const setIsOpen = React.useCallback((valueOrFn) => {
+    setMode((prevMode) => {
+      const prevIsOpen = prevMode !== "closed";
+      const nextIsOpen = typeof valueOrFn === "function" ? valueOrFn(prevIsOpen) : valueOrFn;
+      if (!nextIsOpen) return "closed";
+      if (prevMode !== "closed") return prevMode;
+      if (!isDesktop) return "fullpage";
+      return previousDesktopModeRef.current || "popout";
+    });
+  }, [isDesktop, setMode]);
+
+  useEffect(() => {
+    if (mode === "closed") return;
+
+    if (!isDesktop) {
+      if (mode !== "fullpage") {
+        setModeState("fullpage");
+      }
+    } else {
+      const target = previousDesktopModeRef.current || "popout";
+      if (mode !== target) {
+        setModeState(target);
+      }
+    }
+  }, [isDesktop, mode]);
+
+  useEffect(() => {
+    if (mode === "fullpage") {
+      const originalOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+      return () => {
+        document.body.style.overflow = originalOverflow;
+      };
+    }
+  }, [mode]);
   const [messages, setMessages] = useState([]);
   const [currentMessage, setCurrentMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
@@ -68,10 +137,15 @@ export function AITutorProvider({ children, session }) {
   };
 
   const handleToggle = () => {
-    setIsOpen((prev) => {
-      const next = !prev;
-      if (next) setHasUnread(false);
-      return next;
+    setMode((prev) => {
+      if (prev !== "closed") {
+        return "closed";
+      }
+      setHasUnread(false);
+      if (!isDesktop) {
+        return "fullpage";
+      }
+      return previousDesktopModeRef.current || "popout";
     });
   };
 
@@ -205,6 +279,8 @@ export function AITutorProvider({ children, session }) {
   return (
     <AITutorContext.Provider
       value={{
+        mode,
+        setMode,
         isOpen,
         setIsOpen,
         hasUnread,
@@ -242,6 +318,8 @@ export function AITutorProvider({ children, session }) {
 export function useAITutor() {
   return (
     useContext(AITutorContext) || {
+      mode: "closed",
+      setMode: () => {},
       isOpen: false,
       hasUnread: false,
       handleToggle: () => {},

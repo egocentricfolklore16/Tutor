@@ -36,3 +36,30 @@ test("verifyAiTutorChatAuth returns 200 and userId if token is valid", () => {
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.userId, "user_456");
 });
+
+const ALLOWED_STRICTNESS = new Set([
+  "always_guide",
+  "hints_then_answer",
+  "direct_help",
+]);
+
+function resolveStrictnessHelper(override, dbStrictness) {
+  if (override && ALLOWED_STRICTNESS.has(override)) return override;
+  if (dbStrictness && ALLOWED_STRICTNESS.has(dbStrictness)) return dbStrictness;
+  return "hints_then_answer";
+}
+
+test("resolveStrictness accepts valid strictness enum values", () => {
+  assert.strictEqual(resolveStrictnessHelper("always_guide", null), "always_guide");
+  assert.strictEqual(resolveStrictnessHelper("hints_then_answer", null), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("direct_help", null), "direct_help");
+  assert.strictEqual(resolveStrictnessHelper(null, "always_guide"), "always_guide");
+});
+
+test("resolveStrictness safely falls back when prototype properties or invalid values are passed", () => {
+  assert.strictEqual(resolveStrictnessHelper("toString", null), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("constructor", null), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("valueOf", null), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper("invalid_mode", null), "hints_then_answer");
+  assert.strictEqual(resolveStrictnessHelper(null, "valueOf"), "hints_then_answer");
+});

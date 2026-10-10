@@ -17,6 +17,12 @@ const FALLBACK_MODEL = "llama-3.1-8b-instant";
 
 type Strictness = "always_guide" | "hints_then_answer" | "direct_help";
 
+const ALLOWED_STRICTNESS = new Set<Strictness>([
+  "always_guide",
+  "hints_then_answer",
+  "direct_help",
+]);
+
 const STRICTNESS_PROMPTS: Record<Strictness, string> = {
   always_guide: `You are in ALWAYS GUIDE mode. Never give the final answer, even if asked directly
 or if the student is frustrated. Respond only with leading questions, analogies, and small
@@ -99,7 +105,7 @@ async function resolveStrictness(
   userId: string | null,
   override?: Strictness,
 ): Promise<Strictness> {
-  if (override && STRICTNESS_PROMPTS[override]) return override;
+  if (override && ALLOWED_STRICTNESS.has(override)) return override;
   if (!userId) return "hints_then_answer"; // sensible default for logged-out/demo use
 
   const { data } = await supabase
@@ -108,7 +114,12 @@ async function resolveStrictness(
     .eq("user_id", userId)
     .maybeSingle();
 
-  return (data?.socratic_strictness as Strictness) ?? "hints_then_answer";
+  const dbStrictness = data?.socratic_strictness as Strictness;
+  if (dbStrictness && ALLOWED_STRICTNESS.has(dbStrictness)) {
+    return dbStrictness;
+  }
+
+  return "hints_then_answer";
 }
 
 async function getAiReplyWithFallback(

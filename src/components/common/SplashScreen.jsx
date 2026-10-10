@@ -8,16 +8,6 @@ export default function SplashScreen({ onUnmount }) {
   const exitTimerRef = useRef(null);
   const unmountTimerRef = useRef(null);
 
-  // Lock body scroll while splash is active
-  useEffect(() => {
-    const originalOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-
-    return () => {
-      document.body.style.overflow = originalOverflow;
-    };
-  }, []);
-
   // Handle automatic 2.0s timeline sequence
   useEffect(() => {
     // 1.5s: Begin 500ms fade-out phase

@@ -366,3 +366,60 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .dark-green-text { color: var(--text-accent-green) !important; }
 .dark .dark-amber-text { color: var(--text-accent-amber) !important; }
 .dark .dark-purple-text { color: var(--text-accent-purple) !important; }
+
+/* Opening Splash Screen Animations */
+@keyframes splash-bg-enter {
+  0% { opacity: 0; }
+  100% { opacity: 1; }
+}
+
+@keyframes splash-owl-enter {
+  0% { opacity: 0; transform: scale(0.6); }
+  70% { opacity: 1; transform: scale(1.05); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+@keyframes splash-glow-pulse {
+  0%, 100% { opacity: 0.35; transform: scale(0.92); }
+  50% { opacity: 0.8; transform: scale(1.12); }
+}
+
+@keyframes splash-owl-wobble {
+  0% { transform: scale(1) rotate(0deg); }
+  25% { transform: scale(1) rotate(-4deg); }
+  50% { transform: scale(1) rotate(4deg); }
+  75% { transform: scale(1) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+@keyframes splash-wordmark-enter {
+  0% { opacity: 0; transform: translateY(14px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+.animate-splash-bg {
+  animation: splash-bg-enter 0.4s ease-out both;
+}
+
+.animate-splash-owl {
+  animation: splash-owl-enter 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) 0.2s both,
+             splash-owl-wobble 0.6s ease-in-out 1.0s both;
+}
+
+.animate-splash-glow {
+  animation: splash-glow-pulse 2.8s ease-in-out 0.2s infinite;
+}
+
+.animate-splash-wordmark {
+  animation: splash-wordmark-enter 0.5s cubic-bezier(0.16, 1, 0.3, 1) 1.3s both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-splash-bg,
+  .animate-splash-owl,
+  .animate-splash-glow,
+  .animate-splash-wordmark {
+    animation: splash-bg-enter 0.6s ease-out both !important;
+    transform: none !important;
+  }
+}

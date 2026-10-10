@@ -21,6 +21,7 @@ import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
+import SplashScreen from "./components/common/SplashScreen.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -172,71 +173,72 @@ function App() {
     };
   }, []);
 
-  if (loading || onboardingLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
-        <LoadingCompanion message="Loading Hyper Tutor..." />
-      </div>
-    );
-  }
+  const appReady = !loading && !onboardingLoading;
 
   return (
     <ErrorBoundary>
-      <BrowserRouter>
-        {session ? (
-          <Routes>
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/onboarding" element={<Onboarding session={session} />} />
-            <Route path="/*" element={<Layout session={session} needsOnboarding={needsOnboarding} />}>
-              <Route index element={<Overview />} />
-              <Route path="Dashboard" element={<Overview />} />
-              <Route path="Study" element={<Study />} />
-              <Route path="Study/history/:historyId" element={<StudyHistoryDetail />} />
-              <Route path="Study/:Studyid" element={<StudyEnvironment />} />
-              <Route path="Study/:Studyid/notes/:noteId" element={<NoteDetail />} />
-              <Route path="signup" element={<SignupPage />} />
-              <Route path="signin" element={<LoginPage />} />
-              <Route path="Planner" element={<PlannerPage />} />
-              <Route path="Progress" element={<Progress />} />
-              <Route path="Library" element={<Library session={session} />} />
-              <Route path="Community" element={<Community />} />
-              <Route path="FAQ" element={<FAQ />} />
-              <Route path="Settings" element={<Settings />} />
-              <Route path="*" element={<NotFound />} />
-            </Route>
-          </Routes>
-        ) : (
-          <Routes>
-            <Route path="/auth/callback" element={<AuthCallback />} />
-            <Route path="/onboarding" element={<Onboarding />} />
-            <Route
-              path="/"
-              element={
-                <AuthLayout>
-                  <SignupPage />
-                </AuthLayout>
-              }
-            />
-            <Route
-              path="/signup"
-              element={
-                <AuthLayout>
-                  <SignupPage />
-                </AuthLayout>
-              }
-            />
-            <Route
-              path="/login"
-              element={
-                <AuthLayout>
-                  <LoginPage />
-                </AuthLayout>
-              }
-            />
-            <Route path="*" element={<Navigate to="/login" replace />} />
-          </Routes>
-        )}
-      </BrowserRouter>
+      <SplashScreen appReady={appReady} />
+      {loading || onboardingLoading ? (
+        <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
+          <LoadingCompanion message="Loading Hyper Tutor..." />
+        </div>
+      ) : (
+        <BrowserRouter>
+          {session ? (
+            <Routes>
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/onboarding" element={<Onboarding session={session} />} />
+              <Route path="/*" element={<Layout session={session} needsOnboarding={needsOnboarding} />}>
+                <Route index element={<Overview />} />
+                <Route path="Dashboard" element={<Overview />} />
+                <Route path="Study" element={<Study />} />
+                <Route path="Study/history/:historyId" element={<StudyHistoryDetail />} />
+                <Route path="Study/:Studyid" element={<StudyEnvironment />} />
+                <Route path="Study/:Studyid/notes/:noteId" element={<NoteDetail />} />
+                <Route path="signup" element={<SignupPage />} />
+                <Route path="signin" element={<LoginPage />} />
+                <Route path="Planner" element={<PlannerPage />} />
+                <Route path="Progress" element={<Progress />} />
+                <Route path="Library" element={<Library session={session} />} />
+                <Route path="Community" element={<Community />} />
+                <Route path="FAQ" element={<FAQ />} />
+                <Route path="Settings" element={<Settings />} />
+                <Route path="*" element={<NotFound />} />
+              </Route>
+            </Routes>
+          ) : (
+            <Routes>
+              <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/onboarding" element={<Onboarding />} />
+              <Route
+                path="/"
+                element={
+                  <AuthLayout>
+                    <SignupPage />
+                  </AuthLayout>
+                }
+              />
+              <Route
+                path="/signup"
+                element={
+                  <AuthLayout>
+                    <SignupPage />
+                  </AuthLayout>
+                }
+              />
+              <Route
+                path="/login"
+                element={
+                  <AuthLayout>
+                    <LoginPage />
+                  </AuthLayout>
+                }
+              />
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          )}
+        </BrowserRouter>
+      )}
     </ErrorBoundary>
   );
 }

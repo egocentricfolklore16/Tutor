@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FileText, Loader2, Sparkles, Trash2, X } from "lucide-react";
+import { Download, FileText, Loader2, Mic, Sparkles, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import invokeAiTutor from "../../../lib/aiTutor";
 
@@ -15,7 +15,10 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
   const [showResourceOptions, setShowResourceOptions] = useState(false);
   const [useResources, setUseResources] = useState(true);
   const [error, setError] = useState("");
+  const [isRecording, setIsRecording] = useState(false);
+
   const knownResourceIdsRef = useRef(null);
+  const mediaRecorderRef = useRef(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -183,6 +186,65 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
     else setNotes((current) => current.filter((note) => note.id !== id));
   };
 
+  const downloadAllNotes = () => {
+    if (notes.length === 0) return;
+    const compiledText = notes
+      .map((note) => `=== ${note.title} ===\nDate: ${new Date(note.created_at).toLocaleString()}\n\n${note.content}\n\n`)
+      .join("\n");
+    const blob = new Blob([compiledText], { type: "text/plain;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${(topic || "session").replace(/[^a-z0-9]/gi, "_").toLowerCase()}_notes.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const toggleMicDictation = async () => {
+    if (isRecording) {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state !== "inactive") {
+        mediaRecorderRef.current.stop();
+      }
+      setIsRecording(false);
+      return;
+    }
+
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError("Audio recording is not supported in this browser environment.");
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream);
+      mediaRecorderRef.current = mediaRecorder;
+      const chunks = [];
+
+      mediaRecorder.ondataavailable = (event) => {
+        if (event.data.size > 0) chunks.push(event.data);
+      };
+
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach((track) => track.stop());
+        if (chunks.length > 0) {
+          await persistNote({
+            title: `Voice Note (${new Date().toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })})`,
+            content: "Audio dictation recorded during session.",
+            source: "voice",
+          });
+        }
+      };
+
+      mediaRecorder.start();
+      setIsRecording(true);
+      setError("");
+    } catch (err) {
+      console.error("Microphone access error:", err);
+      setError("Microphone access was denied or unavailable.");
+      setIsRecording(false);
+    }
+  };
+
   return (
     <div className="space-y-5">
       {error && (
@@ -191,21 +253,48 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
           <button type="button" aria-label="Dismiss error" onClick={() => setError("")}><X className="h-4 w-4" /></button>
         </div>
       )}
+
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-slate-500 dark:text-slate-400">Keep key ideas close while you study.</p>
-        <button
-          type="button"
-          onClick={() => {
-            setShowResourceOptions(true);
-            void fetchResources();
-          }}
-          disabled={!studyId || isGenerating}
-          className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          <Sparkles className={`h-4 w-4 ${isGenerating ? "animate-pulse" : ""}`} />
-          {isGenerating ? "Creating notes..." : "Create AI notes"}
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={downloadAllNotes}
+            disabled={notes.length === 0}
+            aria-label="Download notes as text file"
+            title="Download notes as text file"
+            className="flex h-10 w-10 items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:bg-slate-100 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            <Download className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={toggleMicDictation}
+            aria-label={isRecording ? "Stop voice dictation" : "Start voice dictation"}
+            title={isRecording ? "Stop voice dictation" : "Start voice dictation"}
+            className={`flex h-10 w-10 items-center justify-center rounded-xl border shadow-sm transition ${
+              isRecording
+                ? "border-rose-500 bg-rose-500 text-white animate-pulse"
+                : "border-slate-200 bg-white text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            }`}
+          >
+            <Mic className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setShowResourceOptions(true);
+              void fetchResources();
+            }}
+            disabled={!studyId || isGenerating}
+            className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Sparkles className={`h-4 w-4 ${isGenerating ? "animate-pulse" : ""}`} />
+            {isGenerating ? "Creating notes..." : "Create AI notes"}
+          </button>
+        </div>
       </div>
+
       {showResourceOptions && (
         <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
           <section
@@ -284,11 +373,6 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
                 ))}
               </div>
             )}
-            {useResources && (
-              <p className="mt-2 text-xs leading-5 text-slate-500 dark:text-slate-400">
-                Text PDFs, DOCX, TXT, Markdown, and CSV files are readable. Images use OpenAI vision; scanned PDFs and web links are not extracted.
-              </p>
-            )}
 
             <div className="mt-5 flex justify-end gap-2">
               <button
@@ -310,6 +394,7 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
           </section>
         </div>
       )}
+
       {isLoading ? (
         <p className="py-8 text-center text-sm text-slate-500">Loading notes...</p>
       ) : notes.length === 0 ? (
@@ -318,7 +403,7 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
             <FileText className="h-5 w-5" />
           </div>
           <p className="font-semibold text-slate-700 dark:text-slate-200">Your notes will live here</p>
-          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create a clear, organized set of notes with AI.</p>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Create a clear, organized set of notes with AI or dictate via microphone.</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -336,6 +421,11 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
                   {note.source === "ai" && (
                     <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-violet-700 dark:bg-violet-950/50 dark:text-violet-300">
                       <Sparkles className="h-3 w-3" /> AI organized
+                    </span>
+                  )}
+                  {note.source === "voice" && (
+                    <span className="mt-2 inline-flex items-center gap-1 rounded-full bg-rose-50 px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-rose-700 dark:bg-rose-950/50 dark:text-rose-300">
+                      <Mic className="h-3 w-3" /> Voice note
                     </span>
                   )}
                   <p className="mt-3 line-clamp-3 whitespace-pre-line text-sm leading-6 text-slate-600 dark:text-slate-400">

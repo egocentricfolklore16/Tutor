@@ -9,6 +9,7 @@ import {
   Timer,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { syncSessionToGoogleCalendar } from "../../lib/googleCalendarSync.js";
 import Calendar from "./Calendar";
 import PlannerActivityModal from "./PlannerActivityModal";
 import DeadlineManager from "./DeadlineManager";
@@ -119,7 +120,7 @@ const PlannerPage = () => {
             : "Error loading study sessions: " + error.message);
           console.error("Error fetching study sessions:", error);
         } else {
-            const mappedSessions = data.map((session) => {
+          const mappedSessions = data.map((session) => {
             let color = "bg-blue-500";
             switch (session.Status?.trim().toLowerCase()) {
               case "very important":
@@ -204,35 +205,50 @@ const PlannerPage = () => {
   const handleCreateSession = async () => {
     if (!newSession.title.trim() || !newSession.subject || !newSession.status || !newSession.date) return;
     setIsSavingSession(true);
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
       setFetchError("User not authenticated");
       setIsSavingSession(false);
       return;
     }
-    const { data, error } = await supabase.from("Study").insert([{
-      Subject: newSession.subject,
-      Topic: newSession.title.trim(),
-      Status: newSession.status,
-      Date: newSession.date,
-      Start: newSession.startTime,
-      Duration: Number(newSession.duration) / 60,
-      recurring: newSession.recurring,
-      reminder_minutes: newSession.reminder,
-      deadline: activityMode === "deadline" ? newSession.date : null,
-      activity_type: activityMode === "deadline" ? "deadline" : "study",
-      session_status: "active",
-      muted: false,
-      user_id: user.id,
-    }]).select("id,Subject,Topic,Status,Date,Start,Duration,recurring,reminder_minutes,deadline,activity_type,session_status").single();
-    if (error) {
-      setFetchError("Failed to create session: " + error.message);
-    } else {
+
+    try {
+      const { data, error } = await supabase.from("Study").insert([{
+        Subject: newSession.subject,
+        Topic: newSession.title.trim(),
+        Status: newSession.status,
+        Date: newSession.date,
+        Start: newSession.startTime,
+        Duration: Number(newSession.duration) / 60,
+        recurring: newSession.recurring,
+        reminder_minutes: newSession.reminder,
+        deadline: activityMode === "deadline" ? newSession.date : null,
+        activity_type: activityMode === "deadline" ? "deadline" : "study",
+        session_status: "active",
+        muted: false,
+        user_id: user.id,
+      }]).select("id,Subject,Topic,Status,Date,Start,Duration,recurring,reminder_minutes,deadline,activity_type,session_status").single();
+
+      if (error) {
+        throw error;
+      }
+
       const nextSession = {
-        id: data.id, title: data.Topic, subject: data.Subject, type: "study", status: data.Status,
-        date: new Date(data.Date), startTime: data.Start, endTime: calculateEndTime(data.Start, data.Duration),
-        duration: data.Duration, recurring: data.recurring || "none", reminder: data.reminder_minutes ?? 15,
-        deadline: data.deadline, activityType: data.activity_type || "study", sessionStatus: data.session_status || "active",
+        id: data.id,
+        title: data.Topic,
+        subject: data.Subject,
+        type: "study",
+        status: data.Status,
+        date: new Date(data.Date),
+        startTime: data.Start,
+        endTime: calculateEndTime(data.Start, data.Duration),
+        duration: data.Duration,
+        recurring: data.recurring || "none",
+        reminder: data.reminder_minutes ?? 15,
+        deadline: data.deadline,
+        activityType: data.activity_type || "study",
+        sessionStatus: data.session_status || "active",
         color: data.Status === "very important" ? "bg-red-500" : data.Status === "not so important" ? "bg-emerald-500" : "bg-amber-500",
       };
 
@@ -248,10 +264,40 @@ const PlannerPage = () => {
         context: "planner",
       }, preferences);
 
-      setNewSession({ title: "", subject: "", status: "medium", date: selectedDate, startTime: "09:00", duration: 60, recurring: "none", reminder: 15, purpose: "", blockStart: "09:00", blockEnd: "11:00" });
+      const googleSyncPayload = {
+        title: data.Topic || newSession.title.trim(),
+        subject: data.Subject || newSession.subject,
+        date: data.Date,
+        startTime: data.Start,
+        duration: Number(data.Duration || Number(newSession.duration) / 60) * 60,
+      };
+
+      const syncResult = await syncSessionToGoogleCalendar(googleSyncPayload);
+      if (!syncResult.success) {
+        console.warn("Google Calendar sync skipped or failed:", syncResult.message);
+      }
+
+      setNewSession({
+        title: "",
+        subject: "",
+        status: "medium",
+        date: selectedDate,
+        startTime: "09:00",
+        duration: 60,
+        recurring: "none",
+        reminder: 15,
+        purpose: "",
+        blockStart: "09:00",
+        blockEnd: "11:00",
+      });
       setActivityMode(null);
+      setFetchError("");
+    } catch (err) {
+      console.error("Failed to create study session:", err);
+      setFetchError("Failed to create session: " + err.message);
+    } finally {
+      setIsSavingSession(false);
     }
-    setIsSavingSession(false);
   };
 
   const handleAddActivity = (date, mode = "session") => {
@@ -339,14 +385,17 @@ const PlannerPage = () => {
         </div>
         <button
           onClick={() => handleAddActivity(selectedDate)}
-          className="hidden min-h-11 shrink-0 items-center space-x-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed sm:inline-flex"
+          className="hidden min-h-11 shrink-0 items-center space-x-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed lg:inline-flex"
           disabled={isLoadingSessions}
         >
           <Plus className="w-4 h-4" />
           <span>Create new</span>
         </button>
       </div>
-      <button type="button" onClick={() => handleAddActivity(selectedDate)} disabled={isLoadingSessions} className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 sm:hidden"><Plus className="h-4 w-4" />+ Create new</button>
+      <button type="button" onClick={() => handleAddActivity(selectedDate)} disabled={isLoadingSessions} className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 disabled:cursor-not-allowed lg:hidden">
+        <Plus className="h-4 w-4" />
+        Create new
+      </button>
 
       <div className="mb-6">
         <NotificationPromptCard userId={profile?.user_id} />
@@ -374,33 +423,33 @@ const PlannerPage = () => {
           <DeadlineManager sessions={sessions} onAddActivity={() => handleAddActivity(selectedDate, "deadline")} />
           <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2">
             <div className="flex min-w-0 items-center gap-1">
-              <button type="button" onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }} className="min-h-11 shrink-0 rounded-full bg-blue-50 px-4 py-2.5 text-sm font-semibold text-blue-700 transition-colors hover:bg-blue-100">Today</button>
-              <button type="button" onClick={() => navigateWeek(-1)} title="Previous week" aria-label="Previous week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronLeft className="h-5 w-5" /></button>
-              <button type="button" onClick={() => navigateWeek(1)} title="Next week" aria-label="Next week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full text-slate-500 transition-colors hover:bg-slate-100 hover:text-slate-900"><ChevronRight className="h-5 w-5" /></button>
+              <button type="button" onClick={() => { const today = new Date(); setCurrentDate(today); setSelectedDate(today); }} className="min-h-11 shrink-0 rounded-full bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 sm:text-sm">Today</button>
+              <button type="button" onClick={() => navigateWeek(-1)} title="Previous week" aria-label="Previous week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"><ChevronLeft className="h-4 w-4" /></button>
+              <button type="button" onClick={() => navigateWeek(1)} title="Next week" aria-label="Next week" className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900"><ChevronRight className="h-4 w-4" /></button>
               <h2 className="min-w-0 flex-1 text-center text-sm font-bold text-slate-900 sm:text-xl">{formatWeekRange()}</h2>
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
-            <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-sm sm:gap-2 sm:px-4 sm:text-sm">
-              <CalendarDays className="h-4 w-4 text-slate-500" /><span className="sr-only">Select date</span>
-              <input type="date" value={selectedDate.toISOString().slice(0, 10)} onChange={setPlannerDate} className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-700 outline-none sm:w-[125px] sm:text-sm" />
-            </label>
-            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Timer className="h-4 w-4" />Focus</button>
-            <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition-colors hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Filter className="h-4 w-4" />Filters</button>
+              <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-sm sm:gap-2 sm:px-4 sm:text-sm">
+                <CalendarDays className="h-4 w-4 text-slate-500" /><span className="sr-only">Select date</span>
+                <input type="date" value={selectedDate.toISOString().slice(0, 10)} onChange={setPlannerDate} className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-700 outline-none sm:text-xs" />
+              </label>
+              <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Filter className="h-4 w-4 text-slate-500" />Filter</button>
+              <button type="button" className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm"><Timer className="h-4 w-4 text-slate-500" />Focus</button>
             </div>
           </div>
 
           <div>
-              <Calendar
-                currentDate={currentDate}
-                selectedDate={selectedDate}
-                setSelectedDate={setSelectedDate}
-                sessions={sessions}
-                handleDragStart={handleDragStart}
-                handleDrop={handleDrop}
-                setSelectedSession={setSelectedSession}
-                selectedSession={selectedSession}
-                onAddActivity={handleAddActivity}
-              />
+            <Calendar
+              currentDate={currentDate}
+              selectedDate={selectedDate}
+              setSelectedDate={setSelectedDate}
+              sessions={sessions}
+              handleDragStart={handleDragStart}
+              handleDrop={handleDrop}
+              setSelectedSession={setSelectedSession}
+              selectedSession={selectedSession}
+              onAddActivity={handleAddActivity}
+            />
           </div>
 
           <div className="mb-6 flex flex-col gap-4">

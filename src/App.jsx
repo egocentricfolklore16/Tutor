@@ -173,11 +173,9 @@ function App() {
     };
   }, []);
 
-  const appReady = !loading && !onboardingLoading;
-
   return (
     <ErrorBoundary>
-      <SplashScreen appReady={appReady} />
+      <SplashScreen />
       {loading || onboardingLoading ? (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
           <LoadingCompanion message="Loading Hyper Tutor..." />

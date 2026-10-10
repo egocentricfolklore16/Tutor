@@ -1,10 +1,12 @@
 import { useEffect, useState, useRef } from "react";
+import { createPortal } from "react-dom";
 
-export default function SplashScreen({ appReady = true, onUnmount }) {
+export default function SplashScreen({ onUnmount }) {
   const [exiting, setExiting] = useState(false);
   const [isMounted, setIsMounted] = useState(true);
-  const sequenceFinishedRef = useRef(false);
   const exitTriggeredRef = useRef(false);
+  const exitTimerRef = useRef(null);
+  const unmountTimerRef = useRef(null);
 
   // Lock body scroll while splash is active
   useEffect(() => {
@@ -16,50 +18,51 @@ export default function SplashScreen({ appReady = true, onUnmount }) {
     };
   }, []);
 
-  // Handle exit phase and unmount cleanup
-  const triggerExit = () => {
-    if (exitTriggeredRef.current) return;
-    exitTriggeredRef.current = true;
-    setExiting(true);
-
-    const unmountTimer = setTimeout(() => {
-      setIsMounted(false);
-      if (onUnmount) onUnmount();
-    }, 400);
-
-    return unmountTimer;
-  };
-
+  // Handle automatic 2.0s timeline sequence
   useEffect(() => {
-    // Sequence completes after ~2.2s
-    const sequenceTimer = setTimeout(() => {
-      sequenceFinishedRef.current = true;
-      if (appReady) {
-        triggerExit();
-      }
-    }, 2200);
+    // 1.5s: Begin 500ms fade-out phase
+    exitTimerRef.current = setTimeout(() => {
+      if (exitTriggeredRef.current) return;
+      exitTriggeredRef.current = true;
+      setExiting(true);
+
+      // 2.0s total: Complete unmount
+      unmountTimerRef.current = setTimeout(() => {
+        setIsMounted(false);
+        if (onUnmount) onUnmount();
+      }, 500);
+    }, 1500);
 
     return () => {
-      clearTimeout(sequenceTimer);
+      if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+      if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
     };
-  }, []);
+  }, [onUnmount]);
 
-  // Hold on final frame if app is not ready yet, then exit as soon as app is ready
-  useEffect(() => {
-    if (sequenceFinishedRef.current && appReady) {
-      triggerExit();
-    }
-  }, [appReady]);
+  // Tap or click skips splash screen immediately with quick fade-out
+  const handleSkip = () => {
+    if (exitTriggeredRef.current) return;
+    exitTriggeredRef.current = true;
+
+    if (exitTimerRef.current) clearTimeout(exitTimerRef.current);
+    if (unmountTimerRef.current) clearTimeout(unmountTimerRef.current);
+
+    setExiting(true);
+    unmountTimerRef.current = setTimeout(() => {
+      setIsMounted(false);
+      if (onUnmount) onUnmount();
+    }, 200);
+  };
 
   if (!isMounted) return null;
 
-  return (
+  const splashContent = (
     <div
       role="presentation"
-      onClick={triggerExit}
+      onClick={handleSkip}
       aria-label="Skip splash screen"
-      className={`fixed inset-0 z-[100] h-[100dvh] w-screen flex flex-col items-center justify-center select-none cursor-pointer transition-all duration-400 ease-in-out ${
-        exiting ? "opacity-0 -translate-y-4 pointer-events-none" : "opacity-100 translate-y-0"
+      className={`fixed inset-0 z-[9999] h-[100dvh] w-screen flex flex-col items-center justify-center select-none cursor-pointer pointer-events-auto transition-opacity duration-500 ease-in-out ${
+        exiting ? "opacity-0" : "opacity-100"
       } bg-slate-50 text-slate-900 dark:bg-[#0F1115] dark:text-slate-100 animate-splash-bg`}
     >
       <div className="relative flex flex-col items-center justify-center p-6 text-center">
@@ -91,4 +94,6 @@ export default function SplashScreen({ appReady = true, onUnmount }) {
       </div>
     </div>
   );
+
+  return createPortal(splashContent, document.body);
 }

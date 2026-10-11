@@ -4,17 +4,31 @@ import {
   Paperclip,
   Trash2,
   Flag,
+  Copy,
   ArrowLeft,
   Users,
   Loader2,
   AlertCircle,
   RefreshCw,
   X,
+  Smile,
+  ChevronDown,
+  Calendar,
+  CheckCheck,
+  MoreVertical,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import ResourcePicker from "./ResourcePicker";
 import ResourceCard from "./ResourceCard";
-import { groupMessagesByDateAndSender } from "../../lib/communityChat";
+import {
+  groupMessagesByDateAndSender,
+  saveChatDraft,
+  getChatDraft,
+  clearChatDraft,
+  parseLinksInText,
+} from "../../lib/communityChat";
+
+const EMOJI_LIST = ["😀", "😂", "😍", "👍", "❤️", "🔥", "🎉", "📚", "💡", "👏", "💯", "🙏", "✨", "🙌", "🎓", "⭐"];
 
 export default function ChatThread({
   conversationId,
@@ -24,29 +38,47 @@ export default function ChatThread({
 }) {
   const [conversation, setConversation] = useState(null);
   const [peerProfile, setPeerProfile] = useState(null);
+  const [peerLastReadAt, setPeerLastReadAt] = useState(null);
   const [senderProfiles, setSenderProfiles] = useState({});
   const [groupDetails, setGroupDetails] = useState(null);
   const [groupMemberCount, setGroupMemberCount] = useState(0);
+  const [groupMembers, setGroupMembers] = useState([]);
+  const [showGroupMembersSheet, setShowGroupMembersSheet] = useState(false);
 
   const [messages, setMessages] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingOlder, setLoadingOlder] = useState(false);
   const [hasMoreOlder, setHasMoreOlder] = useState(true);
 
-  const [inputContent, setInputContent] = useState("");
+  const [inputContent, setInputContent] = useState(() => getChatDraft(conversationId));
   const [selectedResource, setSelectedResource] = useState(null);
   const [showResourcePicker, setShowResourcePicker] = useState(false);
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+
+  // Typing & Presence state
+  const [isPeerTyping, setIsPeerTyping] = useState(false);
+  const [isPeerOnline, setIsPeerOnline] = useState(false);
+  const typingTimerRef = useRef(null);
+
+  // Scroll & Unread Jump State
+  const [showJumpToLatest, setShowJumpToLatest] = useState(false);
+  const [newMessagesCount, setNewMessagesCount] = useState(0);
+  const [firstUnreadMsgId, setFirstUnreadMsgId] = useState(null);
 
   // Reporting modal
   const [reportingMsgId, setReportingMsgId] = useState(null);
   const [reportReason, setReportReason] = useState("");
   const [reportSubmitting, setReportSubmitting] = useState(false);
 
+  // Active action menu for touch/mobile or hover
+  const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+
   // Friendly toast notifications
   const [toastMessage, setToastMessage] = useState(null);
 
   const threadContainerRef = useRef(null);
-  const isInitialScrollDone = useRef(false);
+  const textareaRef = useRef(null);
+  const isUserNearBottom = useRef(true);
 
   const showToast = (msg) => {
     setToastMessage(msg);
@@ -68,6 +100,73 @@ export default function ChatThread({
       console.error("Failed to update last_read_at:", err);
     }
   }, [conversationId, currentUserId]);
+
+  // Load draft on conversation change
+  useEffect(() => {
+    setInputContent(getChatDraft(conversationId));
+  }, [conversationId]);
+
+  // Save draft on input change
+  const handleInputChange = (e) => {
+    const text = e.target.value;
+    setInputContent(text);
+    saveChatDraft(conversationId, text);
+
+    // Broadcast typing state
+    sendTypingBroadcast();
+
+    // Auto-grow textarea up to 5 lines
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  };
+
+  // Realtime Broadcast & Presence for typing and online status
+  useEffect(() => {
+    if (!conversationId || !currentUserId) return;
+
+    const channel = supabase.channel(`chat_presence:${conversationId}`, {
+      config: { presence: { key: currentUserId } },
+    });
+
+    channel
+      .on("presence", { event: "sync" }, () => {
+        const state = channel.presenceState();
+        const peerIds = Object.keys(state).filter((id) => id !== currentUserId);
+        setIsPeerOnline(peerIds.length > 0);
+      })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        if (payload.payload?.userId !== currentUserId) {
+          setIsPeerTyping(Boolean(payload.payload?.isTyping));
+          clearTimeout(typingTimerRef.current);
+          if (payload.payload?.isTyping) {
+            typingTimerRef.current = setTimeout(() => {
+              setIsPeerTyping(false);
+            }, 3000);
+          }
+        }
+      })
+      .subscribe(async (status) => {
+        if (status === "SUBSCRIBED") {
+          await channel.track({ online_at: new Date().toISOString() });
+        }
+      });
+
+    return () => {
+      supabase.removeChannel(channel);
+      clearTimeout(typingTimerRef.current);
+    };
+  }, [conversationId, currentUserId]);
+
+  const sendTypingBroadcast = () => {
+    const channel = supabase.channel(`chat_presence:${conversationId}`);
+    channel.send({
+      type: "broadcast",
+      event: "typing",
+      payload: { userId: currentUserId, isTyping: true },
+    });
+  };
 
   // Fetch conversation info
   useEffect(() => {
@@ -196,17 +295,34 @@ export default function ChatThread({
     fetchInitialMessages();
   }, [fetchInitialMessages]);
 
-  // Scroll to bottom on initial load or new message sent
+  // Scroll to bottom on initial load or smart scroll when new message arrives
   useEffect(() => {
     if (!loading && threadContainerRef.current) {
-      threadContainerRef.current.scrollTop = threadContainerRef.current.scrollHeight;
+      if (isUserNearBottom.current) {
+        threadContainerRef.current.scrollTop = threadContainerRef.current.scrollHeight;
+        setShowJumpToLatest(false);
+        setNewMessagesCount(0);
+      } else {
+        setShowJumpToLatest(true);
+      }
     }
   }, [loading, messages.length]);
 
-  // Load older messages on scroll up
+  const scrollToBottom = () => {
+    if (threadContainerRef.current) {
+      threadContainerRef.current.scrollTop = threadContainerRef.current.scrollHeight;
+      setShowJumpToLatest(false);
+      setNewMessagesCount(0);
+    }
+  };
+
+  // Load older messages on scroll up without jumping scroll position
   const loadOlderMessages = async () => {
-    if (loadingOlder || !hasMoreOlder || messages.length === 0) return;
+    if (loadingOlder || !hasMoreOlder || messages.length === 0 || !threadContainerRef.current) return;
     setLoadingOlder(true);
+    const container = threadContainerRef.current;
+    const oldScrollHeight = container.scrollHeight;
+
     try {
       const oldestTimestamp = messages[0].created_at;
       const { data, error } = await supabase
@@ -230,6 +346,13 @@ export default function ChatThread({
         if (senderIds.length > 0) {
           await fetchSenderProfiles(senderIds);
         }
+
+        // Restore scroll position after prepend
+        requestAnimationFrame(() => {
+          if (container) {
+            container.scrollTop = container.scrollHeight - oldScrollHeight;
+          }
+        });
       }
     } catch (err) {
       console.error("Error loading older messages:", err);
@@ -239,7 +362,16 @@ export default function ChatThread({
   };
 
   const handleScroll = (e) => {
-    if (e.target.scrollTop === 0 && !loadingOlder && hasMoreOlder) {
+    const container = e.target;
+    const isAtBottom = container.scrollHeight - container.scrollTop - container.clientHeight < 120;
+    isUserNearBottom.current = isAtBottom;
+
+    if (isAtBottom) {
+      setShowJumpToLatest(false);
+      setNewMessagesCount(0);
+    }
+
+    if (container.scrollTop === 0 && !loadingOlder && hasMoreOlder) {
       loadOlderMessages();
     }
   };
@@ -304,7 +436,7 @@ export default function ChatThread({
     };
   }, [conversationId, fetchSenderProfiles, updateLastReadAt]);
 
-  // Send message (optimistic send with retry)
+  // Send message (optimistic send with retry & draft clear)
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const content = inputContent.trim();
@@ -327,6 +459,10 @@ export default function ChatThread({
     setMessages((prev) => [...prev, optimisticMessage]);
     setInputContent("");
     setSelectedResource(null);
+    clearChatDraft(conversationId);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
 
     try {
       const { data, error } = await supabase
@@ -386,8 +522,19 @@ export default function ChatThread({
     }
   };
 
+  // Copy message text
+  const handleCopyMessage = (content) => {
+    if (!content) return;
+    navigator.clipboard?.writeText(content).then(
+      () => showToast("Message copied to clipboard!"),
+      () => showToast("Failed to copy message.")
+    );
+    setActiveMenuMsgId(null);
+  };
+
   // Delete own message
   const handleDeleteMessage = async (msgId) => {
+    setActiveMenuMsgId(null);
     try {
       setMessages((prev) => prev.filter((m) => m.id !== msgId));
       const { error } = await supabase
@@ -397,6 +544,7 @@ export default function ChatThread({
         .eq("sender_id", currentUserId);
 
       if (error) throw error;
+      showToast("Message deleted.");
     } catch (err) {
       console.error("Error deleting message:", err);
       showToast("Unable to delete message.");
@@ -438,10 +586,10 @@ export default function ChatThread({
       : groupDetails?.name || "Group Chat";
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[500px] flex-col rounded-3xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-[#14171c] overflow-hidden">
+    <div className="flex h-[100dvh] md:h-full flex-col bg-white dark:bg-[#14171c] overflow-hidden relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="bg-amber-500 text-white text-xs font-bold px-4 py-2 flex items-center justify-between animate-in fade-in">
+        <div className="bg-amber-500 text-white text-xs font-bold px-4 py-2 flex items-center justify-between animate-in fade-in z-30">
           <span>{toastMessage}</span>
           <button type="button" onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/20 rounded">
             <X className="h-3.5 w-3.5" />
@@ -450,7 +598,7 @@ export default function ChatThread({
       )}
 
       {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 bg-white px-5 py-3.5 dark:border-slate-800 dark:bg-[#14171c] z-10">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-[#14171c]/95 z-20">
         <div className="flex items-center gap-3 min-w-0">
           {onBack && (
             <button
@@ -463,49 +611,75 @@ export default function ChatThread({
             </button>
           )}
 
-          {conversation?.type === "direct" ? (
-            peerProfile?.user_img ? (
-              <img
-                src={peerProfile.user_img}
-                alt={titleName}
-                className="h-10 w-10 rounded-full object-cover shrink-0"
-              />
-            ) : (
-              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
-                {titleName.charAt(0).toUpperCase()}
-              </div>
-            )
-          ) : (
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-              <Users className="h-5 w-5" />
+          <div
+            className="flex items-center gap-3 min-w-0 cursor-pointer"
+            onClick={() => conversation?.type === "group" && setShowGroupMembersSheet(true)}
+          >
+            <div className="relative shrink-0">
+              {conversation?.type === "direct" ? (
+                peerProfile?.user_img ? (
+                  <img
+                    src={peerProfile.user_img}
+                    alt={titleName}
+                    className="h-10 w-10 rounded-full object-cover"
+                  />
+                ) : (
+                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-sm">
+                    {titleName.charAt(0).toUpperCase()}
+                  </div>
+                )
+              ) : (
+                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <Users className="h-5 w-5" />
+                </div>
+              )}
+              {conversation?.type === "direct" && isPeerOnline && (
+                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
+              )}
             </div>
-          )}
 
-          <div className="min-w-0">
-            <h3 className="truncate text-base font-bold text-slate-900 dark:text-white">
-              {titleName}
-            </h3>
-            {conversation?.type === "group" && (
-              <p className="text-xs text-slate-500 font-medium">
-                {groupMemberCount} members · {groupDetails?.subject || "Study Group"}
-              </p>
-            )}
-            {conversation?.type === "direct" && (
-              <p className="text-xs text-slate-500 font-medium">
-                @{peerProfile?.username || "user"}
-              </p>
-            )}
+            <div className="min-w-0">
+              <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                {titleName}
+              </h3>
+              {conversation?.type === "group" && (
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {groupMemberCount} members · {groupDetails?.subject || "Study Group"}
+                </p>
+              )}
+              {conversation?.type === "direct" && (
+                <p className="text-[11px] text-slate-500 font-medium">
+                  {isPeerTyping ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">Typing...</span>
+                  ) : isPeerOnline ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Online</span>
+                  ) : (
+                    `@${peerProfile?.username || "user"}`
+                  )}
+                </p>
+              )}
+            </div>
           </div>
         </div>
 
-        {conversation?.type === "group" && onOpenGroupInfo && (
-          <button
-            type="button"
-            onClick={() => onOpenGroupInfo(groupDetails)}
-            className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-300"
-          >
-            Group Info
-          </button>
+        {conversation?.type === "group" && (
+          <div className="flex items-center gap-2">
+            <a
+              href="/Planner"
+              className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+              title="Schedule study session"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Schedule Session</span>
+            </a>
+            <button
+              type="button"
+              onClick={() => setShowGroupMembersSheet(true)}
+              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-300"
+            >
+              Members
+            </button>
+          </div>
         )}
       </div>
 
@@ -542,6 +716,16 @@ export default function ChatThread({
 
             {dateGroups.map((group) => (
               <div key={group.dateLabel} className="space-y-4">
+                {/* Unread Divider */}
+                {firstUnreadMsgId && group.clusters.some((c) => c.messages.some((m) => m.id === firstUnreadMsgId)) && (
+                  <div className="flex items-center my-4">
+                    <div className="flex-1 border-t border-rose-500/50" />
+                    <span className="mx-3 rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
+                      New Messages
+                    </span>
+                    <div className="flex-1 border-t border-rose-500/50" />
+                  </div>
+                )}
                 {/* Calendar Day Divider */}
                 <div className="flex items-center justify-center my-2">
                   <span className="rounded-full bg-slate-200/80 px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
@@ -580,29 +764,60 @@ export default function ChatThread({
                             {/* Actions popup for non-failed messages */}
                             {!msg.failed && (
                               <div
-                                className={`hidden group-hover:flex items-center gap-1 shrink-0 ${
+                                className={`flex items-center gap-1 shrink-0 ${
                                   isOwnCluster ? "order-first" : "order-last"
                                 }`}
                               >
-                                {isOwnCluster ? (
+                                <div className="relative">
                                   <button
                                     type="button"
-                                    onClick={() => handleDeleteMessage(msg.id)}
-                                    className="p-1 text-slate-400 hover:text-rose-600 dark:hover:text-rose-400"
-                                    title="Delete message"
+                                    onClick={() =>
+                                      setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id))
+                                    }
+                                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                                    title="Message options"
                                   >
-                                    <Trash2 className="h-3.5 w-3.5" />
+                                    <MoreVertical className="h-3.5 w-3.5" />
                                   </button>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => setReportingMsgId(msg.id)}
-                                    className="p-1 text-slate-400 hover:text-amber-600 dark:hover:text-amber-400"
-                                    title="Report message"
-                                  >
-                                    <Flag className="h-3.5 w-3.5" />
-                                  </button>
-                                )}
+
+                                  {activeMenuMsgId === msg.id && (
+                                    <div
+                                      className={`absolute bottom-full mb-1 z-30 flex flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-[#18211f] min-w-[110px] ${
+                                        isOwnCluster ? "right-0" : "left-0"
+                                      }`}
+                                    >
+                                      {msg.content && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleCopyMessage(msg.content)}
+                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                        >
+                                          <Copy className="h-3.5 w-3.5" /> Copy
+                                        </button>
+                                      )}
+                                      {isOwnCluster ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleDeleteMessage(msg.id)}
+                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                        >
+                                          <Trash2 className="h-3.5 w-3.5" /> Delete
+                                        </button>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          onClick={() => {
+                                            setActiveMenuMsgId(null);
+                                            setReportingMsgId(msg.id);
+                                          }}
+                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                        >
+                                          <Flag className="h-3.5 w-3.5" /> Report
+                                        </button>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
 
@@ -616,7 +831,21 @@ export default function ChatThread({
                             >
                               {msg.content && (
                                 <p className="leading-relaxed whitespace-pre-wrap break-words">
-                                  {msg.content}
+                                  {parseLinksInText(msg.content).map((part, pIdx) =>
+                                    part.type === "link" ? (
+                                      <a
+                                        key={pIdx}
+                                        href={part.value}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="underline hover:opacity-80 font-semibold"
+                                      >
+                                        {part.value}
+                                      </a>
+                                    ) : (
+                                      <React.Fragment key={pIdx}>{part.value}</React.Fragment>
+                                    )
+                                  )}
                                 </p>
                               )}
 
@@ -625,7 +854,7 @@ export default function ChatThread({
                                 <ResourceCard resourceId={msg.resource_id} />
                               )}
 
-                              {/* Footer timestamp & retry */}
+                              {/* Footer timestamp & status */}
                               <div
                                 className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
                                   isOwnCluster
@@ -640,7 +869,7 @@ export default function ChatThread({
                                   })}
                                 </span>
 
-                                {msg.failed && (
+                                {msg.failed ? (
                                   <button
                                     type="button"
                                     onClick={() => handleRetrySend(msg)}
@@ -648,7 +877,11 @@ export default function ChatThread({
                                   >
                                     <RefreshCw className="h-3 w-3" /> Retry
                                   </button>
-                                )}
+                                ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && new Date(peerLastReadAt).getTime() >= new Date(msg.created_at).getTime() ? (
+                                  <span className="inline-flex items-center gap-0.5 text-emerald-200 font-bold ml-1">
+                                    <CheckCheck className="h-3 w-3" /> Seen
+                                  </span>
+                                ) : null}
                               </div>
                             </div>
                           </div>
@@ -662,6 +895,20 @@ export default function ChatThread({
           </>
         )}
       </div>
+
+      {/* Jump to Latest Floating Button */}
+      {showJumpToLatest && (
+        <div className="absolute bottom-16 right-4 z-20">
+          <button
+            type="button"
+            onClick={scrollToBottom}
+            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-emerald-700 transition animate-bounce"
+          >
+            <ChevronDown className="h-4 w-4" />
+            <span>Latest messages</span>
+          </button>
+        </div>
+      )}
 
       {/* Selected Resource Preview Bar */}
       {selectedResource && (
@@ -680,38 +927,112 @@ export default function ChatThread({
         </div>
       )}
 
-      {/* Input Action Bar */}
+      {/* Emoji Picker Popover */}
+      {showEmojiPicker && (
+        <div className="absolute bottom-16 left-4 z-30 p-2 rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#18211f] grid grid-cols-8 gap-1">
+          {EMOJI_LIST.map((emoji) => (
+            <button
+              key={emoji}
+              type="button"
+              onClick={() => {
+                const text = inputContent + emoji;
+                setInputContent(text);
+                saveChatDraft(conversationId, text);
+                setShowEmojiPicker(false);
+              }}
+              className="p-1.5 text-base hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+            >
+              {emoji}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {/* Input Action Composer */}
       <form
         onSubmit={handleSendMessage}
-        className="flex items-center gap-2 border-t border-slate-100 bg-white p-3.5 dark:border-slate-800 dark:bg-[#14171c]"
+        className="flex items-end gap-2 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#14171c] z-10"
       >
         <button
           type="button"
+          onClick={() => setShowEmojiPicker((prev) => !prev)}
+          className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition"
+          aria-label="Add emoji"
+          title="Add emoji"
+        >
+          <Smile className="h-5 w-5" />
+        </button>
+
+        <button
+          type="button"
           onClick={() => setShowResourcePicker(true)}
-          className="rounded-full p-2.5 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition"
+          className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition"
           aria-label="Attach a study resource"
           title="Share resource"
         >
           <Paperclip className="h-5 w-5" />
         </button>
 
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
+          rows={1}
           value={inputContent}
-          onChange={(e) => setInputContent(e.target.value)}
+          onChange={handleInputChange}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey && window.innerWidth >= 768) {
+              e.preventDefault();
+              handleSendMessage(e);
+            }
+          }}
           placeholder="Write a message..."
-          className="min-w-0 flex-1 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+          className="min-w-0 flex-1 max-h-[120px] resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
         />
 
         <button
           type="submit"
           disabled={!inputContent.trim() && !selectedResource}
-          className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-sm transition hover:bg-emerald-700 disabled:opacity-40"
+          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />
         </button>
       </form>
+
+      {/* Group Members Sheet */}
+      {showGroupMembersSheet && (
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs" onClick={() => setShowGroupMembersSheet(false)}>
+          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+              <div>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">{groupDetails?.name || "Group Members"}</h3>
+                <p className="text-xs text-slate-500">{groupMembers.length} active members</p>
+              </div>
+              <button type="button" onClick={() => setShowGroupMembersSheet(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
+            </div>
+
+            <div className="mt-4 max-h-[60vh] overflow-y-auto space-y-2">
+              {groupMembers.map((m) => (
+                <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#18211f]">
+                  <div className="flex items-center gap-3">
+                    {m.profile?.user_img ? (
+                      <img src={m.profile.user_img} alt={m.profile.username} className="h-8 w-8 rounded-full object-cover" />
+                    ) : (
+                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
+                        {(m.profile?.full_name || m.profile?.username || "U").charAt(0).toUpperCase()}
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-bold text-slate-900 dark:text-white">{m.profile?.full_name || m.profile?.username || "Member"}</p>
+                      <p className="text-[10px] text-slate-500">@{m.profile?.username || "user"}</p>
+                    </div>
+                  </div>
+                  <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">{m.role || "member"}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Resource Picker Modal */}
       <ResourcePicker

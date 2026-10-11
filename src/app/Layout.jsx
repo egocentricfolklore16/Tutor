@@ -6,9 +6,11 @@ import DashboardHeader from "../components/Dashboard/DashboardHeader";
 import GlobalAITutorFab from "../components/common/GlobalAITutorFab";
 import InstallPrompt from "../components/InstallPrompt";
 import NotificationPromptCard from "../components/Notifications/NotificationPromptCard";
+import InAppToast from "../components/Notifications/InAppToast";
 import BottomNavBar from "../components/common/BottomNavBar";
 import { ProfileProvider, useProfile } from "./ProfileContext";
 import { AITutorProvider } from "./AITutorContext";
+import { InAppNotificationProvider } from "../hooks/useInAppNotifications";
 
 function GlobalStudyCompanion() {
   const { profile } = useProfile();
@@ -57,25 +59,27 @@ function Layout({ session, needsOnboarding }) {
   return (
     <ProfileProvider user={user}>
       <AITutorProvider session={session}>
-        <div className="mainapp">
-        <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
+        <InAppNotificationProvider user={user}>
+          <div className="mainapp">
+            <InAppToast />
+            <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
 
-        <div
-          className={`pagecontent ${
-            isSidebarExpanded ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
-          } transition-all duration-200 ease-in-out`}
-          style={{
-            "--app-sidebar-width": isSidebarExpanded ? "15rem" : "4rem",
-          }}
-        >
-          <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
+            <div
+              className={`pagecontent ${
+                isSidebarExpanded ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
+              } transition-all duration-200 ease-in-out`}
+              style={{
+                "--app-sidebar-width": isSidebarExpanded ? "15rem" : "4rem",
+              }}
+            >
+              <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
 
-          {/* Post-install notification opt-in prompt for standalone launch / installed users */}
-          {user?.id && isStandalone && !isStudyEnvironment && (
-            <div className="px-5 pt-4 md:px-10">
-              <NotificationPromptCard userId={user.id} />
-            </div>
-          )}
+              {/* Post-install notification opt-in prompt for standalone launch / installed users */}
+              {user?.id && isStandalone && !isStudyEnvironment && (
+                <div className="px-5 pt-4 md:px-10">
+                  <NotificationPromptCard userId={user.id} />
+                </div>
+              )}
 
           <div key={location.pathname} className="page-enter">
             {isFullWidthPage ? (
@@ -84,24 +88,29 @@ function Layout({ session, needsOnboarding }) {
               <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
                 <div className="min-w-0 flex-1">
                   <Outlet />
-                </div>
-                <section className="hidden w-full self-start px-5 pb-8 md:px-10 lg:block xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
-                  <GlobalStudyCompanion />
-                </section>
+                ) : (
+                  <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+                    <div className="min-w-0 flex-1">
+                      <Outlet />
+                    </div>
+                    <section className="hidden w-full self-start px-5 pb-8 md:px-10 lg:block xl:sticky xl:top-24 xl:w-[320px] xl:shrink-0 xl:px-0">
+                      <GlobalStudyCompanion />
+                    </section>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
+
+            {/* Mobile Navigation Tab Bar */}
+            <BottomNavBar />
+
+            {/* Global Persistent AI Tutor FAB & Portal Drawer */}
+            <GlobalAITutorFab session={session} />
+
+            {/* Install Hyper Tutor Prompt Card */}
+            <InstallPrompt userId={user?.id} />
           </div>
-        </div>
-
-        {/* Mobile Navigation Tab Bar */}
-        <BottomNavBar />
-
-        {/* Global Persistent AI Tutor FAB & Portal Drawer */}
-        <GlobalAITutorFab session={session} />
-
-        {/* Install Hyper Tutor Prompt Card */}
-        <InstallPrompt userId={user?.id} />
-        </div>
+        </InAppNotificationProvider>
       </AITutorProvider>
     </ProfileProvider>
   );

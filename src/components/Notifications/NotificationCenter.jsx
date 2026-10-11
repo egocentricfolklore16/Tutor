@@ -2,6 +2,7 @@ import React, { useState, useEffect, useId } from "react";
 import {
   BellRing,
   CheckCheck,
+  Trash2,
   X,
   UserPlus,
   MessageSquare,
@@ -9,9 +10,15 @@ import {
   Calendar,
   Check,
   Loader2,
+  AlertCircle,
+  Clock,
+  Radio,
+  ChevronRight,
+  Info,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useInAppNotifications } from "../../hooks/useInAppNotifications";
+import { getNotificationDetails, groupNotificationsByDate } from "../../lib/inAppNotifications";
 import { formatRelativeTime } from "../../lib/communityChat";
 import supabase from "../../lib/supabase";
 import ErrorBoundary from "../common/ErrorBoundary";
@@ -20,20 +27,26 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
   const titleId = useId();
   const navigate = useNavigate();
   const {
-    userId,
     notifications,
     actorProfiles,
     loading,
+    error,
     unreadCount,
     markAsRead,
     markAllAsRead,
+    deleteNotification,
+    deleteAllNotifications,
+    refreshNotifications,
   } = useInAppNotifications();
 
   const [actionLoading, setActionLoading] = useState({});
   const [actionDone, setActionDone] = useState({});
+  const [rsvpState, setRsvpState] = useState({});
+  const [showClearConfirm, setShowClearConfirm] = useState(false);
 
-  // Escape key listener
+  // Escape key listener for modal drawer mode
   useEffect(() => {
+    if (inlineMode) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         onClose?.();
@@ -41,9 +54,9 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
+  }, [inlineMode, onClose]);
 
-  // Handle Friend Request Accept/Decline
+  // Friend request accept / decline
   const handleFriendRequestAction = async (notification, status) => {
     const friendshipId = notification.payload?.friendship_id;
     if (!friendshipId) {
@@ -85,7 +98,7 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
     }
   };
 
-  // Handle Group Join Request Approve/Decline
+  // Group join request approve / decline
   const handleGroupJoinRequestAction = async (notification, approved) => {
     const groupId = notification.payload?.group_id;
     const requesterId = notification.actor_id;
@@ -110,7 +123,10 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
       }
 
       await markAsRead(notification.id);
-      setActionDone((prev) => ({ ...prev, [notification.id]: approved ? "Approved" : "Declined" }));
+      setActionDone((prev) => ({
+        ...prev,
+        [notification.id]: approved ? "Approved" : "Declined",
+      }));
     } catch (err) {
       console.error("Error responding to group join request:", err);
     } finally {
@@ -118,19 +134,28 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
     }
   };
 
-  // Handle Message Button on Accepted Request
-  const handleStartMessage = async (notification) => {
-    const actorId = notification.actor_id;
-    if (!actorId) return;
+  // RSVP response (Going / Maybe / Can't)
+  const handleRSVPAction = async (notification, status) => {
+    const sessionId = notification.payload?.session_id || notification.payload?.group_study_session_id;
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (!sessionId || !user) return;
 
     setActionLoading((prev) => ({ ...prev, [notification.id]: true }));
     try {
-      const { data: convId, error } = await supabase.rpc(
-        "get_or_create_direct_conversation",
-        { p_other_user_id: actorId }
-      );
+      const { error: rsvpErr } = await supabase
+        .from("group_study_session_participants")
+        .upsert(
+          {
+            session_id: sessionId,
+            user_id: user.id,
+            status,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "session_id,user_id" }
+        );
 
-      if (error) throw error;
+      if (rsvpErr) throw rsvpErr;
 
       await markAsRead(notification.id);
       onClose?.();
@@ -141,22 +166,22 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
         navigate(`/Community/chat/${convId}`);
       }
     } catch (err) {
-      console.error("Error starting direct conversation:", err);
+      console.error("Error updating session RSVP:", err);
     } finally {
       setActionLoading((prev) => ({ ...prev, [notification.id]: false }));
     }
   };
 
-  // Handle Open Session Button
-  const handleOpenSession = async (notification) => {
-    const sessionId = notification.payload?.session_id || notification.payload?.group_study_session_id;
+  // Deep-link navigation on row tap
+  const handleNotificationTap = async (notification) => {
     await markAsRead(notification.id);
-    onClose?.();
+    if (!inlineMode) onClose?.();
 
-    if (onOpenSession) {
-      onOpenSession(sessionId);
-    } else {
-      navigate("/Community", { state: { openSessionId: sessionId } });
+    const actorName = actorProfiles[notification.actor_id]?.full_name || "Someone";
+    const details = getNotificationDetails(notification, actorName);
+
+    if (details.route) {
+      navigate(details.route);
     }
   };
 

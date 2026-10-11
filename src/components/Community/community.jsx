@@ -27,6 +27,7 @@ import {
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import PageContainer from "../common/PageContainer";
 import ChatInbox from "./ChatInbox";
 import ChatThread from "./ChatThread";
@@ -48,6 +49,9 @@ const Community = () => {
   const params = useParams();
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
+  const { conversationId } = useParams();
+  const location = useLocation();
+  const { setActiveConversationId: setGlobalActiveConversationId } = useInAppNotifications();
 
   const [activeTab, setActiveTab] = useState("leaderboard"); // 'leaderboard' | 'friends' | 'groups' | 'chat' | 'feed'
   const [openSessionId, setOpenSessionId] = useState(null);
@@ -177,7 +181,7 @@ const Community = () => {
     } catch (err) {
       console.error("Error fetching friends:", err);
       setFriendsError(err.message || "Failed to load friends.");
-    } finally {
+    } fontally {
       setFriendsLoading(false);
     }
   }, [user]);

@@ -153,7 +153,11 @@ export function AITutorProvider({ children, session }) {
     const text = (customText !== null ? customText : currentMessage).trim();
     if (!text || isTyping || !user) return;
 
-    const userMsg = { sender: "user", text };
+    const userMsg = {
+      id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      sender: "user",
+      text,
+    };
     const updatedMessages = [...messages, userMsg];
 
     setMessages(updatedMessages);
@@ -173,6 +177,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((msgs) => [
           ...msgs,
           {
+            id: `ai-err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.error.message || "Failed to reach Lumo. Please try again.",
             actions: [],
@@ -183,6 +188,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((msgs) => [
           ...msgs,
           {
+            id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.reply || "",
             actions: res.actions || [],
@@ -197,6 +203,7 @@ export function AITutorProvider({ children, session }) {
       setMessages((msgs) => [
         ...msgs,
         {
+          id: `ai-err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           sender: "ai",
           text: `Error: ${err.message || "Failed to reach Lumo. Please try again."}`,
           actions: [],
@@ -249,6 +256,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((prev) => [
           ...prev,
           {
+            id: `ai-event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.reply,
             actions: res.actions || [],

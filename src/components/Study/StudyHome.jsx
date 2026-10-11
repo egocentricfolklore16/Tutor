@@ -106,7 +106,6 @@ function StudyHome() {
 
   const [sessions, setSessions] = useState([]);
   const [history, setHistory] = useState([]);
-  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -137,8 +136,6 @@ function StudyHome() {
           if (mounted) setError("User not authenticated");
           return;
         }
-        if (mounted) setUser(currentUser);
-
         const [activeResult, historyResult] = await Promise.all([
           supabase.from("Study").select("*").eq("user_id", currentUser.id).neq("session_status", "completed"),
           supabase.from("study_history").select("id, subject, topic, duration_minutes, started_at, completed_at, status, xp_earned").eq("user_id", currentUser.id).order("completed_at", { ascending: false }),
@@ -444,24 +441,47 @@ function StudyHome() {
     return [...groups.values()];
   }, [visibleHistory]);
 
-  const weekStart = localWeekStart(new Date(clockNow));
-  const weekHistory = history.filter((item) => item.completed_at && new Date(item.completed_at) >= weekStart);
-  const xpThisWeek = weekHistory.reduce((total, item) => total + (Number(item.xp_earned) || 0), 0);
-  const sessionsThisWeek = weekHistory.length;
+  // BOLT OPTIMIZATION:
+  // Memoize aggregated history and active session study statistics.
+  // Eliminates multiple array traversals and Date object allocations on every render pass
+  // (e.g., when typing in the search input, toggling subject/range filters, or opening menus).
+  const statsSummary = useMemo(() => {
+    const todayHistoryMinutes = history.reduce((total, item) => {
+      if (!item.completed_at || localDateString(new Date(item.completed_at)) !== today) return total;
+      return total + (Number(item.duration_minutes) || 0);
+    }, 0);
 
-  const todayHistoryMinutes = history.reduce((total, item) => {
-    if (!item.completed_at || localDateString(new Date(item.completed_at)) !== today) return total;
-    return total + (Number(item.duration_minutes) || 0);
-  }, 0);
+    const activeTodayMinutes = sessions.reduce((total, item) => {
+      if (item.Date !== today) return total;
+      return total + Math.floor(sessionElapsedSeconds(item) / 60);
+    }, 0);
 
-  const activeTodayMinutes = sessions.reduce((total, item) => {
-    if (item.Date !== today) return total;
-    return total + Math.floor(sessionElapsedSeconds(item) / 60);
-  }, 0);
+    const todayMinutes = todayHistoryMinutes + activeTodayMinutes;
 
-  const todayMinutes = todayHistoryMinutes + activeTodayMinutes;
-  const totalHistoryMinutes = filteredHistory.reduce((total, item) => total + (Number(item.duration_minutes) || 0), 0);
-  const totalHistoryXp = filteredHistory.reduce((total, item) => total + (Number(item.xp_earned) || 0), 0);
+    const weekStart = localWeekStart(new Date(clockNow));
+    const weekHistory = history.filter((item) => item.completed_at && new Date(item.completed_at) >= weekStart);
+    const xpThisWeek = weekHistory.reduce((total, item) => total + (Number(item.xp_earned) || 0), 0);
+    const sessionsThisWeek = weekHistory.length;
+
+    const totalHistoryMinutes = filteredHistory.reduce((total, item) => total + (Number(item.duration_minutes) || 0), 0);
+    const totalHistoryXp = filteredHistory.reduce((total, item) => total + (Number(item.xp_earned) || 0), 0);
+
+    return {
+      todayMinutes,
+      sessionsThisWeek,
+      xpThisWeek,
+      totalHistoryMinutes,
+      totalHistoryXp,
+    };
+  }, [history, sessions, clockNow, today, filteredHistory]);
+
+  const {
+    todayMinutes,
+    sessionsThisWeek,
+    xpThisWeek,
+    totalHistoryMinutes,
+    totalHistoryXp,
+  } = statsSummary;
 
   const renderCard = (item) => {
     const running = isActuallyRunning(item, clockNow);
@@ -621,13 +641,12 @@ function StudyHome() {
     );
   };
 
-  const renderSessionSection = (title, items, icon, emptyText = "") => {
-    const Icon = icon;
+  const renderSessionSection = (title, items, SectionIcon, emptyText = "") => {
     const sectionId = `section-${title.toLowerCase().replace(/[^a-z0-9]+/g, "-")}`;
     return (
       <section className="mt-9" aria-labelledby={sectionId}>
         <div className="mb-4 flex items-center gap-2">
-          <Icon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <SectionIcon className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           <h2 id={sectionId} className="text-lg font-bold text-slate-900 dark:text-white">
             {title}
           </h2>
@@ -690,10 +709,10 @@ function StudyHome() {
             [Check, "Completed this week", String(sessionsThisWeek)],
             [Flame, "Current streak", `${currentStreak} days`],
             [Trophy, "XP this week", String(xpThisWeek)],
-          ].map(([Icon, label, value]) => (
+          ].map(([StatIcon, label, value]) => (
             <div key={label} className="bg-white px-4 py-4 dark:bg-slate-900">
               <div className="flex items-center gap-2 text-xs font-semibold uppercase text-slate-500 dark:text-slate-400">
-                <Icon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                <StatIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                 {label}
               </div>
               <p className="mt-2 text-xl font-bold text-slate-900 dark:text-white">{value}</p>

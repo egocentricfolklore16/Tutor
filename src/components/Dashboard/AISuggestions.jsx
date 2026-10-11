@@ -4,12 +4,13 @@ import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import { getLearnerTypeSuggestion } from "../../lib/learnerType.js";
 import { getPreferredTimeNote } from "../../lib/preferredTime.js";
+import { getWeeklyHours } from "../../lib/weeklyHours.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
   const { profile } = useProfile();
   const subjects = profile?.subjects?.length ? profile.subjects.join(", ") : "your priority subjects";
-  const weeklyHours = profile?.weekly_hours || 5;
+  const weeklyHours = getWeeklyHours(profile);
   const learningStyle = profile?.learning_style?.toLowerCase() || "your preferred style";
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
   const timeNote = getPreferredTimeNote(profile?.preferred_time);

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useParams, useLocation } from "react-router-dom";
 import {
   Users,
   Trophy,
@@ -26,6 +27,7 @@ import {
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import PageContainer from "../common/PageContainer";
 import ChatInbox from "./ChatInbox";
 import ChatThread from "./ChatThread";
@@ -44,11 +46,34 @@ function GemIcon({ className }) {
 const Community = () => {
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
+  const { conversationId } = useParams();
+  const location = useLocation();
+  const { setActiveConversationId: setGlobalActiveConversationId } = useInAppNotifications();
 
   const [activeTab, setActiveTab] = useState("leaderboard"); // 'leaderboard' | 'friends' | 'groups' | 'chat' | 'feed'
   const [activeConversationId, setActiveConversationId] = useState(null);
   const [openSessionId, setOpenSessionId] = useState(null);
   const [user, setUser] = useState(null);
+
+  // Sync route / location parameters for direct conversation navigation
+  useEffect(() => {
+    if (conversationId) {
+      setActiveConversationId(conversationId);
+      setActiveTab("chat");
+    } else if (location.state?.openConversationId) {
+      setActiveConversationId(location.state.openConversationId);
+      setActiveTab("chat");
+    }
+  }, [conversationId, location.state]);
+
+  // Sync active chat thread into global notification context to suppress notifications/toasts for open thread
+  useEffect(() => {
+    if (activeTab === "chat" && activeConversationId) {
+      setGlobalActiveConversationId(activeConversationId);
+    } else {
+      setGlobalActiveConversationId(null);
+    }
+  }, [activeTab, activeConversationId, setGlobalActiveConversationId]);
 
   // Get signed in user
   useEffect(() => {
@@ -163,7 +188,7 @@ const Community = () => {
     } catch (err) {
       console.error("Error fetching friends:", err);
       setFriendsError(err.message || "Failed to load friends.");
-    } finally {
+    } fontally {
       setFriendsLoading(false);
     }
   }, [user]);

@@ -20,10 +20,9 @@ import AuthCallback from "./components/Auth/callback/page.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
+import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
-
-// Routing will be handled inside the BrowserRouter below
 
 function App() {
   const [session, setSession] = useState(null);
@@ -34,7 +33,6 @@ function App() {
   useEffect(() => {
     let mounted = true;
 
-    // Safety watchdog timer: force loading flags to false after 5 seconds if auth promises hang
     const watchdogTimer = setTimeout(() => {
       if (mounted && (loading || onboardingLoading)) {
         console.error("Auth bootstrap or onboarding check timed out after 5000ms. Forcing loading resolution.");
@@ -199,6 +197,10 @@ function App() {
                 <Route path="Progress" element={<Progress />} />
                 <Route path="Library" element={<Library session={session} />} />
                 <Route path="Community" element={<Community />} />
+                <Route path="Community/chat/:conversationId" element={<Community />} />
+                <Route path="community/chat/:conversationId" element={<Community />} />
+                <Route path="community/u/:userId" element={<Community />} />
+                <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="FAQ" element={<FAQ />} />
                 <Route path="Settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />

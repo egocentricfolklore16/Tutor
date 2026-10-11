@@ -66,20 +66,12 @@ body {
   background-color: rgb(134 239 172);
 }
 
-/* Mobile Typography & Spacing Tokens (< 640px) */
-@media (max-width: 639px) {
-  body {
-    font-size: 14px;
-    line-height: 1.4;
-  }
-  h1 { font-size: 20px !important; line-height: 1.25 !important; }
-  h2 { font-size: 17px !important; line-height: 1.3 !important; }
-  h3 { font-size: 15px !important; line-height: 1.35 !important; }
-
+/* Touch targets and Mobile Input Zoom prevention (minimum 16px font-size) */
+@media (max-width: 767px) {
   input:not([type="checkbox"]):not([type="radio"]),
   select,
   textarea {
-    font-size: 16px !important; /* Enforce 16px on iOS to prevent auto-zoom */
+    font-size: 16px !important;
   }
 }
 

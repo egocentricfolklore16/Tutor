@@ -101,7 +101,7 @@ export function getStoredNotifications() {
     console.error(`Error parsing JSON from localStorage key '${NOTIFICATION_STORAGE_KEY}':`, error);
     try {
       localStorage.removeItem(NOTIFICATION_STORAGE_KEY);
-    } catch (_e) {
+    } catch {
       // ignore
     }
     return [];
@@ -155,12 +155,12 @@ export async function hasActivePushSubscription() {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
     return Boolean(subscription);
-  } catch (_e) {
+  } catch {
     return false;
   }
 }
 
-export async function scheduleStudyReminder(session, preferences = null) {
+export async function scheduleStudyReminder(session, preferences = null, now = Date.now()) {
   if (!session || !session.id) return null;
 
   // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
@@ -182,7 +182,8 @@ export async function scheduleStudyReminder(session, preferences = null) {
 
   const reminderMins = Number(session.reminder ?? session.reminder_minutes ?? 15);
   const reminderTime = new Date(scheduledAt.getTime() - reminderMins * 60 * 1000);
-  const delayMs = reminderTime.getTime() - Date.now();
+  const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
+  const delayMs = reminderTime.getTime() - currentTime;
 
   if (delayMs <= 0) return null;
 
@@ -223,13 +224,14 @@ export async function scheduleStudyReminder(session, preferences = null) {
   return timer;
 }
 
-export function scheduleSessionRemindersFromSessions(sessions, preferences = null) {
+export async function scheduleSessionRemindersFromSessions(sessions, preferences = null, now = Date.now()) {
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   if (!Array.isArray(sessions)) return [];
 
-  return sessions
-    .map((session) => scheduleStudyReminder(session, mergedPreferences))
-    .filter(Boolean);
+  const results = await Promise.all(
+    sessions.map((session) => scheduleStudyReminder(session, mergedPreferences, now))
+  );
+  return results.filter(Boolean);
 }
 
 export function markAllNotificationsRead() {
@@ -277,7 +279,7 @@ export function getNotificationPreferences() {
     console.error(`Error parsing JSON from localStorage key '${KEY}':`, error);
     try {
       localStorage.removeItem(KEY);
-    } catch (_e) {
+    } catch {
       // ignore
     }
     return normalizeNotificationPreferences(defaultNotificationPreferences);

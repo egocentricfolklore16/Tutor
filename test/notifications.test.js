@@ -11,8 +11,10 @@ import {
   dismissNotification,
   hasActivePushSubscription,
   scheduleStudyReminder,
+  scheduleSessionRemindersFromSessions,
   requestBrowserNotificationPermission,
   getNotificationPreferences,
+  persistNotificationPreferences,
   NOTIFICATION_STORAGE_KEY,
 } from "../src/lib/notifications.js";
 import { formatPushError } from "../src/hooks/useNotifications.js";
@@ -330,4 +332,110 @@ test("formatPushError maps standard push error codes to user-facing error messag
     formatPushError("PUSH_AbortError: Network failed"),
     "Your browser couldn't reach its push service. Check your network, VPN or ad-blocker; in Brave, enable Google services for push messaging."
   );
+});
+
+// --- 9. Detailed Reminder Scheduling & Offset Calculations ---
+test("scheduleStudyReminder calculates correct delay for different reminder offsets (15m, 30m, 0m, 45m)", async () => {
+  const mock = setupMockBrowserGlobals({ permission: "granted" });
+
+  const nowTime = new Date(2026, 5, 1, 9, 0, 0).getTime(); // 2026-06-01 09:00:00 local (1 hour before)
+
+  // 15 mins reminder: scheduled for 09:45 (45 mins from now = 2,700,000 ms)
+  const session15 = { id: "sess_15", date: "2026-06-01", startTime: "10:00", reminder: 15 };
+  const timer15 = await scheduleStudyReminder(session15, null, nowTime);
+  assert.ok(timer15 !== null);
+  clearTimeout(timer15);
+
+  // 30 mins reminder: scheduled for 09:30 (30 mins from now = 1,800,000 ms)
+  const session30 = { id: "sess_30", date: "2026-06-01", startTime: "10:00", reminder: 30 };
+  const timer30 = await scheduleStudyReminder(session30, null, nowTime);
+  assert.ok(timer30 !== null);
+  clearTimeout(timer30);
+
+  // 0 mins reminder (starts now): scheduled for 10:00 (60 mins from now = 3,600,000 ms)
+  const session0 = { id: "sess_0", date: "2026-06-01", startTime: "10:00", reminder: 0 };
+  const timer0 = await scheduleStudyReminder(session0, null, nowTime);
+  assert.ok(timer0 !== null);
+  clearTimeout(timer0);
+
+  // Fallback to reminder_minutes: 45 (15 mins from now = 900,000 ms)
+  const session45 = { id: "sess_45", date: "2026-06-01", startTime: "10:00", reminder_minutes: 45 };
+  const timer45 = await scheduleStudyReminder(session45, null, nowTime);
+  assert.ok(timer45 !== null);
+  clearTimeout(timer45);
+
+  mock.cleanup();
+});
+
+test("scheduleStudyReminder clears and replaces existing timer when rescheduled for same session ID", async () => {
+  const mock = setupMockBrowserGlobals({ permission: "granted" });
+  const nowTime = new Date(2026, 5, 1, 9, 0, 0).getTime();
+
+  const sessionFirst = { id: "sess_replace", date: "2026-06-01", startTime: "10:00", reminder: 15 };
+  const firstTimer = await scheduleStudyReminder(sessionFirst, null, nowTime);
+  assert.ok(firstTimer !== null);
+
+  // Reschedule session with updated reminder offset
+  const sessionUpdated = { id: "sess_replace", date: "2026-06-01", startTime: "10:00", reminder: 30 };
+  const updatedTimer = await scheduleStudyReminder(sessionUpdated, null, nowTime);
+  assert.ok(updatedTimer !== null);
+
+  clearTimeout(updatedTimer);
+  mock.cleanup();
+});
+
+test("scheduleStudyReminder returns null when studyReminders preference is false", async () => {
+  const mock = setupMockBrowserGlobals({ permission: "granted" });
+  const nowTime = new Date(2026, 5, 1, 9, 0, 0).getTime();
+  const session = { id: "sess_disabled", date: "2026-06-01", startTime: "10:00", reminder: 15 };
+
+  const disabledPrefs = { studyReminders: false };
+  const timer = await scheduleStudyReminder(session, disabledPrefs, nowTime);
+  assert.strictEqual(timer, null);
+
+  mock.cleanup();
+});
+
+test("scheduleSessionRemindersFromSessions schedules batch of future sessions and excludes past sessions", async () => {
+  const mock = setupMockBrowserGlobals({ permission: "granted" });
+  const nowTime = new Date(2026, 5, 1, 9, 0, 0).getTime();
+
+  const sessions = [
+    { id: "sess_future_1", date: "2026-06-01", startTime: "10:00", reminder: 15 },
+    { id: "sess_past_1", date: "2020-01-01", startTime: "10:00", reminder: 15 },
+    { id: "sess_future_2", date: "2026-06-01", startTime: "11:00", reminder: 30 },
+  ];
+
+  const timers = await scheduleSessionRemindersFromSessions(sessions, null, nowTime);
+  assert.strictEqual(timers.length, 2);
+  timers.forEach((t) => clearTimeout(t));
+
+  mock.cleanup();
+});
+
+test("recordNotification sets muted: false when quiet hours are inactive", () => {
+  setupMockLocalStorage();
+  const preferences = {
+    quietHours: { enabled: true, start: "22:00", end: "08:00" },
+  };
+
+  const dayTime = new Date("2026-05-10T14:00:00");
+  recordNotification({ title: "Afternoon Study Alert" }, preferences, dayTime);
+
+  const stored = getStoredNotifications();
+  assert.strictEqual(stored.length, 1);
+  assert.strictEqual(Boolean(stored[0].muted), false);
+});
+
+test("persistNotificationPreferences normalizes preferences and saves to localStorage", () => {
+  setupMockLocalStorage();
+  const customPrefs = { studyReminders: false };
+
+  const saved = persistNotificationPreferences(customPrefs);
+  assert.strictEqual(saved.studyReminders, false);
+  assert.strictEqual(saved.browserPush, true); // default preserved
+
+  const retrieved = getNotificationPreferences();
+  assert.strictEqual(retrieved.studyReminders, false);
+  assert.strictEqual(retrieved.browserPush, true);
 });

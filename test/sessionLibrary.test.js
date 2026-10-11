@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deleteSession, completeSession } from "../src/lib/sessionService.js";
+import { deleteSession, completeSession, pauseSessionBeacon } from "../src/lib/sessionService.js";
 import supabase from "../src/lib/supabase.js";
 
 test("deleteSession returns error if session ID is missing", async () => {
@@ -19,7 +19,7 @@ test("deleteSession only deletes the Study record and does not delete Library ma
       delete: () => {
         deletedTables.push(tableName);
         return {
-          eq: (col, val) => {
+          eq: () => {
             return Promise.resolve({ error: null });
           },
         };
@@ -161,5 +161,42 @@ test("completeSession calls complete_study_session RPC with required parameters"
     assert.equal(res.data.history_id, "hist_123");
   } finally {
     supabase.rpc = originalRpc;
+  }
+});
+
+test("pauseSessionBeacon URL-encodes session ID and attaches authenticated JWT token from localStorage", async () => {
+  let capturedFetch = null;
+  const originalFetch = globalThis.fetch;
+  const originalLocalStorage = globalThis.localStorage;
+
+  const mockToken = "mock_user_jwt_access_token_123";
+  const mockLocalStorageData = {
+    "sb-testref-auth-token": JSON.stringify({ access_token: mockToken }),
+  };
+
+  globalThis.localStorage = {
+    length: Object.keys(mockLocalStorageData).length,
+    key: (i) => Object.keys(mockLocalStorageData)[i],
+    getItem: (k) => mockLocalStorageData[k] || null,
+  };
+
+  globalThis.fetch = (url, options) => {
+    capturedFetch = { url, options };
+    return Promise.resolve({ ok: true });
+  };
+
+  try {
+    pauseSessionBeacon({ id: "100&bad_param=true", time_left: 300, elapsed_seconds: 600 });
+
+    assert.ok(capturedFetch, "fetch should have been invoked");
+    assert.ok(capturedFetch.url.includes("id=eq.100%26bad_param%3Dtrue"), "session ID must be URL encoded");
+    assert.equal(
+      capturedFetch.options.headers.Authorization,
+      `Bearer ${mockToken}`,
+      "Authorization header must carry authenticated user JWT token"
+    );
+  } finally {
+    globalThis.fetch = originalFetch;
+    globalThis.localStorage = originalLocalStorage;
   }
 });

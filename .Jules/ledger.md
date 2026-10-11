@@ -7,3 +7,7 @@
 ## 2025-05-21 - Subscription Payment ID Idempotency Check
 **Learning:** Under high-concurrency race conditions where a client `verify-payment` invocation and `paystack-webhook` `charge.success` land simultaneously, the webhook step 3 lookup might run before step 4 upserts `payments`, but step 5 runs after `subscriptions.payment_id` has already been updated. Without an explicit check on `existingSub.payment_id === paymentRow.id`, the second request recalculates `periodEnd` from the newly extended date and double-credits subscription duration.
 **Action:** In `processVerifiedPayment`, always check if `existingSub.payment_id === paymentRow.id` after fetching `existingSub` and return `alreadyProcessed: true` immediately.
+
+## 2025-05-22 - Cross-User Reference Isolation and Metadata Stringification
+**Learning:** Paystack webhooks and API callbacks can deliver `metadata` as stringified JSON strings rather than objects. Additionally, without validating that `existingPayment.user_id === userId` on re-processed references, a user can attempt reference hijacking across accounts.
+**Action:** Always parse `metadata` and `customer.metadata` defensively with `JSON.parse`, check `plan.is_active === false`, and ensure `existingPayment.user_id === userId` before returning processed subscription state.

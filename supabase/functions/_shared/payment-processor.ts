@@ -73,13 +73,30 @@ export async function processVerifiedPayment({
   reference,
   paystackData,
 }: ProcessPaymentParams) {
-  const metadata = paystackData.metadata || {};
+  let metadata: any = paystackData.metadata || {};
+  if (typeof metadata === "string") {
+    try {
+      metadata = JSON.parse(metadata);
+    } catch {
+      metadata = {};
+    }
+  }
+
+  let customerMetadata: any = paystackData.customer?.metadata || {};
+  if (typeof customerMetadata === "string") {
+    try {
+      customerMetadata = JSON.parse(customerMetadata);
+    } catch {
+      customerMetadata = {};
+    }
+  }
+
   const planId = metadata.planId || metadata.plan_id;
   const userId =
     metadata.userId ||
     metadata.user_id ||
-    paystackData.customer?.metadata?.userId ||
-    paystackData.customer?.metadata?.user_id;
+    customerMetadata.userId ||
+    customerMetadata.user_id;
 
   if (!planId) {
     throw new Error("Missing planId in Paystack metadata");
@@ -98,6 +115,10 @@ export async function processVerifiedPayment({
 
   if (planError || !plan) {
     throw new Error(`Plan not found: ${planId}`);
+  }
+
+  if (plan.is_active === false) {
+    throw new Error(`Plan is not active: ${planId}`);
   }
 
   // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
@@ -132,6 +153,10 @@ export async function processVerifiedPayment({
     .maybeSingle();
 
   if (existingPayment && existingPayment.status === "success") {
+    if (existingPayment.user_id !== userId) {
+      throw new Error("Payment reference belongs to another user");
+    }
+
     const { data: existingSub } = await supabaseClient
       .from("subscriptions")
       .select("*")

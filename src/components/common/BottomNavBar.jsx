@@ -33,6 +33,14 @@ export function BottomNavBar() {
     return location.pathname.toLowerCase().startsWith(path.toLowerCase());
   };
 
+  const pathLower = location.pathname.toLowerCase();
+  const isThreadPage = pathLower.includes("/chat/") && pathLower.split("/chat/")[1]?.trim().length > 0;
+  const isNotificationsPage = pathLower === "/notifications";
+
+  if (isThreadPage || isNotificationsPage) {
+    return null;
+  }
+
   return (
     <>
       <nav

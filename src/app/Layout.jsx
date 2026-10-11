@@ -27,16 +27,24 @@ function Layout({ session, needsOnboarding }) {
   };
 
   const pageTitle = (() => {
-    if (location.pathname.startsWith("/Study")) return "Study";
-    if (location.pathname.startsWith("/Planner")) return "Planner";
-    if (location.pathname.startsWith("/Progress")) return "Progress";
-    if (location.pathname.startsWith("/Library")) return "Library";
-    if (location.pathname.toLowerCase().startsWith("/community")) return "Community";
-    if (location.pathname.startsWith("/notifications")) return "Notifications";
-    if (location.pathname.startsWith("/FAQ")) return "FAQ";
-    if (location.pathname.startsWith("/Settings")) return "Settings";
+    const p = location.pathname.toLowerCase();
+    if (p.startsWith("/study")) return "Study";
+    if (p.startsWith("/planner")) return "Planner";
+    if (p.startsWith("/progress")) return "Progress";
+    if (p.startsWith("/library")) return "Library";
+    if (p.startsWith("/community")) return "Community";
+    if (p.startsWith("/faq")) return "FAQ";
+    if (p.startsWith("/settings")) return "Settings";
+    if (p === "/notifications") return "Notifications";
     return "Dashboard";
   })();
+
+  const pathLower = location.pathname.toLowerCase();
+  const isFullWidthPage =
+    location.pathname.startsWith("/Dashboard") ||
+    location.pathname === "/" ||
+    pathLower.includes("/chat") ||
+    pathLower === "/notifications";
 
   // Extract user from session
   const user = session?.user || null;
@@ -73,8 +81,12 @@ function Layout({ session, needsOnboarding }) {
                 </div>
               )}
 
-              <div key={location.pathname} className="page-enter">
-                {location.pathname.startsWith("/Dashboard") || location.pathname === "/" ? (
+          <div key={location.pathname} className="page-enter">
+            {isFullWidthPage ? (
+              <Outlet />
+            ) : (
+              <div className="flex flex-col gap-6 xl:flex-row xl:items-start">
+                <div className="min-w-0 flex-1">
                   <Outlet />
                 ) : (
                   <div className="flex flex-col gap-6 xl:flex-row xl:items-start">

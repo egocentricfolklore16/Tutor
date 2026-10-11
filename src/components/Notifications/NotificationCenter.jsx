@@ -10,11 +10,9 @@ import {
   Calendar,
   Check,
   Loader2,
-  AlertCircle,
-  Clock,
-  Radio,
-  ChevronRight,
-  Info,
+  Award,
+  HelpCircle,
+  BookOpen,
 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useInAppNotifications } from "../../hooks/useInAppNotifications";
@@ -111,7 +109,7 @@ function NotificationCenter({ onClose, inlineMode = false }) {
 
     setActionLoading((prev) => ({ ...prev, [notification.id]: true }));
     try {
-      const { error: fsError } = await supabase
+      const { data: fsData, error: fsError } = await supabase
         .from("friendships")
         .update({ status, responded_at: new Date().toISOString() })
         .eq("id", friendshipId);
@@ -166,12 +164,36 @@ function NotificationCenter({ onClose, inlineMode = false }) {
     }
   };
 
-  // RSVP response (Going / Maybe / Can't)
-  const handleRSVPAction = async (notification, status) => {
-    const sessionId = notification.payload?.session_id || notification.payload?.group_study_session_id;
-    const { data: { user } } = await supabase.auth.getUser();
+  // Handle Tutor Match Request Respond
+  const handleMatchRequestAction = async (notification, accept) => {
+    const requestId = notification.payload?.request_id;
+    if (!requestId) return;
 
-    if (!sessionId || !user) return;
+    setActionLoading((prev) => ({ ...prev, [notification.id]: true }));
+    try {
+      const { data, error } = await supabase.rpc("respond_match_request", {
+        p_request_id: requestId,
+        p_accept: accept,
+      });
+
+      if (error) throw error;
+
+      await markAsRead(notification.id);
+      setActionDone((prev) => ({
+        ...prev,
+        [notification.id]: accept ? "Accepted! Chat created." : "Declined",
+      }));
+    } catch (err) {
+      console.error("Error responding to match request:", err);
+    } finally {
+      setActionLoading((prev) => ({ ...prev, [notification.id]: false }));
+    }
+  };
+
+  // Handle Message Button on Accepted Request
+  const handleStartMessage = async (notification) => {
+    const actorId = notification.actor_id;
+    if (!actorId) return;
 
     setActionLoading((prev) => ({ ...prev, [notification.id]: true }));
     try {
@@ -190,7 +212,13 @@ function NotificationCenter({ onClose, inlineMode = false }) {
       if (rsvpErr) throw rsvpErr;
 
       await markAsRead(notification.id);
-      setRsvpState((prev) => ({ ...prev, [notification.id]: status }));
+      onClose?.();
+
+      if (onOpenChat) {
+        onOpenChat(convId);
+      } else {
+        navigate(`/community/chat/${convId}`);
+      }
     } catch (err) {
       console.error("Error updating session RSVP:", err);
     } finally {
@@ -206,8 +234,10 @@ function NotificationCenter({ onClose, inlineMode = false }) {
     const actorName = actorProfiles[notification.actor_id]?.full_name || "Someone";
     const details = getNotificationDetails(notification, actorName);
 
-    if (details.route) {
-      navigate(details.route);
+    if (onOpenSession) {
+      onOpenSession(sessionId);
+    } else {
+      navigate("/community", { state: { openSessionId: sessionId } });
     }
   };
 
@@ -247,9 +277,12 @@ function NotificationCenter({ onClose, inlineMode = false }) {
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <NotificationTypeBadge type={item.type} />
-
-                  {actor?.user_img ? (
+                  {/* Actor Avatar or System Icon */}
+                  {item.type === "achievement_unlocked" ? (
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
+                      <Award className="h-5 w-5" />
+                    </div>
+                  ) : actor?.user_img ? (
                     <img
                       src={actor.user_img}
                       alt={actorName}
@@ -264,7 +297,7 @@ function NotificationCenter({ onClose, inlineMode = false }) {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-bold text-slate-900 dark:text-white truncate">
-                        {actorName}
+                        {item.type === "achievement_unlocked" ? "Achievement Unlocked!" : actorName}
                       </p>
                       <div className="flex items-center gap-1.5 shrink-0">
                         {isUnread && (
@@ -291,10 +324,7 @@ function NotificationCenter({ onClose, inlineMode = false }) {
                       </div>
                     </div>
 
-                    <p className="mt-1 text-xs text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
-                      {details.text}
-                    </p>
-
+                    {/* Notification content based on payload type */}
                     {item.type === "friend_request" && (
                       <div className="mt-3" onClick={(e) => e.stopPropagation()}>
                         {doneLabel ? (
@@ -373,65 +403,148 @@ function NotificationCenter({ onClose, inlineMode = false }) {
                       </div>
                     )}
 
-                    {item.type === "group_study_session_scheduled" && (
-                      <div className="mt-3" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex flex-wrap items-center gap-1.5">
-                          {[
-                            { id: "going", label: "Going" },
-                            { id: "maybe", label: "Maybe" },
-                            { id: "cant", label: "Can't" },
-                          ].map((rsvp) => {
-                            const isSelected = currentRsvp === rsvp.id;
-                            return (
-                              <button
-                                key={rsvp.id}
-                                type="button"
-                                disabled={isBusy}
-                                onClick={() => handleRSVPAction(item, rsvp.id)}
-                                className={`rounded-xl px-2.5 py-1 text-xs font-bold transition ${
-                                  isSelected
-                                    ? "bg-emerald-600 text-white"
-                                    : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
-                                }`}
-                              >
-                                {rsvp.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-
-                    {item.type === "group_study_session_live" && (
-                      <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                    {item.type === "forum_answer" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Answered your question: <strong>"{item.payload?.title || "Forum Post"}"</strong>
+                        </p>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (!inlineMode) onClose?.();
-                            navigate("/Community");
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await markAsRead(item.id);
+                            onClose?.();
+                            navigate(`/community/help/${item.payload?.post_id}`);
                           }}
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                          className="mt-2 inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
                         >
-                          <Radio className="h-3.5 w-3.5 animate-pulse text-rose-300" />
-                          <span>Join Room</span>
+                          <HelpCircle className="h-3.5 w-3.5" /> View Answer
                         </button>
                       </div>
                     )}
 
-                    {item.type === "group_join_approved" && (
-                      <div className="mt-2.5" onClick={(e) => e.stopPropagation()}>
+                    {item.type === "forum_answer_accepted" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Accepted your answer on <strong>"{item.payload?.title || "Forum Post"}"</strong>
+                          {item.payload?.xp && (
+                            <span className="ml-1 text-amber-600 font-bold dark:text-amber-400">
+                              (+{item.payload.xp} XP)
+                            </span>
+                          )}
+                        </p>
                         <button
                           type="button"
-                          onClick={() => {
-                            if (!inlineMode) onClose?.();
-                            navigate("/Community");
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await markAsRead(item.id);
+                            onClose?.();
+                            navigate(`/community/help/${item.payload?.post_id}`);
                           }}
-                          className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+                          className="mt-2 inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
                         >
-                          <span>Open Group</span>
-                          <ChevronRight className="h-3.5 w-3.5" />
+                          View Question
                         </button>
                       </div>
+                    )}
+
+                    {item.type === "match_request" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Requested tutoring in <strong>{item.payload?.subject}</strong> ({item.payload?.topic}).
+                        </p>
+                        {item.payload?.preview && (
+                          <p className="mt-1 text-[11px] text-slate-500 italic">
+                            "{item.payload.preview}"
+                          </p>
+                        )}
+
+                        {doneLabel ? (
+                          <span className="mt-2 inline-block rounded-xl bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                            {doneLabel}
+                          </span>
+                        ) : (
+                          <div className="mt-3 flex items-center gap-2">
+                            <button
+                              type="button"
+                              disabled={isBusy}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMatchRequestAction(item, true);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+                            >
+                              <Check className="h-3.5 w-3.5" /> Accept
+                            </button>
+                            <button
+                              type="button"
+                              disabled={isBusy}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleMatchRequestAction(item, false);
+                              }}
+                              className="inline-flex items-center gap-1 rounded-xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
+                            >
+                              <X className="h-3.5 w-3.5" /> Decline
+                            </button>
+                          </div>
+                        )}
+                      </div>
+                    )}
+
+                    {item.type === "match_accepted" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Accepted your tutor request for <strong>{item.payload?.subject}</strong>!
+                        </p>
+                        <button
+                          type="button"
+                          onClick={async (e) => {
+                            e.stopPropagation();
+                            await markAsRead(item.id);
+                            onClose?.();
+                            if (item.payload?.conversation_id) {
+                              navigate(`/community/chat/${item.payload.conversation_id}`);
+                            }
+                          }}
+                          className="mt-2 inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
+                        >
+                          <MessageSquare className="h-3.5 w-3.5" /> Open Chat
+                        </button>
+                      </div>
+                    )}
+
+                    {item.type === "match_declined" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Declined tutor request for <strong>{item.payload?.subject}</strong>.
+                        </p>
+                      </div>
+                    )}
+
+                    {item.type === "match_completed" && (
+                      <div className="mt-1">
+                        <p className="text-xs text-slate-700 dark:text-slate-300">
+                          Tutoring session completed for <strong>{item.payload?.subject}</strong> (Rated {item.payload?.rating}★).
+                        </p>
+                      </div>
+                    )}
+
+                    {item.type === "achievement_unlocked" && (
+                      <div className="mt-1">
+                        <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
+                          {item.payload?.icon || "🏆"} {item.payload?.title || "New Badge"}
+                        </p>
+                        <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                          +{item.payload?.xp_reward || 0} XP
+                        </p>
+                      </div>
+                    )}
+
+                    {!["friend_request", "friend_request_accepted", "group_join_request", "group_join_approved", "group_study_session_scheduled", "forum_answer", "forum_answer_accepted", "match_request", "match_accepted", "match_declined", "match_completed", "achievement_unlocked"].includes(item.type) && (
+                      <p className="mt-1 text-xs text-slate-700 dark:text-slate-300">
+                        {item.payload?.message || item.body || "New activity update."}
+                      </p>
                     )}
                   </div>
                 </div>

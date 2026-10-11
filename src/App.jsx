@@ -23,6 +23,10 @@ import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
+import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
+import AchievementsPage from "./components/Community/AchievementsPage.jsx";
+
+// Routing will be handled inside the BrowserRouter below
 
 function App() {
   const [session, setSession] = useState(null);
@@ -196,10 +200,9 @@ function App() {
                 <Route path="Planner" element={<PlannerPage />} />
                 <Route path="Progress" element={<Progress />} />
                 <Route path="Library" element={<Library session={session} />} />
-                <Route path="Community" element={<Community />} />
-                <Route path="Community/chat/:conversationId" element={<Community />} />
-                <Route path="community/chat/:conversationId" element={<Community />} />
-                <Route path="community/u/:userId" element={<Community />} />
+                <Route path="Community/*" element={<Community />} />
+                <Route path="community/*" element={<Community />} />
+                <Route path="achievements" element={<AchievementsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="FAQ" element={<FAQ />} />
                 <Route path="Settings" element={<Settings />} />

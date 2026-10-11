@@ -21,11 +21,16 @@ import {
   Sparkles,
   ChevronRight,
   MessageSquare,
+  Calendar,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
 import PageContainer from "../common/PageContainer";
+import ChatInbox from "./ChatInbox";
+import ChatThread from "./ChatThread";
+import GroupStudySessions from "./GroupStudySessions";
+import SessionRoom from "./SessionRoom";
 
 function GemIcon({ className }) {
   return (
@@ -40,7 +45,9 @@ const Community = () => {
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
 
-  const [activeTab, setActiveTab] = useState("leaderboard"); // 'leaderboard' | 'friends' | 'groups' | 'feed'
+  const [activeTab, setActiveTab] = useState("leaderboard"); // 'leaderboard' | 'friends' | 'groups' | 'chat' | 'feed'
+  const [activeConversationId, setActiveConversationId] = useState(null);
+  const [openSessionId, setOpenSessionId] = useState(null);
   const [user, setUser] = useState(null);
 
   // Get signed in user
@@ -169,13 +176,15 @@ const Community = () => {
 
   const handleSearchUsers = async (e) => {
     e?.preventDefault();
-    if (!searchQuery.trim() || !user) return;
+    const query = searchQuery.trim();
+    if (!query || !user) return;
     setSearchLoading(true);
     try {
       const { data, error } = await supabase
         .from("community_profiles")
         .select("*")
-        .ilike("username", `%${searchQuery.trim()}%`);
+        .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
+        .limit(20);
 
       if (error) throw error;
       // Filter out self
@@ -190,9 +199,23 @@ const Community = () => {
   const sendFriendRequest = async (addresseeId) => {
     if (!user) return;
     try {
-      const { error } = await supabase
-        .from("friendships")
-        .insert({ requester_id: user.id, addressee_id: addresseeId });
+      // Check if a previous declined row exists and delete it first
+      const existing = friendships.find(
+        (f) =>
+          (f.requester_id === user.id && f.addressee_id === addresseeId) ||
+          (f.requester_id === addresseeId && f.addressee_id === user.id)
+      );
+
+      if (existing && (existing.status === "declined" || existing.status === "rejected")) {
+        await supabase.from("friendships").delete().eq("id", existing.id);
+      }
+
+      const { error } = await supabase.from("friendships").insert({
+        requester_id: user.id,
+        addressee_id: addresseeId,
+        status: "pending",
+      });
+
       if (error) throw error;
       fetchFriendsData();
       if (searchQuery) handleSearchUsers();
@@ -222,8 +245,25 @@ const Community = () => {
         .eq("id", friendshipId);
       if (error) throw error;
       fetchFriendsData();
+      if (searchQuery) handleSearchUsers();
     } catch (err) {
       console.error("Error removing friendship:", err);
+    }
+  };
+
+  const handleStartDirectChat = async (friendUserId) => {
+    if (!user || !friendUserId) return;
+    try {
+      const { data: convId, error } = await supabase.rpc(
+        "get_or_create_direct_conversation",
+        { p_other_user_id: friendUserId }
+      );
+      if (error) throw error;
+
+      setActiveConversationId(convId);
+      setActiveTab("chat");
+    } catch (err) {
+      console.error("Error starting direct conversation:", err);
     }
   };
 
@@ -236,6 +276,8 @@ const Community = () => {
   const [groupsError, setGroupsError] = useState(null);
 
   const [selectedGroup, setSelectedGroup] = useState(null);
+  const [selectedGroupConversationId, setSelectedGroupConversationId] = useState(null);
+  const [selectedGroupSubTab, setSelectedGroupSubTab] = useState("overview"); // 'overview' | 'sessions'
   const [groupMembers, setGroupMembers] = useState([]);
   const [groupLeaderboard, setGroupLeaderboard] = useState([]);
   const [groupDetailLoading, setGroupDetailLoading] = useState(false);
@@ -282,8 +324,20 @@ const Community = () => {
 
   const openGroupDetail = async (group) => {
     setSelectedGroup(group);
+    setSelectedGroupSubTab("overview");
     setGroupDetailLoading(true);
     try {
+      // Fetch group conversation
+      const { data: convData } = await supabase
+        .from("conversations")
+        .select("id")
+        .eq("study_group_id", group.id)
+        .maybeSingle();
+
+      if (convData) {
+        setSelectedGroupConversationId(convData.id);
+      }
+
       // Fetch members
       const { data: memberRows, error: memErr } = await supabase
         .from("study_group_members")
@@ -521,6 +575,7 @@ const Community = () => {
             { id: "leaderboard", label: "Leaderboard", icon: Trophy },
             { id: "friends", label: "Friends", icon: Users },
             { id: "groups", label: "Study Groups", icon: Shield },
+            { id: "chat", label: "Chat & Inbox", icon: MessageSquare },
             { id: "feed", label: "Activity Feed", icon: Zap },
           ].map((tab) => {
             const Icon = tab.icon;
@@ -733,7 +788,7 @@ const Community = () => {
           <div className="space-y-6">
             {/* Search User Form */}
             <form onSubmit={handleSearchUsers} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
-              <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Find Learners</p>
+              <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Find People</p>
               <div className="flex items-center gap-2">
                 <div className="relative flex-1">
                   <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
@@ -741,7 +796,7 @@ const Community = () => {
                     type="text"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    placeholder="Search by username..."
+                    placeholder="Search by username or full name..."
                     className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
                   />
                 </div>
@@ -764,6 +819,14 @@ const Community = () => {
                       (f) => f.requester_id === p.user_id || f.addressee_id === p.user_id
                     );
 
+                    const isAccepted = existingFriendship?.status === "accepted";
+                    const isPendingSent =
+                      existingFriendship?.status === "pending" &&
+                      existingFriendship?.requester_id === user?.id;
+                    const isPendingReceived =
+                      existingFriendship?.status === "pending" &&
+                      existingFriendship?.addressee_id === user?.id;
+
                     return (
                       <div key={p.user_id} className="flex items-center justify-between py-2.5">
                         <div className="flex items-center gap-3">
@@ -780,17 +843,35 @@ const Community = () => {
                           </div>
                         </div>
 
-                        {existingFriendship ? (
-                          <span className="rounded-2xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
-                            {existingFriendship.status === "accepted" ? "Friends" : "Pending"}
+                        {isAccepted ? (
+                          <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                            Friends
                           </span>
+                        ) : isPendingSent ? (
+                          <button
+                            type="button"
+                            onClick={() => removeFriendship(existingFriendship.id)}
+                            className="inline-flex items-center gap-1 rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200 dark:bg-amber-950 dark:text-amber-300"
+                            title="Cancel friend request"
+                          >
+                            <span>Request sent</span>
+                            <X className="h-3 w-3 ml-1" />
+                          </button>
+                        ) : isPendingReceived ? (
+                          <button
+                            type="button"
+                            onClick={() => updateFriendshipStatus(existingFriendship.id, "accepted")}
+                            className="inline-flex items-center gap-1 rounded-2xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700"
+                          >
+                            <Check className="h-3 w-3" /> Accept
+                          </button>
                         ) : (
                           <button
                             type="button"
                             onClick={() => sendFriendRequest(p.user_id)}
                             className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
                           >
-                            <UserPlus className="h-3.5 w-3.5" /> Add
+                            <UserPlus className="h-3.5 w-3.5" /> Add friend
                           </button>
                         )}
                       </div>
@@ -849,7 +930,7 @@ const Community = () => {
                               </button>
                               <button
                                 type="button"
-                                onClick={() => updateFriendshipStatus(req.id, "rejected")}
+                                onClick={() => updateFriendshipStatus(req.id, "declined")}
                                 className="inline-flex items-center gap-1 rounded-2xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300"
                               >
                                 <X className="h-3.5 w-3.5" /> Decline
@@ -901,14 +982,25 @@ const Community = () => {
                               </div>
                             </div>
 
-                            <button
-                              type="button"
-                              onClick={() => removeFriendship(f.id)}
-                              title="Remove friend"
-                              className="rounded-xl p-2 text-slate-400 hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40"
-                            >
-                              <UserX className="h-4 w-4" />
-                            </button>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => handleStartDirectChat(otherId)}
+                                className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                                title="Message friend"
+                              >
+                                <MessageSquare className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Message</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => removeFriendship(f.id)}
+                                title="Unfriend"
+                                className="rounded-xl p-2 text-slate-400 hover:bg-rose-100 hover:text-rose-600 dark:hover:bg-rose-950/40"
+                              >
+                                <UserX className="h-4 w-4" />
+                              </button>
+                            </div>
                           </div>
                         );
                       })}
@@ -1043,7 +1135,7 @@ const Community = () => {
                             </div>
                             <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
                             <div className="mt-3 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                              <span>View Details</span>
+                              <span>View Details & Sessions</span>
                               <ChevronRight className="h-4 w-4" />
                             </div>
                           </div>
@@ -1115,12 +1207,54 @@ const Community = () => {
                     <button type="button" onClick={() => setSelectedGroup(null)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
                   </div>
 
+                  {/* Sub-tab bar inside Group Details */}
+                  <div className="mt-5 flex border-b border-slate-100 dark:border-slate-800 gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupSubTab("overview")}
+                      className={`pb-2.5 text-xs font-bold border-b-2 transition ${
+                        selectedGroupSubTab === "overview"
+                          ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
+                          : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      Overview & Members
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSelectedGroupSubTab("sessions")}
+                      className={`pb-2.5 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
+                        selectedGroupSubTab === "sessions"
+                          ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
+                          : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                      }`}
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                      Study Sessions
+                    </button>
+                  </div>
+
                   {groupDetailLoading ? (
                     <div className="flex min-h-[200px] items-center justify-center">
                       <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
                     </div>
-                  ) : (
+                  ) : selectedGroupSubTab === "overview" ? (
                     <div className="mt-6 space-y-6">
+                      {/* Group Direct Chat button */}
+                      {selectedGroupConversationId && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setActiveConversationId(selectedGroupConversationId);
+                            setSelectedGroup(null);
+                            setActiveTab("chat");
+                          }}
+                          className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
+                        >
+                          <MessageSquare className="h-4 w-4" /> Open Group Chat
+                        </button>
+                      )}
+
                       {/* Members List */}
                       <div>
                         <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Group Members ({groupMembers.length})</h3>
@@ -1163,6 +1297,18 @@ const Community = () => {
                         )}
                       </div>
                     </div>
+                  ) : (
+                    <div className="mt-6">
+                      <GroupStudySessions
+                        groupId={selectedGroup.id}
+                        groupConversationId={selectedGroupConversationId}
+                        currentUserId={user?.id}
+                        onJoinSession={(sessionId) => {
+                          setOpenSessionId(sessionId);
+                          setSelectedGroup(null);
+                        }}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
@@ -1170,8 +1316,38 @@ const Community = () => {
           </div>
         )}
 
+        {/* Live Session Room Overlay */}
+        {openSessionId && (
+          <SessionRoom
+            sessionId={openSessionId}
+            groupConversationId={selectedGroupConversationId}
+            currentUserId={user?.id}
+            onClose={() => setOpenSessionId(null)}
+          />
+        )}
+
         {/* ========================================== */}
-        {/* TAB 4: ACTIVITY FEED                       */}
+        {/* TAB 4: CHAT & INBOX                       */}
+        {/* ========================================== */}
+        {activeTab === "chat" && (
+          <div>
+            {activeConversationId ? (
+              <ChatThread
+                conversationId={activeConversationId}
+                currentUserId={user?.id}
+                onBack={() => setActiveConversationId(null)}
+              />
+            ) : (
+              <ChatInbox
+                currentUserId={user?.id}
+                onSelectConversation={(convId) => setActiveConversationId(convId)}
+              />
+            )}
+          </div>
+        )}
+
+        {/* ========================================== */}
+        {/* TAB 5: ACTIVITY FEED                       */}
         {/* ========================================== */}
         {activeTab === "feed" && (
           <div className="space-y-6">

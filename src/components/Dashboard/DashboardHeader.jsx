@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
 import useStreak from "../../hooks/useStreak";
+import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import NotificationCenter from "../Notifications/NotificationCenter";
 import AISuggestions from "./AISuggestions";
 import supabase from "../../lib/supabase";
@@ -25,6 +26,7 @@ function GemIcon({ className }) {
 function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
   const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted } = useStreak();
+  const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
@@ -129,7 +131,8 @@ function DashboardHeader({ toggleSidebar }) {
     navigate("/login");
   };
 
-  const unreadCount = notifications.filter((item) => !item.read).length;
+  const localUnreadCount = notifications.filter((item) => !item.read).length;
+  const totalUnreadCount = inAppUnreadCount + localUnreadCount;
 
   const handleDismiss = (id) => {
     setNotifications(dismissNotification(id));
@@ -323,7 +326,7 @@ function DashboardHeader({ toggleSidebar }) {
                   <p className="text-sm font-bold text-white">Friend Streaks</p>
                   <p className="text-xs text-orange-50">{activeFriendStreaks} active Friend Streaks</p>
                 </div>
-                <button type="button" onClick={() => navigate("/Friends")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-50">
+                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-50">
                   VIEW LIST
                 </button>
               </div>
@@ -381,7 +384,7 @@ function DashboardHeader({ toggleSidebar }) {
                   <p className="text-sm font-bold text-white">Leaderboard</p>
                   <p className="text-xs text-amber-50">See how you rank this week</p>
                 </div>
-                <button type="button" onClick={() => navigate("/Leaderboard")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-amber-600 shadow-sm transition hover:bg-amber-50">VIEW</button>
+                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-amber-600 shadow-sm transition hover:bg-amber-50">VIEW</button>
               </div>
 
               <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
@@ -446,7 +449,7 @@ function DashboardHeader({ toggleSidebar }) {
 
         <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-950/40">
           <Bell className="h-4 w-4" />
-          {unreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(unreadCount, 9)}</span>}
+          {totalUnreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(totalUnreadCount, 9)}</span>}
         </button>
 
         {/* Profile Avatar */}
@@ -481,9 +484,6 @@ function DashboardHeader({ toggleSidebar }) {
 
     {notificationsOpen && (
       <NotificationCenter
-        notifications={notifications}
-        onDismiss={handleDismiss}
-        onMarkAllRead={handleMarkAllRead}
         onClose={() => setNotificationsOpen(false)}
       />
     )}

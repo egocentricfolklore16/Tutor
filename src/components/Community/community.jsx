@@ -59,10 +59,10 @@ const Community = () => {
   const activeConversationId = params["*"]?.startsWith("chat/") ? params["*"].split("chat/")[1] : null;
 
   useEffect(() => {
-    if (isChatRoute && activeTab !== "chat") {
+    if (isChatRoute) {
       setActiveTab("chat");
     }
-  }, [isChatRoute, activeTab]);
+  }, [location.pathname]);
 
   // Get signed in user
   useEffect(() => {
@@ -1343,7 +1343,7 @@ const Community = () => {
         {/* ========================================== */}
         {/* TAB 4: CHAT & INBOX                       */}
         {/* ========================================== */}
-        {(activeTab === "chat" || isChatRoute) && (
+        {activeTab === "chat" && (
           <div className="w-full h-[calc(100dvh-5rem)] overflow-hidden">
             {/* Desktop Layout: 2-pane split screen */}
             <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">

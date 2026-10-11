@@ -418,3 +418,90 @@ test("processVerifiedPayment is idempotent when existing subscription already re
   assert.strictEqual(result.subscription.payment_id, "payment-uuid-123");
   assert.strictEqual(result.subscription.current_period_end, "2025-06-01T00:00:00.000Z");
 });
+
+test("processVerifiedPayment rejects inactive plans", async () => {
+  const mockClient = createMockSupabaseClient({
+    plan: { id: "pro_retired", price_kobo: 250000, price_naira: 2500, billing_interval: "month", is_active: false },
+  });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_inactive_plan_5001",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro_retired",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Plan is not active: pro_retired",
+    }
+  );
+});
+
+test("processVerifiedPayment rejects cross-user payment reference hijacking", async () => {
+  const existingPayment = {
+    id: "payment-uuid-888",
+    user_id: "user-original-owner-111",
+    reference: "ref_stolen_payment_6001",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_stolen_payment_6001",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro",
+            userId: "user-attacker-222",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment reference belongs to another user",
+    }
+  );
+});
+
+test("processVerifiedPayment correctly parses stringified JSON metadata", async () => {
+  const mockClient = createMockSupabaseClient();
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_stringified_meta_7001",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: JSON.stringify({
+        planId: "pro",
+        userId: "user-uuid-333",
+      }),
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.user_id, "user-uuid-333");
+  assert.strictEqual(result.subscription.plan_id, "pro");
+});

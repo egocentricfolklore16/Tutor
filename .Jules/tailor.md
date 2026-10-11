@@ -7,7 +7,7 @@
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
-| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner | Used |
+| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
@@ -35,3 +35,7 @@
 ## 2026-10-12 - Connecting Target Study Days to Planner Calendar & Settings
 **Learning:** `study_days` was collected in Onboarding Step 2 ("Which days work best?"), stored in `profiles.study_days`, and used in `Planner.jsx` solely to divide session duration, but target days were invisible on the study calendar and missing from Settings.
 **Action:** Create `isPreferredStudyDay` helper in `src/lib/studyDays.js` to highlight target study days on the Planner Calendar week view headers and mobile day tabs, and add a Target Study Days control in `Settings.jsx` so preference updates propagate immediately across the app via `ProfileContext`.
+
+## 2026-10-14 - Connecting Weekly Hours to Settings & AI Suggestions
+**Learning:** `weekly_hours` was collected in Onboarding Step 2 ("How many hours can you study each week?") and referenced in `AISuggestions.jsx` and `Planner.jsx`, but was not editable in Settings and lacked a dedicated helper with safe numeric bounds fallback testing.
+**Action:** Create `getWeeklyHours` in `src/lib/weeklyHours.js` with tests in `test/weeklyHours.test.js`, connect it to `AISuggestions.jsx`, and add a Target Weekly Study Hours input control in `Settings.jsx` with immediate propagation via `ProfileContext`.

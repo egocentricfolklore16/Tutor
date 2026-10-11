@@ -60,7 +60,31 @@ export const pauseSessionBeacon = ({ id, time_left, elapsed_seconds }) => {
 
   const supabaseUrl = import.meta.env?.VITE_SUPABASE_URL || "https://placeholder.supabase.co";
   const supabaseKey = import.meta.env?.VITE_SUPABASE_ANON_KEY || "";
-  const endpoint = `${supabaseUrl}/rest/v1/Study?id=eq.${id}&session_status=neq.completed`;
+  // Security: URL-encode parameter to prevent PostgREST query string parameter injection
+  const safeId = encodeURIComponent(id);
+  const endpoint = `${supabaseUrl}/rest/v1/Study?id=eq.${safeId}&session_status=neq.completed`;
+
+  // Security: Retrieve active user JWT token from localStorage so Supabase RLS evaluates auth.uid()
+  let authToken = supabaseKey;
+  try {
+    if (typeof localStorage !== "undefined") {
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && (k.startsWith("sb-") || k.includes("supabase")) && k.endsWith("-auth-token")) {
+          const raw = localStorage.getItem(k);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed?.access_token) {
+              authToken = parsed.access_token;
+              break;
+            }
+          }
+        }
+      }
+    }
+  } catch {
+    // Fallback to anon key on storage error
+  }
 
   try {
     if (typeof fetch === "function") {
@@ -69,7 +93,7 @@ export const pauseSessionBeacon = ({ id, time_left, elapsed_seconds }) => {
         headers: {
           "Content-Type": "application/json",
           apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
+          Authorization: `Bearer ${authToken}`,
           Prefer: "return=minimal",
         },
         body: payload,

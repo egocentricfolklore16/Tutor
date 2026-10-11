@@ -1,7 +1,8 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Calendar, TrendingUp, MoreHorizontal, Users, HelpCircle, Settings, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, Calendar, TrendingUp, MoreHorizontal, Users, HelpCircle, Settings, Bell, X } from "lucide-react";
 import ResponsiveSheet from "./ResponsiveSheet";
+import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 
 /**
  * BottomNavBar renders a compact bottom tab bar for viewports <768px with primary routes
@@ -10,6 +11,7 @@ import ResponsiveSheet from "./ResponsiveSheet";
 export function BottomNavBar() {
   const location = useLocation();
   const [moreOpen, setMoreOpen] = useState(false);
+  const { unreadCount } = useInAppNotifications();
 
   const primaryItems = [
     { name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard },
@@ -20,23 +22,16 @@ export function BottomNavBar() {
 
   const secondaryItems = [
     { name: "Library", path: "/Library", icon: BookOpen },
-    { name: "Community", path: "/Community", icon: Users },
+    { name: "Community", path: "/Community", icon: Users, badge: unreadCount },
+    { name: "Notifications", path: "/notifications", icon: Bell, badge: unreadCount },
     { name: "FAQ", path: "/FAQ", icon: HelpCircle },
     { name: "Settings", path: "/Settings", icon: Settings },
   ];
 
   const isCurrentActive = (path) => {
     if (path === "/Dashboard" && (location.pathname === "/" || location.pathname === "/Dashboard")) return true;
-    return location.pathname.startsWith(path);
+    return location.pathname.toLowerCase().startsWith(path.toLowerCase());
   };
-
-  const pathLower = location.pathname.toLowerCase();
-  const isThreadPage = pathLower.includes("/chat/") && pathLower.split("/chat/")[1]?.trim().length > 0;
-  const isNotificationsPage = pathLower === "/notifications";
-
-  if (isThreadPage || isNotificationsPage) {
-    return null;
-  }
 
   return (
     <>
@@ -66,12 +61,17 @@ export function BottomNavBar() {
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
-          className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
+          className={`relative flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
             moreOpen ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-500 dark:text-slate-400"
           }`}
           aria-label="Open more menu"
         >
-          <MoreHorizontal className="h-5 w-5" />
+          <div className="relative">
+            <MoreHorizontal className="h-5 w-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -right-1.5 -top-1 flex h-2.5 w-2.5 items-center justify-center rounded-full bg-rose-500 ring-2 ring-white dark:ring-[#14171c]" />
+            )}
+          </div>
           <span>More</span>
         </button>
       </nav>
@@ -81,19 +81,28 @@ export function BottomNavBar() {
           {secondaryItems.map((item) => {
             const Icon = item.icon;
             const active = isCurrentActive(item.path);
+            const badgeCount = item.badge || 0;
+
             return (
               <Link
                 key={item.name}
                 to={item.path}
                 onClick={() => setMoreOpen(false)}
-                className={`flex items-center gap-3 rounded-2xl p-4 transition ${
+                className={`relative flex items-center justify-between gap-3 rounded-2xl p-4 transition ${
                   active
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 font-semibold"
                     : "bg-slate-50 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-200 dark:hover:bg-slate-800"
                 }`}
               >
-                <Icon className="h-5 w-5" />
-                <span className="text-sm">{item.name}</span>
+                <div className="flex items-center gap-3">
+                  <Icon className="h-5 w-5" />
+                  <span className="text-sm">{item.name}</span>
+                </div>
+                {badgeCount > 0 && (
+                  <span className="rounded-full bg-rose-500 px-2 py-0.5 text-[10px] font-bold text-white">
+                    {badgeCount > 99 ? "99+" : badgeCount}
+                  </span>
+                )}
               </Link>
             );
           })}

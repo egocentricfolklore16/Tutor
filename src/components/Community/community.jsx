@@ -29,6 +29,7 @@ import {
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";
@@ -47,11 +48,11 @@ import LeaderboardTab from "./LeaderboardTab";
 import AchievementsPage from "./AchievementsPage";
 
 const Community = () => {
-  const navigate = useNavigate();
-  const location = useLocation();
-  const params = useParams();
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
+  const { conversationId } = useParams();
+  const location = useLocation();
+  const { setActiveConversationId: setGlobalActiveConversationId } = useInAppNotifications();
 
   const [activeTab, setActiveTab] = useState("groups"); // 'groups' | 'rooms' | 'help' | 'tutors' | 'leaderboard' | 'friends' | 'chat' | 'feed'
   const [openSessionId, setOpenSessionId] = useState(null);

@@ -25,6 +25,7 @@ import {
   Calendar,
   HelpCircle,
   Award,
+  Clock,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";

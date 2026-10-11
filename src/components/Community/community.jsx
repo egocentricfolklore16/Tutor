@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useLocation, useParams } from "react-router-dom";
 import {
   Users,
   Trophy,
@@ -42,13 +43,26 @@ function GemIcon({ className }) {
 }
 
 const Community = () => {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const params = useParams();
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
 
   const [activeTab, setActiveTab] = useState("leaderboard"); // 'leaderboard' | 'friends' | 'groups' | 'chat' | 'feed'
-  const [activeConversationId, setActiveConversationId] = useState(null);
   const [openSessionId, setOpenSessionId] = useState(null);
   const [user, setUser] = useState(null);
+
+  // Sync tab and conversationId from route URL
+  const pathLower = location.pathname.toLowerCase();
+  const isChatRoute = pathLower.includes("/chat");
+  const activeConversationId = params["*"]?.startsWith("chat/") ? params["*"].split("chat/")[1] : null;
+
+  useEffect(() => {
+    if (isChatRoute && activeTab !== "chat") {
+      setActiveTab("chat");
+    }
+  }, [isChatRoute, activeTab]);
 
   // Get signed in user
   useEffect(() => {
@@ -1329,20 +1343,58 @@ const Community = () => {
         {/* ========================================== */}
         {/* TAB 4: CHAT & INBOX                       */}
         {/* ========================================== */}
-        {activeTab === "chat" && (
-          <div>
-            {activeConversationId ? (
-              <ChatThread
-                conversationId={activeConversationId}
-                currentUserId={user?.id}
-                onBack={() => setActiveConversationId(null)}
-              />
-            ) : (
-              <ChatInbox
-                currentUserId={user?.id}
-                onSelectConversation={(convId) => setActiveConversationId(convId)}
-              />
-            )}
+        {(activeTab === "chat" || isChatRoute) && (
+          <div className="w-full h-[calc(100dvh-5rem)] overflow-hidden">
+            {/* Desktop Layout: 2-pane split screen */}
+            <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">
+              <div className="w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
+                <ChatInbox
+                  currentUserId={user?.id}
+                  onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
+                  onFindFriends={() => setActiveTab("friends")}
+                />
+              </div>
+              <div className="flex-1 h-full overflow-hidden">
+                {activeConversationId ? (
+                  <ChatThread
+                    conversationId={activeConversationId}
+                    currentUserId={user?.id}
+                    onBack={() => navigate("/Community/chat")}
+                  />
+                ) : (
+                  <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30">
+                    <MessageSquare className="h-12 w-12 text-slate-300 dark:text-slate-700" />
+                    <h3 className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
+                      Select a conversation
+                    </h3>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                      Choose a chat from the left panel or start a new chat with a friend.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Mobile Layout: Full page Inbox or Full page Thread */}
+            <div className="block md:hidden h-full w-full">
+              {activeConversationId ? (
+                <div className="fixed inset-0 z-[110] bg-white dark:bg-[#14171c] h-[100dvh] w-screen">
+                  <ChatThread
+                    conversationId={activeConversationId}
+                    currentUserId={user?.id}
+                    onBack={() => navigate("/Community/chat")}
+                  />
+                </div>
+              ) : (
+                <div className="h-full overflow-y-auto">
+                  <ChatInbox
+                    currentUserId={user?.id}
+                    onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
+                    onFindFriends={() => setActiveTab("friends")}
+                  />
+                </div>
+              )}
+            </div>
           </div>
         )}
 

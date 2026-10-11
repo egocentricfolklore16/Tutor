@@ -1,5 +1,6 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import LumoAvatar from "./LumoAvatar";
 import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
@@ -22,8 +23,15 @@ const GlobalAITutorFab = ({ session }) => {
     setRequestedQuizId,
   } = useAITutor();
 
+  const location = useLocation();
   const { profile } = useProfile();
   const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
+
+  const pathLower = location.pathname.toLowerCase();
+  const isThreadPage = pathLower.includes("/chat/") && pathLower.split("/chat/")[1]?.trim().length > 0;
+  if (isThreadPage) {
+    return null;
+  }
 
   const handleSendMessage = () => {
     sendMessage();

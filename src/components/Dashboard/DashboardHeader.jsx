@@ -143,8 +143,12 @@ function DashboardHeader({ toggleSidebar }) {
   };
 
   const handleNotificationsClick = () => {
-    setNotificationsOpen(true);
-    setNotifications(getStoredNotifications());
+    if (window.innerWidth < 768) {
+      navigate("/notifications");
+    } else {
+      setNotificationsOpen(true);
+      setNotifications(getStoredNotifications());
+    }
   };
 
   const openStreakDropdown = () => {

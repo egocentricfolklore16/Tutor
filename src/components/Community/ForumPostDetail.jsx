@@ -162,21 +162,23 @@ export default function ForumPostDetail() {
   useEffect(() => {
     if (!postId) return;
 
-    const sub = supabase
-      .channel(`forum_answers:${postId}`)
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "forum_answers",
-          filter: `post_id=eq.${postId}`,
-        },
-        () => {
-          setHasNewAnswers(true);
-        }
-      )
-      .subscribe();
+    const channelName = `forum_answers:${postId}:${crypto.randomUUID()}`;
+    const sub = supabase.channel(channelName);
+
+    sub.on(
+      "postgres_changes",
+      {
+        event: "INSERT",
+        schema: "public",
+        table: "forum_answers",
+        filter: `post_id=eq.${postId}`,
+      },
+      () => {
+        setHasNewAnswers(true);
+      }
+    );
+
+    sub.subscribe();
 
     return () => {
       supabase.removeChannel(sub);

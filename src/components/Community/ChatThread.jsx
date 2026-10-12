@@ -35,6 +35,7 @@ export default function ChatThread({
   currentUserId,
   onBack,
   onOpenGroupInfo,
+  headerAction,
 }) {
   const [conversation, setConversation] = useState(null);
   const [peerProfile, setPeerProfile] = useState(null);
@@ -128,7 +129,7 @@ export default function ChatThread({
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
 
-    const channelName = `chat_presence:${conversationId}:${Date.now()}`;
+    const channelName = `chat_presence:${conversationId}:${crypto.randomUUID()}`;
     const channel = supabase.channel(channelName, {
       config: { presence: { key: currentUserId } },
     });
@@ -150,12 +151,13 @@ export default function ChatThread({
             }, 3000);
           }
         }
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
       });
+
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ online_at: new Date().toISOString() });
+      }
+    });
 
     return () => {
       supabase.removeChannel(channel);
@@ -384,11 +386,12 @@ export default function ChatThread({
 
   // Realtime subscription for INSERTs on messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !currentUserId) return;
 
-    const channelName = `chat_messages:${conversationId}:${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
+    const channelName = `chat_messages:${conversationId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -441,13 +444,14 @@ export default function ChatThread({
           const deletedId = payload.old.id;
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, fetchSenderProfiles, updateLastReadAt]);
+  }, [conversationId, currentUserId, fetchSenderProfiles, updateLastReadAt]);
 
   // Send message (optimistic send with retry & draft clear)
   const handleSendMessage = async (e) => {
@@ -675,25 +679,28 @@ export default function ChatThread({
           </div>
         </div>
 
-        {conversation?.type === "group" && (
-          <div className="flex items-center gap-2">
-            <a
-              href="/Planner"
-              className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
-              title="Schedule study session"
-            >
-              <Calendar className="h-3.5 w-3.5" />
-              <span className="hidden sm:inline">Schedule Session</span>
-            </a>
-            <button
-              type="button"
-              onClick={() => setShowGroupMembersSheet(true)}
-              className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-300"
-            >
-              Members
-            </button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {conversation?.type === "group" && (
+            <>
+              <a
+                href="/Planner"
+                className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+                title="Schedule study session"
+              >
+                <Calendar className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Schedule Session</span>
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowGroupMembersSheet(true)}
+                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-300"
+              >
+                Members
+              </button>
+            </>
+          )}
+          {headerAction}
+        </div>
       </div>
 
       {/* Messages Scroll Area */}

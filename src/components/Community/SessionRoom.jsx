@@ -93,8 +93,10 @@ export default function SessionRoom({
   useEffect(() => {
     if (!sessionId) return;
 
-    const channel = supabase
-      .channel(`group_session:${sessionId}`)
+    const channelName = `group_session:${sessionId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -118,8 +120,9 @@ export default function SessionRoom({
         () => {
           fetchSessionData();
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);

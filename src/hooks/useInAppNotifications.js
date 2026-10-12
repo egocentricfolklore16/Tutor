@@ -86,9 +86,10 @@ export function useInAppNotifications() {
   useEffect(() => {
     if (!userId) return;
 
-    const channelName = `in_app_notifications:${userId}:${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
+    const channelName = `in_app_notifications:${userId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -120,8 +121,9 @@ export function useInAppNotifications() {
             prev.map((item) => (item.id === updated.id ? updated : item))
           );
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);

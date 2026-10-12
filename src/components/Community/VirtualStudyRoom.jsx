@@ -212,8 +212,10 @@ export default function VirtualStudyRoom() {
   useEffect(() => {
     if (!roomId) return;
 
-    const roomSub = supabase
-      .channel(`room_db:${roomId}`)
+    const channelName = `room_db:${roomId}:${crypto.randomUUID()}`;
+    const roomSub = supabase.channel(channelName);
+
+    roomSub
       .on(
         "postgres_changes",
         {
@@ -242,8 +244,9 @@ export default function VirtualStudyRoom() {
         () => {
           fetchRoster();
         }
-      )
-      .subscribe();
+      );
+
+    roomSub.subscribe();
 
     const rosterInterval = setInterval(fetchRoster, 30000);
 
@@ -257,7 +260,8 @@ export default function VirtualStudyRoom() {
   useEffect(() => {
     if (!roomId || !currentUserId) return;
 
-    const bChannel = supabase.channel(`room:${roomId}`, {
+    const channelName = `room:${roomId}:${crypto.randomUUID()}`;
+    const bChannel = supabase.channel(channelName, {
       config: { broadcast: { self: true } },
     });
 
@@ -277,14 +281,16 @@ export default function VirtualStudyRoom() {
             created_at: new Date().toISOString(),
           },
         ]);
-      })
-      .subscribe();
+      });
+
+    bChannel.subscribe();
 
     broadcastChannelRef.current = bChannel;
 
     return () => {
       if (broadcastChannelRef.current) {
         supabase.removeChannel(broadcastChannelRef.current);
+        broadcastChannelRef.current = null;
       }
     };
   }, [roomId, currentUserId]);

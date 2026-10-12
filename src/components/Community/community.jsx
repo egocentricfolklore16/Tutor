@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate, useLocation, useParams, Routes, Route } from "react-router-dom";
 import {
   Users,
@@ -26,6 +26,8 @@ import {
   HelpCircle,
   Award,
   Clock,
+  Maximize2,
+  Minimize2,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
@@ -58,14 +60,82 @@ const Community = () => {
   const [openSessionId, setOpenSessionId] = useState(null);
   const [user, setUser] = useState(null);
 
+  const [isMaximized, setIsMaximized] = useState(() => {
+    try {
+      return sessionStorage.getItem("hyper_tutor_chat_maximized") === "true";
+    } catch {
+      return false;
+    }
+  });
+
+  const maximizeBtnRef = useRef(null);
+
+  const toggleMaximize = useCallback(() => {
+    setIsMaximized((prev) => {
+      const next = !prev;
+      try {
+        sessionStorage.setItem("hyper_tutor_chat_maximized", String(next));
+      } catch {
+        // Ignore sessionStorage errors
+      }
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!isMaximized) return;
+
+    maximizeBtnRef.current?.focus();
+
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+
+    const handleKeyDown = (e) => {
+      if (e.key === "Escape") {
+        setIsMaximized(false);
+        try {
+          sessionStorage.setItem("hyper_tutor_chat_maximized", "false");
+        } catch {
+          // Ignore sessionStorage errors
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.body.style.overflow = prevOverflow;
+      window.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMaximized]);
+
+  const renderMaximizeButton = (additionalClass = "") => {
+    const MaxIcon = isMaximized ? Minimize2 : Maximize2;
+    const label = isMaximized ? "Minimize chat" : "Maximize chat";
+
+    return (
+      <button
+        ref={maximizeBtnRef}
+        type="button"
+        onClick={toggleMaximize}
+        aria-label={label}
+        title={label}
+        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition-colors ${additionalClass}`}
+      >
+        <MaxIcon className="h-5 w-5" />
+      </button>
+    );
+  };
+
   // Sync tab with URL path
   const pathLower = location.pathname.toLowerCase();
+  const isChatRoute = pathLower.includes("/chat");
 
   useEffect(() => {
     if (isChatRoute) {
       setActiveTab("chat");
     }
-  }, [location.pathname]);
+  }, [isChatRoute]);
 
   // Get signed in user
   useEffect(() => {
@@ -875,11 +945,12 @@ const Community = () => {
                   {/* Mobile Layout */}
                   <div className="block md:hidden h-full w-full">
                     {activeConversationId ? (
-                      <div className="fixed inset-0 z-[110] bg-white dark:bg-[#14171c] h-[100dvh] w-screen">
+                      <div className={isMaximized ? "h-full w-full" : "fixed inset-0 z-[110] bg-white dark:bg-[#14171c] h-[100dvh] w-screen"}>
                         <ChatThread
                           conversationId={activeConversationId}
                           currentUserId={user?.id}
                           onBack={() => navigate("/Community/chat")}
+                          headerAction={renderMaximizeButton()}
                         />
                       </div>
                     ) : (
@@ -888,6 +959,7 @@ const Community = () => {
                           currentUserId={user?.id}
                           onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
                           onFindFriends={() => setActiveTab("friends")}
+                          headerAction={renderMaximizeButton()}
                         />
                       </div>
                     )}

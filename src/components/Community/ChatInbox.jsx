@@ -4,7 +4,7 @@ import supabase from "../../lib/supabase";
 import { formatRelativeTime, calculateUnreadCount } from "../../lib/communityChat";
 import FriendPicker from "./FriendPicker";
 
-export default function ChatInbox({ currentUserId, onSelectConversation, onFindFriends }) {
+export default function ChatInbox({ currentUserId, onSelectConversation, onFindFriends, headerAction }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
@@ -222,14 +222,17 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
             </p>
           </div>
 
-          <button
-            type="button"
-            onClick={() => setShowFriendPicker(true)}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
-          >
-            <Plus className="h-4 w-4" />
-            <span>New Chat</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setShowFriendPicker(true)}
+              className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
+            >
+              <Plus className="h-4 w-4" />
+              <span>New Chat</span>
+            </button>
+            {headerAction}
+          </div>
         </div>
 
         {/* Search */}

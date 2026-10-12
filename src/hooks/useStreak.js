@@ -195,21 +195,23 @@ export function useStreak() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user && isMounted) {
-        channel = supabase
-          .channel(`streak_changes_${session.user.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "users_streaks",
-              filter: `user_id=eq.${session.user.id}`,
-            },
-            () => {
-              if (isMounted) fetchStreakData();
-            }
-          )
-          .subscribe();
+        const channelName = `streak_changes_${session.user.id}:${crypto.randomUUID()}`;
+        channel = supabase.channel(channelName);
+
+        channel.on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "users_streaks",
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          () => {
+            if (isMounted) fetchStreakData();
+          }
+        );
+
+        channel.subscribe();
       }
     });
 

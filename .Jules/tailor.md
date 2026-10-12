@@ -10,7 +10,7 @@
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
-| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
 | `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
 
@@ -39,3 +39,7 @@
 ## 2026-10-14 - Connecting Weekly Hours to Settings & AI Suggestions
 **Learning:** `weekly_hours` was collected in Onboarding Step 2 ("How many hours can you study each week?") and referenced in `AISuggestions.jsx` and `Planner.jsx`, but was not editable in Settings and lacked a dedicated helper with safe numeric bounds fallback testing.
 **Action:** Create `getWeeklyHours` in `src/lib/weeklyHours.js` with tests in `test/weeklyHours.test.js`, connect it to `AISuggestions.jsx`, and add a Target Weekly Study Hours input control in `Settings.jsx` with immediate propagation via `ProfileContext`.
+
+## 2026-10-18 - Connecting Learning Style to Dashboard AI Suggestions & Settings Options
+**Learning:** `learning_style` was collected in Onboarding Step 3 ("How do you learn best?"), stored in `profiles.learning_style`, and passed to the AI Tutor system prompt, but Dashboard AI Suggestions rendered only generic string lowercasing, and Settings choice options ("Analogy-based") were misaligned with Onboarding choices ("Practice first", "Conversation").
+**Action:** Create `getLearningStyleSuggestion` in `src/lib/learningStyle.js` with tests in `test/learningStyle.test.js`, connect it to `AISuggestions.jsx` to render tailored learning strategy advice, and align `styles` in `Settings.jsx` with onboarding options so preferences can be edited with instant UI propagation via `ProfileContext`.

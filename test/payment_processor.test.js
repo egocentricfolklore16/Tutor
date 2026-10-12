@@ -110,15 +110,23 @@ function createMockSupabaseClient({
             };
           },
           upsert(payload) {
+            const existingIdx = paymentsStore.findIndex((p) => p.reference === payload.reference);
+            const newRow = { id: "payment-uuid-123", ...payload };
+            if (existingIdx >= 0) {
+              paymentsStore[existingIdx] = newRow;
+            } else {
+              paymentsStore.push(newRow);
+            }
             return {
               select() {
                 return {
                   async single() {
-                    const newRow = { id: "payment-uuid-123", ...payload };
-                    paymentsStore.push(newRow);
                     return { data: newRow, error: null };
                   },
                 };
+              },
+              then(resolve) {
+                return Promise.resolve({ data: newRow, error: null }).then(resolve);
               },
             };
           },
@@ -182,6 +190,41 @@ test("processVerifiedPayment processes a valid payment and updates subscription"
   assert.strictEqual(result.payment.currency, "NGN");
   assert.strictEqual(result.subscription.plan_id, "pro");
   assert.strictEqual(result.subscription.status, "active");
+});
+
+test("processVerifiedPayment records failed or abandoned payment in database before rejecting", async () => {
+  const mockClient = createMockSupabaseClient();
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_failed_1002",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "failed",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment verification failed: status is failed",
+    }
+  );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_failed_1002")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.user_id, "user-uuid-111");
 });
 
 test("processVerifiedPayment rejects currency mismatch", async () => {

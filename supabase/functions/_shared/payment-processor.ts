@@ -121,28 +121,50 @@ export async function processVerifiedPayment({
     throw new Error(`Plan is not active: ${planId}`);
   }
 
-  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
-  if (paystackData.status !== "success") {
-    throw new Error(`Payment verification failed: status is ${paystackData.status}`);
-  }
-
   const receivedCurrency = (paystackData.currency || "NGN").toUpperCase();
   const expectedCurrency = "NGN";
-  if (receivedCurrency !== expectedCurrency) {
-    throw new Error(
-      `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
-    );
-  }
-
   const expectedAmountKobo =
     typeof plan.price_kobo === "number"
       ? plan.price_kobo
       : plan.price_naira * 100;
 
-  if (paystackData.amount !== expectedAmountKobo) {
-    throw new Error(
-      `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
-    );
+  // 2. Audit non-success or mismatched payment attempts in `payments` table without granting subscriptions
+  if (
+    paystackData.status !== "success" ||
+    receivedCurrency !== expectedCurrency ||
+    paystackData.amount !== expectedAmountKobo
+  ) {
+    // Record payment failure/audit row idempotently if reference is present
+    if (reference) {
+      await supabaseClient.from("payments").upsert(
+        {
+          user_id: userId,
+          reference: reference,
+          amount: typeof paystackData.amount === "number" ? paystackData.amount : 0,
+          currency: receivedCurrency,
+          status: paystackData.status || "failed",
+          purpose: `subscription:${planId}`,
+          verified_at: new Date().toISOString(),
+        },
+        { onConflict: "reference" }
+      );
+    }
+
+    if (paystackData.status !== "success") {
+      throw new Error(`Payment verification failed: status is ${paystackData.status}`);
+    }
+
+    if (receivedCurrency !== expectedCurrency) {
+      throw new Error(
+        `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
+      );
+    }
+
+    if (paystackData.amount !== expectedAmountKobo) {
+      throw new Error(
+        `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
+      );
+    }
   }
 
   // 3. Idempotency check: return existing record if payment with this reference was already processed

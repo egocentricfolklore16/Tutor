@@ -15,3 +15,9 @@
 **Learning:** Prompt injection attempts ("ignore previous instructions", "system prompt", "you are now") in student messages can spoof genuine attempts and prematurely unlock answers if not filtered server-side by `countGenuineAttempts`. However, demand filters must be specifically bounded to injection/bypass phrases rather than generic verb-object patterns like `(?:give|tell|show)\s*me` to avoid misclassifying valid questions ("Can you tell me if x = 5?") as non-attempts.
 
 **Action:** Ensure demand/injection filters in server-side turn counters target explicit bypass phrases and answer demands without matching standard conversational student queries.
+
+## 2026-10-05 - Auditing Auxiliary Chat Endpoints for Server-Side State Injection
+
+**Learning:** When multiple Edge Functions serve AI chat features (e.g., `ai-tutor` vs `ai-tutor-chat`), prompt-only strictness rules in lightweight endpoints (such as `STRICTNESS_PROMPTS` instructing "or explicitly ask you to just tell them") create bypass holes where answer locking is skipped on attempt 0. Sharing server-side attempt counting (`countGenuineAttempts`) and state formatting (`getStrictnessRules`) across all AI endpoints ensures uniform lock enforcement.
+
+**Action:** Whenever introducing or updating AI prompt edge functions, ensure every chat endpoint computes turn history attempts server-side and injects `SERVER-ENFORCED STATE: LOCKED/UNLOCKED` rules rather than relying on static inline text.

@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { countGenuineAttempts, getStrictnessRules } from "../supabase/functions/ai-tutor/strictnessRules.ts";
 
 // Helper logic representing authentication checks in ai-tutor-chat Edge Function
 function verifyAiTutorChatAuth(authHeader, userResolver) {
@@ -62,4 +63,36 @@ test("resolveStrictness safely falls back when prototype properties or invalid v
   assert.strictEqual(resolveStrictnessHelper("valueOf", null), "hints_then_answer");
   assert.strictEqual(resolveStrictnessHelper("invalid_mode", null), "hints_then_answer");
   assert.strictEqual(resolveStrictnessHelper(null, "valueOf"), "hints_then_answer");
+});
+
+test("ai-tutor-chat prompt building enforces server-enforced LOCKED state for attempt 0 demands", () => {
+  const conversationHistory = [
+    { role: "user", content: "How do I solve x^2 - 9 = 0?" },
+    { role: "assistant", content: "Think about factoring or adding 9 to both sides." },
+  ];
+  const userDemand = "just give me the answer";
+  const fullHistory = [...conversationHistory, { role: "user", content: userDemand }];
+
+  const attempts = countGenuineAttempts(fullHistory);
+  assert.strictEqual(attempts, 0, "Demand phrase 'just give me the answer' must not count as a genuine attempt");
+
+  const rules = getStrictnessRules("hints_then_answer", attempts);
+  assert.strictEqual(rules.includes("SERVER-ENFORCED STATE: LOCKED"), true);
+  assert.strictEqual(rules.includes("CRITICAL MANDATE: You ARE STRICTLY FORBIDDEN"), true);
+  assert.strictEqual(rules.includes("or explicitly ask you to just tell them"), false, "Must not contain bypass text");
+});
+
+test("ai-tutor-chat prompt building unlocks answer after genuine attempt threshold", () => {
+  const conversationHistory = [
+    { role: "user", content: "How do I solve x^2 - 9 = 0?" },
+    { role: "assistant", content: "Think about factoring or adding 9 to both sides." },
+  ];
+  const genuineAttempt = "x^2 = 9 so x = 3 or x = -3";
+  const fullHistory = [...conversationHistory, { role: "user", content: genuineAttempt }];
+
+  const attempts = countGenuineAttempts(fullHistory);
+  assert.strictEqual(attempts, 1, "Substantive mathematical reasoning counts as genuine attempt");
+
+  const rules = getStrictnessRules("hints_then_answer", attempts);
+  assert.strictEqual(rules.includes("SERVER-ENFORCED STATE: UNLOCKED"), true);
 });

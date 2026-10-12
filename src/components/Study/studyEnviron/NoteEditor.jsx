@@ -94,14 +94,16 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
     refreshResources();
     if (!studyId) return () => { isCurrent = false; };
 
-    const channel = supabase
-      .channel(`note-resources-${studyId}-${userId || "current-user"}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
-        refreshResources
-      )
-      .subscribe();
+    const channelName = `note-resources-${studyId}-${userId || "current-user"}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
+      refreshResources
+    );
+
+    channel.subscribe();
     window.addEventListener("focus", refreshResources);
 
     return () => {

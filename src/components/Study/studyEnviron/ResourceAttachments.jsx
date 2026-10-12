@@ -57,14 +57,16 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
 
     if (!studyId || !userId) return undefined;
 
-    const channel = supabase
-      .channel(`session_resources-${studyId}-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
-        fetchResources
-      )
-      .subscribe();
+    const channelName = `session_resources-${studyId}-${userId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
+      fetchResources
+    );
+
+    channel.subscribe();
 
     window.addEventListener("focus", fetchResources);
 

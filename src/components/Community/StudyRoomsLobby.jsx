@@ -86,17 +86,18 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   useEffect(() => {
     fetchRooms();
 
-    // Subscribe to Realtime UPDATE/INSERT on study_rooms
-    const channel = supabase
-      .channel("public:study_rooms")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "study_rooms" },
-        () => {
-          fetchRooms();
-        }
-      )
-      .subscribe();
+    const channelName = `public:study_rooms:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "study_rooms" },
+      () => {
+        fetchRooms();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);

@@ -23,6 +23,7 @@ import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
 import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
+import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -201,6 +202,7 @@ function App() {
                 <Route path="Library" element={<Library session={session} />} />
                 <Route path="Community/*" element={<Community />} />
                 <Route path="community/*" element={<Community />} />
+                <Route path="achievements" element={<AchievementsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
                 <Route path="FAQ" element={<FAQ />} />
                 <Route path="Settings" element={<Settings />} />

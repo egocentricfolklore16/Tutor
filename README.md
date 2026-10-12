@@ -1,6 +1,6 @@
 # 📘 Hyper Tutor
 
-Hyper Tutor is an intelligent learning companion designed to boost student productivity, retention, and motivation through **personalized study sessions, adaptive AI tutoring, and social collaboration features**.  
+Hyper Tutor is an Hyper intelligent learning companion designed to boost student productivity, retention, and motivation through **personalized study sessions, adaptive AI tutoring, and social collaboration features**.  
 
 ---
 

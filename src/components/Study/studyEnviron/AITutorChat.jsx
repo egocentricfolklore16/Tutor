@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import LumoAvatar from "../../common/LumoAvatar";
+import TypewriterText from "./TypewriterText";
 import ReactMarkdown from "react-markdown";
 import remarkMath from "remark-math";
 import rehypeKatex from "rehype-katex";
@@ -53,9 +54,33 @@ const AITutorChat = ({
   const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
   const isPinnedRef = useRef(true);
+  const animatedMessageIdsRef = useRef(new Set());
+  const isFirstMountRef = useRef(true);
   const [copyState, setCopyState] = useState({});
 
   const panelAccent = theme?.accentButton || "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600";
+
+  // Pre-populate animated IDs for initial messages so history renders instantly
+  useEffect(() => {
+    if (isFirstMountRef.current && messages.length > 0) {
+      messages.forEach((msg, idx) => {
+        if (msg.sender === "ai") {
+          const key = msg.id || `msg-${idx}`;
+          animatedMessageIdsRef.current.add(key);
+        }
+      });
+      isFirstMountRef.current = false;
+    }
+  }, [messages]);
+
+  const scrollToBottom = useCallback(() => {
+    if (isPinnedRef.current) {
+      messagesEndRef.current?.scrollIntoView({
+        behavior: reducedMotion ? "auto" : "smooth",
+        block: "end",
+      });
+    }
+  }, [reducedMotion]);
 
   useEffect(() => {
     const el = messagesContainerRef.current;
@@ -88,16 +113,16 @@ const AITutorChat = ({
   }, [currentMessage]);
 
   useEffect(() => {
-    if (mode !== "fullpage") return;
+    if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
         e.preventDefault();
-        if (setMode) setMode("popout");
+        if (onClose) onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [mode, setMode]);
+  }, [isOpen, onClose]);
 
   const charCount = currentMessage.length;
   const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
@@ -211,10 +236,61 @@ const AITutorChat = ({
     return null;
   };
 
-  const MessageBubble = ({ message }) => {
+  const MessageBubble = ({ message, msgKey }) => {
     if (message.sender === "ai") {
       const isError = Boolean(message.isError);
       const bubbleText = String(message.text || "");
+      const shouldAnimate = !isError && !animatedMessageIdsRef.current.has(msgKey);
+
+      const markdownComponents = {
+        p: ({ children }) => <p className="mb-2 last:mb-0 leading-6">{children}</p>,
+        ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4">{children}</ul>,
+        ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4">{children}</ol>,
+        li: ({ children }) => <li>{children}</li>,
+        strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
+        a: ({ href, children }) => (
+          <a href={href} target="_blank" rel="noreferrer" className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300">
+            {children}
+          </a>
+        ),
+        code: ({ inline, children, className, ...props }) => {
+          const codeValue = String(children).replace(/\n$/, "");
+          if (inline) {
+            return <code className="rounded-md bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 dark:bg-slate-800 dark:text-slate-100" {...props}>{children}</code>;
+          }
+
+          return (
+            <div className="relative my-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 text-slate-100 dark:border-slate-700">
+              <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-300">
+                <span>{className?.replace("language-", "") || "code"}</span>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(codeValue)}
+                  aria-label="Copy code"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 transition hover:border-slate-500 hover:text-white"
+                >
+                  {copyState[codeValue.slice(0, 32)] ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
+                  {copyState[codeValue.slice(0, 32)] ? "Copied" : "Copy"}
+                </button>
+              </div>
+              <pre className="overflow-x-auto p-3 text-[12px] leading-5">
+                <code {...props}>{codeValue}</code>
+              </pre>
+            </div>
+          );
+        },
+        table: ({ children }) => (
+          <div className="my-2 overflow-x-auto">
+            <table className="w-full border-collapse border border-slate-300 text-left text-xs dark:border-slate-700">{children}</table>
+          </div>
+        ),
+        th: ({ children }) => <th className="border border-slate-300 bg-slate-100 p-1.5 font-semibold dark:border-slate-700 dark:bg-slate-800">{children}</th>,
+        td: ({ children }) => <td className="border border-slate-300 p-1.5 dark:border-slate-700">{children}</td>,
+      };
+
+      const handleAnimationComplete = () => {
+        animatedMessageIdsRef.current.add(msgKey);
+      };
 
       return (
         <div className="group flex gap-3">
@@ -232,57 +308,14 @@ const AITutorChat = ({
             </div>
 
             <div className="relative max-w-[90%] rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 p-3 text-sm leading-6 text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100">
-              <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
-                components={{
-                  p: ({ children }) => <p className="mb-2 last:mb-0 leading-6">{children}</p>,
-                  ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4">{children}</ul>,
-                  ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4">{children}</ol>,
-                  li: ({ children }) => <li>{children}</li>,
-                  strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
-                  a: ({ href, children }) => (
-                    <a href={href} target="_blank" rel="noreferrer" className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300">
-                      {children}
-                    </a>
-                  ),
-                  code: ({ inline, children, className, ...props }) => {
-                    const codeValue = String(children).replace(/\n$/, "");
-                    if (inline) {
-                      return <code className="rounded-md bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 dark:bg-slate-800 dark:text-slate-100" {...props}>{children}</code>;
-                    }
-
-                    return (
-                      <div className="relative my-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 text-slate-100 dark:border-slate-700">
-                        <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-300">
-                          <span>{className?.replace("language-", "") || "code"}</span>
-                          <button
-                            type="button"
-                            onClick={() => handleCopy(codeValue)}
-                            aria-label="Copy code"
-                            className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 transition hover:border-slate-500 hover:text-white"
-                          >
-                            {copyState[codeValue.slice(0, 32)] ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
-                            {copyState[codeValue.slice(0, 32)] ? "Copied" : "Copy"}
-                          </button>
-                        </div>
-                        <pre className="overflow-x-auto p-3 text-[12px] leading-5">
-                          <code {...props}>{codeValue}</code>
-                        </pre>
-                      </div>
-                    );
-                  },
-                  table: ({ children }) => (
-                    <div className="my-2 overflow-x-auto">
-                      <table className="w-full border-collapse border border-slate-300 text-left text-xs dark:border-slate-700">{children}</table>
-                    </div>
-                  ),
-                  th: ({ children }) => <th className="border border-slate-300 bg-slate-100 p-1.5 font-semibold dark:border-slate-700 dark:bg-slate-800">{children}</th>,
-                  td: ({ children }) => <td className="border border-slate-300 p-1.5 dark:border-slate-700">{children}</td>,
-                }}
-              >
-                {bubbleText}
-              </ReactMarkdown>
+              <TypewriterText
+                text={bubbleText}
+                shouldAnimate={shouldAnimate}
+                onComplete={handleAnimationComplete}
+                onTick={scrollToBottom}
+                reducedMotion={reducedMotion}
+                components={markdownComponents}
+              />
 
               {isError && onRetry && (
                 <div className="mt-3">
@@ -378,7 +411,7 @@ const AITutorChat = ({
         maxWidth: "100vw",
       }}
     >
-      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 p-4 dark:border-slate-800 dark:bg-[#151f2d]/90">
+      <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 p-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-slate-800 dark:bg-[#151f2d]/90">
         <div className="flex items-center gap-3">
           <button
             type="button"
@@ -436,6 +469,15 @@ const AITutorChat = ({
           >
             <X className="h-4 w-4" />
           </button>
+          <button
+            type="button"
+            title="Close AI tutor"
+            aria-label="Close AI tutor"
+            onClick={onClose}
+            className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:hidden"
+          >
+            <X className="h-5 w-5" />
+          </button>
         </div>
       </div>
 
@@ -465,9 +507,10 @@ const AITutorChat = ({
             </div>
           )}
 
-          {messages.map((msg, idx) => (
-            <MessageBubble key={`${msg.sender}-${idx}`} message={msg} />
-          ))}
+          {messages.map((msg, idx) => {
+            const msgKey = msg.id || `msg-${idx}`;
+            return <MessageBubble key={msgKey} message={msg} msgKey={msgKey} />;
+          })}
 
           {isTyping && (
             <div className="flex items-center gap-3">

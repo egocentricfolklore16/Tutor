@@ -187,7 +187,6 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
   const handleLogout = () => setFeedbackOpen(true);
 
   useEffect(() => {
-    // If parent provided a `user` prop, use it and skip fetching.
     if (user) {
       setIsLoading(false);
       return;
@@ -237,7 +236,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         onClick={toggleSidebar2}
         aria-label="Open navigation menu"
         title="Open navigation menu"
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 md:hidden bg-white border border-gray-500 rounded-full p-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600 ${
+        className={`fixed top-4 left-4 z-[1001] cursor-pointer shadow-surface hover:shadow-surface-hover transition-all duration-300 md:hidden bg-white dark:bg-[#14171c] rounded-full p-2 focus:outline-none focus:shadow-focus ${
           isOpen ? "hidden" : ""
         }`}
       >
@@ -263,7 +262,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col border-r-4 border-r-green-600 bg-white font-['Lexend'] text-black transition-all duration-300 ease-out dark-sidebar ${
+        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col shadow-surface bg-white dark:bg-[#14171c] font-['Lexend'] text-black dark:text-white transition-all duration-300 ease-out dark-sidebar ${
           isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
         } md:translate-x-0 md:opacity-100 md:pointer-events-auto`}
       >
@@ -272,7 +271,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           <div className="flex items-center">
             {isOpen && <img src="logo.svg" alt="Logo" className="w-12 h-7" />}
             {isOpen && (
-              <Link to={"/Dashboard"} className="text-black no-underline">
+              <Link to={"/Dashboard"} className="text-black dark:text-white no-underline">
                 <h1 className="ml-3 text-base font-semibold whitespace-nowrap">
                   Hyper Tutor
                 </h1>
@@ -284,7 +283,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={toggleSidebar2}
             aria-label={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
             title={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
-            className="p-1 rounded-lg text-black hover:bg-black/5 hover:drop-shadow-[0_0_5px_#16A34A] transition-all duration-300 focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+            className="p-1 rounded-lg text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 focus:outline-none focus:shadow-focus"
           >
             <svg
               stroke="currentColor"
@@ -312,21 +311,21 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               <Link
                 key={item.name}
                 to={"/" + item.name}
-                className="block text-black no-underline"
+                className="block text-black dark:text-white no-underline"
               >
                 <li
                   className={`
                   ${
                     activeItem === item.name
-                      ? "bg-black/15 border-l-2 border-green-600 ml-2"
-                      : "hover:bg-black/5 hover:border-l-2 hover:border-green-600 hover:ml-2"
+                      ? "bg-emerald-50 text-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300 ml-2"
+                      : "hover:bg-black/5 dark:hover:bg-white/5 hover:ml-2"
                   }
                   flex items-center h-8 px-3 rounded-lg cursor-pointer 
                   transition-all duration-300 text-xs whitespace-nowrap overflow-hidden
                 `}
                   onClick={() => handleMenuItemClick(item.name)}
                 >
-                  <span className="text-black pr-3">{item.icon}</span>
+                  <span className="pr-3">{item.icon}</span>
                   {isOpen && <span>{item.name}</span>}
                 </li>
               </Link>
@@ -335,28 +334,34 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
         </nav>
 
         {/* Footer Section */}
-        <div className="mt-auto p-4 border-t border-gray-700">
+        <div className="mt-auto p-4 border-t border-slate-100 dark:border-slate-800/60">
           {/* User Info */}
           <div className="flex items-center mb-4">
-            {profile?.avatar_url ? <img
-              src={profile.avatar_url}
-              className="w-8 h-8 rounded-full"
-              alt="Profile"
-            /> : <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900">{(profile?.full_name || username).charAt(0).toUpperCase()}</div>}
+            {profile?.avatar_url ? (
+              <img
+                src={profile.avatar_url}
+                className="w-8 h-8 rounded-full shadow-xs"
+                alt="Profile"
+              />
+            ) : (
+              <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900 shadow-xs">
+                {(profile?.full_name || username).charAt(0).toUpperCase()}
+              </div>
+            )}
             {isOpen && (
-              <h4 className="ml-4 text-black text-sm font-medium">
+              <h4 className="ml-4 text-black dark:text-white text-sm font-medium">
                 {isLoading ? "Loading..." : username}
               </h4>
             )}
           </div>
 
-          {/* New Project Button */}
+          {/* New Session Button */}
           <button
             type="button"
             onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
             aria-label="New study session"
             title="New study session"
-            className="w-full h-8 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-green-600"
+            className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm shadow-button-primary focus:outline-none focus:shadow-focus"
           >
             {isOpen ? "+ New Study Session" : "+"}
           </button>
@@ -366,7 +371,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             onClick={handleLogout}
             aria-label="Log out"
             title="Log out"
-            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg border border-gray-300 text-sm font-semibold text-gray-700 transition-colors duration-300 hover:border-red-300 hover:bg-red-50 hover:text-red-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+            className="mt-3 flex h-8 w-full items-center justify-center gap-2 rounded-lg bg-slate-100 dark:bg-slate-800 text-sm font-semibold text-slate-700 dark:text-slate-200 transition-colors duration-300 hover:bg-rose-50 hover:text-rose-700 dark:hover:bg-rose-950/40 focus:outline-none focus:shadow-focus"
           >
             <LogOut size={15} />
             {isOpen && "Log out"}
@@ -377,7 +382,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
             <button
               type="button"
               onClick={() => setFeedbackOpen(true)}
-              className="flex items-center text-gray-700 hover:text-emerald-600 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
+              className="flex items-center text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
             >
               <svg
                 className="mr-2"

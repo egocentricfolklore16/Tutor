@@ -81,10 +81,10 @@ function LibraryItem({
         onKeyDown={handleCardKeyDown}
         tabIndex={onPreview ? 0 : undefined}
         aria-label={onPreview ? `Preview ${title}` : undefined}
-        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-5 transition-colors hover:border-slate-300 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 dark:hover:bg-slate-800/70 dark:focus-visible:ring-green-400 sm:flex-row sm:items-start ${onPreview ? "cursor-pointer" : ""}`}
+        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl bg-white p-5 shadow-surface hover:shadow-surface-hover transition-all focus-visible:outline-none focus-visible:shadow-focus dark:bg-[#18211f] sm:flex-row sm:items-start ${onPreview ? "cursor-pointer" : ""}`}
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-surface ${tileClass}`}>
             {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
           </div>
           <div className="min-w-0 flex-1">
@@ -97,7 +97,7 @@ function LibraryItem({
             {children && <div className="mt-3 min-w-0">{children}</div>}
           </div>
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-1 border-t border-slate-100 pt-2 dark:border-slate-700 sm:border-0 sm:pt-0">{actions}</div>
+        <div className="flex shrink-0 items-center justify-end gap-1 pt-2 sm:pt-0">{actions}</div>
       </article>
     );
   }
@@ -108,10 +108,10 @@ function LibraryItem({
       onKeyDown={handleCardKeyDown}
       tabIndex={onPreview ? 0 : undefined}
       aria-label={onPreview ? `Preview ${title}` : undefined}
-      className={`flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 shadow-sm transition-colors hover:border-slate-300 dark:border-slate-700 dark:bg-[#18211f] dark:hover:border-slate-600 sm:p-5 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-green-600 dark:focus-visible:ring-green-400" : ""}`}
+      className={`flex h-full min-w-0 flex-col rounded-2xl bg-white p-4 shadow-surface hover:shadow-surface-hover transition-all dark:bg-[#18211f] sm:p-5 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:shadow-focus" : ""}`}
     >
       <div className="flex min-w-0 items-start gap-3">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-slate-200 dark:border-slate-700 ${tileClass}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-surface ${tileClass}`}>
           {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
         </div>
         <div className="min-w-0 flex-1">
@@ -130,7 +130,7 @@ function LibraryItem({
 }
 
 function Library({ session }) {
-  const [activeTab, setActiveTab] = useState("all"); // "all" | "notes" | "flashcards" | "resources" | "quizzes"
+  const [activeTab, setActiveTab] = useState("all");
   const [libraryView, setLibraryView] = useState(() => {
     try {
       if (typeof window === "undefined") return "grid";
@@ -147,37 +147,29 @@ function Library({ session }) {
   const [previewResource, setPreviewResource] = useState(null);
   const closeResourcePreview = useCallback(() => setPreviewResource(null), []);
 
-  // Data states
   const [notes, setNotes] = useState([]);
   const [flashcards, setFlashcards] = useState([]);
   const [resources, setResources] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [studies, setStudies] = useState([]);
 
-  // Standalone creation form modals / toggles
-  const [creationType, setCreationType] = useState(null); // null | "note" | "flashcard" | "resource"
+  const [creationType, setCreationType] = useState(null);
 
-  // Note creation form
   const [noteForm, setNoteForm] = useState({ title: "", content: "" });
 
-  // Flashcard creation form
   const [flashcardForm, setFlashcardForm] = useState({ question: "", answer: "" });
 
-  // Resource creation form
-  const [resourceMode, setResourceMode] = useState("file"); // "file" | "link"
+  const [resourceMode, setResourceMode] = useState("file");
   const [selectedFile, setSelectedFile] = useState(null);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
   const [linkKind, setLinkKind] = useState("link");
 
-  // Quiz interactive taking/retaking state
   const [retakingQuizMap, setRetakingQuizMap] = useState({});
   const [quizSavingId, setQuizSavingId] = useState(null);
 
-  // Flashcard flipping state
   const [flippedCards, setFlippedCards] = useState({});
 
-  // Submitting state
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const fetchLibraryData = async () => {
@@ -286,7 +278,7 @@ function Library({ session }) {
     try {
       window.localStorage.setItem("hypertutor:library-view", libraryView);
     } catch {
-      // The view toggle remains usable when storage is unavailable.
+      // Ignore storage errors
     }
   }, [libraryView]);
 
@@ -295,7 +287,6 @@ function Library({ session }) {
     [studies]
   );
 
-  // Render session badge or link
   const renderSessionBadge = (sessionId) => {
     if (!sessionId) {
       return (
@@ -314,7 +305,7 @@ function Library({ session }) {
       <Link
         to={`/Study/${sessionId}`}
         onClick={(event) => event.stopPropagation()}
-        className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60"
+        className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60 shadow-xs"
         title="Open Session"
       >
         <span className="min-w-0 truncate" title={label}>{label}</span>
@@ -323,7 +314,6 @@ function Library({ session }) {
     );
   };
 
-  // Standalone Creation Handlers
   const handleCreateNote = async (e) => {
     e.preventDefault();
     if (!noteForm.title.trim() || !noteForm.content.trim()) return;
@@ -483,7 +473,6 @@ function Library({ session }) {
     setIsSubmitting(false);
   };
 
-  // Record Quiz Attempt
   const handleRecordAttempt = async (quiz, selectedIndex) => {
     const userId = session?.user?.id;
     if (!userId || quizSavingId) return;
@@ -540,7 +529,6 @@ function Library({ session }) {
     setQuizSavingId(null);
   };
 
-  // Delete Handlers
   const handleDeleteNote = async (id) => {
     setDeletingId(id);
     const { error: err } = await supabase.from("session_notes").delete().eq("id", id);
@@ -578,7 +566,6 @@ function Library({ session }) {
     setDeletingId(null);
   };
 
-  // Resource Open URL
   const handleOpenResource = async (resource) => {
     if (resource.kind === "file" && resource.file_path) {
       const { data, error: urlError } = await supabase.storage
@@ -594,7 +581,6 @@ function Library({ session }) {
     }
   };
 
-  // Search filtering
   const query = searchTerm.trim().toLowerCase();
 
   const filteredNotes = useMemo(() => {
@@ -627,7 +613,6 @@ function Library({ session }) {
 
   return (
     <PageContainer maxWidth="max-w-7xl">
-        {/* Header */}
         <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
           <div>
             <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">
@@ -639,7 +624,6 @@ function Library({ session }) {
             </p>
           </div>
 
-          {/* Search bar */}
           <label className="relative block w-full md:max-w-sm">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-slate-400" />
             <input
@@ -647,13 +631,12 @@ function Library({ session }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search all library items..."
-              className="w-full rounded-xl border border-slate-200 bg-white py-3 pl-10 pr-4 text-sm outline-none transition focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-sm outline-none transition shadow-inset-field focus:shadow-focus"
             />
           </label>
         </header>
 
-        {/* Navigation Tabs and Create Action Bar */}
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
           <div className="flex flex-wrap gap-1.5">
             {[
               { id: "all", label: `All Items (${totalItemsCount})`, icon: LibraryIcon },
@@ -668,10 +651,10 @@ function Library({ session }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition ${
+                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition shadow-surface ${
                     isActive
-                      ? "bg-slate-900 text-white shadow-sm"
-                      : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-100"
+                      ? "bg-slate-900 text-white"
+                      : "bg-white text-slate-600 hover:bg-slate-100"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -681,33 +664,31 @@ function Library({ session }) {
             })}
           </div>
 
-          {/* Standalone Add Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-400 mr-1 hidden sm:inline">Add standalone:</span>
             <button
               onClick={() => setCreationType(creationType === "note" ? null : "note")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
             >
               <Plus className="h-3.5 w-3.5" /> Note
             </button>
             <button
               onClick={() => setCreationType(creationType === "flashcard" ? null : "flashcard")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-amber-700 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-amber-700 transition"
             >
               <Plus className="h-3.5 w-3.5" /> Flashcard
             </button>
             <button
               onClick={() => setCreationType(creationType === "resource" ? null : "resource")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-indigo-700 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-indigo-700 transition"
             >
               <Plus className="h-3.5 w-3.5" /> Resource
             </button>
           </div>
         </div>
 
-        {/* Global Error Banner */}
         {error && (
-          <div className="mb-6 flex items-center justify-between rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700 border border-red-200">
+          <div className="mb-6 flex items-center justify-between rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700 shadow-surface">
             <span>{error}</span>
             <button onClick={() => setError("")}>
               <X className="h-4 w-4" />
@@ -715,13 +696,11 @@ function Library({ session }) {
           </div>
         )}
 
-        {/* Creation Forms Sheet */}
         <ResponsiveSheet
           isOpen={Boolean(creationType)}
           onClose={() => setCreationType(null)}
           title={`Create Standalone ${creationType || ""}`}
         >
-          {/* Note Form */}
           {creationType === "note" && (
             <form onSubmit={handleCreateNote} className="space-y-4">
               <input
@@ -729,14 +708,14 @@ function Library({ session }) {
                 value={noteForm.title}
                 onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                 placeholder="Note Title"
-                className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
+                className="w-full rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
                 required
               />
               <textarea
                 value={noteForm.content}
                 onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                 placeholder="Write your note content here..."
-                className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-emerald-200"
+                className="min-h-32 w-full rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
                 required
               />
               <div className="flex justify-end gap-2 pt-2">
@@ -750,7 +729,7 @@ function Library({ session }) {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-button-primary"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
                 </button>
@@ -758,7 +737,6 @@ function Library({ session }) {
             </form>
           )}
 
-          {/* Flashcard Form */}
           {creationType === "flashcard" && (
             <form onSubmit={handleCreateFlashcard} className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
@@ -766,14 +744,14 @@ function Library({ session }) {
                   value={flashcardForm.question}
                   onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
                   placeholder="Front / Question"
-                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
+                  className="min-h-24 rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
                   required
                 />
                 <textarea
                   value={flashcardForm.answer}
                   onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
                   placeholder="Back / Answer"
-                  className="min-h-24 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-amber-200"
+                  className="min-h-24 rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
                   required
                 />
               </div>
@@ -788,7 +766,7 @@ function Library({ session }) {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50 shadow-button-primary"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
                 </button>
@@ -796,7 +774,6 @@ function Library({ session }) {
             </form>
           )}
 
-          {/* Resource Form */}
           {creationType === "resource" && (
             <form onSubmit={handleCreateResource} className="space-y-4">
               <div className="flex items-center gap-2 border-b border-slate-100 pb-2">
@@ -821,7 +798,7 @@ function Library({ session }) {
               </div>
 
               {resourceMode === "file" ? (
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100">
+                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100 shadow-surface">
                   <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
                   <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
                   <input
@@ -838,7 +815,7 @@ function Library({ session }) {
                     value={linkTitle}
                     onChange={(e) => setLinkTitle(e.target.value)}
                     placeholder="Resource Title"
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
+                    className="rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
                     required
                   />
                   <input
@@ -846,7 +823,7 @@ function Library({ session }) {
                     value={linkUrl}
                     onChange={(e) => setLinkUrl(e.target.value)}
                     placeholder="https://..."
-                    className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none sm:col-span-2"
+                    className="rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus sm:col-span-2"
                     required
                   />
                 </div>
@@ -863,98 +840,9 @@ function Library({ session }) {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-button-primary"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
-                </button>
-              </div>
-            </form>
-          )}
-
-          {/* Quiz Form */}
-          {creationType === "quiz" && (
-            <form onSubmit={handleCreateQuiz} className="grid gap-3 text-xs">
-              <input
-                type="text"
-                value={quizForm.title}
-                onChange={(e) => setQuizForm({ ...quizForm, title: e.target.value })}
-                placeholder="Quiz Title / Topic"
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base font-semibold outline-none focus:ring-2 focus:ring-purple-200"
-                required
-              />
-              <textarea
-                value={quizForm.question}
-                onChange={(e) => setQuizForm({ ...quizForm, question: e.target.value })}
-                placeholder="Question text..."
-                className="min-h-20 rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none focus:ring-2 focus:ring-purple-200"
-                required
-              />
-              <div className="grid gap-2 sm:grid-cols-2">
-                <input
-                  type="text"
-                  value={quizForm.optionA}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionA: e.target.value })}
-                  placeholder="Option A (required)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-                  required
-                />
-                <input
-                  type="text"
-                  value={quizForm.optionB}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionB: e.target.value })}
-                  placeholder="Option B (required)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-                  required
-                />
-                <input
-                  type="text"
-                  value={quizForm.optionC}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionC: e.target.value })}
-                  placeholder="Option C (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-                />
-                <input
-                  type="text"
-                  value={quizForm.optionD}
-                  onChange={(e) => setQuizForm({ ...quizForm, optionD: e.target.value })}
-                  placeholder="Option D (optional)"
-                  className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-                />
-              </div>
-              <label className="block text-xs font-bold text-slate-700">
-                Correct Option
-                <select
-                  value={quizForm.correctIndex}
-                  onChange={(e) => setQuizForm({ ...quizForm, correctIndex: Number(e.target.value) })}
-                  className="mt-1 w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-base"
-                >
-                  <option value={0}>Option A</option>
-                  <option value={1}>Option B</option>
-                  {quizForm.optionC.trim() && <option value={2}>Option C</option>}
-                  {quizForm.optionD.trim() && <option value={3}>Option D</option>}
-                </select>
-              </label>
-              <input
-                type="text"
-                value={quizForm.explanation}
-                onChange={(e) => setQuizForm({ ...quizForm, explanation: e.target.value })}
-                placeholder="Explanation (optional)"
-                className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-base outline-none"
-              />
-              <div className="flex justify-end gap-2 mt-2">
-                <button
-                  type="button"
-                  onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-purple-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-purple-700 disabled:opacity-50"
-                >
-                  {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Quiz
                 </button>
               </div>
             </form>
@@ -968,7 +856,7 @@ function Library({ session }) {
           <div
             role="group"
             aria-label="Library view"
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl border border-slate-200 bg-white p-1 dark:border-slate-700 dark:bg-[#18211f]"
+            className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-white p-1 dark:bg-[#18211f] shadow-surface"
           >
             {[
               { view: "grid", label: "Grid view", Icon: LayoutGrid },
@@ -983,7 +871,7 @@ function Library({ session }) {
                   aria-label={label}
                   aria-pressed={isActive}
                   onClick={() => setLibraryView(view)}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 focus-visible:ring-offset-1 dark:focus-visible:ring-indigo-400 dark:focus-visible:ring-offset-[#18211f] ${
+                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:shadow-focus ${
                     isActive
                       ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
@@ -996,13 +884,12 @@ function Library({ session }) {
           </div>
         </div>
 
-        {/* Content Display */}
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl border border-slate-200 bg-white py-20 dark:border-slate-700 dark:bg-[#18211f]">
+          <div className="flex items-center justify-center rounded-2xl bg-white py-20 dark:bg-[#18211f] shadow-surface">
             <LoadingCompanion message="Loading your library..." />
           </div>
         ) : totalItemsCount === 0 ? (
-          <div className="rounded-2xl border border-dashed border-slate-300 bg-white p-16 text-center dark:border-slate-700 dark:bg-[#18211f]">
+          <div className="rounded-2xl bg-white p-16 text-center dark:bg-[#18211f] shadow-surface">
             <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
             <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Your Library is Empty</h3>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -1014,7 +901,7 @@ function Library({ session }) {
             {/* 1. NOTES SECTION */}
             {(activeTab === "all" || activeTab === "notes") && filteredNotes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
                   <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
                     <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Notes ({filteredNotes.length})
                   </h2>
@@ -1036,7 +923,7 @@ function Library({ session }) {
                           type="button"
                           onClick={() => handleDeleteNote(note.id)}
                           disabled={deletingId === note.id}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                           title="Delete note"
                           aria-label="Delete note"
                         >
@@ -1052,7 +939,7 @@ function Library({ session }) {
             {/* 2. FLASHCARDS SECTION */}
             {(activeTab === "all" || activeTab === "flashcards") && filteredFlashcards.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
                   <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
                     <Layers3 className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Flashcards ({filteredFlashcards.length})
                   </h2>
@@ -1083,7 +970,7 @@ function Library({ session }) {
                             <button
                               type="button"
                               onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:text-amber-300 dark:hover:bg-amber-950/40 dark:focus-visible:ring-amber-400 sm:text-xs"
+                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:shadow-focus dark:text-amber-300 dark:hover:bg-amber-950/40 sm:text-xs"
                               title={isFlipped ? "Show question" : "Show answer"}
                               aria-label={isFlipped ? "Show question" : "Show answer"}
                             >
@@ -1094,7 +981,7 @@ function Library({ session }) {
                               type="button"
                               onClick={() => handleDeleteFlashcard(card.id)}
                               disabled={deletingId === card.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                               title="Delete flashcard"
                               aria-label="Delete flashcard"
                             >
@@ -1112,7 +999,7 @@ function Library({ session }) {
             {/* 3. RESOURCES SECTION */}
             {(activeTab === "all" || activeTab === "resources") && filteredResources.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
                   <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
                     <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Resources ({filteredResources.length})
                   </h2>
@@ -1173,7 +1060,7 @@ function Library({ session }) {
                               event.stopPropagation();
                               handleOpenResource(res);
                             }}
-                            className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-500 dark:text-indigo-400 dark:hover:bg-indigo-950/50 dark:focus-visible:ring-indigo-400"
+                            className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:shadow-focus dark:text-indigo-400 dark:hover:bg-indigo-950/50"
                             title="Open resource"
                             aria-label="Open resource"
                           >
@@ -1186,7 +1073,7 @@ function Library({ session }) {
                               handleDeleteResource(res);
                             }}
                             disabled={deletingId === res.id}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                             title="Delete resource"
                             aria-label="Delete resource"
                           >
@@ -1203,7 +1090,7 @@ function Library({ session }) {
             {/* 4. QUIZZES SECTION */}
             {(activeTab === "all" || activeTab === "quizzes") && filteredQuizzes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-200 pb-2 dark:border-slate-700">
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
                   <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
                     <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" /> Quizzes ({filteredQuizzes.length})
                   </h2>
@@ -1240,7 +1127,7 @@ function Library({ session }) {
                             {quiz.session_id ? (
                               <Link
                                 to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
-                                className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-purple-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 focus-visible:ring-offset-1 dark:bg-purple-500 dark:hover:bg-purple-400 dark:focus-visible:ring-purple-400 dark:focus-visible:ring-offset-[#18211f] sm:gap-1.5 sm:px-3 sm:text-xs"
+                                className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-purple-700 focus-visible:outline-none focus-visible:shadow-focus dark:bg-purple-500 dark:hover:bg-purple-400 sm:gap-1.5 sm:px-3 sm:text-xs shadow-button-primary"
                                 title="Practice full quiz"
                                 aria-label="Practice full quiz"
                               >
@@ -1250,7 +1137,7 @@ function Library({ session }) {
                               <button
                                 type="button"
                                 onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2 py-1.5 text-[10px] font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-purple-400 sm:px-2.5 sm:text-xs"
+                                className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:shadow-focus dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-2.5 sm:text-xs shadow-surface"
                               >
                                 <RotateCcw className="h-3.5 w-3.5" /> Retake
                               </button>
@@ -1259,7 +1146,7 @@ function Library({ session }) {
                               type="button"
                               onClick={() => handleDeleteQuiz(quiz.id)}
                               disabled={deletingId === quiz.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400 dark:focus-visible:ring-red-400"
+                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
                               title="Delete quiz"
                               aria-label="Delete quiz"
                             >
@@ -1275,7 +1162,7 @@ function Library({ session }) {
                                 {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
                               </p>
                             ) : latestAttempt && !isRetaking ? (
-                              <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/70">
+                              <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/70 shadow-surface">
                                 <p className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
                                   {latestAttempt.score === latestAttempt.total
                                     ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
@@ -1299,7 +1186,7 @@ function Library({ session }) {
                                     type="button"
                                     disabled={quizSavingId === quiz.id}
                                     onClick={() => handleRecordAttempt(quiz, idx)}
-                                    className="min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 transition hover:border-purple-300 hover:bg-purple-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500 disabled:opacity-50 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-purple-700 dark:hover:bg-purple-950/40 dark:focus-visible:ring-purple-400"
+                                    className="min-w-0 rounded-xl bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 transition shadow-surface hover:shadow-surface-hover hover:bg-purple-50 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-purple-950/40"
                                   >
                                     <strong>{String.fromCharCode(65 + idx)}.</strong> <span className="break-words">{opt}</span>
                                   </button>

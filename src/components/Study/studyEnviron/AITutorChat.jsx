@@ -63,7 +63,6 @@ const AITutorChat = ({
 
   const panelAccent = theme?.accentButton || "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600";
 
-  // Pre-populate animated IDs for initial messages so history renders instantly
   useEffect(() => {
     if (isFirstMountRef.current && messages.length > 0) {
       messages.forEach((msg, idx) => {
@@ -148,9 +147,6 @@ const AITutorChat = ({
     }
   };
 
-  /**
-   * Selection handler for prompt chips and sheet items
-   */
   const handleSelectPrompt = (promptText) => {
     if (!promptText) return;
 
@@ -190,13 +186,13 @@ const AITutorChat = ({
     if (action.type === "study_plan") {
       const data = action.data || {};
       return (
-        <div className={`mt-2.5 rounded-2xl border p-3 text-xs shadow-sm ${isSuccess ? "border-emerald-200 bg-emerald-50/80 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-200" : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"}`}>
+        <div className={`mt-2.5 rounded-2xl p-3 text-xs shadow-surface ${isSuccess ? "bg-emerald-50/80 text-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-200" : "bg-rose-50 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200"}`}>
           <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold">
             <ListTodo className="h-4 w-4 shrink-0 text-emerald-600 dark:text-emerald-400" />
             <span>{action.summary}</span>
           </div>
           {isSuccess && Array.isArray(data.milestones) && (
-            <div className="mt-2 space-y-1.5 border-t border-emerald-200/60 pt-2 dark:border-emerald-800/60">
+            <div className="mt-2 space-y-1.5 pt-2">
               {data.milestones.map((m, idx) => (
                 <div key={idx} className="flex items-start justify-between gap-2">
                   <span>
@@ -214,7 +210,7 @@ const AITutorChat = ({
     if (action.type === "scheduled_session") {
       const data = action.data || {};
       return (
-        <div className={`mt-2.5 rounded-2xl border p-3 text-xs shadow-sm ${isSuccess ? "border-sky-200 bg-sky-50/80 text-sky-900 dark:border-sky-800 dark:bg-sky-950/40 dark:text-sky-200" : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"}`}>
+        <div className={`mt-2.5 rounded-2xl p-3 text-xs shadow-surface ${isSuccess ? "bg-sky-50/80 text-sky-900 dark:bg-sky-950/40 dark:text-sky-200" : "bg-rose-50 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200"}`}>
           <div className="mb-1.5 flex items-center gap-2 text-sm font-semibold">
             <Calendar className="h-4 w-4 shrink-0 text-sky-600 dark:text-sky-400" />
             <span>{action.summary}</span>
@@ -232,7 +228,7 @@ const AITutorChat = ({
 
     if (action.type === "flashcards") {
       return (
-        <div className={`mt-2.5 rounded-2xl border p-3 text-xs shadow-sm ${isSuccess ? "border-amber-200 bg-amber-50/80 text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"}`}>
+        <div className={`mt-2.5 rounded-2xl p-3 text-xs shadow-surface ${isSuccess ? "bg-amber-50/80 text-amber-900 dark:bg-amber-950/40 dark:text-amber-200" : "bg-rose-50 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200"}`}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <Layers className="h-4 w-4 shrink-0 text-amber-600 dark:text-amber-400" />
@@ -242,7 +238,7 @@ const AITutorChat = ({
               <button
                 type="button"
                 onClick={() => onActionExecute && onActionExecute({ type: "open_flashcards" })}
-                className="rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-amber-700"
+                className="rounded-lg bg-amber-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-button-primary transition hover:bg-amber-700"
               >
                 Open flashcards
               </button>
@@ -255,7 +251,7 @@ const AITutorChat = ({
     if (action.type === "quiz") {
       const data = action.data || {};
       return (
-        <div className={`mt-2.5 rounded-2xl border p-3 text-xs shadow-sm ${isSuccess ? "border-violet-200 bg-violet-50/80 text-violet-900 dark:border-violet-800 dark:bg-violet-950/40 dark:text-violet-200" : "border-rose-200 bg-rose-50 text-rose-900 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-200"}`}>
+        <div className={`mt-2.5 rounded-2xl p-3 text-xs shadow-surface ${isSuccess ? "bg-violet-50/80 text-violet-900 dark:bg-violet-950/40 dark:text-violet-200" : "bg-rose-50 text-rose-900 dark:bg-rose-950/40 dark:text-rose-200"}`}>
           <div className="flex items-center justify-between gap-2">
             <div className="flex items-center gap-2 text-sm font-semibold">
               <HelpCircle className="h-4 w-4 shrink-0 text-violet-600 dark:text-violet-400" />
@@ -265,7 +261,7 @@ const AITutorChat = ({
               <button
                 type="button"
                 onClick={() => onActionExecute && onActionExecute({ type: "open_quiz", data })}
-                className="rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-violet-700"
+                className="rounded-lg bg-violet-600 px-2.5 py-1 text-[11px] font-semibold text-white shadow-button-primary transition hover:bg-violet-700"
               >
                 Open practice set
               </button>
@@ -302,14 +298,14 @@ const AITutorChat = ({
           }
 
           return (
-            <div className="relative my-2 overflow-hidden rounded-xl border border-slate-200 bg-slate-950 text-slate-100 dark:border-slate-700">
-              <div className="flex items-center justify-between border-b border-slate-700 bg-slate-900 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-300">
+            <div className="relative my-2 overflow-hidden rounded-xl bg-slate-950 text-slate-100 shadow-surface">
+              <div className="flex items-center justify-between bg-slate-900 px-3 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-300">
                 <span>{className?.replace("language-", "") || "code"}</span>
                 <button
                   type="button"
                   onClick={() => handleCopy(codeValue)}
                   aria-label="Copy code"
-                  className="inline-flex items-center gap-1 rounded-md border border-slate-700 bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 transition hover:border-slate-500 hover:text-white"
+                  className="inline-flex items-center gap-1 rounded-md bg-slate-800 px-1.5 py-0.5 text-[10px] font-medium text-slate-200 shadow-surface transition hover:text-white"
                 >
                   {copyState[codeValue.slice(0, 32)] ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
                   {copyState[codeValue.slice(0, 32)] ? "Copied" : "Copy"}
@@ -323,11 +319,11 @@ const AITutorChat = ({
         },
         table: ({ children }) => (
           <div className="my-2 overflow-x-auto">
-            <table className="w-full border-collapse border border-slate-300 text-left text-xs dark:border-slate-700">{children}</table>
+            <table className="w-full border-collapse text-left text-xs shadow-surface">{children}</table>
           </div>
         ),
-        th: ({ children }) => <th className="border border-slate-300 bg-slate-100 p-1.5 font-semibold dark:border-slate-700 dark:bg-slate-800">{children}</th>,
-        td: ({ children }) => <td className="border border-slate-300 p-1.5 dark:border-slate-700">{children}</td>,
+        th: ({ children }) => <th className="bg-slate-100 p-1.5 font-semibold dark:bg-slate-800">{children}</th>,
+        td: ({ children }) => <td className="p-1.5">{children}</td>,
       };
 
       const handleAnimationComplete = () => {
@@ -349,7 +345,7 @@ const AITutorChat = ({
               <span>Lumo</span>
             </div>
 
-            <div className="relative max-w-[90%] rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 p-3 text-sm leading-6 text-slate-800 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-100">
+            <div className="relative max-w-[90%] rounded-2xl rounded-tl-md bg-white/80 p-3 text-sm leading-6 text-slate-800 shadow-surface dark:bg-slate-900/80 dark:text-slate-100">
               <TypewriterText
                 text={bubbleText}
                 shouldAnimate={shouldAnimate}
@@ -364,7 +360,7 @@ const AITutorChat = ({
                   <button
                     type="button"
                     onClick={onRetry}
-                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white transition hover:bg-rose-700"
+                    className="inline-flex items-center gap-1.5 rounded-lg bg-rose-600 px-3 py-1.5 text-[11px] font-semibold text-white shadow-button-primary transition hover:bg-rose-700"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                     Retry message
@@ -377,7 +373,7 @@ const AITutorChat = ({
                   type="button"
                   aria-label="Copy Lumo message"
                   onClick={() => handleCopy(bubbleText)}
-                  className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
+                  className="rounded-full bg-white p-1.5 text-slate-600 shadow-overlay transition hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white"
                 >
                   {copyState[bubbleText.slice(0, 32)] ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
                 </button>
@@ -386,7 +382,7 @@ const AITutorChat = ({
                     type="button"
                     aria-label="Regenerate Lumo response"
                     onClick={onRetry}
-                    className="rounded-full border border-slate-200 bg-white p-1.5 text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-300 dark:hover:border-slate-600 dark:hover:text-white"
+                    className="rounded-full bg-white p-1.5 text-slate-600 shadow-overlay transition hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white"
                   >
                     <RefreshCw className="h-3.5 w-3.5" />
                   </button>
@@ -407,7 +403,7 @@ const AITutorChat = ({
                 <button
                   type="button"
                   onClick={() => handleSelectPrompt("Let's go through the questions I missed.")}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-violet-200 bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800 shadow-sm transition hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-200"
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-violet-50 px-3 py-1.5 text-[11px] font-bold text-violet-800 shadow-surface transition hover:bg-violet-100 dark:bg-violet-950/60 dark:text-violet-200"
                 >
                   <HelpCircle className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                   Review my mistakes
@@ -423,11 +419,11 @@ const AITutorChat = ({
       <div className="flex justify-end gap-3">
         <div className="min-w-0 max-w-[80%] text-right">
           <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">You</div>
-          <div className={`inline-block rounded-2xl rounded-tr-md p-3.5 text-left text-sm leading-6 text-white shadow-sm ${panelAccent}`}>
+          <div className={`inline-block rounded-2xl rounded-tr-md p-3.5 text-left text-sm leading-6 text-white shadow-surface ${panelAccent}`}>
             {message.text}
           </div>
         </div>
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200 shadow-surface">
           {user?.avatar ? (
             <img src={user.avatar} alt={user?.name || "You"} className="h-full w-full object-cover" />
           ) : (
@@ -445,14 +441,14 @@ const AITutorChat = ({
   return (
     <>
       <div
-        className="flex h-full w-full max-w-full flex-col border-l border-slate-200 bg-white shadow-2xl transition-all duration-200 dark:border-slate-800 dark:bg-[#101826]"
+        className="flex h-full w-full max-w-full flex-col bg-white shadow-overlay transition-all duration-200 dark:bg-[#101826]"
         style={{
           width: mode === "fullpage" ? "100%" : typeof width === "number" ? `${width}px` : width,
           maxWidth: "100vw",
         }}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-200 bg-slate-50/90 p-4 pt-[max(1rem,env(safe-area-inset-top))] dark:border-slate-800 dark:bg-[#151f2d]/90">
+        <div className="flex items-center justify-between bg-slate-50/90 p-4 pt-[max(1rem,env(safe-area-inset-top))] dark:bg-[#151f2d]/90 shadow-surface">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -476,7 +472,7 @@ const AITutorChat = ({
               title="Prompts menu"
               aria-label="Prompts menu"
               onClick={() => setIsPromptsSheetOpen(true)}
-              className="inline-flex items-center gap-1 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 transition hover:bg-violet-100 dark:border-violet-800 dark:bg-violet-950/60 dark:text-violet-300 min-h-[36px]"
+              className="inline-flex items-center gap-1 rounded-full bg-violet-50 px-2.5 py-1 text-xs font-semibold text-violet-700 shadow-surface transition hover:bg-violet-100 dark:bg-violet-950/60 dark:text-violet-300 min-h-[36px]"
             >
               <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
               <span>Prompts</span>
@@ -486,7 +482,7 @@ const AITutorChat = ({
               title="Clear conversation"
               aria-label="Clear conversation"
               onClick={onClear}
-              className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              className="rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:shadow-focus dark:hover:bg-slate-800 dark:hover:text-slate-200 min-h-[44px] min-w-[44px] flex items-center justify-center"
             >
               <Eraser className="h-4 w-4" />
             </button>
@@ -496,7 +492,7 @@ const AITutorChat = ({
                 title="Expand to full page"
                 aria-label="Expand to full page"
                 onClick={() => setMode && setMode("fullpage")}
-                className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
+                className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:shadow-focus dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
               >
                 <Maximize2 className="h-4 w-4" />
               </button>
@@ -506,7 +502,7 @@ const AITutorChat = ({
                 title="Return to pop-out chat"
                 aria-label="Return to pop-out chat"
                 onClick={() => setMode && setMode("popout")}
-                className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
+                className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:shadow-focus dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
               >
                 <Minimize2 className="h-4 w-4" />
               </button>
@@ -516,7 +512,7 @@ const AITutorChat = ({
               title="Close Lumo"
               aria-label="Close Lumo"
               onClick={onClose}
-              className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
+              className="hidden rounded-full p-2 text-slate-400 transition hover:bg-white hover:text-slate-700 focus:outline-none focus:shadow-focus dark:hover:bg-slate-800 dark:hover:text-slate-200 md:inline-flex min-h-[44px] min-w-[44px] items-center justify-center"
             >
               <X className="h-4 w-4" />
             </button>
@@ -525,7 +521,7 @@ const AITutorChat = ({
               title="Close AI tutor"
               aria-label="Close AI tutor"
               onClick={onClose}
-              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:hover:bg-slate-800 dark:hover:text-slate-200 md:hidden min-h-[44px] min-w-[44px]"
+              className="flex h-10 w-10 items-center justify-center rounded-full text-slate-400 transition hover:bg-slate-200 hover:text-slate-700 focus:outline-none focus:shadow-focus dark:hover:bg-slate-800 dark:hover:text-slate-200 md:hidden min-h-[44px] min-w-[44px]"
             >
               <X className="h-5 w-5" />
             </button>
@@ -537,7 +533,7 @@ const AITutorChat = ({
           <div className={`mx-auto w-full space-y-4 ${mode === "fullpage" ? "max-w-3xl" : ""}`}>
             {messages.length === 0 && !isTyping && (
               <div className="flex min-h-full items-center justify-center pt-2">
-                <div className="w-full max-w-md rounded-[28px] border border-slate-200 bg-slate-50/80 p-5 sm:p-6 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900/80">
+                <div className="w-full max-w-md rounded-[28px] bg-slate-50/80 p-5 sm:p-6 text-center shadow-surface dark:bg-slate-900/80">
                   <div className="relative mx-auto mb-3 flex items-center justify-center">
                     <div className="absolute h-20 w-20 rounded-full bg-emerald-500/20 blur-xl dark:bg-emerald-400/20" aria-hidden="true" />
                     <LumoAvatar size="lg" state="thinking" className="relative z-10 animate-lumo-gentle-float" />
@@ -547,7 +543,6 @@ const AITutorChat = ({
                     Tap a prompt suggestion to start or ask anything.
                   </p>
 
-                  {/* Empty state prompt chips horizontal scroll row */}
                   <div className="mt-4 space-y-2 text-left">
                     <div className="flex items-center justify-between px-1 text-[11px] font-semibold uppercase tracking-wider text-slate-400 dark:text-slate-500">
                       <span>Popular Prompts</span>
@@ -566,7 +561,7 @@ const AITutorChat = ({
                           key={prompt.id}
                           type="button"
                           onClick={() => handleSelectPrompt(prompt.text)}
-                          className="group relative flex shrink-0 min-w-[160px] max-w-[220px] flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3 text-left transition hover:border-violet-300 hover:shadow-md focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700/80 dark:bg-slate-800/90 dark:hover:border-violet-500/60 min-h-[72px]"
+                          className="group relative flex shrink-0 min-w-[160px] max-w-[220px] flex-col justify-between rounded-2xl bg-white p-3 text-left shadow-surface hover:shadow-surface-hover transition focus:outline-none focus:shadow-focus dark:bg-slate-800/90 min-h-[72px]"
                         >
                           <span className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400">
                             {prompt.label}
@@ -592,7 +587,7 @@ const AITutorChat = ({
                 <div className="flex h-7 w-7 shrink-0 items-center justify-center">
                   <LumoAvatar size="xs" state="thinking" />
                 </div>
-                <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md border border-slate-200 bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-900/80 dark:text-slate-300">
+                <div className="inline-flex items-center gap-2 rounded-2xl rounded-tl-md bg-white/80 px-3 py-2 text-sm text-slate-600 shadow-surface dark:bg-slate-900/80 dark:text-slate-300">
                   <span>Lumo is thinking</span>
                   <span className="flex items-center gap-1">
                     <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-slate-400 dark:bg-slate-300" />
@@ -608,14 +603,14 @@ const AITutorChat = ({
         </div>
 
         {/* Input & Active Conversation Quick Chips */}
-        <div className="border-t border-slate-200 bg-slate-50/90 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:border-slate-800 dark:bg-[#151f2d]/90">
+        <div className="bg-slate-50/90 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] dark:bg-[#151f2d]/90 shadow-surface">
           <div className={`mx-auto w-full ${mode === "fullpage" ? "max-w-3xl" : ""}`}>
             {messages.length > 0 && (
               <div className="mb-2.5 flex items-center gap-2 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 <button
                   type="button"
                   onClick={() => setIsPromptsSheetOpen(true)}
-                  className="flex shrink-0 items-center gap-1 rounded-full border border-violet-300 bg-violet-100/80 px-3 py-1.5 text-[11px] font-semibold text-violet-800 transition hover:bg-violet-200 dark:border-violet-700 dark:bg-violet-950 dark:text-violet-200 min-h-[36px]"
+                  className="flex shrink-0 items-center gap-1 rounded-full bg-violet-100/80 px-3 py-1.5 text-[11px] font-semibold text-violet-800 shadow-surface transition hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 min-h-[36px]"
                 >
                   <Sparkles className="h-3 w-3 text-violet-600 dark:text-violet-400" />
                   <span>Prompts</span>
@@ -625,7 +620,7 @@ const AITutorChat = ({
                     key={`quick-${prompt.id}`}
                     type="button"
                     onClick={() => handleSelectPrompt(prompt.text)}
-                    className="shrink-0 whitespace-nowrap rounded-full border border-slate-200 bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 transition hover:border-violet-300 hover:text-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:border-violet-500/60 dark:hover:text-violet-200 min-h-[36px]"
+                    className="shrink-0 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-surface transition hover:shadow-surface-hover hover:text-violet-700 focus:outline-none focus:shadow-focus dark:bg-slate-800 dark:text-slate-200 min-h-[36px]"
                   >
                     {prompt.label}: {prompt.text}
                   </button>
@@ -633,7 +628,7 @@ const AITutorChat = ({
               </div>
             )}
 
-            <div className="rounded-[24px] border border-slate-200 bg-white shadow-sm transition focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-500/20 dark:border-slate-700 dark:bg-slate-800">
+            <div className="rounded-[24px] bg-white shadow-inset-field transition focus-within:shadow-focus dark:bg-slate-800">
               <div className="flex items-end gap-2 p-2">
                 <label htmlFor="lumo-input" className="sr-only">Message Lumo</label>
                 <textarea
@@ -660,7 +655,7 @@ const AITutorChat = ({
                   disabled={!currentMessage.trim() || isTyping}
                   aria-label="Send message"
                   title="Send message"
-                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-md transition focus:outline-none focus:ring-2 focus:ring-violet-500/60 disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] min-w-[44px] ${panelAccent}`}
+                  className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-white shadow-button-primary transition focus:outline-none focus:shadow-focus disabled:cursor-not-allowed disabled:opacity-40 min-h-[44px] min-w-[44px] ${panelAccent}`}
                 >
                   <ArrowUp className="h-4 w-4" />
                 </button>
@@ -679,7 +674,6 @@ const AITutorChat = ({
         </div>
       </div>
 
-      {/* Ready-Made Prompts Bottom Sheet / Drawer Menu */}
       <ResponsiveSheet
         isOpen={isPromptsSheetOpen}
         onClose={() => setIsPromptsSheetOpen(false)}
@@ -690,14 +684,13 @@ const AITutorChat = ({
             Tap any prompt to send or fill in the placeholders (e.g. <code className="rounded bg-slate-100 px-1 py-0.5 text-slate-800 dark:bg-slate-800 dark:text-slate-200">[topic]</code>).
           </p>
 
-          {/* Category Pills */}
           <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setSelectedCategory("all")}
               className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition min-h-[36px] ${
                 selectedCategory === "all"
-                  ? "bg-violet-600 text-white dark:bg-violet-500"
+                  ? "bg-violet-600 text-white dark:bg-violet-500 shadow-button-primary"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
@@ -710,7 +703,7 @@ const AITutorChat = ({
                 onClick={() => setSelectedCategory(cat.id)}
                 className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition min-h-[36px] ${
                   selectedCategory === cat.id
-                    ? "bg-violet-600 text-white dark:bg-violet-500"
+                    ? "bg-violet-600 text-white dark:bg-violet-500 shadow-button-primary"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
                 }`}
               >
@@ -719,7 +712,6 @@ const AITutorChat = ({
             ))}
           </div>
 
-          {/* Prompt Cards Grid */}
           <div className="grid gap-2.5 sm:grid-cols-2">
             {filteredPrompts.map((prompt) => {
               const needsFill = hasPlaceholder(prompt.text);
@@ -728,7 +720,7 @@ const AITutorChat = ({
                   key={prompt.id}
                   type="button"
                   onClick={() => handleSelectPrompt(prompt.text)}
-                  className="group flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-3.5 text-left transition hover:border-violet-400 hover:bg-violet-50/40 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500/60 dark:border-slate-800 dark:bg-slate-900/90 dark:hover:border-violet-500/60 dark:hover:bg-slate-800/80 min-h-[80px]"
+                  className="group flex flex-col justify-between rounded-2xl bg-white p-3.5 text-left shadow-surface hover:shadow-surface-hover transition focus:outline-none focus:shadow-focus dark:bg-slate-900/90 min-h-[80px]"
                 >
                   <div className="mb-1 flex items-center justify-between gap-2">
                     <span className="text-[10px] font-bold uppercase tracking-wider text-violet-600 dark:text-violet-400">

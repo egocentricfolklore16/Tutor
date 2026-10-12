@@ -18,6 +18,43 @@
   --text-accent-purple: #C3A8E8;
   --bottom-nav-height: 4rem;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+
+  /* Shadow & Depth Tokens (Light) */
+  --shadow-surface: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
+  --shadow-surface-hover: 0 2px 4px rgb(15 23 42 / 0.06), 0 8px 20px rgb(15 23 42 / 0.08);
+  --shadow-overlay: 0 4px 6px rgb(15 23 42 / 0.05), 0 16px 36px rgb(15 23 42 / 0.12);
+  --shadow-inset-field: inset 0 0 0 1px rgb(15 23 42 / 0.06);
+  --shadow-focus: 0 0 0 3px rgb(16 185 129 / 0.35);
+  --shadow-button-primary: 0 2px 8px rgb(5 150 105 / 0.25);
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Shadow & Depth Tokens (Dark) */
+  --shadow-surface: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.04);
+  --shadow-surface-hover: 0 2px 4px rgb(0 0 0 / 0.5), 0 12px 32px rgb(0 0 0 / 0.45), inset 0 1px 0 rgb(255 255 255 / 0.08);
+  --shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.6), 0 24px 48px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.06);
+  --shadow-inset-field: inset 0 0 0 1px rgb(255 255 255 / 0.06);
+  --shadow-focus: 0 0 0 3px rgb(52 211 153 / 0.35);
+  --shadow-button-primary: 0 2px 10px rgb(5 150 105 / 0.35);
+}
+
+/* Custom Depth & Shadow Utility Classes */
+.shadow-surface { box-shadow: var(--shadow-surface); }
+.shadow-surface-hover { box-shadow: var(--shadow-surface-hover); }
+.shadow-overlay { box-shadow: var(--shadow-overlay); }
+.shadow-inset-field { box-shadow: var(--shadow-inset-field); }
+.shadow-focus { box-shadow: var(--shadow-focus); }
+.shadow-button-primary { box-shadow: var(--shadow-button-primary); }
+
+@media (forced-colors: active) {
+  .shadow-surface,
+  .shadow-surface-hover,
+  .shadow-overlay,
+  .shadow-inset-field {
+    border: 1px solid CanvasText !important;
+  }
 }
 
 body {
@@ -118,22 +155,22 @@ form { animation: form-enter 260ms ease-out both; }
   button:active:not(:disabled) { transform: none; }
 }
 
-.dark .notification-pane { background: var(--bg-surface) !important; color: var(--text-primary) !important; border-color: #26332e !important; }
+.dark .notification-pane { background: var(--bg-surface) !important; color: var(--text-primary) !important; border: 0 !important; box-shadow: var(--shadow-overlay) !important; }
 .dark .notification-pane * { color: inherit; }
 
-.settings-page { background: #eef3f8; }
+.settings-page { background: #f8fafc; }
 .dark .settings-page { background: var(--bg-base); }
-.settings-card { border-radius: 1rem; background: #ffffff; padding: 2rem; }
+.settings-card { border-radius: 1rem; background: #ffffff; padding: 2rem; box-shadow: var(--shadow-surface); }
 .dark .settings-card { background: var(--bg-surface); color: var(--text-primary); }
 .settings-section { border: 0; background: transparent; }
 .settings-field,
 .settings-card input:not([type="checkbox"]):not([type="file"]),
-.settings-card select { border: 0 !important; border-radius: 9999px; background: #f1f5f9 !important; padding: 0.85rem 1.1rem; color: #1e293b; outline: none; }
+.settings-card select { border: 0 !important; border-radius: 9999px; background: #f1f5f9 !important; padding: 0.85rem 1.1rem; color: #1e293b; outline: none; box-shadow: var(--shadow-inset-field); }
 .dark .settings-field,
 .dark .settings-card input:not([type="checkbox"]):not([type="file"]),
-.dark .settings-card select { background: #18211f !important; color: #e5eee9 !important; border: 1px solid #26332e !important; }
+.dark .settings-card select { background: #18211f !important; color: #e5eee9 !important; border: 0 !important; box-shadow: var(--shadow-inset-field); }
 .settings-card input:focus,
-.settings-card select:focus { box-shadow: 0 0 0 4px rgb(16 185 129 / 0.12); }
+.settings-card select:focus { box-shadow: var(--shadow-focus); }
 
 @media (max-width: 640px) {
   .settings-card { padding: 1.25rem; }
@@ -142,7 +179,8 @@ form { animation: form-enter 260ms ease-out both; }
 
 .auth-form-content input {
   background: #f8fafc !important;
-  border-color: #e2e8f0 !important;
+  border: 0 !important;
+  box-shadow: var(--shadow-inset-field) !important;
   color: #0f172a !important;
 }
 
@@ -154,7 +192,6 @@ form { animation: form-enter 260ms ease-out both; }
 .auth-form-content .text-emerald-400 { color: #047857 !important; }
 .auth-form-content .bg-\[\#0f1f0f\] { background: #f8fafc !important; }
 .auth-form-content .bg-\[\#1a2f1a\] { background: #ffffff !important; }
-.auth-form-content .border-emerald-800\/30 { border-color: #e2e8f0 !important; }
 
 @keyframes lumo-float {
   0%, 100% { transform: translateY(0); }
@@ -218,21 +255,17 @@ form { animation: form-enter 260ms ease-out both; }
   .animate-streak-pop { animation: none !important; transform: none !important; }
 }
 
-.dark {
-  color-scheme: dark;
-}
-
 .dark body,
 .dark .mainapp {
   background: var(--bg-base);
   color: #f2f0ec;
 }
 
-.dark .dark-surface { background: var(--bg-surface); color: var(--text-primary); }
-.dark .dark-session-surface { background: var(--card-red-bg); color: var(--text-primary); }
-.dark .dark-green-surface { background: var(--card-green-bg); color: var(--text-primary); }
-.dark .dark-amber-surface { background: var(--card-amber-bg); color: var(--text-primary); }
-.dark .dark-purple-surface { background: var(--card-purple-bg); color: var(--text-primary); }
+.dark .dark-surface { background: var(--bg-surface); color: var(--text-primary); box-shadow: var(--shadow-surface); }
+.dark .dark-session-surface { background: var(--card-red-bg); color: var(--text-primary); box-shadow: var(--shadow-surface); }
+.dark .dark-green-surface { background: var(--card-green-bg); color: var(--text-primary); box-shadow: var(--shadow-surface); }
+.dark .dark-amber-surface { background: var(--card-amber-bg); color: var(--text-primary); box-shadow: var(--shadow-surface); }
+.dark .dark-purple-surface { background: var(--card-purple-bg); color: var(--text-primary); box-shadow: var(--shadow-surface); }
 .dark .dark-primary-text { color: var(--text-primary); }
 .dark .dark-secondary-text { color: var(--text-secondary); }
 .dark .dark-red-text { color: var(--text-accent-red); }
@@ -251,7 +284,6 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .text-amber-800,
 .dark .text-amber-900,
 .dark .text-amber-700 { color: #E0B96B; }
-.dark .border-amber-200 { border-color: #382c1b; }
 .dark .text-gray-900,
 .dark .text-slate-950,
 .dark .text-slate-900 { color: #f8fafc; }
@@ -265,15 +297,9 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .text-slate-500 { color: #cbd5e1; }
 .dark .text-gray-400,
 .dark .text-slate-400 { color: #94a3b8; }
-.dark .border-gray-100,
-.dark .border-gray-200,
-.dark .border-gray-300,
-.dark .border-slate-100,
-.dark .border-slate-200,
-.dark .border-slate-300 { border-color: #262a32; }
 .dark input,
 .dark textarea,
-.dark select { background-color: #14171c; color: #f2f0ec; border-color: #262a32; }
+.dark select { background-color: #14171c; color: #f2f0ec; box-shadow: var(--shadow-inset-field); }
 .dark input::placeholder,
 .dark textarea::placeholder { color: #8e8a82; }
 .dark .hover\:bg-gray-50:hover,
@@ -285,23 +311,22 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .shadow-2xl { --tw-shadow-color: rgb(0 0 0 / 0.28); }
 .dark .dark-sidebar,
 .dark .dark-sidebar * { color: #ffffff; }
-.dark .dark-sidebar .border-gray-700 { border-color: #30413b; }
 
 .accent-card-chat,
-.accent-card-community { background: #fb923c; border-color: #f97316; color: #1c1917; }
-.accent-card-plan { background: #c084fc; border-color: #a855f7; color: #1c1917; }
-.accent-card-read { background: #60a5fa; border-color: #3b82f6; color: #172554; }
+.accent-card-community { background: #fb923c; color: #1c1917; box-shadow: var(--shadow-surface); }
+.accent-card-plan { background: #c084fc; color: #1c1917; box-shadow: var(--shadow-surface); }
+.accent-card-read { background: #60a5fa; color: #172554; box-shadow: var(--shadow-surface); }
 .accent-card-track,
-.accent-card-achievements { background: #facc15; border-color: #eab308; color: #422006; }
-.accent-card-note { background: #5eead4; border-color: #2dd4bf; color: #134e4a; }
+.accent-card-achievements { background: #facc15; color: #422006; box-shadow: var(--shadow-surface); }
+.accent-card-note { background: #5eead4; color: #134e4a; box-shadow: var(--shadow-surface); }
 
 .dark .accent-card-chat,
-.dark .accent-card-community { background: linear-gradient(135deg, #442318, #261814); border-color: transparent; color: #f7e8df; box-shadow: inset 0 1px 0 rgb(255 194 148 / 0.12), 0 8px 24px rgb(0 0 0 / 0.18); }
-.dark .accent-card-plan { background: linear-gradient(135deg, #302143, #1e192f); border-color: transparent; color: #eee5fa; box-shadow: inset 0 1px 0 rgb(219 178 255 / 0.12), 0 8px 24px rgb(0 0 0 / 0.18); }
-.dark .accent-card-read { background: linear-gradient(135deg, #1d314d, #172231); border-color: transparent; color: #e4efff; box-shadow: inset 0 1px 0 rgb(153 199 255 / 0.12), 0 8px 24px rgb(0 0 0 / 0.18); }
+.dark .accent-card-community { background: linear-gradient(135deg, #442318, #261814); color: #f7e8df; box-shadow: var(--shadow-surface); }
+.dark .accent-card-plan { background: linear-gradient(135deg, #302143, #1e192f); color: #eee5fa; box-shadow: var(--shadow-surface); }
+.dark .accent-card-read { background: linear-gradient(135deg, #1d314d, #172231); color: #e4efff; box-shadow: var(--shadow-surface); }
 .dark .accent-card-track,
-.dark .accent-card-achievements { background: linear-gradient(135deg, #493b16, #2b2414); border-color: transparent; color: #f8efd0; box-shadow: inset 0 1px 0 rgb(255 225 135 / 0.12), 0 8px 24px rgb(0 0 0 / 0.18); }
-.dark .accent-card-note { background: linear-gradient(135deg, #173d3a, #152825); border-color: transparent; color: #d9f2ee; box-shadow: inset 0 1px 0 rgb(135 238 225 / 0.12), 0 8px 24px rgb(0 0 0 / 0.18); }
+.dark .accent-card-achievements { background: linear-gradient(135deg, #493b16, #2b2414); color: #f8efd0; box-shadow: var(--shadow-surface); }
+.dark .accent-card-note { background: linear-gradient(135deg, #173d3a, #152825); color: #d9f2ee; box-shadow: var(--shadow-surface); }
 .dark .accent-card-chat .text-gray-900,
 .dark .accent-card-plan .text-gray-900,
 .dark .accent-card-read .text-gray-900,
@@ -312,50 +337,33 @@ form { animation: form-enter 260ms ease-out both; }
 
 /* Reuse the accent-card treatment for legacy page surfaces. */
 .dark .bg-red-50,
-.dark .bg-red-100 { background: linear-gradient(135deg, #44201f, #28191a); border-color: transparent; }
+.dark .bg-red-100 { background: linear-gradient(135deg, #44201f, #28191a); }
 .dark .bg-orange-50,
-.dark .bg-orange-100 { background: linear-gradient(135deg, #432919, #281b16); border-color: transparent; }
+.dark .bg-orange-100 { background: linear-gradient(135deg, #432919, #281b16); }
 .dark .bg-amber-50,
-.dark .bg-amber-100 { background: linear-gradient(135deg, #443816, #282314); border-color: transparent; }
+.dark .bg-amber-100 { background: linear-gradient(135deg, #443816, #282314); }
 .dark .bg-emerald-50,
-.dark .bg-emerald-100 { background: linear-gradient(135deg, #173d36, #152722); border-color: transparent; }
+.dark .bg-emerald-100 { background: linear-gradient(135deg, #173d36, #152722); }
 .dark .bg-blue-50,
 .dark .bg-blue-100,
-.dark .bg-sky-50 { background: linear-gradient(135deg, #1b334d, #172330); border-color: transparent; }
+.dark .bg-sky-50 { background: linear-gradient(135deg, #1b334d, #172330); }
 .dark .bg-indigo-50,
 .dark .bg-indigo-100,
 .dark .bg-violet-50,
-.dark .bg-violet-100 { background: linear-gradient(135deg, #302143, #1e192f); border-color: transparent; }
+.dark .bg-violet-100 { background: linear-gradient(135deg, #302143, #1e192f); }
 .dark .bg-rose-50,
-.dark .bg-rose-100 { background: linear-gradient(135deg, #43202d, #281923); border-color: transparent; }
-.dark .bg-red-50 *,
-.dark .bg-red-100 *,
-.dark .bg-orange-50 *,
-.dark .bg-orange-100 *,
-.dark .bg-amber-50 *,
-.dark .bg-amber-100 *,
-.dark .bg-emerald-50 *,
-.dark .bg-emerald-100 *,
-.dark .bg-blue-50 *,
-.dark .bg-blue-100 *,
-.dark .bg-sky-50 *,
-.dark .bg-indigo-50 *,
-.dark .bg-indigo-100 *,
-.dark .bg-violet-50 *,
-.dark .bg-violet-100 *,
-.dark .bg-rose-50 *,
-.dark .bg-rose-100 * { border-color: transparent; }
+.dark .bg-rose-100 { background: linear-gradient(135deg, #43202d, #281923); }
 
 .performance-legend-bg {
   background-image: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0) 0%,   /* fully transparent at the top */
-    rgba(0, 0, 0, 0.7) 100% /* semi-transparent black at bottom */
+    rgba(0, 0, 0, 0) 0%,
+    rgba(0, 0, 0, 0.7) 100%
   ), url('/perfom.jpg');
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-   transition: background-size 0.5s ease-in-out;
+  transition: background-size 0.5s ease-in-out;
 }
 
 .performance-legend-bg:hover {
@@ -363,11 +371,11 @@ form { animation: form-enter 260ms ease-out both; }
 }
 
 /* Semantic dark-mode surfaces take precedence over legacy utility overrides. */
-.dark .dark-surface { background: var(--bg-surface) !important; color: var(--text-primary) !important; }
-.dark .dark-session-surface { background: var(--card-red-bg) !important; color: var(--text-primary) !important; }
-.dark .dark-green-surface { background: var(--card-green-bg) !important; color: var(--text-primary) !important; }
-.dark .dark-amber-surface { background: var(--card-amber-bg) !important; color: var(--text-primary) !important; }
-.dark .dark-purple-surface { background: var(--card-purple-bg) !important; color: var(--text-primary) !important; }
+.dark .dark-surface { background: var(--bg-surface) !important; color: var(--text-primary) !important; box-shadow: var(--shadow-surface) !important; }
+.dark .dark-session-surface { background: var(--card-red-bg) !important; color: var(--text-primary) !important; box-shadow: var(--shadow-surface) !important; }
+.dark .dark-green-surface { background: var(--card-green-bg) !important; color: var(--text-primary) !important; box-shadow: var(--shadow-surface) !important; }
+.dark .dark-amber-surface { background: var(--card-amber-bg) !important; color: var(--text-primary) !important; box-shadow: var(--shadow-surface) !important; }
+.dark .dark-purple-surface { background: var(--card-purple-bg) !important; color: var(--text-primary) !important; box-shadow: var(--shadow-surface) !important; }
 .dark .dark-primary-text { color: var(--text-primary) !important; }
 .dark .dark-secondary-text { color: var(--text-secondary) !important; }
 .dark .dark-red-text { color: var(--text-accent-red) !important; }

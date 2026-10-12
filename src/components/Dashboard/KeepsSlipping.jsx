@@ -4,16 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { getUserSlippingData } from "../../lib/streaks";
 import supabase from "../../lib/supabase";
 
-// BOLT OPTIMIZATION:
-// Move static color configurations, days array, and pure helper functions outside
-// component render cycle. In Overview.jsx, a typing animation triggers re-renders every 75ms.
-// Declaring these outside render eliminates repeated array/object allocations and functions on every tick.
-
 const SLIP_COLORS = [
   {
     name: "red",
     bg: "bg-red-50 dark:bg-red-950/30",
-    border: "border-red-200 dark:border-red-900/50",
     text: "text-red-700 dark:text-red-400",
     badge: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
     icon: "text-red-600 dark:text-red-400",
@@ -21,7 +15,6 @@ const SLIP_COLORS = [
   {
     name: "green",
     bg: "bg-green-50 dark:bg-green-950/30",
-    border: "border-green-200 dark:border-green-900/50",
     text: "text-green-700 dark:text-green-400",
     badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
     icon: "text-green-600 dark:text-green-400",
@@ -29,7 +22,6 @@ const SLIP_COLORS = [
   {
     name: "amber",
     bg: "bg-amber-50 dark:bg-amber-950/30",
-    border: "border-amber-200 dark:border-amber-900/50",
     text: "text-amber-700 dark:text-amber-400",
     badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
     icon: "text-amber-600 dark:text-amber-400",
@@ -37,7 +29,6 @@ const SLIP_COLORS = [
   {
     name: "purple",
     bg: "bg-purple-50 dark:bg-purple-950/30",
-    border: "border-purple-200 dark:border-purple-900/50",
     text: "text-purple-700 dark:text-purple-400",
     badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
     icon: "text-purple-600 dark:text-purple-400",
@@ -73,13 +64,11 @@ function KeepsSlipping({ userId }) {
       try {
         setIsLoading(true);
 
-        // Get slipping data
         const { data: slips, error: slipsError } = await getUserSlippingData(userId, 5);
         if (!slipsError && slips) {
           setSlippingData(slips);
         }
 
-        // Get recent non-completed sessions to analyze subjects needing focus
         const { data: recentSessions } = await supabase
           .from("Study")
           .select("Subject, Topic, Status, Date")
@@ -114,8 +103,6 @@ function KeepsSlipping({ userId }) {
 
   const hasSlips = slippingData.length > 0;
 
-  // Memoize processed slip items so date formatting and color assignments
-  // do not re-run on frequent parent re-renders (e.g., Overview.jsx typing animation)
   const processedSlips = useMemo(() => {
     return slippingData.slice(0, 3).map((slip, index) => {
       const color = getColorByIndex(index);
@@ -132,9 +119,9 @@ function KeepsSlipping({ userId }) {
   }, [slippingData]);
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
+    <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-surface overflow-hidden transition-colors">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-900 px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-slate-800">
+      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-900 px-4 sm:px-6 py-4 sm:py-5">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${hasSlips ? "bg-red-100 dark:bg-red-950/50" : "bg-emerald-100 dark:bg-emerald-950/50"}`}>
@@ -168,7 +155,7 @@ function KeepsSlipping({ userId }) {
         ) : !hasSlips && (!sessionStats || sessionStats.topSubjects.length === 0) ? (
           /* Empty State */
           <div className="flex flex-col items-center justify-center text-center py-8 px-4 space-y-3">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-full border border-emerald-100 dark:border-emerald-900/50">
+            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-full shadow-surface">
               <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
             </div>
             <p className="text-base font-semibold text-slate-800 dark:text-slate-200">On Top of Your Game!</p>
@@ -177,7 +164,7 @@ function KeepsSlipping({ userId }) {
             </p>
             <button
               onClick={() => navigate("/Study")}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg transition-colors"
+              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-button-primary transition-colors"
             >
               <span>Go to Workspace</span>
               <ArrowRight className="h-4 w-4" />
@@ -199,10 +186,10 @@ function KeepsSlipping({ userId }) {
                     return (
                       <div
                         key={slip.id}
-                        className={`flex items-start gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-lg border-l-4 ${color.bg} transition-all hover:shadow-md ${color.border}`}
+                        className={`flex items-start gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-lg ${color.bg} shadow-surface hover:shadow-surface-hover transition-all`}
                       >
                         <div className="shrink-0">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${color.bg} border ${color.border} flex items-center justify-center`}>
+                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${color.bg} flex items-center justify-center shadow-xs`}>
                             <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{dayName}</span>
                           </div>
                         </div>
@@ -234,7 +221,7 @@ function KeepsSlipping({ userId }) {
                 </div>
               </div>
             ) : (
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-900/50">
+              <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 shadow-surface">
                 <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                 <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">
                   No active slip events! Your streak and schedule are intact.
@@ -257,7 +244,7 @@ function KeepsSlipping({ userId }) {
                     return (
                       <div
                         key={subjectName}
-                        className={`p-4 rounded-lg border-2 ${color.border} ${color.bg} transition-all hover:shadow-md cursor-pointer group`}
+                        className={`p-4 rounded-lg ${color.bg} shadow-surface hover:shadow-surface-hover transition-all cursor-pointer group`}
                         onClick={() => navigate("/Study")}
                       >
                         <div className="flex items-start justify-between mb-2">
@@ -277,7 +264,7 @@ function KeepsSlipping({ userId }) {
             )}
 
             {/* Call to Action */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 rounded-lg border border-emerald-200 dark:border-emerald-800/60">
+            <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 rounded-lg shadow-surface">
               <div className="flex items-start gap-3">
                 <RotateCcw className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
                 <div className="grow min-w-0">
@@ -287,7 +274,7 @@ function KeepsSlipping({ userId }) {
                   </p>
                   <button
                     onClick={() => navigate("/Study")}
-                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg hover:bg-emerald-700 transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-button-primary hover:bg-emerald-700 transition-colors flex items-center gap-2"
                   >
                     <span>Create a session</span>
                     <ArrowRight className="h-4 w-4" />
@@ -300,7 +287,7 @@ function KeepsSlipping({ userId }) {
       </div>
 
       {/* Footer Stats */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 border-t border-gray-200 dark:border-slate-800 grid grid-cols-2 gap-4 text-center">
+      <div className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 grid grid-cols-2 gap-4 text-center">
         <div>
           <p className="text-2xl font-bold text-slate-900 dark:text-white">{slippingData.length}</p>
           <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Slip Events</p>

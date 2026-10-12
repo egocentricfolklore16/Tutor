@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { BookOpen, CalendarCheck, Clock3, Library, Loader2, Target } from "lucide-react";
+import { BookOpen, CalendarCheck, Clock3, Library, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
@@ -29,7 +29,6 @@ function Progress() {
       ]);
       if (sessionError || resourceError) { setStatus("error"); return; }
 
-      // Merge active and historical study sessions into progress computation
       const historicalAsSessions = (historyData || []).map((h) => ({
         id: h.id,
         Subject: h.subject,
@@ -61,8 +60,6 @@ function Progress() {
       date.setDate(date.getDate() - (29 - index));
       return { key: dateKey(date), day: date.toLocaleDateString("en-US", { month: "short", day: "numeric" }), hours: 0 };
     });
-    // BOLT OPTIMIZATION: Index 30-day buckets by date key into a Map for O(1) lookups.
-    // Replaces O(30 * N) linear `.find(...)` array searches per session with O(30 + N) total complexity.
     const daysMap = new Map(last30Days.map((day) => [day.key, day]));
     sessions.forEach((item) => {
       const point = daysMap.get(dateKey(item.Date));
@@ -79,7 +76,7 @@ function Progress() {
 
   if (status === "loading") return <LoadingCompanion message="Loading progress..." />;
   if (status === "unauthenticated") return <div className="p-8 text-slate-500">Sign in to view your progress.</div>;
-  if (status === "error") return <div className="m-8 rounded-lg bg-red-50 p-6 text-red-700">Unable to load your progress.</div>;
+  if (status === "error") return <div className="m-8 rounded-lg bg-red-50 p-6 text-red-700 shadow-surface">Unable to load your progress.</div>;
 
   const completionRate = analytics.plannedHours ? Math.round((analytics.completedHours / analytics.plannedHours) * 100) : 0;
   const cards = [
@@ -93,23 +90,23 @@ function Progress() {
     <PageContainer maxWidth="max-w-6xl">
         <header className="mb-8">
           <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">Your learning journey</p>
-          <h1 className="text-3xl font-bold text-slate-900 md:text-4xl">Progress</h1>
+          <h1 className="text-3xl font-bold text-slate-900 md:text-4xl dark:text-white">Progress</h1>
           <p className="mt-2 text-slate-500">See how consistently you study and how your plan is moving forward.</p>
         </header>
 
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {cards.map(([Icon, value, label, color]) => <div key={label} className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><Icon className={`mb-4 h-5 w-5 ${color}`} /><p className="text-2xl font-bold text-slate-900">{value}</p><p className="mt-1 text-sm text-slate-500">{label}</p></div>)}
+          {cards.map(([Icon, value, label, color]) => <div key={label} className="rounded-xl bg-white p-5 shadow-surface dark:bg-[#14171c]"><Icon className={`mb-4 h-5 w-5 ${color}`} /><p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p><p className="mt-1 text-sm text-slate-500">{label}</p></div>)}
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm lg:col-span-2">
-            <div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="font-semibold text-slate-900">30-day study trend</h2><p className="mt-1 text-sm text-slate-500">Planned hours across your recent schedule</p></div><span className="text-sm font-semibold text-indigo-600">{analytics.plannedHours.toFixed(1)}h total</span></div>
+          <section className="rounded-xl bg-white p-5 shadow-surface dark:bg-[#14171c] lg:col-span-2">
+            <div className="mb-5 flex items-end justify-between gap-4"><div><h2 className="font-semibold text-slate-900 dark:text-white">30-day study trend</h2><p className="mt-1 text-sm text-slate-500">Planned hours across your recent schedule</p></div><span className="text-sm font-semibold text-indigo-600">{analytics.plannedHours.toFixed(1)}h total</span></div>
             <div className="h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={analytics.last30Days} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#eef2f7" /><XAxis dataKey="day" stroke="#94a3b8" fontSize={11} interval={4} /><YAxis stroke="#94a3b8" fontSize={11} allowDecimals={false} /><Tooltip formatter={(value) => [`${value} hrs`, "Planned time"]} /><Area type="monotone" dataKey="hours" stroke="#6366f1" strokeWidth={2} fill="#e0e7ff" /></AreaChart></ResponsiveContainer></div>
           </section>
-          <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><h2 className="font-semibold text-slate-900">Consistency snapshot</h2><div className="mt-5 space-y-5"><div><div className="flex justify-between text-sm"><span className="text-slate-500">Study days</span><strong className="text-slate-800">{analytics.studyDays}</strong></div><div className="mt-2 h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-400" style={{ width: `${Math.min(analytics.studyDays / 30 * 100, 100)}%` }} /></div></div><div className="flex items-center justify-between border-t border-slate-100 pt-4"><span className="text-slate-500">Upcoming sessions</span><strong className="text-slate-800">{analytics.upcoming}</strong></div><div className="flex items-center justify-between"><span className="text-slate-500">Subjects explored</span><strong className="text-slate-800">{analytics.subjects}</strong></div></div></section>
+          <section className="rounded-xl bg-white p-5 shadow-surface dark:bg-[#14171c]"><h2 className="font-semibold text-slate-900 dark:text-white">Consistency snapshot</h2><div className="mt-5 space-y-5"><div><div className="flex justify-between text-sm"><span className="text-slate-500">Study days</span><strong className="text-slate-800 dark:text-slate-200">{analytics.studyDays}</strong></div><div className="mt-2 h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-2 rounded-full bg-emerald-400" style={{ width: `${Math.min(analytics.studyDays / 30 * 100, 100)}%` }} /></div></div><div className="flex items-center justify-between border-t border-slate-100 dark:border-slate-800/60 pt-4"><span className="text-slate-500">Upcoming sessions</span><strong className="text-slate-800 dark:text-slate-200">{analytics.upcoming}</strong></div><div className="flex items-center justify-between"><span className="text-slate-500">Subjects explored</span><strong className="text-slate-800 dark:text-slate-200">{analytics.subjects}</strong></div></div></section>
         </div>
 
-        <section className="mt-6 rounded-xl border border-slate-200 bg-white p-5 shadow-sm"><div className="mb-5 flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-600" /><div><h2 className="font-semibold text-slate-900">Time investment by subject</h2><p className="mt-1 text-sm text-slate-500">Where your planned study time is going</p></div></div>{analytics.topSubjects.length === 0 ? <p className="text-sm text-slate-500">Create study sessions to see subject progress.</p> : <div className="grid gap-4 md:grid-cols-2">{analytics.topSubjects.map(([subject, hours]) => <div key={subject}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-medium text-slate-700">{subject}</span><span className="shrink-0 text-slate-500">{hours.toFixed(1)}h</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-indigo-400" style={{ width: `${analytics.plannedHours ? hours / analytics.plannedHours * 100 : 0}%` }} /></div></div>)}</div>}</section>
+        <section className="mt-6 rounded-xl bg-white p-5 shadow-surface dark:bg-[#14171c]"><div className="mb-5 flex items-center gap-2"><BookOpen className="h-5 w-5 text-indigo-600" /><div><h2 className="font-semibold text-slate-900 dark:text-white">Time investment by subject</h2><p className="mt-1 text-sm text-slate-500">Where your planned study time is going</p></div></div>{analytics.topSubjects.length === 0 ? <p className="text-sm text-slate-500">Create study sessions to see subject progress.</p> : <div className="grid gap-4 md:grid-cols-2">{analytics.topSubjects.map(([subject, hours]) => <div key={subject}><div className="mb-1 flex justify-between gap-3 text-sm"><span className="truncate font-medium text-slate-700 dark:text-slate-300">{subject}</span><span className="shrink-0 text-slate-500">{hours.toFixed(1)}h</span></div><div className="h-2 rounded-full bg-slate-100 dark:bg-slate-800"><div className="h-2 rounded-full bg-indigo-400" style={{ width: `${analytics.plannedHours ? hours / analytics.plannedHours * 100 : 0}%` }} /></div></div>)}</div>}</section>
 
         <section className="mt-6 grid gap-6 lg:grid-cols-2" aria-label="Achievements and leaderboard">
           <AchievementsCard />

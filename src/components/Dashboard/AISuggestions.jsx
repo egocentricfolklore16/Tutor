@@ -17,7 +17,7 @@ function AISuggestions() {
   const timeNote = getPreferredTimeNote(profile?.preferred_time);
 
   return (
-    <div className="rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-xl transition-colors dark:border dark:border-slate-800 dark:from-slate-900 dark:to-slate-800">
+    <div className="rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-overlay transition-colors dark:from-slate-900 dark:to-slate-800">
       <div className="mb-4 flex items-center justify-between">
         <h1 className="flex items-center gap-2 text-xl font-bold text-slate-900 dark:text-slate-100">
           <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
@@ -28,7 +28,7 @@ function AISuggestions() {
         </span>
       </div>
       <div>
-        <p className="rounded-xl border border-slate-200/50 bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm dark:border-slate-800/80 dark:bg-slate-950/50 dark:text-slate-200">
+        <p className="rounded-xl bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm shadow-surface dark:bg-slate-950/50 dark:text-slate-200">
           Start with {subjects} and plan {weeklyHours} focused hours this week.
           As a <span className="font-semibold text-slate-900 dark:text-slate-100">{styleInfo.label}</span>, prioritize {styleInfo.strategy}. {timeNote}
           <br />
@@ -41,7 +41,7 @@ function AISuggestions() {
           <button
             type="button"
             onClick={() => navigate("/Planner")}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-xl border border-slate-200/80 bg-white px-4 py-3 text-left text-sm font-bold text-slate-800 shadow-sm transition hover:bg-emerald-50 dark:border-slate-700 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-700/90"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-white px-4 py-3 text-left text-sm font-bold text-slate-800 shadow-surface transition hover:shadow-surface-hover hover:bg-emerald-50 dark:bg-slate-800/90 dark:text-slate-200 dark:hover:bg-slate-700/90"
           >
             <CalendarDays className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
             Visit your planner
@@ -49,7 +49,7 @@ function AISuggestions() {
           <button
             type="button"
             onClick={() => navigate("/Study")}
-            className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white shadow-sm transition hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
+            className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white shadow-button-primary transition hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           >
             <Plus className="h-5 w-5" />
             Create a study session

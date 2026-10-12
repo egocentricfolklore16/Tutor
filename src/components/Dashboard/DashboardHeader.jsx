@@ -51,7 +51,6 @@ function DashboardHeader({ toggleSidebar }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
-  // Friend streaks count from streak object if provided
   const activeFriendStreaks = profile?.active_friend_streaks ?? 0;
 
   const xpPoints = profile?.xp_points ?? 0;
@@ -62,7 +61,6 @@ function DashboardHeader({ toggleSidebar }) {
 
   const gemsCount = profile?.gems ?? 0;
 
-  // Motivational message by streak state
   const getMotivationalText = () => {
     if (todayCompleted) return "Streak safe for today!";
     if (currentStreak === 0) return "Start a new streak today!";
@@ -134,14 +132,6 @@ function DashboardHeader({ toggleSidebar }) {
   const localUnreadCount = notifications.filter((item) => !item.read).length;
   const totalUnreadCount = inAppUnreadCount + localUnreadCount;
 
-  const handleDismiss = (id) => {
-    setNotifications(dismissNotification(id));
-  };
-
-  const handleMarkAllRead = () => {
-    setNotifications(markAllNotificationsRead());
-  };
-
   const handleNotificationsClick = () => {
     if (window.innerWidth < 768) {
       navigate("/notifications");
@@ -210,7 +200,7 @@ function DashboardHeader({ toggleSidebar }) {
   const isSocietyUnlocked = currentStreak >= 7;
 
   return <>
-    <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200">
+    <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden">
           <button type="button" title="Open sidebar" onClick={toggleSidebar} className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/40">
@@ -227,10 +217,10 @@ function DashboardHeader({ toggleSidebar }) {
           <button type="button" title="Open AI suggestions" onClick={() => setAiSuggestionsOpen((open) => !open)} className="hidden rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 sm:inline-flex dark:text-slate-300 dark:hover:bg-emerald-950/40">
             <Menu className="h-4 w-4" />
           </button>
-          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-md hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
+          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-overlay hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
         </div>
 
-        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 sm:shadow-sm dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
+        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
           <Search className="h-4 w-4 text-sky-700 dark:text-sky-400" />
           <span className="hidden text-xs font-semibold sm:inline">Search</span>
           <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex dark:bg-slate-800/80 dark:text-sky-300">
@@ -247,14 +237,14 @@ function DashboardHeader({ toggleSidebar }) {
           <button
             type="button"
             onClick={toggleStreakDropdownMobile}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-sm transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
           >
             <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
             <span>{currentStreak}d</span>
           </button>
 
           {streakDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Flame className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
                 <div className="relative flex items-center justify-between">
@@ -271,7 +261,7 @@ function DashboardHeader({ toggleSidebar }) {
                 </p>
 
                 {/* 7-day Weekday Row */}
-                <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-sm dark:bg-white/5">
+                <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
                   {weekDays.map((day, index) => {
                     return (
                       <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
@@ -280,31 +270,31 @@ function DashboardHeader({ toggleSidebar }) {
                         </span>
 
                         {day.state === "completed" && (
-                          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 ring-2 ring-orange-400 shadow-sm dark:bg-orange-500/20 dark:ring-orange-500/60">
+                          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 shadow-surface dark:bg-orange-500/20">
                             <img src="/streak.svg" alt="Streak completed" className="animate-streak-pop h-5 w-5 object-contain" />
                           </div>
                         )}
 
                         {day.state === "frozen" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 ring-2 ring-blue-400 dark:bg-blue-900/40 dark:ring-blue-500/60" title="Streak frozen">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40" title="Streak frozen">
                             <Snowflake className="h-4 w-4 text-blue-600 dark:text-blue-300" />
                           </div>
                         )}
 
                         {day.state === "today-pending" && (
-                          <div className="animate-streak-pulse flex h-7 w-7 items-center justify-center rounded-full border-2 border-dashed border-orange-500 bg-transparent dark:border-orange-400" title="Study today to keep your streak">
+                          <div className="animate-streak-pulse flex h-7 w-7 items-center justify-center rounded-full bg-transparent" title="Study today to keep your streak">
                             <span className="h-2 w-2 rounded-full bg-orange-500 dark:bg-orange-400" />
                           </div>
                         )}
 
                         {day.state === "missed" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800/40" title="Missed day">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800/40" title="Missed day">
                             <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
                           </div>
                         )}
 
                         {day.state === "future" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full border border-dashed border-slate-300 dark:border-slate-700" title="Upcoming day">
+                          <div className="flex h-7 w-7 items-center justify-center rounded-full" title="Upcoming day">
                             <span className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-700" />
                           </div>
                         )}
@@ -322,7 +312,7 @@ function DashboardHeader({ toggleSidebar }) {
               </div>
 
               {/* Friend Streaks Card */}
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-orange-500 p-4 shadow-sm dark:bg-orange-600/80">
+              <div className="m-3 flex items-center gap-3 rounded-2xl bg-orange-500 p-4 shadow-surface dark:bg-orange-600/80">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
                   <Users className="h-5 w-5 text-white" />
                 </span>
@@ -330,13 +320,13 @@ function DashboardHeader({ toggleSidebar }) {
                   <p className="text-sm font-bold text-white">Friend Streaks</p>
                   <p className="text-xs text-orange-50">{activeFriendStreaks} active Friend Streaks</p>
                 </div>
-                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-sm transition hover:bg-orange-50">
+                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-surface transition hover:bg-orange-50">
                   VIEW LIST
                 </button>
               </div>
 
               {/* Streak Society Card */}
-              <div className={`mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 transition ${isSocietyUnlocked ? "border border-amber-300 bg-amber-50/80 dark:border-amber-500/40 dark:bg-amber-950/30" : "border border-slate-200 dark:border-slate-700"}`}>
+              <div className={`mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 transition shadow-surface ${isSocietyUnlocked ? "bg-amber-50/80 dark:bg-amber-950/30" : "bg-slate-50 dark:bg-slate-800/40"}`}>
                 <span className={`mt-0.5 rounded-full p-2 ${isSocietyUnlocked ? "bg-amber-200 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" : "bg-slate-100 text-slate-400 dark:bg-white/10"}`}>
                   {isSocietyUnlocked ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
                 </span>
@@ -360,16 +350,16 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openXpDropdown}
           onMouseLeave={closeXpDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-sm dark:bg-amber-500/15 dark:text-amber-300">
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface dark:bg-amber-500/15 dark:text-amber-300">
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
           </span>
           {xpDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Zap className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
                 <p className="relative text-2xl font-extrabold text-amber-500 dark:text-amber-300">{xpPoints} XP</p>
                 <p className="relative mt-1 max-w-[75%] text-sm text-slate-700 dark:text-slate-300">Level {xpLevel} · {xpToNextLevel} XP to next level</p>
-                <div className="relative mt-4 rounded-xl bg-white px-3 py-3 shadow-sm dark:bg-white/5">
+                <div className="relative mt-4 rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
                   <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
                     <span>Level {xpLevel}</span>
                     <span>Level {xpLevel + 1}</span>
@@ -380,7 +370,7 @@ function DashboardHeader({ toggleSidebar }) {
                 </div>
               </div>
 
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-amber-500 p-4 shadow-sm dark:bg-amber-600/80">
+              <div className="m-3 flex items-center gap-3 rounded-2xl bg-amber-500 p-4 shadow-surface dark:bg-amber-600/80">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
                   <Trophy className="h-5 w-5 text-white" />
                 </span>
@@ -388,10 +378,10 @@ function DashboardHeader({ toggleSidebar }) {
                   <p className="text-sm font-bold text-white">Leaderboard</p>
                   <p className="text-xs text-amber-50">See how you rank this week</p>
                 </div>
-                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-amber-600 shadow-sm transition hover:bg-amber-50">VIEW</button>
+                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-amber-600 shadow-surface transition hover:bg-amber-50">VIEW</button>
               </div>
 
-              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 shadow-surface dark:bg-slate-800/40">
                 <span className="mt-0.5 rounded-full bg-slate-100 p-2 text-slate-400 dark:bg-white/10"><Lock className="h-4 w-4" /></span>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Level {xpLevel + 1}</p>
@@ -408,18 +398,18 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openGemsDropdown}
           onMouseLeave={closeGemsDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-sm dark:bg-cyan-500/15 dark:text-cyan-300">
+          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface dark:bg-cyan-500/15 dark:text-cyan-300">
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
           </span>
           {gemsDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-700 dark:bg-[#18211f]">
+            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-cyan-100 p-5 dark:bg-cyan-500/10">
                 <GemIcon className="absolute -right-3 -top-2 h-24 w-24 text-cyan-300/60 dark:text-cyan-500/15" />
                 <p className="relative text-2xl font-extrabold text-cyan-500 dark:text-cyan-300">{gemsCount} Gems</p>
                 <p className="relative mt-1 max-w-[75%] text-sm text-slate-700 dark:text-slate-300">Earn gems by finishing lessons and challenges!</p>
               </div>
 
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-cyan-500 p-4 shadow-sm dark:bg-cyan-600/80">
+              <div className="m-3 flex items-center gap-3 rounded-2xl bg-cyan-500 p-4 shadow-surface dark:bg-cyan-600/80">
                 <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
                   <GemIcon className="h-5 w-5 text-white" />
                 </span>
@@ -427,10 +417,10 @@ function DashboardHeader({ toggleSidebar }) {
                   <p className="text-sm font-bold text-white">Gem Shop</p>
                   <p className="text-xs text-cyan-50">Redeem gems for rewards</p>
                 </div>
-                <button type="button" onClick={() => navigate("/Shop")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-cyan-600 shadow-sm transition hover:bg-cyan-50">VISIT SHOP</button>
+                <button type="button" onClick={() => navigate("/Shop")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-cyan-600 shadow-surface transition hover:bg-cyan-50">VISIT SHOP</button>
               </div>
 
-              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl border border-slate-200 p-4 dark:border-slate-700">
+              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 shadow-surface dark:bg-slate-800/40">
                 <span className="mt-0.5 rounded-full bg-slate-100 p-2 text-slate-400 dark:bg-white/10"><Lock className="h-4 w-4" /></span>
                 <div>
                   <p className="text-sm font-bold text-slate-900 dark:text-white">Gem Multiplier</p>
@@ -458,12 +448,12 @@ function DashboardHeader({ toggleSidebar }) {
 
         {/* Profile Avatar */}
         <div className="relative">
-          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
+          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-surface transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
             {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
           </button>
           {menuOpen && (
-            <div className="absolute right-0 top-13 w-56 rounded-2xl border border-slate-200 bg-white p-2 text-sm shadow-xl dark:border-slate-700 dark:bg-[#18211f] dark:text-white z-[220]">
-              <div className="border-b border-slate-100 px-3 py-2 dark:border-slate-800">
+            <div className="absolute right-0 top-13 w-56 rounded-2xl bg-white p-2 text-sm shadow-overlay dark:bg-[#18211f] dark:text-white z-[220]">
+              <div className="px-3 py-2">
                 <p className="truncate font-bold text-slate-900 dark:text-white">{name}</p>
                 <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500 sm:hidden">
                   <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><Zap className="h-3 w-3" />{xpPoints} XP</span>
@@ -494,8 +484,8 @@ function DashboardHeader({ toggleSidebar }) {
 
     {searchOpen && (
       <div className="fixed inset-0 z-[200] flex items-start justify-center bg-slate-950/35 px-4 pt-20 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setSearchOpen(false)}>
-        <section className="motion-dialog w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-2xl dark:bg-slate-900">
-          <form onSubmit={runSearch} className="flex items-center gap-3 border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+        <section className="motion-dialog w-full max-w-2xl overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-slate-900">
+          <form onSubmit={runSearch} className="flex items-center gap-3 px-5 py-4 bg-slate-50/50 dark:bg-slate-800/30">
             <Search className="h-5 w-5 text-slate-400" />
             <input autoFocus value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search notes, flashcards, and resources" className="min-w-0 flex-1 text-base outline-none dark:bg-slate-900 dark:text-slate-100" />
             <button type="button" onClick={() => setSearchOpen(false)} title="Close search" className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
@@ -524,7 +514,7 @@ function DashboardHeader({ toggleSidebar }) {
         </section>
       </div>
     )}
-  </>;
+  < />
 }
 
 export default DashboardHeader;

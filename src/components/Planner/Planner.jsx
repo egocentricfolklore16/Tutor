@@ -8,7 +8,6 @@ import {
   Loader2,
   Timer,
   CheckCircle,
-  XCircle,
 } from "lucide-react";
 import Calendar from "./Calendar";
 import PlannerActivityModal from "./PlannerActivityModal";
@@ -38,7 +37,6 @@ const PlannerPage = () => {
   const [toastMessage, setToastMessage] = useState("");
   const [customSubjects, setCustomSubjects] = useState([]);
 
-  // Dates for range fetching
   const rangeFrom = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
   const rangeTo = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0).toISOString();
 
@@ -162,7 +160,6 @@ const PlannerPage = () => {
     try {
       await updateActivity(activityId, { status: newStatus }, "this_only");
       showToast(`Session marked as ${newStatus}`);
-      // Clean extension hook for XP / Streak reward computation if required
       if (newStatus === "completed") {
         console.info("Planner session completed hook: XP/Streak logic can be invoked here.");
       }
@@ -183,9 +180,8 @@ const PlannerPage = () => {
 
   return (
     <PageContainer maxWidth="max-w-7xl">
-      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[120] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-2xl animate-fade-in dark:bg-white dark:text-slate-900">
+        <div className="fixed bottom-6 right-6 z-[120] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-overlay animate-fade-in dark:bg-white dark:text-slate-900">
           <CheckCircle className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
           <span>{toastMessage}</span>
         </div>
@@ -204,7 +200,7 @@ const PlannerPage = () => {
         </div>
         <button
           onClick={() => handleAddActivity(selectedDate)}
-          className="hidden min-h-11 shrink-0 items-center space-x-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 lg:inline-flex"
+          className="hidden min-h-11 shrink-0 items-center space-x-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-button-primary hover:bg-orange-600 disabled:opacity-50 lg:inline-flex"
           disabled={isLoadingSessions}
         >
           <Plus className="w-4 h-4" />
@@ -216,7 +212,7 @@ const PlannerPage = () => {
         type="button"
         onClick={() => handleAddActivity(selectedDate)}
         disabled={isLoadingSessions}
-        className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50 lg:hidden"
+        className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-button-primary hover:bg-orange-600 disabled:opacity-50 lg:hidden"
       >
         <Plus className="h-4 w-4" />
         Create new
@@ -227,7 +223,7 @@ const PlannerPage = () => {
       </div>
 
       {fetchError && (
-        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-xl border border-red-300 dark:bg-red-950/40 dark:border-red-900/50 dark:text-red-300">
+        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-xl shadow-surface dark:bg-red-950/40 dark:text-red-300">
           <div className="flex items-center justify-between">
             <span>{fetchError}</span>
             <button onClick={() => refetch()} className="text-red-800 hover:text-red-900 font-bold underline">
@@ -247,7 +243,7 @@ const PlannerPage = () => {
             onAddActivity={() => handleAddActivity(selectedDate, "deadline")}
           />
 
-          <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2 dark:bg-slate-900">
+          <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2 dark:bg-slate-900 shadow-surface">
             <div className="flex min-w-0 items-center gap-1">
               <button
                 type="button"
@@ -265,7 +261,7 @@ const PlannerPage = () => {
                 onClick={() => navigateWeek(-1)}
                 title="Previous week"
                 aria-label="Previous week"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 transition hover:text-slate-900 shadow-surface dark:bg-slate-900 dark:text-slate-300"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -274,7 +270,7 @@ const PlannerPage = () => {
                 onClick={() => navigateWeek(1)}
                 title="Next week"
                 aria-label="Next week"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full border border-slate-200 bg-white text-slate-600 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300"
+                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 transition hover:text-slate-900 shadow-surface dark:bg-slate-900 dark:text-slate-300"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -283,7 +279,7 @@ const PlannerPage = () => {
               </h2>
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-xs sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300">
+              <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-surface sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300">
                 <CalendarDays className="h-4 w-4 text-slate-500" />
                 <span className="sr-only">Select date</span>
                 <input
@@ -295,14 +291,14 @@ const PlannerPage = () => {
               </label>
               <button
                 type="button"
-                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-xs transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
+                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-surface transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
               >
                 <Filter className="h-4 w-4 text-slate-500" />
                 Filter
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-xs transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
+                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-surface transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
               >
                 <Timer className="h-4 w-4 text-slate-500" />
                 Focus

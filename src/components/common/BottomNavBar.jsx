@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, BookOpen, Calendar, TrendingUp, MoreHorizontal, Users, HelpCircle, Settings, X } from "lucide-react";
+import { LayoutDashboard, BookOpen, Calendar, TrendingUp, MoreHorizontal, Users, HelpCircle, Settings } from "lucide-react";
 import ResponsiveSheet from "./ResponsiveSheet";
 
 /**
@@ -41,7 +41,7 @@ export function BottomNavBar() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[95] flex h-16 items-center justify-around border-t border-slate-200 bg-white/95 px-2 backdrop-blur-md md:hidden dark:border-slate-800 dark:bg-[#14171c]/95"
+        className="fixed bottom-0 left-0 right-0 z-[95] flex h-16 items-center justify-around bg-white/95 px-2 backdrop-blur-md md:hidden dark:bg-[#14171c]/95 shadow-overlay"
         aria-label="Mobile navigation"
       >
         {primaryItems.map((item) => {
@@ -86,7 +86,7 @@ export function BottomNavBar() {
                 key={item.name}
                 to={item.path}
                 onClick={() => setMoreOpen(false)}
-                className={`flex items-center gap-3 rounded-2xl p-4 transition ${
+                className={`flex items-center gap-3 rounded-2xl p-4 transition shadow-surface hover:shadow-surface-hover ${
                   active
                     ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300 font-semibold"
                     : "bg-slate-50 text-slate-700 hover:bg-slate-100 dark:bg-slate-800/50 dark:text-slate-200 dark:hover:bg-slate-800"

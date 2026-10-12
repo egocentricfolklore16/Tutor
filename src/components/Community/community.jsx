@@ -911,13 +911,7 @@ const Community = () => {
 
               {/* CHAT TAB */}
               {activeTab === "chat" && (
-                <div
-                  className={`w-full overflow-hidden transition-all duration-200 motion-reduce:transition-none ${
-                    isMaximized
-                      ? "fixed inset-0 z-[120] h-[100dvh] w-screen bg-white dark:bg-[#14171c] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] rounded-none"
-                      : "h-[calc(100dvh-5rem)] rounded-3xl border border-slate-200 bg-white dark:border-slate-800 dark:bg-[#14171c]"
-                  }`}
-                >
+                <div className="w-full h-[calc(100dvh-5rem)] overflow-hidden">
                   {/* Desktop Layout: 2-pane split screen */}
                   <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">
                     <div className="w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
@@ -933,13 +927,9 @@ const Community = () => {
                           conversationId={activeConversationId}
                           currentUserId={user?.id}
                           onBack={() => navigate("/Community/chat")}
-                          headerAction={renderMaximizeButton()}
                         />
                       ) : (
-                        <div className="relative flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30">
-                          <div className="absolute top-3 right-3 z-20">
-                            {renderMaximizeButton()}
-                          </div>
+                        <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30">
                           <MessageSquare className="h-12 w-12 text-slate-300 dark:text-slate-700" />
                           <h3 className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
                             Select a conversation

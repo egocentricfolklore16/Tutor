@@ -873,7 +873,7 @@ const Community = () => {
                     </div>
                   </div>
 
-                  {/* Mobile Layout: Fullscreen toggle between Inbox and ChatThread */}
+                  {/* Mobile Layout */}
                   <div className="block md:hidden h-full w-full">
                     {activeConversationId ? (
                       <div className="fixed inset-0 z-[110] bg-white dark:bg-[#14171c] h-[100dvh] w-screen">
@@ -897,6 +897,7 @@ const Community = () => {
               )}
             </div>
 
+            {/* Live Session Room Overlay */}
             {openSessionId && (
               <SessionRoom
                 sessionId={openSessionId}

@@ -177,8 +177,9 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
   useEffect(() => {
     if (!currentUserId) return;
 
+    const channelName = `inbox_messages:${currentUserId}:${Date.now()}`;
     const channel = supabase
-      .channel(`inbox_messages:${currentUserId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "messages" },

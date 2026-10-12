@@ -86,8 +86,9 @@ export function useInAppNotifications() {
   useEffect(() => {
     if (!userId) return;
 
+    const channelName = `in_app_notifications:${userId}:${Date.now()}`;
     const channel = supabase
-      .channel(`in_app_notifications:${userId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {

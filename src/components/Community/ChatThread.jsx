@@ -122,13 +122,17 @@ export default function ChatThread({
     }
   };
 
+  const presenceChannelRef = useRef(null);
+
   // Realtime Broadcast & Presence for typing and online status
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
 
-    const channel = supabase.channel(`chat_presence:${conversationId}`, {
+    const channelName = `chat_presence:${conversationId}:${Date.now()}`;
+    const channel = supabase.channel(channelName, {
       config: { presence: { key: currentUserId } },
     });
+    presenceChannelRef.current = channel;
 
     channel
       .on("presence", { event: "sync" }, () => {
@@ -155,13 +159,14 @@ export default function ChatThread({
 
     return () => {
       supabase.removeChannel(channel);
+      presenceChannelRef.current = null;
       clearTimeout(typingTimerRef.current);
     };
   }, [conversationId, currentUserId]);
 
   const sendTypingBroadcast = () => {
-    const channel = supabase.channel(`chat_presence:${conversationId}`);
-    channel.send({
+    if (!presenceChannelRef.current) return;
+    presenceChannelRef.current.send({
       type: "broadcast",
       event: "typing",
       payload: { userId: currentUserId, isTyping: true },
@@ -190,16 +195,17 @@ export default function ChatThread({
           // Fetch participant other than current user
           const { data: parts, error: partErr } = await supabase
             .from("conversation_participants")
-            .select("user_id")
+            .select("user_id, last_read_at")
             .eq("conversation_id", conversationId);
 
           if (!partErr && parts) {
-            const peerId = parts.find((p) => p.user_id !== currentUserId)?.user_id;
-            if (peerId) {
+            const peerPart = parts.find((p) => p.user_id !== currentUserId);
+            if (peerPart) {
+              setPeerLastReadAt(peerPart.last_read_at);
               const { data: prof } = await supabase
                 .from("community_profiles")
                 .select("*")
-                .eq("user_id", peerId)
+                .eq("user_id", peerPart.user_id)
                 .maybeSingle();
 
               if (isMounted) setPeerProfile(prof);
@@ -380,8 +386,9 @@ export default function ChatThread({
   useEffect(() => {
     if (!conversationId) return;
 
+    const channelName = `chat_messages:${conversationId}:${Date.now()}`;
     const channel = supabase
-      .channel(`chat_messages:${conversationId}`)
+      .channel(channelName)
       .on(
         "postgres_changes",
         {
@@ -406,6 +413,12 @@ export default function ChatThread({
                   : m
               );
             }
+
+            if (!isUserNearBottom.current) {
+              setNewMessagesCount((c) => c + 1);
+              setShowJumpToLatest(true);
+            }
+
             return [...prev, newMsg];
           });
 
@@ -905,7 +918,9 @@ export default function ChatThread({
             className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-emerald-700 transition animate-bounce"
           >
             <ChevronDown className="h-4 w-4" />
-            <span>Latest messages</span>
+            <span>
+              {newMessagesCount > 0 ? `${newMessagesCount} new ${newMessagesCount === 1 ? "message" : "messages"}` : "Latest messages"}
+            </span>
           </button>
         </div>
       )}

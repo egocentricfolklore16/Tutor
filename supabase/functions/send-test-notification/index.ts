@@ -42,6 +42,21 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  let requestBody: { userId?: string } = {};
+  try {
+    requestBody = await req.clone().json();
+  } catch (_err) {
+    // Empty body or optional parameters
+  }
+
+  // Security: Prevent IDOR / unauthorized push dispatching to arbitrary users
+  if (requestBody.userId && requestBody.userId !== user.id) {
+    return new Response(
+      JSON.stringify({ success: false, message: "Forbidden: Cannot send test notification to another user" }),
+      { status: 403, headers: corsHeaders }
+    );
+  }
+
   const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
   // Configure VAPID details

@@ -135,8 +135,10 @@ export function ProfileProvider({ user, children }) {
     };
 
     // Realtime channel for profile changes
-    const channel = supabase
-      .channel(`profile-updates-${user.id}`)
+    const channelName = `profile-updates-${user.id}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
@@ -152,8 +154,9 @@ export function ProfileProvider({ user, children }) {
         () => {
           refreshStreak();
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);

@@ -128,7 +128,7 @@ export default function ChatThread({
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
 
-    const channelName = `chat_presence:${conversationId}:${Date.now()}`;
+    const channelName = `chat_presence:${conversationId}:${crypto.randomUUID()}`;
     const channel = supabase.channel(channelName, {
       config: { presence: { key: currentUserId } },
     });
@@ -150,12 +150,13 @@ export default function ChatThread({
             }, 3000);
           }
         }
-      })
-      .subscribe(async (status) => {
-        if (status === "SUBSCRIBED") {
-          await channel.track({ online_at: new Date().toISOString() });
-        }
       });
+
+    channel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await channel.track({ online_at: new Date().toISOString() });
+      }
+    });
 
     return () => {
       supabase.removeChannel(channel);
@@ -384,11 +385,12 @@ export default function ChatThread({
 
   // Realtime subscription for INSERTs on messages
   useEffect(() => {
-    if (!conversationId) return;
+    if (!conversationId || !currentUserId) return;
 
-    const channelName = `chat_messages:${conversationId}:${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
+    const channelName = `chat_messages:${conversationId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -441,13 +443,14 @@ export default function ChatThread({
           const deletedId = payload.old.id;
           setMessages((prev) => prev.filter((m) => m.id !== deletedId));
         }
-      )
-      .subscribe();
+      );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [conversationId, fetchSenderProfiles, updateLastReadAt]);
+  }, [conversationId, currentUserId, fetchSenderProfiles, updateLastReadAt]);
 
   // Send message (optimistic send with retry & draft clear)
   const handleSendMessage = async (e) => {

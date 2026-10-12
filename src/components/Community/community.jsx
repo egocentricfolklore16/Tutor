@@ -60,12 +60,13 @@ const Community = () => {
 
   // Sync tab with URL path
   const pathLower = location.pathname.toLowerCase();
+  const isChatRoute = pathLower.includes("/chat");
 
   useEffect(() => {
     if (isChatRoute) {
       setActiveTab("chat");
     }
-  }, [location.pathname]);
+  }, [isChatRoute]);
 
   // Get signed in user
   useEffect(() => {

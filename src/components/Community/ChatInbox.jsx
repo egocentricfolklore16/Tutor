@@ -177,17 +177,18 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
   useEffect(() => {
     if (!currentUserId) return;
 
-    const channelName = `inbox_messages:${currentUserId}:${Date.now()}`;
-    const channel = supabase
-      .channel(channelName)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => {
-          fetchInboxData();
-        }
-      )
-      .subscribe();
+    const channelName = `inbox_messages:${currentUserId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      () => {
+        fetchInboxData();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);

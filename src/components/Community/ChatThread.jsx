@@ -8,7 +8,6 @@ import {
   ArrowLeft,
   Users,
   Loader2,
-  AlertCircle,
   RefreshCw,
   X,
   Smile,
@@ -16,6 +15,8 @@ import {
   Calendar,
   CheckCheck,
   MoreVertical,
+  BellOff,
+  Bell,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import ResourcePicker from "./ResourcePicker";
@@ -64,7 +65,11 @@ export default function ChatThread({
   // Scroll & Unread Jump State
   const [showJumpToLatest, setShowJumpToLatest] = useState(false);
   const [newMessagesCount, setNewMessagesCount] = useState(0);
-  const [firstUnreadMsgId, setFirstUnreadMsgId] = useState(null);
+
+  // Mute State & Dropdown Menu
+  const [isMuted, setIsMuted] = useState(false);
+  const [showMuteMenu, setShowMuteMenu] = useState(false);
+  const [showHeaderMenu, setShowHeaderMenu] = useState(false);
 
   // Reporting modal
   const [reportingMsgId, setReportingMsgId] = useState(null);
@@ -73,6 +78,9 @@ export default function ChatThread({
 
   // Active action menu for touch/mobile or hover
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+
+  // Avatar error fallback tracking
+  const [imgErrors, setImgErrors] = useState({});
 
   // Friendly toast notifications
   const [toastMessage, setToastMessage] = useState(null);
@@ -86,6 +94,80 @@ export default function ChatThread({
     setTimeout(() => {
       setToastMessage((prev) => (prev === msg ? null : prev));
     }, 4000);
+  };
+
+  // Check initial mute status
+  const checkMuteStatus = useCallback(async () => {
+    if (!conversationId || !currentUserId) return;
+    try {
+      const { data } = await supabase
+        .from("conversation_mutes")
+        .select("muted_until")
+        .eq("user_id", currentUserId)
+        .eq("conversation_id", conversationId)
+        .maybeSingle();
+
+      if (data) {
+        const active = !data.muted_until || new Date(data.muted_until).getTime() > Date.now();
+        setIsMuted(active);
+      } else {
+        setIsMuted(false);
+      }
+    } catch (_e) {
+      // Ignore error
+    }
+  }, [conversationId, currentUserId]);
+
+  const handleMuteConversation = async (durationHours) => {
+    setShowHeaderMenu(false);
+    setShowMuteMenu(false);
+    let mutedUntil = null;
+
+    if (durationHours > 0) {
+      const date = new Date();
+      date.setHours(date.getHours() + durationHours);
+      mutedUntil = date.toISOString();
+    }
+
+    try {
+      const { error } = await supabase.from("conversation_mutes").upsert(
+        {
+          user_id: currentUserId,
+          conversation_id: conversationId,
+          muted_until: mutedUntil,
+        },
+        { onConflict: "user_id,conversation_id" }
+      );
+
+      if (error) throw error;
+
+      setIsMuted(true);
+      showToast(
+        durationHours > 0
+          ? `Conversation muted for ${durationHours} hour${durationHours > 1 ? "s" : ""}.`
+          : "Conversation muted indefinitely."
+      );
+    } catch (err) {
+      console.error("Error muting conversation:", err);
+      showToast("Unable to mute conversation.");
+    }
+  };
+
+  const handleUnmuteConversation = async () => {
+    setShowHeaderMenu(false);
+    try {
+      await supabase
+        .from("conversation_mutes")
+        .delete()
+        .eq("user_id", currentUserId)
+        .eq("conversation_id", conversationId);
+
+      setIsMuted(false);
+      showToast("Conversation unmuted.");
+    } catch (err) {
+      console.error("Error unmuting conversation:", err);
+      showToast("Unable to unmute conversation.");
+    }
   };
 
   // Update last_read_at helper
@@ -105,7 +187,8 @@ export default function ChatThread({
   // Load draft on conversation change
   useEffect(() => {
     setInputContent(getChatDraft(conversationId));
-  }, [conversationId]);
+    checkMuteStatus();
+  }, [conversationId, checkMuteStatus]);
 
   // Save draft on input change
   const handleInputChange = (e) => {
@@ -113,10 +196,8 @@ export default function ChatThread({
     setInputContent(text);
     saveChatDraft(conversationId, text);
 
-    // Broadcast typing state
     sendTypingBroadcast();
 
-    // Auto-grow textarea up to 5 lines
     if (textareaRef.current) {
       textareaRef.current.style.height = "auto";
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
@@ -125,7 +206,7 @@ export default function ChatThread({
 
   const presenceChannelRef = useRef(null);
 
-  // Realtime Broadcast & Presence for typing and online status
+  // Realtime Broadcast & Presence
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
 
@@ -194,7 +275,6 @@ export default function ChatThread({
         setConversation(conv);
 
         if (conv.type === "direct") {
-          // Fetch participant other than current user
           const { data: parts, error: partErr } = await supabase
             .from("conversation_participants")
             .select("user_id, last_read_at")
@@ -214,7 +294,6 @@ export default function ChatThread({
             }
           }
         } else if (conv.type === "group" && conv.study_group_id) {
-          // Fetch group details and member count
           const [{ data: grp }, { count: mCount }] = await Promise.all([
             supabase
               .from("study_groups")
@@ -244,7 +323,6 @@ export default function ChatThread({
     };
   }, [conversationId, currentUserId]);
 
-  // Fetch sender profiles for group messages
   const fetchSenderProfiles = useCallback(async (senderIds) => {
     if (!senderIds || senderIds.length === 0) return;
     try {
@@ -267,7 +345,6 @@ export default function ChatThread({
     }
   }, []);
 
-  // Fetch initial paginated messages (latest 30)
   const fetchInitialMessages = useCallback(async () => {
     if (!conversationId) return;
     setLoading(true);
@@ -281,7 +358,7 @@ export default function ChatThread({
 
       if (error) throw error;
 
-      const items = (data || []).reverse(); // Oldest first for rendering
+      const items = (data || []).reverse();
       setMessages(items);
       setHasMoreOlder(data?.length === 30);
 
@@ -303,7 +380,6 @@ export default function ChatThread({
     fetchInitialMessages();
   }, [fetchInitialMessages]);
 
-  // Scroll to bottom on initial load or smart scroll when new message arrives
   useEffect(() => {
     if (!loading && threadContainerRef.current) {
       if (isUserNearBottom.current) {
@@ -324,7 +400,6 @@ export default function ChatThread({
     }
   };
 
-  // Load older messages on scroll up without jumping scroll position
   const loadOlderMessages = async () => {
     if (loadingOlder || !hasMoreOlder || messages.length === 0 || !threadContainerRef.current) return;
     setLoadingOlder(true);
@@ -355,7 +430,6 @@ export default function ChatThread({
           await fetchSenderProfiles(senderIds);
         }
 
-        // Restore scroll position after prepend
         requestAnimationFrame(() => {
           if (container) {
             container.scrollTop = container.scrollHeight - oldScrollHeight;
@@ -384,7 +458,7 @@ export default function ChatThread({
     }
   };
 
-  // Realtime subscription for INSERTs on messages
+  // Realtime subscription for INSERTs & DELETEs
   useEffect(() => {
     if (!conversationId || !currentUserId) return;
 
@@ -404,7 +478,6 @@ export default function ChatThread({
           const newMsg = payload.new;
 
           setMessages((prev) => {
-            // Check if replacing an optimistic message or adding new
             const exists = prev.some(
               (m) => m.id === newMsg.id || (m.isOptimistic && m.sender_id === newMsg.sender_id && m.content === newMsg.content)
             );
@@ -453,7 +526,7 @@ export default function ChatThread({
     };
   }, [conversationId, currentUserId, fetchSenderProfiles, updateLastReadAt]);
 
-  // Send message (optimistic send with retry & draft clear)
+  // Send message
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const content = inputContent.trim();
@@ -535,11 +608,10 @@ export default function ChatThread({
       setMessages((prev) =>
         prev.map((m) => (m.id === failedMsg.id ? { ...m, failed: true } : m))
       );
-      showToast("Retry failed. Check your network connection.");
+      showToast("Retry failed. Check network connection.");
     }
   };
 
-  // Copy message text
   const handleCopyMessage = (content) => {
     if (!content) return;
     navigator.clipboard?.writeText(content).then(
@@ -549,7 +621,6 @@ export default function ChatThread({
     setActiveMenuMsgId(null);
   };
 
-  // Delete own message
   const handleDeleteMessage = async (msgId) => {
     setActiveMenuMsgId(null);
     try {
@@ -569,7 +640,6 @@ export default function ChatThread({
     }
   };
 
-  // Submit Report
   const handleSubmitReport = async (e) => {
     e.preventDefault();
     if (!reportingMsgId || !reportReason.trim()) return;
@@ -602,11 +672,13 @@ export default function ChatThread({
       ? peerProfile?.full_name || peerProfile?.username || "Direct Chat"
       : groupDetails?.name || "Group Chat";
 
+  const isPeerAvatarFallback = !peerProfile?.user_img || imgErrors["peer"];
+
   return (
-    <div className="flex h-[100dvh] md:h-full flex-col bg-white dark:bg-[#14171c] overflow-hidden relative">
+    <div className="flex h-full flex-col bg-white dark:bg-[#14171c] overflow-hidden relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="bg-amber-500 text-white text-xs font-bold px-4 py-2 flex items-center justify-between animate-in fade-in z-30">
+        <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-between z-30 transition">
           <span>{toastMessage}</span>
           <button type="button" onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/20 rounded">
             <X className="h-3.5 w-3.5" />
@@ -614,40 +686,41 @@ export default function ChatThread({
         </div>
       )}
 
-      {/* Header */}
-      <div className="flex items-center justify-between border-b border-slate-200 bg-white/95 px-4 py-3 backdrop-blur-md dark:border-slate-800 dark:bg-[#14171c]/95 z-20">
-        <div className="flex items-center gap-3 min-w-0">
+      {/* Slim Header */}
+      <div className="flex items-center justify-between border-b border-slate-100 bg-white px-3.5 py-2.5 dark:border-slate-800 dark:bg-[#14171c] z-20">
+        <div className="flex items-center gap-2.5 min-w-0">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-              aria-label="Back to inbox"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+              aria-label="Back to messages"
             >
               <ArrowLeft className="h-5 w-5" />
             </button>
           )}
 
           <div
-            className="flex items-center gap-3 min-w-0 cursor-pointer"
+            className="flex items-center gap-2.5 min-w-0 cursor-pointer"
             onClick={() => conversation?.type === "group" && setShowGroupMembersSheet(true)}
           >
             <div className="relative shrink-0">
               {conversation?.type === "direct" ? (
-                peerProfile?.user_img ? (
+                !isPeerAvatarFallback ? (
                   <img
                     src={peerProfile.user_img}
                     alt={titleName}
-                    className="h-10 w-10 rounded-full object-cover"
+                    onError={() => setImgErrors((prev) => ({ ...prev, peer: true }))}
+                    className="h-9 w-9 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-sm">
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
                     {titleName.charAt(0).toUpperCase()}
                   </div>
                 )
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-                  <Users className="h-5 w-5" />
+                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <Users className="h-4 w-4" />
                 </div>
               )}
               {conversation?.type === "direct" && isPeerOnline && (
@@ -656,16 +729,19 @@ export default function ChatThread({
             </div>
 
             <div className="min-w-0">
-              <h3 className="truncate text-sm font-bold text-slate-900 dark:text-white">
-                {titleName}
-              </h3>
+              <div className="flex items-center gap-1.5">
+                <h3 className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                  {titleName}
+                </h3>
+                {isMuted && <BellOff className="h-3 w-3 text-slate-400" title="Muted" />}
+              </div>
               {conversation?.type === "group" && (
-                <p className="text-[11px] text-slate-500 font-medium">
-                  {groupMemberCount} members · {groupDetails?.subject || "Study Group"}
+                <p className="text-[10px] text-slate-500 font-medium">
+                  {groupMemberCount} members
                 </p>
               )}
               {conversation?.type === "direct" && (
-                <p className="text-[11px] text-slate-500 font-medium">
+                <p className="text-[10px] text-slate-500 font-medium">
                   {isPeerTyping ? (
                     <span className="text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">Typing...</span>
                   ) : isPeerOnline ? (
@@ -679,81 +755,123 @@ export default function ChatThread({
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1">
           {conversation?.type === "group" && (
-            <>
-              <a
-                href="/Planner"
-                className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
-                title="Schedule study session"
-              >
-                <Calendar className="h-3.5 w-3.5" />
-                <span className="hidden sm:inline">Schedule Session</span>
-              </a>
-              <button
-                type="button"
-                onClick={() => setShowGroupMembersSheet(true)}
-                className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-1.5 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-300"
-              >
-                Members
-              </button>
-            </>
+            <a
+              href="/Planner"
+              className="hidden sm:inline-flex min-h-[38px] items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+              title="Schedule session"
+            >
+              <Calendar className="h-3.5 w-3.5" />
+              <span>Schedule</span>
+            </a>
           )}
+
           {headerAction}
+
+          {/* Header Dropdown Menu (Mute) */}
+          <div className="relative">
+            <button
+              type="button"
+              onClick={() => setShowHeaderMenu((prev) => !prev)}
+              aria-label="Conversation options"
+              title="Conversation options"
+              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+            >
+              <MoreVertical className="h-5 w-5" />
+            </button>
+
+            {showHeaderMenu && (
+              <div className="absolute right-0 mt-1 z-30 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-800 dark:bg-[#18211f]">
+                {isMuted ? (
+                  <button
+                    type="button"
+                    onClick={handleUnmuteConversation}
+                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <Bell className="h-4 w-4 text-emerald-600" />
+                    <span>Unmute Notifications</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowMuteMenu((prev) => !prev)}
+                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                  >
+                    <span className="flex items-center gap-2">
+                      <BellOff className="h-4 w-4 text-slate-500" />
+                      <span>Mute Notifications</span>
+                    </span>
+                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                  </button>
+                )}
+
+                {showMuteMenu && !isMuted && (
+                  <div className="mt-1 border-t border-slate-100 pt-1 dark:border-slate-800 space-y-0.5">
+                    {[
+                      { label: "For 1 Hour", hours: 1 },
+                      { label: "For 8 Hours", hours: 8 },
+                      { label: "For 1 Week", hours: 168 },
+                      { label: "Indefinitely", hours: 0 },
+                    ].map((opt) => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => handleMuteConversation(opt.hours)}
+                        className="flex w-full items-center px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/60 rounded-md"
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Messages Scroll Area */}
+      {/* Messages List Area */}
       <div
         ref={threadContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 bg-slate-50/50 dark:bg-[#18211f]/40"
+        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-slate-50/50 dark:bg-[#18211f]/30"
       >
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center">
-            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-            <p className="mt-2 text-xs text-slate-500">Loading conversation...</p>
+            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
+            <p className="mt-2 text-xs text-slate-400">Loading conversation...</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center p-6">
-            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 mb-3">
-              <Send className="h-6 w-6" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 mb-2">
+              <Send className="h-5 w-5" />
             </div>
-            <p className="text-sm font-bold text-slate-900 dark:text-white">
-              No messages yet
+            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+              Select a conversation or start a new chat
             </p>
-            <p className="text-xs text-slate-500 max-w-xs mt-1">
-              Send a message or share a resource to kick off the discussion!
+            <p className="text-[11px] text-slate-500 max-w-xs mt-1">
+              Send a message to kick off the study session!
             </p>
           </div>
         ) : (
           <>
             {loadingOlder && (
               <div className="flex justify-center py-2">
-                <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+                <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
               </div>
             )}
 
             {dateGroups.map((group) => (
-              <div key={group.dateLabel} className="space-y-4">
-                {/* Unread Divider */}
-                {firstUnreadMsgId && group.clusters.some((c) => c.messages.some((m) => m.id === firstUnreadMsgId)) && (
-                  <div className="flex items-center my-4">
-                    <div className="flex-1 border-t border-rose-500/50" />
-                    <span className="mx-3 rounded-full bg-rose-500 px-2.5 py-0.5 text-[10px] font-bold text-white uppercase tracking-wider">
-                      New Messages
-                    </span>
-                    <div className="flex-1 border-t border-rose-500/50" />
-                  </div>
-                )}
-                {/* Calendar Day Divider */}
+              <div key={group.dateLabel} className="space-y-3">
+                {/* Date Separator */}
                 <div className="flex items-center justify-center my-2">
-                  <span className="rounded-full bg-slate-200/80 px-3 py-1 text-[11px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                  <span className="rounded-full bg-slate-200/60 px-2.5 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     {group.dateLabel}
                   </span>
                 </div>
 
-                {/* Sender Clusters */}
+                {/* Clusters */}
                 {group.clusters.map((cluster, cIdx) => {
                   const isOwnCluster = cluster.senderId === currentUserId;
                   const senderProf = senderProfiles[cluster.senderId];
@@ -767,151 +885,161 @@ export default function ChatThread({
                         isOwnCluster ? "items-end" : "items-start"
                       }`}
                     >
-                      {/* Show sender name for group chats in peer clusters */}
                       {!isOwnCluster && conversation?.type === "group" && (
-                        <span className="mb-1 ml-3 text-[11px] font-bold text-slate-500 dark:text-slate-400">
+                        <span className="mb-1 ml-2 text-[10px] font-bold text-slate-400">
                           {senderName}
                         </span>
                       )}
 
                       <div
-                        className={`space-y-1.5 max-w-[85%] sm:max-w-[70%] ${
+                        className={`space-y-1 max-w-[85%] sm:max-w-[70%] ${
                           isOwnCluster ? "items-end" : "items-start"
                         }`}
                       >
-                        {cluster.messages.map((msg) => (
-                          <div key={msg.id} className="group relative flex items-center gap-1.5">
-                            {/* Actions popup for non-failed messages */}
-                            {!msg.failed && (
-                              <div
-                                className={`flex items-center gap-1 shrink-0 ${
-                                  isOwnCluster ? "order-first" : "order-last"
-                                }`}
-                              >
-                                <div className="relative">
-                                  <button
-                                    type="button"
-                                    onClick={() =>
-                                      setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id))
-                                    }
-                                    className="opacity-0 group-hover:opacity-100 focus:opacity-100 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
-                                    title="Message options"
-                                  >
-                                    <MoreVertical className="h-3.5 w-3.5" />
-                                  </button>
+                        {cluster.messages.map((msg, mIdx) => {
+                          const isLastInCluster = mIdx === cluster.messages.length - 1;
 
-                                  {activeMenuMsgId === msg.id && (
-                                    <div
-                                      className={`absolute bottom-full mb-1 z-30 flex flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-[#18211f] min-w-[110px] ${
-                                        isOwnCluster ? "right-0" : "left-0"
-                                      }`}
+                          return (
+                            <div key={msg.id} className="group relative flex items-center gap-1">
+                              {!msg.failed && (
+                                <div
+                                  className={`flex items-center shrink-0 ${
+                                    isOwnCluster ? "order-first" : "order-last"
+                                  }`}
+                                >
+                                  <div className="relative">
+                                    <button
+                                      type="button"
+                                      onClick={() =>
+                                        setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id))
+                                      }
+                                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
+                                      title="Options"
                                     >
-                                      {msg.content && (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleCopyMessage(msg.content)}
-                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                                        >
-                                          <Copy className="h-3.5 w-3.5" /> Copy
-                                        </button>
-                                      )}
-                                      {isOwnCluster ? (
-                                        <button
-                                          type="button"
-                                          onClick={() => handleDeleteMessage(msg.id)}
-                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
-                                        >
-                                          <Trash2 className="h-3.5 w-3.5" /> Delete
-                                        </button>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          onClick={() => {
-                                            setActiveMenuMsgId(null);
-                                            setReportingMsgId(msg.id);
-                                          }}
-                                          className="flex items-center gap-2 rounded-lg px-2.5 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
-                                        >
-                                          <Flag className="h-3.5 w-3.5" /> Report
-                                        </button>
-                                      )}
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            )}
+                                      <MoreVertical className="h-3.5 w-3.5" />
+                                    </button>
 
-                            {/* Message Bubble */}
-                            <div
-                              className={`rounded-2xl px-4 py-2.5 text-sm shadow-xs transition ${
-                                isOwnCluster
-                                  ? "bg-emerald-600 text-white rounded-br-xs"
-                                  : "bg-white text-slate-900 border border-slate-200 dark:bg-[#14171c] dark:border-slate-800 dark:text-white rounded-bl-xs"
-                              } ${msg.failed ? "opacity-60 border-rose-500" : ""}`}
-                            >
-                              {msg.content && (
-                                <p className="leading-relaxed whitespace-pre-wrap break-words">
-                                  {parseLinksInText(msg.content).map((part, pIdx) =>
-                                    part.type === "link" ? (
-                                      <a
-                                        key={pIdx}
-                                        href={part.value}
-                                        target="_blank"
-                                        rel="noopener noreferrer"
-                                        className="underline hover:opacity-80 font-semibold"
+                                    {activeMenuMsgId === msg.id && (
+                                      <div
+                                        className={`absolute bottom-full mb-1 z-30 flex flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-[#18211f] min-w-[100px] ${
+                                          isOwnCluster ? "right-0" : "left-0"
+                                        }`}
                                       >
-                                        {part.value}
-                                      </a>
-                                    ) : (
-                                      <React.Fragment key={pIdx}>{part.value}</React.Fragment>
-                                    )
-                                  )}
-                                </p>
+                                        {msg.content && (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleCopyMessage(msg.content)}
+                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                          >
+                                            <Copy className="h-3 w-3" /> Copy
+                                          </button>
+                                        )}
+                                        {isOwnCluster ? (
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteMessage(msg.id)}
+                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                          >
+                                            <Trash2 className="h-3 w-3" /> Delete
+                                          </button>
+                                        ) : (
+                                          <button
+                                            type="button"
+                                            onClick={() => {
+                                              setActiveMenuMsgId(null);
+                                              setReportingMsgId(msg.id);
+                                            }}
+                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                          >
+                                            <Flag className="h-3 w-3" /> Report
+                                          </button>
+                                        )}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               )}
 
-                              {/* Shared Resource Card */}
-                              {msg.resource_id && (
-                                <ResourceCard resourceId={msg.resource_id} />
-                              )}
-
-                              {/* Footer timestamp & status */}
+                              {/* Softer message bubble */}
                               <div
-                                className={`mt-1 flex items-center justify-end gap-1 text-[10px] ${
+                                className={`rounded-2xl px-3.5 py-2 text-xs transition duration-150 ${
                                   isOwnCluster
-                                    ? "text-emerald-100"
-                                    : "text-slate-400"
-                                }`}
+                                    ? "bg-emerald-600 text-white rounded-br-xs"
+                                    : "bg-white text-slate-800 border border-slate-200/80 dark:bg-[#14171c] dark:border-slate-800 dark:text-slate-100 rounded-bl-xs"
+                                } ${msg.failed ? "opacity-60 border-rose-500" : ""}`}
                               >
-                                <span>
-                                  {new Date(msg.created_at).toLocaleTimeString([], {
-                                    hour: "numeric",
-                                    minute: "2-digit",
-                                  })}
-                                </span>
+                                {msg.content && (
+                                  <p className="leading-relaxed whitespace-pre-wrap break-words">
+                                    {parseLinksInText(msg.content).map((part, pIdx) =>
+                                      part.type === "link" ? (
+                                        <a
+                                          key={pIdx}
+                                          href={part.value}
+                                          target="_blank"
+                                          rel="noopener noreferrer"
+                                          className="underline font-semibold hover:opacity-80"
+                                        >
+                                          {part.value}
+                                        </a>
+                                      ) : (
+                                        <React.Fragment key={pIdx}>{part.value}</React.Fragment>
+                                      )
+                                    )}
+                                  </p>
+                                )}
 
-                                {msg.failed ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleRetrySend(msg)}
-                                    className="inline-flex items-center gap-0.5 text-rose-300 hover:underline font-bold"
+                                {msg.resource_id && (
+                                  <ResourceCard resourceId={msg.resource_id} />
+                                )}
+
+                                {/* Timestamp on hover/tap or last message in cluster */}
+                                {(isLastInCluster || msg.failed) && (
+                                  <div
+                                    className={`mt-0.5 flex items-center justify-end gap-1 text-[9px] ${
+                                      isOwnCluster ? "text-emerald-100" : "text-slate-400"
+                                    }`}
                                   >
-                                    <RefreshCw className="h-3 w-3" /> Retry
-                                  </button>
-                                ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && new Date(peerLastReadAt).getTime() >= new Date(msg.created_at).getTime() ? (
-                                  <span className="inline-flex items-center gap-0.5 text-emerald-200 font-bold ml-1">
-                                    <CheckCheck className="h-3 w-3" /> Seen
-                                  </span>
-                                ) : null}
+                                    <span>
+                                      {new Date(msg.created_at).toLocaleTimeString([], {
+                                        hour: "numeric",
+                                        minute: "2-digit",
+                                      })}
+                                    </span>
+
+                                    {msg.failed ? (
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRetrySend(msg)}
+                                        className="inline-flex items-center gap-0.5 text-rose-300 font-bold hover:underline"
+                                      >
+                                        <RefreshCw className="h-3 w-3" /> Retry
+                                      </button>
+                                    ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && new Date(peerLastReadAt).getTime() >= new Date(msg.created_at).getTime() ? (
+                                      <span className="inline-flex items-center text-emerald-200 font-bold ml-0.5">
+                                        <CheckCheck className="h-3 w-3" />
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                )}
                               </div>
                             </div>
-                          </div>
-                        ))}
+                          );
+                        })}
                       </div>
                     </div>
                   );
                 })}
               </div>
             ))}
+
+            {/* Peer Typing Indicator */}
+            {isPeerTyping && (
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs py-1 px-2">
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.2s]" />
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.4s]" />
+              </div>
+            )}
           </>
         )}
       </div>
@@ -922,11 +1050,11 @@ export default function ChatThread({
           <button
             type="button"
             onClick={scrollToBottom}
-            className="inline-flex items-center gap-1.5 rounded-full bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-lg hover:bg-emerald-700 transition animate-bounce"
+            className="inline-flex min-h-[38px] items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition"
           >
-            <ChevronDown className="h-4 w-4" />
+            <ChevronDown className="h-3.5 w-3.5" />
             <span>
-              {newMessagesCount > 0 ? `${newMessagesCount} new ${newMessagesCount === 1 ? "message" : "messages"}` : "Latest messages"}
+              {newMessagesCount > 0 ? `${newMessagesCount} new` : "Latest"}
             </span>
           </button>
         </div>
@@ -934,24 +1062,24 @@ export default function ChatThread({
 
       {/* Selected Resource Preview Bar */}
       {selectedResource && (
-        <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50/80 px-4 py-2 dark:border-slate-800 dark:bg-emerald-950/30">
+        <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50/80 px-3 py-1.5 dark:border-slate-800 dark:bg-emerald-950/30">
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200 truncate">
-            <Paperclip className="h-4 w-4 shrink-0 text-emerald-600" />
+            <Paperclip className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             <span className="truncate">Attached: {selectedResource.title || selectedResource.file_name}</span>
           </div>
           <button
             type="button"
             onClick={() => setSelectedResource(null)}
-            className="p-1 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white"
+            className="p-1 text-slate-400 hover:text-slate-800 dark:hover:text-white"
           >
-            <X className="h-4 w-4" />
+            <X className="h-3.5 w-3.5" />
           </button>
         </div>
       )}
 
-      {/* Emoji Picker Popover */}
+      {/* Emoji Popover */}
       {showEmojiPicker && (
-        <div className="absolute bottom-16 left-4 z-30 p-2 rounded-2xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#18211f] grid grid-cols-8 gap-1">
+        <div className="absolute bottom-16 left-3 z-30 p-2 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#18211f] grid grid-cols-8 gap-1">
           {EMOJI_LIST.map((emoji) => (
             <button
               key={emoji}
@@ -962,7 +1090,7 @@ export default function ChatThread({
                 saveChatDraft(conversationId, text);
                 setShowEmojiPicker(false);
               }}
-              className="p-1.5 text-base hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition"
+              className="p-1.5 text-sm hover:bg-slate-100 dark:hover:bg-slate-800 rounded-md transition"
             >
               {emoji}
             </button>
@@ -970,16 +1098,16 @@ export default function ChatThread({
         </div>
       )}
 
-      {/* Input Action Composer */}
+      {/* Composer Input */}
       <form
         onSubmit={handleSendMessage}
-        className="flex items-end gap-2 border-t border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-[#14171c] z-10"
+        className="flex items-end gap-2 border-t border-slate-100 bg-white p-2.5 dark:border-slate-800 dark:bg-[#14171c] z-10"
       >
         <button
           type="button"
           onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition"
-          aria-label="Add emoji"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
+          aria-label="Emoji"
           title="Add emoji"
         >
           <Smile className="h-5 w-5" />
@@ -988,8 +1116,8 @@ export default function ChatThread({
         <button
           type="button"
           onClick={() => setShowResourcePicker(true)}
-          className="rounded-full p-2 text-slate-500 hover:bg-slate-100 hover:text-emerald-600 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition"
-          aria-label="Attach a study resource"
+          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
+          aria-label="Share resource"
           title="Share resource"
         >
           <Paperclip className="h-5 w-5" />
@@ -1007,13 +1135,13 @@ export default function ChatThread({
             }
           }}
           placeholder="Write a message..."
-          className="min-w-0 flex-1 max-h-[120px] resize-none rounded-2xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+          className="min-w-0 flex-1 max-h-[120px] resize-none rounded-xl border border-slate-200/80 bg-slate-50 px-3.5 py-2.5 text-base sm:text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
         />
 
         <button
           type="submit"
           disabled={!inputContent.trim() && !selectedResource}
-          className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
+          className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />
@@ -1022,20 +1150,20 @@ export default function ChatThread({
 
       {/* Group Members Sheet */}
       {showGroupMembersSheet && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs" onClick={() => setShowGroupMembersSheet(false)}>
-          <div className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs" onClick={() => setShowGroupMembersSheet(false)}>
+          <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
               <div>
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">{groupDetails?.name || "Group Members"}</h3>
-                <p className="text-xs text-slate-500">{groupMembers.length} active members</p>
+                <h3 className="text-sm font-bold text-slate-900 dark:text-white">{groupDetails?.name || "Group Members"}</h3>
+                <p className="text-xs text-slate-500">{groupMemberCount} active members</p>
               </div>
-              <button type="button" onClick={() => setShowGroupMembersSheet(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
+              <button type="button" onClick={() => setShowGroupMembersSheet(false)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button>
             </div>
 
-            <div className="mt-4 max-h-[60vh] overflow-y-auto space-y-2">
+            <div className="mt-3 max-h-[50vh] overflow-y-auto space-y-1.5">
               {groupMembers.map((m) => (
-                <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#18211f]">
-                  <div className="flex items-center gap-3">
+                <div key={m.id} className="flex items-center justify-between rounded-xl border border-slate-100 bg-slate-50 p-2 dark:border-slate-800 dark:bg-[#18211f]">
+                  <div className="flex items-center gap-2.5">
                     {m.profile?.user_img ? (
                       <img src={m.profile.user_img} alt={m.profile.username} className="h-8 w-8 rounded-full object-cover" />
                     ) : (
@@ -1056,7 +1184,6 @@ export default function ChatThread({
         </div>
       )}
 
-      {/* Resource Picker Modal */}
       <ResourcePicker
         isOpen={showResourcePicker}
         onClose={() => setShowResourcePicker(false)}
@@ -1064,15 +1191,14 @@ export default function ChatThread({
         onSelectResource={(res) => setSelectedResource(res)}
       />
 
-      {/* Report Modal */}
       {reportingMsgId && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/50 p-4 backdrop-blur-xs">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs">
           <form
             onSubmit={handleSubmitReport}
-            className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]"
+            className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]"
           >
             <div className="flex items-center justify-between">
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
                 Report Message
               </h3>
               <button
@@ -1084,8 +1210,8 @@ export default function ChatThread({
               </button>
             </div>
 
-            <p className="mt-2 text-xs text-slate-500">
-              Please explain why this message violates community guidelines.
+            <p className="mt-1.5 text-xs text-slate-500">
+              Please state your reason for reporting this message.
             </p>
 
             <textarea
@@ -1093,22 +1219,22 @@ export default function ChatThread({
               rows={3}
               value={reportReason}
               onChange={(e) => setReportReason(e.target.value)}
-              placeholder="e.g. Inappropriate language, spam, or harassment..."
-              className="mt-3 w-full rounded-2xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+              placeholder="e.g. Inappropriate language, spam..."
+              className="mt-3 w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
             />
 
-            <div className="mt-4 flex justify-end gap-2">
+            <div className="mt-3 flex justify-end gap-2">
               <button
                 type="button"
                 onClick={() => setReportingMsgId(null)}
-                className="rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                className="rounded-xl bg-slate-200 px-3.5 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
               >
                 Cancel
               </button>
               <button
                 type="submit"
                 disabled={reportSubmitting || !reportReason.trim()}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+                className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-rose-700 disabled:opacity-50"
               >
                 {reportSubmitting && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                 <span>Submit Report</span>

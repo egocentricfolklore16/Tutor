@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { MessageSquare, Search, Users, Loader2, Plus, UserPlus, FileText, Link as LinkIcon } from "lucide-react";
+import { MessageSquare, Search, Users, Loader2, Plus, UserPlus } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { formatRelativeTime, calculateUnreadCount } from "../../lib/communityChat";
 import FriendPicker from "./FriendPicker";
@@ -10,6 +10,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
   const [searchQuery, setSearchQuery] = useState("");
   const [filterTab, setFilterTab] = useState("all"); // 'all' | 'friends' | 'groups'
   const [showFriendPicker, setShowFriendPicker] = useState(false);
+  const [imgErrors, setImgErrors] = useState({});
 
   const fetchInboxData = useCallback(async () => {
     if (!currentUserId) return;
@@ -173,7 +174,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
     fetchInboxData();
   }, [fetchInboxData]);
 
-  // Realtime listener for message changes to update inbox previews
+  // Realtime listener for message changes
   useEffect(() => {
     if (!currentUserId) return;
 
@@ -209,46 +210,45 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
     );
 
   return (
-    <div className="flex flex-col h-full space-y-3 p-3 sm:p-4 bg-slate-50 dark:bg-[#14171c] min-h-[100dvh]">
-      {/* Header & Search & Filter */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-xs dark:border-slate-800 dark:bg-[#14171c]">
-        <div className="flex items-center justify-between gap-3 mb-3">
+    <div className="flex flex-col h-full bg-white dark:bg-[#14171c]">
+      {/* Slim, Clean Header */}
+      <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">
-              Inbox
+            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+              Messages
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Direct messages & group discussions
-            </p>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5">
             <button
               type="button"
               onClick={() => setShowFriendPicker(true)}
-              className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
+              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
+              title="New Chat"
+              aria-label="New Chat"
             >
               <Plus className="h-4 w-4" />
-              <span>New Chat</span>
+              <span className="hidden sm:inline">New Chat</span>
             </button>
             {headerAction}
           </div>
         </div>
 
-        {/* Search */}
-        <div className="relative mb-3">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+        {/* Slim Search Input */}
+        <div className="relative">
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+            className="w-full min-h-[38px] rounded-xl border border-slate-200/80 bg-slate-50 py-1.5 pl-9 pr-3 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
           />
         </div>
 
-        {/* Filter Segmented Controls */}
-        <div className="flex gap-1.5 rounded-xl bg-slate-100 p-1 dark:bg-[#18211f]">
+        {/* Minimal Segmented Controls */}
+        <div className="flex rounded-xl bg-slate-100/80 p-1 dark:bg-[#18211f]">
           {[
             { id: "all", label: "All" },
             { id: "friends", label: "Friends" },
@@ -258,7 +258,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
               key={tab.id}
               type="button"
               onClick={() => setFilterTab(tab.id)}
-              className={`flex-1 rounded-lg py-1 text-xs font-bold transition ${
+              className={`flex-1 min-h-[32px] rounded-lg text-[11px] font-bold transition ${
                 filterTab === tab.id
                   ? "bg-white text-slate-900 shadow-xs dark:bg-[#14171c] dark:text-white"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -278,42 +278,39 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
       />
 
       {/* Inbox List */}
-      {loading ? (
-        <div className="space-y-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div
-              key={i}
-              className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-3.5 animate-pulse dark:border-slate-800 dark:bg-[#14171c]"
-            >
-              <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
-              <div className="flex-1 space-y-2">
-                <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
-                <div className="h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        {loading ? (
+          <div className="p-4 space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 animate-pulse">
+                <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : filteredConversations.length === 0 ? (
-        <div className="flex flex-1 min-h-[250px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-[#14171c]">
-          <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
-          <p className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
-            No conversations found
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-            Connect with friends to start chatting and studying together!
-          </p>
-          <button
-            type="button"
-            onClick={onFindFriends || (() => setShowFriendPicker(true))}
-            className="mt-4 inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
-          >
-            <UserPlus className="h-4 w-4" />
-            <span>Find friends</span>
-          </button>
-        </div>
-      ) : (
-        <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-xs dark:divide-slate-800 dark:border-slate-800 dark:bg-[#14171c] overflow-hidden">
-          {filteredConversations.map((conv) => {
+            ))}
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-8 text-center h-64">
+            <MessageSquare className="h-8 w-8 text-slate-300 dark:text-slate-700" />
+            <p className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+              No conversations found
+            </p>
+            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
+              Select a conversation or start a new chat to begin studying together!
+            </p>
+            <button
+              type="button"
+              onClick={onFindFriends || (() => setShowFriendPicker(true))}
+              className="mt-3 inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>Find friends</span>
+            </button>
+          </div>
+        ) : (
+          filteredConversations.map((conv) => {
             const hasUnread = conv.unreadCount > 0;
             const previewText = conv.latestMsg?.content
               ? conv.latestMsg.content
@@ -323,27 +320,28 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
               ? "Shared a resource"
               : "No messages yet";
 
+            const showFallback = !conv.avatarUrl || imgErrors[conv.id];
+
             return (
               <div
                 key={conv.id}
                 onClick={() => onSelectConversation(conv.id)}
-                className={`flex cursor-pointer items-center justify-between p-3.5 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
-                  hasUnread
-                    ? "bg-emerald-50/60 dark:bg-emerald-950/20"
-                    : ""
+                className={`flex min-h-[56px] cursor-pointer items-center justify-between px-3.5 py-3 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
+                  hasUnread ? "bg-emerald-50/50 dark:bg-emerald-950/20" : ""
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1 pr-3">
+                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
                   <div className="relative shrink-0">
                     {conv.type === "direct" ? (
-                      conv.avatarUrl ? (
+                      !showFallback ? (
                         <img
                           src={conv.avatarUrl}
                           alt={conv.name}
+                          onError={() => setImgErrors((prev) => ({ ...prev, [conv.id]: true }))}
                           className="h-10 w-10 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
                           {conv.name.charAt(0).toUpperCase()}
                         </div>
                       )
@@ -386,15 +384,15 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
                 </div>
 
                 {hasUnread && (
-                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
+                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white shadow-xs">
                     {conv.unreadCount}
                   </span>
                 )}
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 }

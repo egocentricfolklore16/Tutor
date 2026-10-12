@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Plus, Play, Pause } from 'lucide-react';
+import { Plus, Play, Pause, Repeat, Check, Edit2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import ResponsiveSheet from '../common/ResponsiveSheet';
 import { useProfile } from '../../app/ProfileContext';
@@ -12,15 +12,14 @@ const Calendar = ({
   setSelectedSession,
   selectedSession,
   onAddActivity,
+  onEditActivity,
+  onMarkStatus,
 }) => {
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
+  const isDeadline = (session) => session?.activityType === "deadline" || session?.type === "deadline";
 
-  // BOLT OPTIMIZATION:
   // Pre-index sessions by both `${dateString}-${hour}` and `${dateString}` in a single O(N) pass using useMemo.
-  // This eliminates array flattening and filtering (Array.from().flat().filter()) on every render
-  // in renderMobileDayView and renderWeekView, reducing both lookups to O(1) hash map access.
   const { sessionsByDateAndHour, sessionsByDate } = useMemo(() => {
     const hourMap = new Map();
     const dateMap = new Map();
@@ -28,7 +27,7 @@ const Calendar = ({
 
     for (const session of sessions) {
       if (!session || !session.date) continue;
-      const dateKey = session.date.toDateString();
+      const dateKey = new Date(session.date).toDateString();
       const deadline = isDeadline(session);
       const startHour = deadline
         ? 8
@@ -55,27 +54,39 @@ const Calendar = ({
   const renderSessionItem = (session, compact = false) => {
     const deadline = isDeadline(session);
     const isOpen = selectedSession?.id === session.id;
-    const isPaused = session.sessionStatus === "paused";
+    const isPaused = session.status === "paused";
+    const isCompleted = session.status === "completed";
 
     return (
-      <div key={session.id} className="relative">
+      <div key={session.id || session.title} className="relative group">
         <button
           type="button"
           onClick={(event) => {
             event.stopPropagation();
             setSelectedSession?.(isOpen ? null : session);
           }}
-          className={`w-full cursor-pointer rounded p-1 text-left text-xs text-white transition hover:brightness-95 ${deadline ? "bg-red-600" : session.color} ${compact ? "mb-1" : ""}`}
+          className={`w-full cursor-pointer rounded-lg p-1.5 text-left text-xs text-white transition hover:brightness-95 shadow-xs ${
+            deadline ? "bg-red-600" : session.color || "bg-blue-600"
+          } ${compact ? "mb-1" : ""} ${isCompleted ? "opacity-60 line-through" : ""}`}
         >
           <div className="flex items-center justify-between gap-1">
-            <span className="block truncate font-semibold">{deadline ? "Deadline" : session.title}</span>
+            <div className="flex items-center gap-1 min-w-0">
+              {session.isRecurring && <Repeat className="h-3 w-3 shrink-0 opacity-80" />}
+              <span className="block truncate font-bold">{deadline ? "Deadline" : session.title}</span>
+            </div>
+            {isCompleted && <Check className="h-3 w-3 shrink-0 text-emerald-200" />}
             {!deadline && isPaused && (
               <span className="shrink-0 rounded bg-black/40 px-1 py-0.2 text-[9px] font-bold text-amber-200">
                 Paused
               </span>
             )}
           </div>
-          {!compact && deadline && <span className="block truncate">{session.title}</span>}
+          {!compact && (
+            <div className="mt-0.5 flex items-center justify-between text-[10px] opacity-90">
+              <span>{session.subject || session.type}</span>
+              <span>{session.startTime}</span>
+            </div>
+          )}
         </button>
       </div>
     );
@@ -218,7 +229,12 @@ const Calendar = ({
                 return (
                   <div
                     key={`${day.toDateString()}-${time}`}
-                    className="border border-gray-200 p-1 min-h-12"
+                    className="border border-gray-200 p-1 min-h-12 hover:bg-blue-50/40 cursor-pointer transition"
+                    onClick={() => {
+                      const slotDate = new Date(day);
+                      slotDate.setHours(slotHour, 0, 0, 0);
+                      onAddActivity(slotDate, "session");
+                    }}
                     onDrop={(e) => handleDrop(e, day)}
                     onDragOver={(e) => e.preventDefault()}
                   >
@@ -234,7 +250,7 @@ const Calendar = ({
   };
 
   return (
-    <div className="relative mb-6 overflow-x-auto rounded-2xl bg-white p-3 md:p-6">
+    <div className="relative mb-6 overflow-x-auto rounded-2xl bg-white p-3 md:p-6 dark:bg-slate-900 dark:border dark:border-slate-800">
       {renderMobileDayView()}
       {renderWeekView()}
       <img src="/logo3.png" alt="" aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 h-10 w-10 object-contain opacity-20" />
@@ -243,43 +259,76 @@ const Calendar = ({
       <ResponsiveSheet
         isOpen={Boolean(selectedSession)}
         onClose={() => setSelectedSession?.(null)}
-        title={isDeadline(selectedSession || {}) ? "Deadline Details" : "Study Session Details"}
+        title={isDeadline(selectedSession || {}) ? "Deadline Details" : "Activity Details"}
       >
         {selectedSession && (
           <div className="space-y-4 text-slate-900 dark:text-slate-100">
-            <div>
-              <p className={`text-xs font-bold uppercase tracking-wider ${isDeadline(selectedSession) ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
-                {isDeadline(selectedSession) ? "Deadline" : "Study Session"}
-              </p>
-              <h3 className="mt-1 text-lg font-bold">{selectedSession.title}</h3>
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className={`text-xs font-bold uppercase tracking-wider ${isDeadline(selectedSession) ? "text-red-600 dark:text-red-400" : "text-blue-600 dark:text-blue-400"}`}>
+                  {isDeadline(selectedSession) ? "Deadline" : selectedSession.type || "Study Session"}
+                </p>
+                <h3 className="mt-1 text-lg font-bold">{selectedSession.title}</h3>
+              </div>
+              {onEditActivity && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const sessionToEdit = selectedSession;
+                    setSelectedSession?.(null);
+                    onEditActivity(sessionToEdit);
+                  }}
+                  className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                >
+                  <Edit2 size={16} />
+                </button>
+              )}
             </div>
 
             <dl className="space-y-2.5 text-sm border-t border-slate-100 pt-3 dark:border-slate-800">
               <div className="flex justify-between gap-3"><dt className="text-slate-500">Subject</dt><dd className="font-semibold text-right">{selectedSession.subject || "-"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Status</dt><dd className="font-semibold text-right">{selectedSession.sessionStatus === "paused" ? "Paused" : "Active / Scheduled"}</dd></div>
-              <div className="flex justify-between gap-3"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-right">{selectedSession.date?.toLocaleDateString()}</dd></div>
-              {!isDeadline(selectedSession) && <div className="flex justify-between gap-3"><dt className="text-slate-500">Time</dt><dd className="font-semibold text-right">{selectedSession?.startTime || "09:00"} - {selectedSession?.endTime || "10:00"}</dd></div>}
-              {!isDeadline(selectedSession) && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{Number(selectedSession.duration || 0).toFixed(2).replace(/\.00$/, "")} hours</dd></div>}
-              {selectedSession.recurring && selectedSession.recurring !== "none" && <div className="flex justify-between gap-3"><dt className="text-slate-500">Repeats</dt><dd className="font-semibold capitalize text-right">{selectedSession.recurring}</dd></div>}
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Status</dt><dd className="font-semibold text-right capitalize">{selectedSession.status || "Scheduled"}</dd></div>
+              <div className="flex justify-between gap-3"><dt className="text-slate-500">Date</dt><dd className="font-semibold text-right">{new Date(selectedSession.date).toLocaleDateString()}</dd></div>
+              {!isDeadline(selectedSession) && <div className="flex justify-between gap-3"><dt className="text-slate-500">Time</dt><dd className="font-semibold text-right">{selectedSession?.startTime || "09:00"}</dd></div>}
+              {!isDeadline(selectedSession) && <div className="flex justify-between gap-3"><dt className="text-slate-500">Duration</dt><dd className="font-semibold text-right">{selectedSession.duration} minutes</dd></div>}
+              {selectedSession.isRecurring && <div className="flex justify-between gap-3"><dt className="text-slate-500">Repeats</dt><dd className="font-semibold capitalize text-right">Recurring series</dd></div>}
+              {selectedSession.notes && <div className="border-t border-slate-100 pt-2 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400"><dt className="font-bold mb-1">Notes</dt><dd>{selectedSession.notes}</dd></div>}
             </dl>
 
-            {!isDeadline(selectedSession) && (
-              <div className="pt-2">
+            <div className="pt-2 flex gap-2">
+              {onMarkStatus && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const newStatus = selectedSession.status === "completed" ? "scheduled" : "completed";
+                    onMarkStatus(selectedSession.id, newStatus);
+                    setSelectedSession?.(null);
+                  }}
+                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-bold transition ${
+                    selectedSession.status === "completed"
+                      ? "bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200"
+                      : "bg-emerald-600 text-white hover:bg-emerald-700"
+                  }`}
+                >
+                  <Check className="h-4 w-4" />
+                  {selectedSession.status === "completed" ? "Mark incomplete" : "Mark complete"}
+                </button>
+              )}
+
+              {!isDeadline(selectedSession) && (
                 <button
                   type="button"
                   onClick={() => {
                     setSelectedSession?.(null);
                     navigate(`/Study/${selectedSession.id}`);
                   }}
-                  className={`flex w-full items-center justify-center gap-2 rounded-xl py-3 px-4 text-sm font-bold text-slate-950 transition ${
-                    selectedSession.sessionStatus === "paused" ? "bg-amber-400 hover:bg-amber-500" : "bg-emerald-400 hover:bg-emerald-500"
-                  }`}
+                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 px-3 text-xs font-bold text-white transition hover:bg-blue-700"
                 >
-                  {selectedSession.sessionStatus === "paused" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
-                  {selectedSession.sessionStatus === "paused" ? "Resume Session" : "Start Session"}
+                  {selectedSession.status === "paused" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
+                  {selectedSession.status === "paused" ? "Resume" : "Start"}
                 </button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         )}
       </ResponsiveSheet>

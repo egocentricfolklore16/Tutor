@@ -15,3 +15,7 @@
 ## 2026-10-09 - System Prompt Guardrails & Template Termination Syntax
 **Learning:** Unterminated template strings in Edge Function prompt modules break test runner parsing with `ERR_INVALID_TYPESCRIPT_SYNTAX`. Truncated system prompt templates miss `<guardrails>` and `{{strictness_rules}}` blocks, leading to prompt leakage and integrity policy test failures.
 **Action:** When updating system prompts or AI templates, always verify template syntax termination and ensure guardrail blocks required by `ai_tutor.test.js` remain intact.
+
+## 2026-10-12 - Streak Slip Reason Preservation & Module ESM Extension
+**Learning:** `checkAndLogStreakSlip` in `src/lib/streaks.js` calculated `slipReason` as `"missed_day"` vs `"streak_broken"` depending on freeze token availability, but hardcoded `"streak_broken"` in its return payload. Additionally, dynamic ESM imports in `src/lib/` require explicit `.js` extensions (e.g., `import("./streaksCore.js")`) for Node's native test runner.
+**Action:** When testing streak slip detection, verify both the persisted database payload and returned result object match `slipReason`, and ensure all dynamic imports specify `.js` file extensions.

@@ -26,7 +26,8 @@ export async function updateStreakForActivity(userId, options = {}) {
   // Fallback: if RPC failed or returned error, query users_streaks and update directly
   if (result?.error || !result?.data) {
     try {
-      const activityDate = getActivityDate(new Date(), timeZone, cutoffHour);
+      const now = options.now ? new Date(options.now) : new Date();
+      const activityDate = getActivityDate(now, timeZone, cutoffHour);
       const { data: existingStreak } = await getUserStreak(userId);
 
       const prev = existingStreak
@@ -38,7 +39,7 @@ export async function updateStreakForActivity(userId, options = {}) {
           }
         : null;
 
-      const { calculateStreakUpdate } = await import("./streaksCore");
+      const { calculateStreakUpdate } = await import("./streaksCore.js");
       const next = calculateStreakUpdate(prev, activityDate);
 
       const { data: updatedStreak, error: upsertError } = await supabase
@@ -85,7 +86,8 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
   
   const timeZone = options.timeZone || getUserTimeZone();
   const cutoffHour = options.cutoffHour ?? 3;
-  const activityDate = getActivityDate(new Date(), timeZone, cutoffHour);
+  const now = options.now ? new Date(options.now) : new Date();
+  const activityDate = getActivityDate(now, timeZone, cutoffHour);
   
   // Get current streak
   const { data: streakData, error: streakError } = await getUserStreak(userId);
@@ -127,7 +129,7 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
         error: slipError,
       });
     }
-    return { data: { reason: "streak_broken", daysMissed: daysSinceActivity }, wasSlipping: true };
+    return { data: { reason: slipReason, daysMissed: daysSinceActivity }, wasSlipping: true };
   }
   
   return { data: null, wasSlipping: false };
@@ -159,7 +161,7 @@ export async function getUserSlippingData(userId, limit = 10) {
  * @param {object} streakData - Streak record containing display_current_streak / current_streak
  * @returns {Promise<boolean[]>} Array of 7 booleans for [Sun, Mon, Tue, Wed, Thu, Fri, Sat]
  */
-export async function getWeekActivity(userId, streakData) {
+export async function getWeekActivity(userId, streakData, options = {}) {
   const defaultWeek = [false, false, false, false, false, false, false];
   if (!userId) return defaultWeek;
 
@@ -168,7 +170,7 @@ export async function getWeekActivity(userId, streakData) {
     return defaultWeek;
   }
 
-  const now = new Date();
+  const now = options.now ? new Date(options.now) : new Date();
   const currentDayIndex = now.getDay(); // 0 = Sun, 6 = Sat
 
   // Calculate start of current week (Sunday)
@@ -215,10 +217,10 @@ export async function getWeekActivity(userId, streakData) {
  * @param {number} days - Number of days to analyze
  * @returns {object} Daily tracking data
  */
-export async function getDailySessionTracking(userId, days = 30) {
+export async function getDailySessionTracking(userId, days = 30, options = {}) {
   if (!userId) return { data: null, error: new Error("Missing user id") };
   
-  const fromDate = new Date();
+  const fromDate = options.now ? new Date(options.now) : new Date();
   fromDate.setDate(fromDate.getDate() - days);
   
   const { data, error } = await supabase

@@ -32,6 +32,11 @@ export default function AskQuestionModal({ user, userSubjects = [], onClose, onS
     e.preventDefault();
     setErrorMsg(null);
 
+    if (!user?.id) {
+      setErrorMsg("You must be logged in to ask a question.");
+      return;
+    }
+
     const cleanTitle = title.trim();
     const cleanBody = body.trim();
 

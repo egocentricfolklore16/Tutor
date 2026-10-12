@@ -1,24 +1,44 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, useMemo } from "react";
 import {
+  Activity,
   AlertCircle,
+  AlertTriangle,
   ArrowLeft,
   ArrowUp,
+  Award,
   BookOpen,
+  Bookmark,
   Calendar,
   Check,
+  CheckCircle,
+  CheckSquare,
+  ChevronDown,
+  ChevronRight,
+  ChevronUp,
   Clock,
+  Columns,
+  Compass,
   Copy,
   Eraser,
+  Eye,
+  EyeOff,
+  FileText,
+  GitBranch,
+  Grid,
   HelpCircle,
   Layers,
   ListTodo,
   Maximize2,
   Minimize2,
+  PenTool,
   RefreshCw,
+  Search,
+  ShieldAlert,
   Sparkles,
+  Star,
+  UserCheck,
   X,
-  MessageSquarePlus,
-  ChevronRight,
+  Zap,
 } from "lucide-react";
 import LumoAvatar from "../../common/LumoAvatar";
 import ResponsiveSheet from "../../common/ResponsiveSheet";
@@ -29,8 +49,47 @@ import {
   LUMO_PROMPTS,
   FEATURED_PROMPTS,
   hasPlaceholder,
+  extractPlaceholders,
   getPromptsByCategory,
+  searchPrompts,
+  getFavoritePromptIds,
+  toggleFavoritePrompt,
+  getRecentPromptIds,
+  addRecentPrompt,
 } from "../../../lib/lumoPrompts";
+
+// Dynamic Lucide Icon Mapper
+const ICON_MAP = {
+  BookOpen,
+  HelpCircle,
+  Calendar,
+  FileText,
+  Award,
+  Layers,
+  Sparkles,
+  Columns,
+  AlertTriangle,
+  CheckSquare,
+  UserCheck,
+  Activity,
+  Clock,
+  ListTodo,
+  Compass,
+  CheckCircle,
+  Grid,
+  GitBranch,
+  Bookmark,
+  Zap,
+  ShieldAlert,
+  PenTool,
+  RefreshCw,
+  Star,
+};
+
+function DynamicIcon({ name, className = "h-4 w-4" }) {
+  const IconComponent = ICON_MAP[name] || Sparkles;
+  return <IconComponent className={className} />;
+}
 
 const AITutorChat = ({
   isOpen,
@@ -57,11 +116,20 @@ const AITutorChat = ({
   const animatedMessageIdsRef = useRef(new Set());
   const isFirstMountRef = useRef(true);
 
+  // UI state for prompt drawer, filters, preview, warnings, favorites & recents
   const [copyState, setCopyState] = useState({});
   const [isPromptsSheetOpen, setIsPromptsSheetOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [previewPromptId, setPreviewPromptId] = useState(null);
+  const [favoriteIds, setFavoriteIds] = useState(() => getFavoritePromptIds());
+  const [recentIds, setRecentIds] = useState(() => getRecentPromptIds());
+  const [showPlaceholderWarning, setShowPlaceholderWarning] = useState(false);
+  const [expandedUserMessages, setExpandedUserMessages] = useState({});
 
-  const panelAccent = theme?.accentButton || "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600";
+  const panelAccent =
+    theme?.accentButton ||
+    "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600";
 
   useEffect(() => {
     if (isFirstMountRef.current && messages.length > 0) {
@@ -107,10 +175,11 @@ const AITutorChat = ({
     }
   }, [messages, isTyping, reducedMotion]);
 
+  // Auto-grow textarea for long prompts
   useEffect(() => {
     if (!textareaRef.current) return;
     textareaRef.current.style.height = "auto";
-    const nextHeight = Math.min(textareaRef.current.scrollHeight, 140);
+    const nextHeight = Math.min(textareaRef.current.scrollHeight, 220);
     textareaRef.current.style.height = `${nextHeight}px`;
   }, [currentMessage]);
 
@@ -118,6 +187,10 @@ const AITutorChat = ({
     if (!isOpen) return;
     const handleKeyDown = (e) => {
       if (e.key === "Escape") {
+        if (showPlaceholderWarning) {
+          setShowPlaceholderWarning(false);
+          return;
+        }
         if (isPromptsSheetOpen) {
           setIsPromptsSheetOpen(false);
           return;
@@ -128,7 +201,7 @@ const AITutorChat = ({
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, isPromptsSheetOpen]);
+  }, [isOpen, onClose, isPromptsSheetOpen, showPlaceholderWarning]);
 
   const charCount = currentMessage.length;
   const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
@@ -150,34 +223,108 @@ const AITutorChat = ({
   const handleSelectPrompt = (promptText) => {
     if (!promptText) return;
 
-    if (hasPlaceholder(promptText)) {
+    if (match) {
+      textareaRef.current.focus();
+      textareaRef.current.setSelectionRange(match.index, match.index + match[0].length);
+    } else if (startIndex > 0) {
+      // Loop back to beginning
+      const firstMatch = /\[.*?\]/.exec(text);
+      if (firstMatch) {
+        textareaRef.current.focus();
+        textareaRef.current.setSelectionRange(firstMatch.index, firstMatch.index + firstMatch[0].length);
+      }
+    }
+  };
+
+  /**
+   * Handle Tab key navigation between placeholders inside the input box
+   */
+  const handleKeyDownInput = (e) => {
+    if (e.key === "Tab" && !e.shiftKey && currentMessage) {
+      const placeholders = extractPlaceholders(currentMessage);
+      if (placeholders.length > 0) {
+        e.preventDefault();
+        const cursor = textareaRef.current?.selectionEnd || 0;
+        highlightNextPlaceholder(currentMessage, cursor);
+        return;
+      }
+    }
+
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      attemptSendMessage();
+    }
+  };
+
+  /**
+   * Selection handler for prompt cards and sheet items
+   */
+  const handleSelectPromptObj = (promptObj) => {
+    if (!promptObj) return;
+
+    addRecentPrompt(promptObj.id);
+    setRecentIds(getRecentPromptIds());
+
+    const fullPrompt = promptObj.prompt || promptObj.text;
+
+    if (hasPlaceholder(fullPrompt)) {
       if (onMessageChange) {
-        onMessageChange(promptText);
+        onMessageChange(fullPrompt);
       }
       setTimeout(() => {
-        if (textareaRef.current) {
-          textareaRef.current.focus();
-          const match = /\[.*?\]/.exec(promptText);
-          if (match) {
-            textareaRef.current.setSelectionRange(match.index, match.index + match[0].length);
-          } else {
-            textareaRef.current.setSelectionRange(promptText.length, promptText.length);
-          }
-        }
+        highlightNextPlaceholder(fullPrompt, 0);
       }, 50);
     } else {
       if (onMessageChange) {
-        onMessageChange(promptText);
+        onMessageChange(fullPrompt);
       }
       setTimeout(() => {
         if (onSendMessage) {
-          onSendMessage(promptText);
+          onSendMessage(fullPrompt);
         }
       }, 50);
     }
 
     setIsPromptsSheetOpen(false);
   };
+
+  /**
+   * Send validation check for remaining unfilled placeholders
+   */
+  const attemptSendMessage = (forceSend = false) => {
+    if (!currentMessage.trim() || isTyping) return;
+
+    if (!forceSend && hasPlaceholder(currentMessage)) {
+      setShowPlaceholderWarning(true);
+      return;
+    }
+
+    setShowPlaceholderWarning(false);
+    if (onSendMessage) {
+      onSendMessage();
+    }
+  };
+
+  const handleToggleFavorite = (e, promptId) => {
+    e.stopPropagation();
+    toggleFavoritePrompt(promptId);
+    setFavoriteIds(getFavoritePromptIds());
+  };
+
+  // Filtered prompt list for drawer sheet based on category, search, recents, and favorites
+  const displayedPrompts = useMemo(() => {
+    if (selectedCategory === "favorites") {
+      return LUMO_PROMPTS.filter((p) => favoriteIds.includes(p.id));
+    }
+    if (selectedCategory === "recents") {
+      return recentIds
+        .map((id) => LUMO_PROMPTS.find((p) => p.id === id))
+        .filter(Boolean);
+    }
+
+    let result = searchPrompts(searchQuery, selectedCategory);
+    return result;
+  }, [selectedCategory, searchQuery, favoriteIds, recentIds]);
 
   const ActionCard = ({ action }) => {
     if (!action) return null;
@@ -196,7 +343,10 @@ const AITutorChat = ({
               {data.milestones.map((m, idx) => (
                 <div key={idx} className="flex items-start justify-between gap-2">
                   <span>
-                    <strong>{idx + 1}. {m.title}</strong>: {m.description}
+                    <strong>
+                      {idx + 1}. {m.title}
+                    </strong>
+                    : {m.description}
                   </span>
                   <span className="shrink-0 font-medium opacity-75">{m.estimated_minutes}m</span>
                 </div>
@@ -217,7 +367,10 @@ const AITutorChat = ({
           </div>
           {isSuccess && (
             <div className="mt-1.5 flex flex-wrap gap-x-4 gap-y-1 text-slate-600 dark:text-slate-300">
-              <div><Clock className="mr-1 inline h-3 w-3" />{data.date} at {data.time}</div>
+              <div>
+                <Clock className="mr-1 inline h-3 w-3" />
+                {data.date} at {data.time}
+              </div>
               <div>Duration: {data.duration} min</div>
               <div>Focus: {data.focus}</div>
             </div>
@@ -285,16 +438,30 @@ const AITutorChat = ({
         ul: ({ children }) => <ul className="mb-2 list-disc space-y-1 pl-4">{children}</ul>,
         ol: ({ children }) => <ol className="mb-2 list-decimal space-y-1 pl-4">{children}</ol>,
         li: ({ children }) => <li>{children}</li>,
-        strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
+        strong: ({ children }) => (
+          <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>
+        ),
         a: ({ href, children }) => (
-          <a href={href} target="_blank" rel="noreferrer" className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300">
+          <a
+            href={href}
+            target="_blank"
+            rel="noreferrer"
+            className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300"
+          >
             {children}
           </a>
         ),
         code: ({ inline, children, className, ...props }) => {
           const codeValue = String(children).replace(/\n$/, "");
           if (inline) {
-            return <code className="rounded-md bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 dark:bg-slate-800 dark:text-slate-100" {...props}>{children}</code>;
+            return (
+              <code
+                className="rounded-md bg-slate-200 px-1.5 py-0.5 font-mono text-[11px] text-slate-800 dark:bg-slate-800 dark:text-slate-100"
+                {...props}
+              >
+                {children}
+              </code>
+            );
           }
 
           return (
@@ -415,6 +582,16 @@ const AITutorChat = ({
       );
     }
 
+    // User Message Bubble with Collapsed Card for Long Prompts
+    const userText = String(message.text || "");
+    const isLongPrompt = userText.length > 220 || userText.startsWith("ROLE:");
+    const isExpanded = Boolean(expandedUserMessages[msgKey]);
+
+    // Extract title or first line if collapsed
+    const firstLine = userText.split("\n")[0].replace(/^ROLE:\s*/, "");
+    const matchedPrompt = LUMO_PROMPTS.find((p) => p.prompt === userText);
+    const cardTitle = matchedPrompt ? matchedPrompt.title : "Structured Prompt";
+
     return (
       <div className="flex justify-end gap-3">
         <div className="min-w-0 max-w-[80%] text-right">
@@ -422,6 +599,48 @@ const AITutorChat = ({
           <div className={`inline-block rounded-2xl rounded-tr-md p-3.5 text-left text-sm leading-6 text-white shadow-surface ${panelAccent}`}>
             {message.text}
           </div>
+
+          {isLongPrompt && !isExpanded ? (
+            <div className="inline-block w-full max-w-md rounded-2xl rounded-tr-md border border-violet-200/80 bg-violet-50/90 p-3.5 text-left text-xs shadow-sm dark:border-violet-800/80 dark:bg-violet-950/60">
+              <div className="mb-1 flex items-center justify-between gap-2 border-b border-violet-200/60 pb-1.5 dark:border-violet-800/60">
+                <span className="flex items-center gap-1.5 font-bold text-violet-900 dark:text-violet-200">
+                  <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                  {cardTitle}
+                </span>
+                <button
+                  type="button"
+                  onClick={() =>
+                    setExpandedUserMessages((prev) => ({ ...prev, [msgKey]: true }))
+                  }
+                  className="inline-flex items-center gap-1 rounded-md bg-violet-200/80 px-2 py-0.5 text-[10px] font-semibold text-violet-900 transition hover:bg-violet-300 dark:bg-violet-800 dark:text-violet-100 min-h-[32px]"
+                >
+                  <Eye className="h-3 w-3" />
+                  Show full prompt
+                </button>
+              </div>
+              <p className="line-clamp-2 text-slate-700 dark:text-slate-300 font-medium leading-relaxed">
+                {firstLine}
+              </p>
+            </div>
+          ) : (
+            <div className={`inline-block rounded-2xl rounded-tr-md p-3.5 text-left text-sm leading-6 text-white shadow-sm ${panelAccent}`}>
+              {isLongPrompt && (
+                <div className="mb-2 flex items-center justify-between gap-2 border-b border-white/20 pb-1 text-xs">
+                  <span className="font-semibold">{cardTitle}</span>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setExpandedUserMessages((prev) => ({ ...prev, [msgKey]: false }))
+                    }
+                    className="inline-flex items-center gap-1 rounded bg-black/20 px-1.5 py-0.5 text-[10px] hover:bg-black/30 min-h-[32px]"
+                  >
+                    <EyeOff className="h-3 w-3" /> Collapse
+                  </button>
+                </div>
+              )}
+              <div className="whitespace-pre-wrap">{userText}</div>
+            </div>
+          )}
         </div>
         <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-slate-200 text-xs font-semibold text-slate-700 dark:bg-slate-700 dark:text-slate-200 shadow-surface">
           {user?.avatar ? (
@@ -433,8 +652,6 @@ const AITutorChat = ({
       </div>
     );
   };
-
-  const filteredPrompts = getPromptsByCategory(selectedCategory);
 
   if (!isOpen) return null;
 
@@ -540,7 +757,7 @@ const AITutorChat = ({
                   </div>
                   <h3 className="text-lg font-bold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Tap a prompt suggestion to start or ask anything.
+                    Tap a structured prompt suggestion to start or ask anything.
                   </p>
 
                   <div className="mt-4 space-y-2 text-left">
@@ -548,29 +765,70 @@ const AITutorChat = ({
                       <span>Popular Prompts</span>
                       <button
                         type="button"
-                        onClick={() => setIsPromptsSheetOpen(true)}
-                        className="text-violet-600 transition hover:underline dark:text-violet-400"
+                        onClick={() => setSelectedCategory("all")}
+                        className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition min-h-[36px] ${
+                          selectedCategory === "all"
+                            ? "bg-violet-600 text-white dark:bg-violet-500"
+                            : "bg-slate-200/80 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                        }`}
                       >
-                        See all ({LUMO_PROMPTS.length})
+                        All Categories
                       </button>
+                      {LUMO_CATEGORIES.map((cat) => (
+                        <button
+                          key={cat.id}
+                          type="button"
+                          onClick={() => setSelectedCategory(cat.id)}
+                          className={`shrink-0 rounded-full px-3 py-1.5 text-[11px] font-semibold transition min-h-[36px] ${
+                            selectedCategory === cat.id
+                              ? "bg-violet-600 text-white dark:bg-violet-500"
+                              : "bg-slate-200/80 text-slate-700 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                          }`}
+                        >
+                          {cat.label}
+                        </button>
+                      ))}
                     </div>
 
-                    <div className="flex gap-2 overflow-x-auto pb-2 pt-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
-                      {FEATURED_PROMPTS.map((prompt) => (
+                    {/* Featured / Category Cards Grid */}
+                    <div className="grid gap-2.5 sm:grid-cols-2 max-h-[260px] overflow-y-auto pr-1">
+                      {getPromptsByCategory(selectedCategory).slice(0, 6).map((promptObj) => (
                         <button
-                          key={prompt.id}
+                          key={promptObj.id}
                           type="button"
                           onClick={() => handleSelectPrompt(prompt.text)}
                           className="group relative flex shrink-0 min-w-[160px] max-w-[220px] flex-col justify-between rounded-2xl bg-white p-3 text-left shadow-surface hover:shadow-surface-hover transition focus:outline-none focus:shadow-focus dark:bg-slate-800/90 min-h-[72px]"
                         >
-                          <span className="mb-1 text-[10px] font-semibold uppercase tracking-wider text-violet-600 dark:text-violet-400">
-                            {prompt.label}
-                          </span>
-                          <span className="line-clamp-2 text-xs font-medium text-slate-700 dark:text-slate-200">
-                            {prompt.text}
-                          </span>
+                          <div>
+                            <div className="mb-1 flex items-center justify-between">
+                              <span className="flex items-center gap-1.5 text-[11px] font-bold text-violet-700 dark:text-violet-300">
+                                <DynamicIcon name={promptObj.icon} className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
+                                {promptObj.title}
+                              </span>
+                              {hasPlaceholder(promptObj.prompt) && (
+                                <span className="rounded bg-amber-100 px-1 py-0.5 text-[9px] font-semibold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
+                                  Fill blanks
+                                </span>
+                              )}
+                            </div>
+                            <p className="line-clamp-2 text-[11px] text-slate-600 dark:text-slate-300">
+                              {promptObj.description}
+                            </p>
+                          </div>
                         </button>
                       ))}
+                    </div>
+
+                    <div className="text-center pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setIsPromptsSheetOpen(true)}
+                        className="inline-flex items-center gap-1.5 text-xs font-semibold text-violet-600 hover:underline dark:text-violet-400 min-h-[36px]"
+                      >
+                        <Sparkles className="h-3.5 w-3.5" />
+                        Explore all 25 ready-made prompts
+                        <ChevronRight className="h-3.5 w-3.5" />
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -612,17 +870,17 @@ const AITutorChat = ({
                   onClick={() => setIsPromptsSheetOpen(true)}
                   className="flex shrink-0 items-center gap-1 rounded-full bg-violet-100/80 px-3 py-1.5 text-[11px] font-semibold text-violet-800 shadow-surface transition hover:bg-violet-200 dark:bg-violet-950 dark:text-violet-200 min-h-[36px]"
                 >
-                  <Sparkles className="h-3 w-3 text-violet-600 dark:text-violet-400" />
+                  <Sparkles className="h-3.5 w-3.5 text-violet-600 dark:text-violet-400" />
                   <span>Prompts</span>
                 </button>
-                {FEATURED_PROMPTS.map((prompt) => (
+                {FEATURED_PROMPTS.map((promptObj) => (
                   <button
-                    key={`quick-${prompt.id}`}
+                    key={`quick-${promptObj.id}`}
                     type="button"
                     onClick={() => handleSelectPrompt(prompt.text)}
                     className="shrink-0 whitespace-nowrap rounded-full bg-white px-3 py-1.5 text-[11px] font-medium text-slate-700 shadow-surface transition hover:shadow-surface-hover hover:text-violet-700 focus:outline-none focus:shadow-focus dark:bg-slate-800 dark:text-slate-200 min-h-[36px]"
                   >
-                    {prompt.label}: {prompt.text}
+                    {promptObj.title}: {promptObj.description}
                   </button>
                 ))}
               </div>
@@ -630,28 +888,35 @@ const AITutorChat = ({
 
             <div className="rounded-[24px] bg-white shadow-inset-field transition focus-within:shadow-focus dark:bg-slate-800">
               <div className="flex items-end gap-2 p-2">
-                <label htmlFor="lumo-input" className="sr-only">Message Lumo</label>
+                <button
+                  type="button"
+                  title="Open prompts menu"
+                  aria-label="Open prompts menu"
+                  onClick={() => setIsPromptsSheetOpen(true)}
+                  className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-violet-600 hover:bg-violet-50 dark:text-violet-400 dark:hover:bg-slate-700 min-h-[44px] min-w-[44px]"
+                >
+                  <Sparkles className="h-5 w-5" />
+                </button>
+
+                <label htmlFor="lumo-input" className="sr-only">
+                  Message Lumo
+                </label>
                 <textarea
                   id="lumo-input"
                   ref={textareaRef}
                   rows={1}
                   value={currentMessage}
-                  onChange={(e) => onMessageChange && onMessageChange(e.target.value.slice(0, 4000))}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      if (currentMessage.trim() && !isTyping && onSendMessage) {
-                        onSendMessage();
-                      }
-                    }
-                  }}
-                  placeholder="Message Lumo..."
+                  onChange={(e) =>
+                    onMessageChange && onMessageChange(e.target.value.slice(0, 4000))
+                  }
+                  onKeyDown={handleKeyDownInput}
+                  placeholder="Message Lumo or choose a prompt..."
                   aria-label="Message Lumo"
-                  className="min-h-[42px] max-h-[140px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm leading-5 text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
+                  className="min-h-[42px] max-h-[220px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-base sm:text-sm leading-6 text-slate-900 outline-none placeholder:text-slate-400 dark:text-white dark:placeholder:text-slate-500"
                 />
                 <button
                   type="button"
-                  onClick={() => onSendMessage && onSendMessage()}
+                  onClick={() => attemptSendMessage(false)}
                   disabled={!currentMessage.trim() || isTyping}
                   aria-label="Send message"
                   title="Send message"
@@ -663,12 +928,14 @@ const AITutorChat = ({
             </div>
 
             <div className="mt-2 flex items-center justify-between gap-2">
+              <div className="text-[10px] text-slate-400 dark:text-slate-500">
+                Tip: Press <kbd className="rounded bg-slate-200 px-1 py-0.5 font-mono text-[9px] dark:bg-slate-700">Tab</kbd> to jump between blanks
+              </div>
               {charCount > 3500 && (
                 <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
                   {charCount} / 4000
                 </div>
               )}
-              <div className="ml-auto text-[10px] text-slate-500 dark:text-slate-400">Lumo can make mistakes. Double-check important info.</div>
             </div>
           </div>
         </div>
@@ -679,29 +946,74 @@ const AITutorChat = ({
         onClose={() => setIsPromptsSheetOpen(false)}
         title="Lumo Ready-Made Prompts"
       >
-        <div className="space-y-4">
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            Tap any prompt to send or fill in the placeholders (e.g. <code className="rounded bg-slate-100 px-1 py-0.5 text-slate-800 dark:bg-slate-800 dark:text-slate-200">[topic]</code>).
-          </p>
+        <div className="space-y-4 pb-safe">
+          {/* Search bar */}
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search prompts by keyword..."
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-9 pr-4 py-2 text-sm text-slate-900 outline-none focus:border-violet-500 focus:bg-white dark:border-slate-700 dark:bg-slate-800 dark:text-white min-h-[44px]"
+            />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 min-h-[36px] min-w-[36px] flex items-center justify-center"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
 
           <div className="flex gap-1.5 overflow-x-auto pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
             <button
               type="button"
               onClick={() => setSelectedCategory("all")}
-              className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition min-h-[36px] ${
+              className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition min-h-[36px] ${
                 selectedCategory === "all"
                   ? "bg-violet-600 text-white dark:bg-violet-500 shadow-button-primary"
                   : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
               }`}
             >
-              All Prompts
+              All Prompts ({LUMO_PROMPTS.length})
             </button>
+            {favoriteIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("favorites")}
+                className={`shrink-0 flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold transition min-h-[36px] ${
+                  selectedCategory === "favorites"
+                    ? "bg-amber-500 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                }`}
+              >
+                <Star className="h-3.5 w-3.5 fill-current" />
+                Favorites ({favoriteIds.length})
+              </button>
+            )}
+            {recentIds.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setSelectedCategory("recents")}
+                className={`shrink-0 flex items-center gap-1 rounded-full px-3.5 py-1.5 text-xs font-semibold transition min-h-[36px] ${
+                  selectedCategory === "recents"
+                    ? "bg-sky-600 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+                }`}
+              >
+                <Clock className="h-3.5 w-3.5" />
+                Recently used
+              </button>
+            )}
             {LUMO_CATEGORIES.map((cat) => (
               <button
                 key={cat.id}
                 type="button"
                 onClick={() => setSelectedCategory(cat.id)}
-                className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold transition min-h-[36px] ${
+                className={`shrink-0 rounded-full px-3.5 py-1.5 text-xs font-semibold transition min-h-[36px] ${
                   selectedCategory === cat.id
                     ? "bg-violet-600 text-white dark:bg-violet-500 shadow-button-primary"
                     : "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
@@ -732,12 +1044,9 @@ const AITutorChat = ({
                       </span>
                     )}
                   </div>
-                  <p className="text-xs font-medium text-slate-800 dark:text-slate-200">
-                    {prompt.text}
-                  </p>
-                </button>
-              );
-            })}
+                );
+              })
+            )}
           </div>
         </div>
       </ResponsiveSheet>

@@ -4,6 +4,7 @@ import { useProfile } from "../../app/ProfileContext";
 import supabase from "../../lib/supabase.js";
 import Billing from "./Billing";
 import SocraticStrictness from "./SocraticStrictness";
+import NotificationSettings from "./NotificationSettings";
 import { useNotifications } from "../../hooks/useNotifications";
 import PageContainer from "../common/PageContainer";
 import {
@@ -51,8 +52,6 @@ function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
-  const [testSending, setTestSending] = useState(false);
-  const [testResult, setTestResult] = useState("");
 
   useEffect(() => {
     async function loadUser() {
@@ -65,7 +64,6 @@ function Settings() {
   }, []);
 
   const resolvedUser = currentUser || (profile?.user_id ? { id: profile.user_id, email: profile.email } : null);
-  const pushHooks = useNotifications(resolvedUser?.id);
 
   useEffect(() => {
     if (!profile) return;
@@ -124,29 +122,10 @@ function Settings() {
     setIsSaving(false);
   };
 
-  const handleSendTestNotification = async () => {
-    setTestSending(true);
-    setTestResult("");
-    try {
-      const res = await pushHooks.sendTest();
-      setTestResult(res?.message || "Test notification triggered.");
-    } catch (err) {
-      setTestResult(err.message || "Failed to send test notification.");
-    } finally {
-      setTestSending(false);
-    }
-  };
-
   const image = preview || profile?.avatar_url;
   const name = profile?.full_name || profile?.username || "Learner";
   const subjectOptions = settings.studentLevel.includes("Grade") ? [...generalSubjects, ...schoolSubjects] : generalSubjects;
   const fieldClass = "rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
-
-  const toggleNotificationCategory = (key) => {
-    const next = { ...notificationSettings, [key]: !notificationSettings[key] };
-    setNotificationSettings(next);
-    persistNotificationPreferences(next);
-  };
 
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];
 
@@ -161,160 +140,7 @@ function Settings() {
     <Section title="Accessibility & Experience" description="Make Hyper Tutor More Comfortable And Useful For You." open={openSections[3]} onToggle={() => toggleSection(3)}><div><p className="mb-3 text-sm font-semibold text-slate-700">Accessibility Support</p><div className="grid gap-2 sm:grid-cols-2">{accessibilityOptions.map((option) => { const selected = settings.accessibilityNeeds.includes(option); return <button type="button" key={option} onClick={() => update("accessibilityNeeds", selected ? settings.accessibilityNeeds.filter((item) => item !== option) : [...settings.accessibilityNeeds.filter((item) => item !== "None"), option])} className={`rounded-full px-4 py-3 text-left text-sm font-semibold ${selected ? "bg-emerald-100 text-emerald-800" : "bg-slate-50 text-slate-600"}`}>{option}</button>; })}</div></div><div className="mt-5 grid gap-5 md:grid-cols-3"><SelectField label="Language" value={settings.language} onChange={(value) => update("language", value)} options={["English", "Spanish", "French", "German"]} /><label className="flex items-center gap-3 rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700"><input type="checkbox" checked={settings.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} className="h-4 w-4 accent-emerald-600" /> Reduce Motion</label><label className="flex items-center gap-3 rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700"><input type="checkbox" checked={darkMode} onChange={(event) => toggleDarkMode(event.target.checked)} className="h-4 w-4 accent-emerald-600" /> Dark Mode</label></div></Section>
     </div>}
     {activeTab === "Appearance" && <div className="space-y-10"><Section title="Appearance" description="Make Hyper Tutor more comfortable and useful for you." open={true} onToggle={() => {}}><div className="grid gap-5 md:grid-cols-2"><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Reduce Motion<input type="checkbox" checked={settings.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Dark Mode<input type="checkbox" checked={darkMode} onChange={(event) => toggleDarkMode(event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label></div></Section></div>}
-    {activeTab === "Notifications" && <Section title="Notifications" description="Control when and how Hyper Tutor reaches you." open={true} onToggle={() => {}}>
-      <div className="space-y-6">
-        {/* Master Web Push Switch & Browser Status */}
-        <div className="rounded-2xl border border-slate-200 bg-slate-50/50 p-5 dark:border-slate-800 dark:bg-slate-900/50">
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-              <p className="text-lg font-bold text-slate-900 dark:text-white">Web Push Notifications</p>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                Receive background alerts for study sessions and streak warnings even when the browser tab is closed.
-              </p>
-            </div>
-
-            <div className="flex items-center gap-3 shrink-0">
-              {pushHooks.permissionState === "granted" ? (
-                <button
-                  type="button"
-                  onClick={pushHooks.preferences.push_enabled ? pushHooks.disable : pushHooks.enable}
-                  disabled={pushHooks.loading}
-                  className={`inline-flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold text-white transition ${
-                    pushHooks.preferences.push_enabled
-                      ? "bg-emerald-600 hover:bg-emerald-700"
-                      : "bg-slate-600 hover:bg-slate-700"
-                  } disabled:opacity-50`}
-                >
-                  <Bell className="h-4 w-4" />
-                  {pushHooks.preferences.push_enabled ? "Enabled" : "Disabled"}
-                </button>
-              ) : pushHooks.permissionState === "denied" ? (
-                <div className="flex items-center gap-2 text-xs font-semibold text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
-                  <ShieldAlert className="h-4 w-4 shrink-0" />
-                  <span>Blocked in browser settings. Re-enable in site settings.</span>
-                </div>
-              ) : pushHooks.permissionState === "ios-install-needed" ? (
-                <div className="flex items-center gap-2 text-xs font-semibold text-emerald-800 bg-emerald-50 p-2.5 rounded-xl border border-emerald-200">
-                  <Smartphone className="h-4 w-4 shrink-0" />
-                  <span>Add to Home Screen on iOS to enable Web Push.</span>
-                </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={pushHooks.enable}
-                  disabled={pushHooks.loading}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  <Bell className="h-4 w-4" />
-                  {pushHooks.loading ? "Enabling..." : "Enable Push Alerts"}
-                </button>
-              )}
-            </div>
-          </div>
-
-          {/* Test Notification Action */}
-          <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <div>
-              <p className="text-sm font-semibold text-slate-800 dark:text-slate-200">Test Push Delivery</p>
-              <p className="text-xs text-slate-500">Send an immediate test notification to your active push subscription.</p>
-            </div>
-            <button
-              type="button"
-              onClick={handleSendTestNotification}
-              disabled={testSending || !pushHooks.enabled}
-              className="inline-flex items-center justify-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-2 text-xs font-bold text-slate-700 hover:bg-slate-50 disabled:opacity-40 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-            >
-              <Send className="h-3.5 w-3.5" />
-              {testSending ? "Sending test..." : "Send test notification"}
-            </button>
-          </div>
-          {testResult && <p className="mt-2 text-xs font-medium text-emerald-700 dark:text-emerald-400">{testResult}</p>}
-        </div>
-
-        {/* Master Toggles for Push Kinds */}
-        <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">Push Notification Types</h3>
-          <div className="grid gap-3 sm:grid-cols-3">
-            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              <span>Session reminders</span>
-              <input
-                type="checkbox"
-                checked={Boolean(pushHooks.preferences.session_reminders)}
-                onChange={(e) => pushHooks.updatePreference("session_reminders", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-            </label>
-
-            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              <span>Streak alerts</span>
-              <input
-                type="checkbox"
-                checked={Boolean(pushHooks.preferences.streak_alerts)}
-                onChange={(e) => pushHooks.updatePreference("streak_alerts", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-            </label>
-
-            <label className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-              <span>Inactivity nudges</span>
-              <input
-                type="checkbox"
-                checked={Boolean(pushHooks.preferences.inactivity_nudges)}
-                onChange={(e) => pushHooks.updatePreference("inactivity_nudges", e.target.checked)}
-                className="h-4 w-4 accent-emerald-600"
-              />
-            </label>
-          </div>
-        </div>
-
-        {/* In-app & Local preferences */}
-        <div>
-          <h3 className="text-base font-bold text-slate-900 dark:text-white mb-3">In-app Categories</h3>
-          <div className="grid gap-3 sm:grid-cols-2">
-            {[
-              ["inApp", "In-app notifications"],
-              ["studyReminders", "Study reminders"],
-              ["deadlineReminders", "Deadline reminders"],
-              ["progressMilestones", "Progress milestones"],
-              ["aiSuggestions", "AI suggestions"],
-              ["community", "Community updates"],
-              ["systemAlerts", "System alerts"],
-            ].map(([key, label]) => (
-              <label key={key} className="flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200">
-                <span>{label}</span>
-                <input type="checkbox" checked={Boolean(notificationSettings[key])} onChange={() => toggleNotificationCategory(key)} className="h-4 w-4 accent-emerald-600" />
-              </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Digest cadence
-            <select value={notificationSettings.digest} onChange={(event) => setNotificationSettings((current) => ({ ...current, digest: event.target.value }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 font-normal outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900">
-              <option value="low">Low</option>
-              <option value="normal">Normal</option>
-              <option value="high">High</option>
-            </select>
-          </label>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Quiet hours
-            <input type="checkbox" checked={Boolean(notificationSettings.quietHours?.enabled)} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, enabled: event.target.checked } }))} className="mt-2 h-4 w-4 accent-emerald-600" />
-          </label>
-        </div>
-
-        <div className="grid gap-4 md:grid-cols-2">
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            Start time
-            <input type="time" value={notificationSettings.quietHours?.start || "22:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, start: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900" />
-          </label>
-          <label className="block text-sm font-semibold text-slate-700 dark:text-slate-300">
-            End time
-            <input type="time" value={notificationSettings.quietHours?.end || "08:00"} onChange={(event) => setNotificationSettings((current) => ({ ...current, quietHours: { ...current.quietHours, end: event.target.value } }))} className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100 dark:border-slate-800 dark:bg-slate-900" />
-          </label>
-        </div>
-      </div>
-    </Section>}
+    {activeTab === "Notifications" && <NotificationSettings userId={resolvedUser?.id} />}
   </div>{error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}{activeTab === "Profile" && <button type="button" onClick={save} disabled={isSaving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {isSaving ? "Saving..." : "Save All Settings"}</button>}</div></PageContainer>;
 }
 

@@ -424,7 +424,6 @@ const Community = () => {
         path="*"
         element={
           <PageContainer maxWidth="max-w-7xl">
-            {/* One-time Choose Username Prompt Card */}
             <ChooseUsernameCard />
 
             {/* Header Banner */}
@@ -911,7 +910,13 @@ const Community = () => {
 
               {/* CHAT TAB */}
               {activeTab === "chat" && (
-                <div className="w-full h-[calc(100dvh-5rem)] overflow-hidden">
+                <div
+                  className={
+                    isMaximized
+                      ? "fixed inset-0 z-[120] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe"
+                      : "w-full h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-[#14171c]"
+                  }
+                >
                   {/* Desktop Layout: 2-pane split screen */}
                   <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">
                     <div className="w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
@@ -919,6 +924,7 @@ const Community = () => {
                         currentUserId={user?.id}
                         onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
                         onFindFriends={() => setActiveTab("friends")}
+                        headerAction={renderMaximizeButton()}
                       />
                     </div>
                     <div className="flex-1 h-full overflow-hidden">
@@ -927,12 +933,16 @@ const Community = () => {
                           conversationId={activeConversationId}
                           currentUserId={user?.id}
                           onBack={() => navigate("/Community/chat")}
+                          headerAction={renderMaximizeButton()}
                         />
                       ) : (
-                        <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30">
-                          <MessageSquare className="h-12 w-12 text-slate-300 dark:text-slate-700" />
-                          <h3 className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
-                            Select a conversation
+                        <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30 relative">
+                          <div className="absolute top-4 right-4 z-10">
+                            {renderMaximizeButton()}
+                          </div>
+                          <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                          <h3 className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">
+                            Select a conversation or start a new chat
                           </h3>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
                             Choose a chat from the left panel or start a new chat with a friend.
@@ -945,7 +955,7 @@ const Community = () => {
                   {/* Mobile Layout */}
                   <div className="block md:hidden h-full w-full">
                     {activeConversationId ? (
-                      <div className={isMaximized ? "h-full w-full" : "fixed inset-0 z-[110] bg-white dark:bg-[#14171c] h-[100dvh] w-screen"}>
+                      <div className="h-full w-full">
                         <ChatThread
                           conversationId={activeConversationId}
                           currentUserId={user?.id}

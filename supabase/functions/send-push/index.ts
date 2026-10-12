@@ -1,11 +1,40 @@
 import { createClient } from "npm:@supabase/supabase-js@^2.43.0";
 import webpush from "npm:web-push@^3.6.7";
 
-interface PushPayload {
-  title?: string;
-  body?: string;
-  url?: string;
-  tag?: string;
+interface SendPushRequest {
+  notificationId?: string;
+  userId?: string;
+  payload?: {
+    title?: string;
+    body?: string;
+    url?: string;
+    tag?: string;
+    type?: "message" | "friend_request" | "friend_accepted";
+    conversationId?: string;
+    actorId?: string;
+  };
+}
+
+function isQuietHours(startStr: string | null, endStr: string | null): boolean {
+  if (!startStr || !endStr) return false;
+  try {
+    const now = new Date();
+    const currentMins = now.getHours() * 60 + now.getMinutes();
+
+    const [sH, sM] = startStr.split(":").map(Number);
+    const [eH, eM] = endStr.split(":").map(Number);
+    const startMins = sH * 60 + (sM || 0);
+    const endMins = eH * 60 + (eM || 0);
+
+    if (startMins < endMins) {
+      return currentMins >= startMins && currentMins < endMins;
+    } else {
+      // Overnight span e.g. 23:00 to 07:00
+      return currentMins >= startMins || currentMins < endMins;
+    }
+  } catch (_e) {
+    return false;
+  }
 }
 
 Deno.serve(async (req: Request) => {
@@ -25,86 +54,197 @@ Deno.serve(async (req: Request) => {
   };
 
   try {
-    const authHeader = req.headers.get("Authorization");
-    if (!authHeader) {
-      return new Response(JSON.stringify({ success: false, message: "Missing Authorization header" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
-    }
-
     const supabaseUrl = Deno.env.get("SUPABASE_URL") || "";
-    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const serviceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
-
-    const userClient = createClient(supabaseUrl, anonKey, {
-      global: { headers: { Authorization: authHeader } },
-    });
-
-    const { data: { user }, error: userError } = await userClient.auth.getUser();
-    if (userError || !user) {
-      return new Response(JSON.stringify({ success: false, message: "Unauthorized user" }), {
-        status: 401,
-        headers: corsHeaders,
-      });
-    }
-
-    let requestBody: { userId?: string; payload?: PushPayload } = {};
-    try {
-      requestBody = await req.json();
-    } catch (_err) {
-      // Empty body or optional parameters
-    }
-
-    // Security: Prevent IDOR / unauthorized push dispatching to arbitrary users
-    if (requestBody.userId && requestBody.userId !== user.id) {
-      return new Response(
-        JSON.stringify({ success: false, message: "Forbidden: Cannot send push notification to another user" }),
-        { status: 403, headers: corsHeaders }
-      );
-    }
-
-    const targetUserId = user.id;
-
-    // Configure VAPID details
     const vapidPublicKey = Deno.env.get("VAPID_PUBLIC_KEY") || "";
     const vapidPrivateKey = Deno.env.get("VAPID_PRIVATE_KEY") || "";
     const vapidSubject = Deno.env.get("VAPID_SUBJECT") || "mailto:support@hypertutor.app";
 
-    if (!vapidPublicKey || !vapidPrivateKey) {
-      return new Response(JSON.stringify({ success: false, message: "VAPID credentials not configured" }), {
+    if (!supabaseUrl || !serviceRoleKey) {
+      return new Response(JSON.stringify({ success: false, message: "Missing Supabase env vars" }), {
         status: 500,
         headers: corsHeaders,
       });
     }
 
-    webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
-
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
-    // Fetch user subscriptions
-    const { data: subs, error: subsError } = await adminClient
+    let body: SendPushRequest = {};
+    try {
+      body = await req.json();
+    } catch (_e) {
+      // Body optional
+    }
+
+    let targetUserId = body.userId;
+    let notifRow: any = null;
+
+    // 1. Load notification row if notificationId provided
+    if (body.notificationId) {
+      const { data: nData } = await adminClient
+        .from("in_app_notifications")
+        .select("*")
+        .eq("id", body.notificationId)
+        .single();
+
+      if (nData) {
+        notifRow = nData;
+        targetUserId = nData.user_id;
+
+        // Idempotency check
+        if (nData.delivery_status === "sent" || nData.delivery_status === "skipped") {
+          return new Response(
+            JSON.stringify({ success: true, message: "Notification already processed", status: nData.delivery_status }),
+            { status: 200, headers: corsHeaders }
+          );
+        }
+      }
+    }
+
+    if (!targetUserId) {
+      return new Response(JSON.stringify({ success: false, message: "Target userId is required" }), {
+        status: 400,
+        headers: corsHeaders,
+      });
+    }
+
+    // 2. Load user preferences
+    const { data: pref } = await adminClient
+      .from("notification_preferences")
+      .select("*")
+      .eq("user_id", targetUserId)
+      .maybeSingle();
+
+    const notifType = notifRow?.type || body.payload?.type || "message";
+    const actorId = notifRow?.actor_id || body.payload?.actorId;
+    const convId = notifRow?.conversation_id || body.payload?.conversationId;
+
+    // Never notify a user about their own actions
+    if (actorId && actorId === targetUserId) {
+      if (notifRow) {
+        await adminClient
+          .from("in_app_notifications")
+          .update({ delivery_status: "skipped" })
+          .eq("id", notifRow.id);
+      }
+      return new Response(JSON.stringify({ success: true, message: "Skipped: self-action" }), {
+        status: 200,
+        headers: corsHeaders,
+      });
+    }
+
+    // Preference Checks
+    if (pref) {
+      if (pref.push_enabled === false) {
+        if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+        return new Response(JSON.stringify({ success: true, message: "Skipped: push disabled in preferences" }), { status: 200, headers: corsHeaders });
+      }
+
+      if (notifType === "message" && pref.push_messages === false) {
+        if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+        return new Response(JSON.stringify({ success: true, message: "Skipped: push_messages disabled" }), { status: 200, headers: corsHeaders });
+      }
+
+      if (notifType === "friend_request" && pref.push_friend_requests === false) {
+        if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+        return new Response(JSON.stringify({ success: true, message: "Skipped: push_friend_requests disabled" }), { status: 200, headers: corsHeaders });
+      }
+
+      if (notifType === "friend_accepted" && pref.push_friend_accepts === false) {
+        if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+        return new Response(JSON.stringify({ success: true, message: "Skipped: push_friend_accepts disabled" }), { status: 200, headers: corsHeaders });
+      }
+
+      if (isQuietHours(pref.quiet_hours_start, pref.quiet_hours_end)) {
+        if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+        return new Response(JSON.stringify({ success: true, message: "Skipped: quiet hours active" }), { status: 200, headers: corsHeaders });
+      }
+    }
+
+    // 3. Conversation Mute Check
+    if (convId) {
+      const { data: muteData } = await adminClient
+        .from("conversation_mutes")
+        .select("muted_until")
+        .eq("user_id", targetUserId)
+        .eq("conversation_id", convId)
+        .maybeSingle();
+
+      if (muteData) {
+        const isMuted = !muteData.muted_until || new Date(muteData.muted_until).getTime() > Date.now();
+        if (isMuted) {
+          if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
+          return new Response(JSON.stringify({ success: true, message: "Skipped: conversation muted" }), { status: 200, headers: corsHeaders });
+        }
+      }
+    }
+
+    // 4. Fetch subscriptions
+    const { data: subs } = await adminClient
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
       .eq("user_id", targetUserId);
 
-    if (subsError || !subs || subs.length === 0) {
-      return new Response(
-        JSON.stringify({
-          success: false,
-          sent: 0,
-          message: "No push subscriptions found for target user.",
-        }),
-        { status: 200, headers: corsHeaders }
-      );
+    if (!subs || subs.length === 0) {
+      if (notifRow) {
+        await adminClient.from("in_app_notifications").update({ delivery_status: "failed" }).eq("id", notifRow.id);
+      }
+      return new Response(JSON.stringify({ success: false, message: "No push subscriptions registered" }), { status: 200, headers: corsHeaders });
+    }
+
+    // 5. Construct payload
+    let title = notifRow?.title || body.payload?.title || "Hyper Tutor";
+    let messageBody = notifRow?.body || body.payload?.body || "You have a new update.";
+    let url = body.payload?.url || "/community/chat";
+    let tag = body.payload?.tag || `notif-${Date.now()}`;
+
+    if (notifType === "message") {
+      url = convId ? `/community/chat/${convId}` : "/community/chat";
+      tag = convId ? `chat-${convId}` : `chat-general`;
+
+      if (pref && pref.show_message_preview === false) {
+        messageBody = "Sent you a message";
+      } else if (messageBody && messageBody.length > 100) {
+        messageBody = messageBody.substring(0, 97) + "...";
+      }
+    } else if (notifType === "friend_request") {
+      url = "/community/friends";
+      tag = "friend-requests";
+    } else if (notifType === "friend_accepted") {
+      url = "/community/friends";
+      tag = "friend-accepts";
+    }
+
+    // Fetch actor profile for avatar if available
+    let icon = "/icons/icon-192.png";
+    if (actorId) {
+      const { data: actorProf } = await adminClient
+        .from("community_profiles")
+        .select("user_img")
+        .eq("user_id", actorId)
+        .maybeSingle();
+
+      if (actorProf?.user_img) {
+        icon = actorProf.user_img;
+      }
     }
 
     const notificationPayload = JSON.stringify({
-      title: requestBody.payload?.title || "Hyper Tutor",
-      body: requestBody.payload?.body || "You have a new update in Hyper Tutor.",
-      url: requestBody.payload?.url || "/Dashboard",
-      tag: requestBody.payload?.tag || "general-push-" + Date.now(),
+      title,
+      body: messageBody,
+      url,
+      tag,
+      icon,
     });
+
+    if (vapidPublicKey && vapidPrivateKey) {
+      webpush.setVapidDetails(vapidSubject, vapidPublicKey, vapidPrivateKey);
+    } else {
+      return new Response(JSON.stringify({ success: false, message: "VAPID keys not configured on server" }), {
+        status: 500,
+        headers: corsHeaders,
+      });
+    }
 
     let sent = 0;
     const expiredSubIds: string[] = [];
@@ -120,13 +260,12 @@ Deno.serve(async (req: Request) => {
             },
           },
           notificationPayload,
-          { TTL: 60, urgency: "high" }
+          { TTL: 3600, urgency: "high" }
         );
         sent++;
-      } catch (err: any) {
-        console.error(`Push send failed for sub ${sub.id}:`, err?.statusCode || err?.message || err);
-        // Remove expired (410 Gone / 404 Not Found) subscriptions
-        if (err?.statusCode === 410 || err?.statusCode === 404) {
+      } catch (pushErr: any) {
+        console.error(`Push dispatch failed for sub ${sub.id}:`, pushErr?.statusCode || pushErr);
+        if (pushErr?.statusCode === 404 || pushErr?.statusCode === 410) {
           expiredSubIds.push(sub.id);
         }
       }
@@ -134,6 +273,16 @@ Deno.serve(async (req: Request) => {
 
     if (expiredSubIds.length > 0) {
       await adminClient.from("push_subscriptions").delete().in("id", expiredSubIds);
+    }
+
+    if (notifRow) {
+      await adminClient
+        .from("in_app_notifications")
+        .update({
+          delivery_status: sent > 0 ? "sent" : "failed",
+          pushed_at: sent > 0 ? new Date().toISOString() : null,
+        })
+        .eq("id", notifRow.id);
     }
 
     return new Response(
@@ -145,11 +294,11 @@ Deno.serve(async (req: Request) => {
       }),
       { status: 200, headers: corsHeaders }
     );
-  } catch (error: any) {
-    console.error("Error in send-push Edge Function:", error);
-    return new Response(
-      JSON.stringify({ success: false, message: error.message || "Internal server error" }),
-      { status: 500, headers: corsHeaders }
-    );
+  } catch (err: any) {
+    console.error("Error in send-push Edge Function:", err);
+    return new Response(JSON.stringify({ success: false, message: err.message || "Internal server error" }), {
+      status: 500,
+      headers: corsHeaders,
+    });
   }
 });

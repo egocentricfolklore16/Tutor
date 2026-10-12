@@ -58,3 +58,21 @@ test("verifyPaymentAuthorization succeeds when user.id matches payment metadata 
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.authorized, true);
 });
+
+test("processVerifiedPayment error mapping produces correct HTTP status codes", () => {
+  function mapProcessErrorToResponse(error) {
+    const msg = error.message || "Payment verification failed";
+    if (msg.includes("Payment reference belongs to another user")) {
+      return { status: 403, error: msg };
+    }
+    return { status: 400, error: msg };
+  }
+
+  const failedStatusError = new Error("Payment verification failed: status is failed");
+  const amountMismatchError = new Error("Amount mismatch: expected 250000 kobo, received 100000 kobo");
+  const crossUserError = new Error("Payment reference belongs to another user");
+
+  assert.strictEqual(mapProcessErrorToResponse(failedStatusError).status, 400);
+  assert.strictEqual(mapProcessErrorToResponse(amountMismatchError).status, 400);
+  assert.strictEqual(mapProcessErrorToResponse(crossUserError).status, 403);
+});

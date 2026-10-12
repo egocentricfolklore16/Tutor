@@ -57,7 +57,7 @@ Deno.serve(async (req) => {
     const payload = JSON.parse(rawBody);
     const event = payload.event;
 
-    if (event === "charge.success") {
+    if (event === "charge.success" || event === "charge.failed") {
       const eventData = payload.data;
       const reference = eventData.reference;
 
@@ -66,11 +66,17 @@ Deno.serve(async (req) => {
 
       if (supabaseUrl && supabaseServiceRoleKey) {
         const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-        await processVerifiedPayment({
-          supabaseClient,
-          reference,
-          paystackData: eventData,
-        });
+        try {
+          await processVerifiedPayment({
+            supabaseClient,
+            reference,
+            paystackData: eventData,
+          });
+        } catch (procErr: any) {
+          // If event was charge.failed, processVerifiedPayment will record the failure row and throw.
+          // Catch and log so response to Paystack remains 200 OK.
+          console.warn(`Processed payment event ${event} with expected rejection:`, procErr.message);
+        }
       }
     }
 

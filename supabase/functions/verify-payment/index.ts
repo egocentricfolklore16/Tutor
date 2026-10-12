@@ -100,21 +100,35 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // 3. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
-    const result = await processVerifiedPayment({
-      supabaseClient,
-      reference,
-      paystackData: paystackData.data,
-    });
+    try {
+      const result = await processVerifiedPayment({
+        supabaseClient,
+        reference,
+        paystackData: paystackData.data,
+      });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        payment: result.payment,
-        subscription: result.subscription,
-        plan: result.plan,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          payment: result.payment,
+          subscription: result.subscription,
+          plan: result.plan,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (procError: any) {
+      const msg = procError.message || "Payment verification failed";
+      if (msg.includes("Payment reference belongs to another user")) {
+        return new Response(
+          JSON.stringify({ error: msg }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: msg }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error: any) {
     console.error("Error in verify-payment Edge Function:", error);
     return new Response(

@@ -18,12 +18,13 @@ const Calendar = ({
   const isDeadline = (session) => session.activityType === "deadline" || session.type === "deadline";
 
   // BOLT OPTIMIZATION:
-  // Pre-index sessions by `${dateString}-${hour}` in O(N) time using useMemo.
-  // This eliminates doing array filtering (O(N) * 12 hours * 7 days = 84 * N array iterations)
-  // on every render in renderWeekView, reducing lookups to O(1) hash map access.
-  const sessionsByDateAndHour = useMemo(() => {
-    const map = new Map();
-    if (!Array.isArray(sessions)) return map;
+  // Pre-index sessions by both `${dateString}-${hour}` and `${dateString}` in a single O(N) pass using useMemo.
+  // This eliminates array flattening and filtering (Array.from().flat().filter()) on every render
+  // in renderMobileDayView and renderWeekView, reducing both lookups to O(1) hash map access.
+  const { sessionsByDateAndHour, sessionsByDate } = useMemo(() => {
+    const hourMap = new Map();
+    const dateMap = new Map();
+    if (!Array.isArray(sessions)) return { sessionsByDateAndHour: hourMap, sessionsByDate: dateMap };
 
     for (const session of sessions) {
       if (!session || !session.date) continue;
@@ -33,15 +34,22 @@ const Calendar = ({
         ? 8
         : parseInt((session.startTime || "09:00").split(":")[0], 10);
 
-      const key = `${dateKey}-${startHour}`;
-      let group = map.get(key);
-      if (!group) {
-        group = [];
-        map.set(key, group);
+      const hourKey = `${dateKey}-${startHour}`;
+      let hourGroup = hourMap.get(hourKey);
+      if (!hourGroup) {
+        hourGroup = [];
+        hourMap.set(hourKey, hourGroup);
       }
-      group.push(session);
+      hourGroup.push(session);
+
+      let dateGroup = dateMap.get(dateKey);
+      if (!dateGroup) {
+        dateGroup = [];
+        dateMap.set(dateKey, dateGroup);
+      }
+      dateGroup.push(session);
     }
-    return map;
+    return { sessionsByDateAndHour: hourMap, sessionsByDate: dateMap };
   }, [sessions]);
 
   const renderSessionItem = (session, compact = false) => {
@@ -90,9 +98,7 @@ const Calendar = ({
   }, [startOfWeek]);
 
   const renderMobileDayView = () => {
-    const selectedDaySessions = Array.from(sessionsByDateAndHour.values())
-      .flat()
-      .filter((s) => s?.date?.toDateString() === currentDate.toDateString());
+    const selectedDaySessions = sessionsByDate.get(currentDate.toDateString()) || [];
 
     return (
       <div className="md:hidden space-y-4">

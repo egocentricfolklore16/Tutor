@@ -58,6 +58,56 @@ test("verifySendPushAuthorization succeeds when requestBody.userId matches user.
   assert.strictEqual(result.targetUserId, "user_legit_123");
 });
 
+// Helper logic representing test notification authorization checks in send-test-notification Edge Function
+function verifySendTestNotificationAuthorization(authHeader, user, requestBody) {
+  if (!authHeader) {
+    return { status: 401, success: false, message: "Missing Authorization header" };
+  }
+
+  if (!user) {
+    return { status: 401, success: false, message: "Unauthorized user" };
+  }
+
+  if (requestBody?.userId && requestBody.userId !== user.id) {
+    return {
+      status: 403,
+      success: false,
+      message: "Forbidden: Cannot send test notification to another user",
+    };
+  }
+
+  return { status: 200, success: true, targetUserId: user.id };
+}
+
+test("verifySendTestNotificationAuthorization returns 403 if requestBody.userId does not match user.id", () => {
+  const result = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_attacker_123" },
+    { userId: "user_victim_456" }
+  );
+  assert.strictEqual(result.status, 403);
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.message, "Forbidden: Cannot send test notification to another user");
+});
+
+test("verifySendTestNotificationAuthorization succeeds when requestBody.userId matches user.id or is omitted", () => {
+  const resultWithMatchingId = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    { userId: "user_legit_123" }
+  );
+  assert.strictEqual(resultWithMatchingId.status, 200);
+  assert.strictEqual(resultWithMatchingId.success, true);
+
+  const resultOmitted = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    {}
+  );
+  assert.strictEqual(resultOmitted.status, 200);
+  assert.strictEqual(resultOmitted.success, true);
+});
+
 test("verifySendPushAuthorization succeeds when requestBody.userId is omitted", () => {
   const result = verifySendPushAuthorization(
     "Bearer valid_token",

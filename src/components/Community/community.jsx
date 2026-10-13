@@ -1288,7 +1288,7 @@ const Community = () => {
                 <div
                   className={
                     isMaximized
-                      ? "fixed inset-0 z-[120] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe overflow-hidden"
+                      ? "fixed inset-0 z-[1500] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe overflow-hidden"
                       : "w-full h-[calc(100dvh-16rem)] min-h-[500px] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c] min-w-0 flex flex-col"
                   }
                 >

@@ -6,6 +6,7 @@ import { getLearnerTypeSuggestion } from "../../lib/learnerType.js";
 import { getPreferredTimeNote } from "../../lib/preferredTime.js";
 import { getWeeklyHours } from "../../lib/weeklyHours.js";
 import { getLearningStyleSuggestion } from "../../lib/learningStyle.js";
+import { getEducationLevelSuggestion } from "../../lib/educationLevel.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
@@ -15,6 +16,7 @@ function AISuggestions() {
   const styleInfo = getLearningStyleSuggestion(profile?.learning_style);
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);
   const timeNote = getPreferredTimeNote(profile?.preferred_time);
+  const levelInfo = getEducationLevelSuggestion(profile?.education_level);
 
   return (
     <div className="rounded-2xl bg-gradient-to-br from-sky-100 to-sky-200 p-6 shadow-overlay transition-colors dark:from-slate-900 dark:to-slate-800">
@@ -29,7 +31,7 @@ function AISuggestions() {
       </div>
       <div>
         <p className="rounded-xl bg-white/60 p-4 leading-7 text-slate-800 backdrop-blur-sm shadow-surface dark:bg-slate-950/50 dark:text-slate-200">
-          Start with {subjects} and plan {weeklyHours} focused hours this week.
+          Start with {subjects} and plan {weeklyHours} focused hours this week, {levelInfo.contextNote}.
           As a <span className="font-semibold text-slate-900 dark:text-slate-100">{styleInfo.label}</span>, prioritize {styleInfo.strategy}. {timeNote}
           <br />
           <br />

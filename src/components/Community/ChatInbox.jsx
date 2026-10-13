@@ -210,12 +210,12 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
     );
 
   return (
-    <div className="flex flex-col h-full bg-white dark:bg-[#14171c]">
+    <div className="flex flex-col h-full w-full min-w-0 bg-white dark:bg-[#14171c] overflow-hidden">
       {/* Slim, Clean Header */}
-      <div className="p-3.5 sm:p-4 border-b border-slate-100 dark:border-slate-800 space-y-3">
+      <div className="shrink-0 p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-2.5">
         <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white">
+            <h2 className="text-sm font-medium text-slate-900 dark:text-white">
               Messages
             </h2>
           </div>
@@ -224,11 +224,11 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
             <button
               type="button"
               onClick={() => setShowFriendPicker(true)}
-              className="inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700 transition"
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-emerald-600 px-2.5 py-1 text-[12px] font-medium text-white shadow-xs hover:bg-emerald-700 transition"
               title="New Chat"
               aria-label="New Chat"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-3.5 w-3.5" />
               <span className="hidden sm:inline">New Chat</span>
             </button>
             {headerAction}
@@ -243,7 +243,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full min-h-[38px] rounded-xl border border-slate-200/80 bg-slate-50 py-1.5 pl-9 pr-3 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
+            className="w-full min-h-[36px] rounded-xl border border-slate-200/80 bg-slate-50 py-1 pl-8 pr-3 text-[13px] font-normal text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
           />
         </div>
 
@@ -258,7 +258,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
               key={tab.id}
               type="button"
               onClick={() => setFilterTab(tab.id)}
-              className={`flex-1 min-h-[32px] rounded-lg text-[11px] font-bold transition ${
+              className={`flex-1 min-h-[28px] rounded-lg text-[11px] font-medium transition ${
                 filterTab === tab.id
                   ? "bg-white text-slate-900 shadow-xs dark:bg-[#14171c] dark:text-white"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
@@ -278,13 +278,13 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
       />
 
       {/* Inbox List */}
-      <div className="flex-1 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
         {loading ? (
-          <div className="p-4 space-y-3">
+          <div className="p-3 space-y-3">
             {[1, 2, 3, 4].map((i) => (
-              <div key={i} className="flex items-center gap-3 animate-pulse">
-                <div className="h-10 w-10 rounded-full bg-slate-200 dark:bg-slate-800" />
-                <div className="flex-1 space-y-2">
+              <div key={i} className="flex items-center gap-2.5 animate-pulse">
+                <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="flex-1 space-y-2 min-w-0">
                   <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
                   <div className="h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
                 </div>
@@ -292,18 +292,18 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
             ))}
           </div>
         ) : filteredConversations.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-8 text-center h-64">
-            <MessageSquare className="h-8 w-8 text-slate-300 dark:text-slate-700" />
-            <p className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">
+          <div className="flex flex-col items-center justify-center p-6 text-center h-64">
+            <MessageSquare className="h-7 w-7 text-slate-300 dark:text-slate-700" />
+            <p className="mt-2 text-[13px] font-medium text-slate-800 dark:text-slate-200">
               No conversations found
             </p>
-            <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 max-w-xs">
+            <p className="mt-1 text-[12px] font-normal text-slate-500 dark:text-slate-400 max-w-xs">
               Select a conversation or start a new chat to begin studying together!
             </p>
             <button
               type="button"
               onClick={onFindFriends || (() => setShowFriendPicker(true))}
-              className="mt-3 inline-flex min-h-[38px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs hover:bg-emerald-700"
+              className="mt-3 inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-[12px] font-medium text-white shadow-xs hover:bg-emerald-700"
             >
               <UserPlus className="h-3.5 w-3.5" />
               <span>Find friends</span>
@@ -326,11 +326,11 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
               <div
                 key={conv.id}
                 onClick={() => onSelectConversation(conv.id)}
-                className={`flex min-h-[56px] cursor-pointer items-center justify-between px-3.5 py-3 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
+                className={`flex min-h-[52px] cursor-pointer items-center justify-between px-3 py-2.5 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
                   hasUnread ? "bg-emerald-50/50 dark:bg-emerald-950/20" : ""
                 }`}
               >
-                <div className="flex items-center gap-3 min-w-0 flex-1 pr-2">
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
                   <div className="relative shrink-0">
                     {conv.type === "direct" ? (
                       !showFallback ? (
@@ -338,43 +338,43 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
                           src={conv.avatarUrl}
                           alt={conv.name}
                           onError={() => setImgErrors((prev) => ({ ...prev, [conv.id]: true }))}
-                          className="h-10 w-10 rounded-full object-cover"
+                          className="h-9 w-9 rounded-full object-cover"
                         />
                       ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-200 font-medium text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
                           {conv.name.charAt(0).toUpperCase()}
                         </div>
                       )
                     ) : (
-                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-200 font-medium text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
                         <Users className="h-4 w-4" />
                       </div>
                     )}
                     {conv.type === "direct" && (
-                      <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
+                      <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
                     )}
                   </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
                       <p
-                        className={`truncate text-xs ${
+                        className={`truncate text-[13px] font-medium ${
                           hasUnread
-                            ? "font-extrabold text-slate-900 dark:text-white"
-                            : "font-bold text-slate-800 dark:text-slate-200"
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-800 dark:text-slate-200"
                         }`}
                       >
                         {conv.name}
                       </p>
-                      <span className="text-[10px] text-slate-400 font-medium shrink-0">
+                      <span className="text-[10px] text-slate-400 font-normal shrink-0">
                         {formatRelativeTime(conv.updatedAt)}
                       </span>
                     </div>
 
                     <p
-                      className={`truncate text-xs mt-0.5 ${
+                      className={`truncate text-[12px] font-normal mt-0.5 ${
                         hasUnread
-                          ? "font-bold text-slate-900 dark:text-white"
+                          ? "text-slate-900 dark:text-white font-medium"
                           : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
@@ -384,7 +384,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
                 </div>
 
                 {hasUnread && (
-                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-bold text-white shadow-xs">
+                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-medium text-white shadow-xs">
                     {conv.unreadCount}
                   </span>
                 )}

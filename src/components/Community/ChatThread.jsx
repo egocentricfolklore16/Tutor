@@ -678,7 +678,7 @@ export default function ChatThread({
     <div className="flex h-full flex-col bg-white dark:bg-[#14171c] overflow-hidden relative">
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="bg-emerald-600 text-white text-xs font-bold px-4 py-2 flex items-center justify-between z-30 transition">
+        <div className="shrink-0 bg-emerald-600 text-white text-[12px] font-medium px-3.5 py-1.5 flex items-center justify-between z-30 transition">
           <span>{toastMessage}</span>
           <button type="button" onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/20 rounded">
             <X className="h-3.5 w-3.5" />
@@ -687,21 +687,21 @@ export default function ChatThread({
       )}
 
       {/* Slim Header */}
-      <div className="flex items-center justify-between border-b border-slate-100 bg-white px-3.5 py-2.5 dark:border-slate-800 dark:bg-[#14171c] z-20">
-        <div className="flex items-center gap-2.5 min-w-0">
+      <div className="shrink-0 flex items-center justify-between border-b border-slate-100 bg-white px-3 py-2 dark:border-slate-800 dark:bg-[#14171c] z-20">
+        <div className="flex items-center gap-2 min-w-0">
           {onBack && (
             <button
               type="button"
               onClick={onBack}
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+              className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition md:hidden"
               aria-label="Back to messages"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4" />
             </button>
           )}
 
           <div
-            className="flex items-center gap-2.5 min-w-0 cursor-pointer"
+            className="flex items-center gap-2 min-w-0 cursor-pointer"
             onClick={() => conversation?.type === "group" && setShowGroupMembersSheet(true)}
           >
             <div className="relative shrink-0">
@@ -711,41 +711,41 @@ export default function ChatThread({
                     src={peerProfile.user_img}
                     alt={titleName}
                     onError={() => setImgErrors((prev) => ({ ...prev, peer: true }))}
-                    className="h-9 w-9 rounded-full object-cover"
+                    className="h-8 w-8 rounded-full object-cover"
                   />
                 ) : (
-                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-200 font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 font-medium text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
                     {titleName.charAt(0).toUpperCase()}
                   </div>
                 )
               ) : (
-                <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-                  <Users className="h-4 w-4" />
+                <div className="flex h-8 w-8 items-center justify-center rounded-full bg-cyan-200 font-medium text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <Users className="h-3.5 w-3.5" />
                 </div>
               )}
               {conversation?.type === "direct" && isPeerOnline && (
-                <span className="absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
+                <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
               )}
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5">
-                <h3 className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                <h3 className="truncate text-sm font-medium text-slate-900 dark:text-white">
                   {titleName}
                 </h3>
                 {isMuted && <BellOff className="h-3 w-3 text-slate-400" title="Muted" />}
               </div>
               {conversation?.type === "group" && (
-                <p className="text-[10px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-500 font-normal">
                   {groupMemberCount} members
                 </p>
               )}
               {conversation?.type === "direct" && (
-                <p className="text-[10px] text-slate-500 font-medium">
+                <p className="text-[11px] text-slate-500 font-normal">
                   {isPeerTyping ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-bold animate-pulse">Typing...</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium animate-pulse">Typing...</span>
                   ) : isPeerOnline ? (
-                    <span className="text-emerald-600 dark:text-emerald-400 font-semibold">Online</span>
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Online</span>
                   ) : (
                     `@${peerProfile?.username || "user"}`
                   )}
@@ -759,7 +759,7 @@ export default function ChatThread({
           {conversation?.type === "group" && (
             <a
               href="/Planner"
-              className="hidden sm:inline-flex min-h-[38px] items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 transition"
+              className="hidden sm:inline-flex min-h-[32px] items-center gap-1 rounded-xl bg-emerald-600 px-2.5 py-1 text-[12px] font-medium text-white hover:bg-emerald-700 transition"
               title="Schedule session"
             >
               <Calendar className="h-3.5 w-3.5" />
@@ -776,33 +776,33 @@ export default function ChatThread({
               onClick={() => setShowHeaderMenu((prev) => !prev)}
               aria-label="Conversation options"
               title="Conversation options"
-              className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+              className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
             >
-              <MoreVertical className="h-5 w-5" />
+              <MoreVertical className="h-4 w-4" />
             </button>
 
             {showHeaderMenu && (
-              <div className="absolute right-0 mt-1 z-30 w-48 rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-800 dark:bg-[#18211f]">
+              <div className="absolute right-0 mt-1 z-30 w-48 rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-[#18211f]">
                 {isMuted ? (
                   <button
                     type="button"
                     onClick={handleUnmuteConversation}
-                    className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center gap-2 rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
-                    <Bell className="h-4 w-4 text-emerald-600" />
+                    <Bell className="h-3.5 w-3.5 text-emerald-600" />
                     <span>Unmute Notifications</span>
                   </button>
                 ) : (
                   <button
                     type="button"
                     onClick={() => setShowMuteMenu((prev) => !prev)}
-                    className="flex w-full items-center justify-between rounded-lg px-3 py-2 text-xs font-bold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                    className="flex w-full items-center justify-between rounded-lg px-2.5 py-1.5 text-[12px] font-medium text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                   >
                     <span className="flex items-center gap-2">
-                      <BellOff className="h-4 w-4 text-slate-500" />
+                      <BellOff className="h-3.5 w-3.5 text-slate-500" />
                       <span>Mute Notifications</span>
                     </span>
-                    <ChevronDown className="h-3.5 w-3.5 text-slate-400" />
+                    <ChevronDown className="h-3 w-3 text-slate-400" />
                   </button>
                 )}
 
@@ -818,7 +818,7 @@ export default function ChatThread({
                         key={opt.label}
                         type="button"
                         onClick={() => handleMuteConversation(opt.hours)}
-                        className="flex w-full items-center px-3 py-1.5 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/60 rounded-md"
+                        className="flex w-full items-center px-2.5 py-1 text-[11px] font-normal text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800/60 rounded-md"
                       >
                         {opt.label}
                       </button>
@@ -835,38 +835,38 @@ export default function ChatThread({
       <div
         ref={threadContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-3 sm:p-4 space-y-4 bg-slate-50/50 dark:bg-[#18211f]/30"
+        className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden p-2.5 sm:p-3.5 space-y-3 bg-slate-50/50 dark:bg-[#18211f]/30"
       >
         {loading ? (
           <div className="flex h-full flex-col items-center justify-center">
-            <Loader2 className="h-6 w-6 animate-spin text-emerald-600" />
-            <p className="mt-2 text-xs text-slate-400">Loading conversation...</p>
+            <Loader2 className="h-5 w-5 animate-spin text-emerald-600" />
+            <p className="mt-2 text-xs font-normal text-slate-400">Loading conversation...</p>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex h-full flex-col items-center justify-center text-center p-6">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 mb-2">
-              <Send className="h-5 w-5" />
+            <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300 mb-2">
+              <Send className="h-4 w-4" />
             </div>
-            <p className="text-xs font-bold text-slate-800 dark:text-slate-200">
+            <p className="text-[13px] font-medium text-slate-800 dark:text-slate-200">
               Select a conversation or start a new chat
             </p>
-            <p className="text-[11px] text-slate-500 max-w-xs mt-1">
+            <p className="text-[11px] font-normal text-slate-500 max-w-xs mt-1">
               Send a message to kick off the study session!
             </p>
           </div>
         ) : (
           <>
             {loadingOlder && (
-              <div className="flex justify-center py-2">
+              <div className="flex justify-center py-1.5">
                 <Loader2 className="h-4 w-4 animate-spin text-emerald-600" />
               </div>
             )}
 
             {dateGroups.map((group) => (
-              <div key={group.dateLabel} className="space-y-3">
+              <div key={group.dateLabel} className="space-y-2">
                 {/* Date Separator */}
-                <div className="flex items-center justify-center my-2">
-                  <span className="rounded-full bg-slate-200/60 px-2.5 py-0.5 text-[10px] font-bold text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                <div className="flex items-center justify-center my-1.5">
+                  <span className="rounded-full bg-slate-200/60 px-2.5 py-0.5 text-[10px] font-normal text-slate-500 dark:bg-slate-800 dark:text-slate-400">
                     {group.dateLabel}
                   </span>
                 </div>
@@ -881,18 +881,18 @@ export default function ChatThread({
                   return (
                     <div
                       key={`${cluster.senderId}-${cIdx}`}
-                      className={`flex flex-col ${
+                      className={`flex flex-col w-full ${
                         isOwnCluster ? "items-end" : "items-start"
                       }`}
                     >
                       {!isOwnCluster && conversation?.type === "group" && (
-                        <span className="mb-1 ml-2 text-[10px] font-bold text-slate-400">
+                        <span className="mb-0.5 ml-2 text-[11px] font-medium text-slate-500 dark:text-slate-400">
                           {senderName}
                         </span>
                       )}
 
                       <div
-                        className={`space-y-1 max-w-[85%] sm:max-w-[70%] ${
+                        className={`space-y-0.5 max-w-[85%] sm:max-w-[75%] min-w-0 flex flex-col ${
                           isOwnCluster ? "items-end" : "items-start"
                         }`}
                       >
@@ -900,7 +900,7 @@ export default function ChatThread({
                           const isLastInCluster = mIdx === cluster.messages.length - 1;
 
                           return (
-                            <div key={msg.id} className="group relative flex items-center gap-1">
+                            <div key={msg.id} className="group relative flex items-center gap-1 max-w-full">
                               {!msg.failed && (
                                 <div
                                   className={`flex items-center shrink-0 ${
@@ -929,7 +929,7 @@ export default function ChatThread({
                                           <button
                                             type="button"
                                             onClick={() => handleCopyMessage(msg.content)}
-                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
                                           >
                                             <Copy className="h-3 w-3" /> Copy
                                           </button>
@@ -938,7 +938,7 @@ export default function ChatThread({
                                           <button
                                             type="button"
                                             onClick={() => handleDeleteMessage(msg.id)}
-                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
                                           >
                                             <Trash2 className="h-3 w-3" /> Delete
                                           </button>
@@ -949,7 +949,7 @@ export default function ChatThread({
                                               setActiveMenuMsgId(null);
                                               setReportingMsgId(msg.id);
                                             }}
-                                            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1 text-[11px] font-semibold text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
                                           >
                                             <Flag className="h-3 w-3" /> Report
                                           </button>
@@ -960,16 +960,16 @@ export default function ChatThread({
                                 </div>
                               )}
 
-                              {/* Softer message bubble */}
+                              {/* Compact WhatsApp-style message bubble */}
                               <div
-                                className={`rounded-2xl px-3.5 py-2 text-xs transition duration-150 ${
+                                className={`rounded-lg px-2.5 py-1.5 text-[13px] leading-[1.35] font-normal transition duration-150 max-w-full break-words [overflow-wrap:anywhere] ${
                                   isOwnCluster
                                     ? "bg-emerald-600 text-white rounded-br-xs"
                                     : "bg-white text-slate-800 border border-slate-200/80 dark:bg-[#14171c] dark:border-slate-800 dark:text-slate-100 rounded-bl-xs"
                                 } ${msg.failed ? "opacity-60 border-rose-500" : ""}`}
                               >
                                 {msg.content && (
-                                  <p className="leading-relaxed whitespace-pre-wrap break-words">
+                                  <p className="leading-[1.35] font-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
                                     {parseLinksInText(msg.content).map((part, pIdx) =>
                                       part.type === "link" ? (
                                         <a
@@ -977,7 +977,7 @@ export default function ChatThread({
                                           href={part.value}
                                           target="_blank"
                                           rel="noopener noreferrer"
-                                          className="underline font-semibold hover:opacity-80"
+                                          className="underline font-normal hover:opacity-80"
                                         >
                                           {part.value}
                                         </a>
@@ -989,13 +989,19 @@ export default function ChatThread({
                                 )}
 
                                 {msg.resource_id && (
-                                  <ResourceCard resourceId={msg.resource_id} />
+                                  <ResourceCard
+                                    resourceId={msg.resource_id}
+                                    isOwn={isOwnCluster}
+                                    isOptimistic={msg.isOptimistic}
+                                    failed={msg.failed}
+                                    onRetry={() => handleRetrySend(msg)}
+                                  />
                                 )}
 
-                                {/* Timestamp on hover/tap or last message in cluster */}
+                                {/* Timestamp & read ticks */}
                                 {(isLastInCluster || msg.failed) && (
                                   <div
-                                    className={`mt-0.5 flex items-center justify-end gap-1 text-[9px] ${
+                                    className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] font-normal ${
                                       isOwnCluster ? "text-emerald-100" : "text-slate-400"
                                     }`}
                                   >
@@ -1010,12 +1016,12 @@ export default function ChatThread({
                                       <button
                                         type="button"
                                         onClick={() => handleRetrySend(msg)}
-                                        className="inline-flex items-center gap-0.5 text-rose-300 font-bold hover:underline"
+                                        className="inline-flex items-center gap-0.5 text-rose-300 font-normal hover:underline"
                                       >
                                         <RefreshCw className="h-3 w-3" /> Retry
                                       </button>
                                     ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && new Date(peerLastReadAt).getTime() >= new Date(msg.created_at).getTime() ? (
-                                      <span className="inline-flex items-center text-emerald-200 font-bold ml-0.5">
+                                      <span className="inline-flex items-center text-emerald-200 font-normal ml-0.5">
                                         <CheckCheck className="h-3 w-3" />
                                       </span>
                                     ) : null}
@@ -1034,7 +1040,7 @@ export default function ChatThread({
 
             {/* Peer Typing Indicator */}
             {isPeerTyping && (
-              <div className="flex items-center gap-1.5 text-slate-400 text-xs py-1 px-2">
+              <div className="flex items-center gap-1.5 text-slate-400 text-[11px] py-1 px-2">
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce" />
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.2s]" />
                 <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-bounce [animation-delay:0.4s]" />
@@ -1046,11 +1052,11 @@ export default function ChatThread({
 
       {/* Jump to Latest Floating Button */}
       {showJumpToLatest && (
-        <div className="absolute bottom-16 right-4 z-20">
+        <div className="absolute bottom-14 right-3 z-20">
           <button
             type="button"
             onClick={scrollToBottom}
-            className="inline-flex min-h-[38px] items-center gap-1 rounded-full bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-md hover:bg-emerald-700 transition"
+            className="inline-flex min-h-[34px] items-center gap-1 rounded-full bg-emerald-600 px-2.5 py-1 text-[11px] font-medium text-white shadow-md hover:bg-emerald-700 transition"
           >
             <ChevronDown className="h-3.5 w-3.5" />
             <span>
@@ -1062,8 +1068,8 @@ export default function ChatThread({
 
       {/* Selected Resource Preview Bar */}
       {selectedResource && (
-        <div className="flex items-center justify-between border-t border-slate-100 bg-emerald-50/80 px-3 py-1.5 dark:border-slate-800 dark:bg-emerald-950/30">
-          <div className="flex items-center gap-2 text-xs font-bold text-emerald-900 dark:text-emerald-200 truncate">
+        <div className="shrink-0 flex items-center justify-between border-t border-slate-100 bg-emerald-50/80 px-3 py-1.5 dark:border-slate-800 dark:bg-emerald-950/30">
+          <div className="flex items-center gap-2 text-[12px] font-medium text-emerald-900 dark:text-emerald-200 truncate min-w-0">
             <Paperclip className="h-3.5 w-3.5 shrink-0 text-emerald-600" />
             <span className="truncate">Attached: {selectedResource.title || selectedResource.file_name}</span>
           </div>
@@ -1079,7 +1085,7 @@ export default function ChatThread({
 
       {/* Emoji Popover */}
       {showEmojiPicker && (
-        <div className="absolute bottom-16 left-3 z-30 p-2 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#18211f] grid grid-cols-8 gap-1">
+        <div className="absolute bottom-14 left-3 z-30 p-2 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-[#18211f] grid grid-cols-8 gap-1">
           {EMOJI_LIST.map((emoji) => (
             <button
               key={emoji}
@@ -1101,26 +1107,26 @@ export default function ChatThread({
       {/* Composer Input */}
       <form
         onSubmit={handleSendMessage}
-        className="flex items-end gap-2 border-t border-slate-100 bg-white p-2.5 dark:border-slate-800 dark:bg-[#14171c] z-10"
+        className="shrink-0 flex items-end gap-1.5 border-t border-slate-100 bg-white p-2 sm:p-2.5 dark:border-slate-800 dark:bg-[#14171c] z-10 pb-safe min-w-0"
       >
         <button
           type="button"
           onClick={() => setShowEmojiPicker((prev) => !prev)}
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
+          className="inline-flex min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
           aria-label="Emoji"
           title="Add emoji"
         >
-          <Smile className="h-5 w-5" />
+          <Smile className="h-4 w-4" />
         </button>
 
         <button
           type="button"
           onClick={() => setShowResourcePicker(true)}
-          className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
+          className="inline-flex min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-xl text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 transition"
           aria-label="Share resource"
           title="Share resource"
         >
-          <Paperclip className="h-5 w-5" />
+          <Paperclip className="h-4 w-4" />
         </button>
 
         <textarea
@@ -1135,13 +1141,13 @@ export default function ChatThread({
             }
           }}
           placeholder="Write a message..."
-          className="min-w-0 flex-1 max-h-[120px] resize-none rounded-xl border border-slate-200/80 bg-slate-50 px-3.5 py-2.5 text-base sm:text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
+          className="min-w-0 flex-1 max-h-[120px] resize-none rounded-xl border border-slate-200/80 bg-slate-50 px-3 py-2 text-[13px] font-normal text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
         />
 
         <button
           type="submit"
           disabled={!inputContent.trim() && !selectedResource}
-          className="inline-flex min-h-[44px] min-w-[44px] shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
+          className="inline-flex min-h-[36px] min-w-[36px] shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white shadow-xs transition hover:bg-emerald-700 disabled:opacity-40"
           aria-label="Send message"
         >
           <Send className="h-4 w-4" />

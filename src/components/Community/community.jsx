@@ -1288,12 +1288,12 @@ const Community = () => {
                 <div
                   className={
                     isMaximized
-                      ? "fixed inset-0 z-[120] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe"
-                      : "w-full h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c]"
+                      ? "fixed inset-0 z-[120] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe overflow-hidden"
+                      : "w-full h-[calc(100dvh-16rem)] min-h-[500px] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c] min-w-0 flex flex-col"
                   }
                 >
-                  <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">
-                    <div className="w-80 shrink-0 border-r border-slate-100 dark:border-slate-800 h-full overflow-y-auto">
+                  <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden min-w-0">
+                    <div className="w-80 shrink-0 border-r border-slate-100 dark:border-slate-800 h-full overflow-hidden flex flex-col min-w-0">
                       <ChatInbox
                         currentUserId={user?.id}
                         onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
@@ -1301,7 +1301,7 @@ const Community = () => {
                         headerAction={renderMaximizeButton()}
                       />
                     </div>
-                    <div className="flex-1 h-full overflow-hidden">
+                    <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
                       {activeConversationId ? (
                         <ChatThread
                           conversationId={activeConversationId}
@@ -1315,7 +1315,7 @@ const Community = () => {
                             {renderMaximizeButton()}
                           </div>
                           <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
-                          <h3 className="mt-3 text-sm font-bold text-slate-800 dark:text-slate-200">
+                          <h3 className="mt-3 text-sm font-medium text-slate-800 dark:text-slate-200">
                             Select a conversation or start a new chat
                           </h3>
                           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
@@ -1326,9 +1326,9 @@ const Community = () => {
                     </div>
                   </div>
 
-                  <div className="block md:hidden h-full w-full">
+                  <div className="block md:hidden h-full w-full overflow-hidden min-w-0">
                     {activeConversationId ? (
-                      <div className="h-full w-full">
+                      <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
                         <ChatThread
                           conversationId={activeConversationId}
                           currentUserId={user?.id}
@@ -1337,7 +1337,7 @@ const Community = () => {
                         />
                       </div>
                     ) : (
-                      <div className="h-full overflow-y-auto">
+                      <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
                         <ChatInbox
                           currentUserId={user?.id}
                           onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}

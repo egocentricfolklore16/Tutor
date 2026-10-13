@@ -66,7 +66,7 @@ export function ProfileProvider({ user, children }) {
       await supabase.rpc("check_stale_streak", {
         p_user_timezone: getUserTimeZone(),
         p_cutoff_hour: 3,
-      }).catch(() => null);
+      });
     } catch (e) {
       // Ignore RPC availability issues
     }

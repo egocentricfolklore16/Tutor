@@ -91,13 +91,15 @@ export default function ForumPostDetail() {
       setEditBody(postData.body);
 
       // Fetch author profile
-      const { data: aProf } = await supabase
-        .from("community_profiles")
-        .select("*")
-        .eq("user_id", postData.user_id)
-        .maybeSingle();
+      if (postData.author_id) {
+        const { data: aProf } = await supabase
+          .from("community_profiles")
+          .select("*")
+          .eq("user_id", postData.author_id)
+          .maybeSingle();
 
-      setAuthorProfile(aProf);
+        setAuthorProfile(aProf);
+      }
 
       // 3. Fetch answers
       const { data: ansRows, error: ansErr } = await supabase
@@ -120,7 +122,7 @@ export default function ForumPostDetail() {
       setAnswers(items);
 
       // Collect answer author profiles
-      const ansAuthorIds = Array.from(new Set(items.map((a) => a.user_id)));
+      const ansAuthorIds = Array.from(new Set(items.map((a) => a.author_id).filter(Boolean)));
       if (ansAuthorIds.length > 0) {
         const { data: ansProfs } = await supabase
           .from("community_profiles")
@@ -248,7 +250,6 @@ export default function ForumPostDetail() {
       const { error } = await supabase.from("forum_answers").insert({
         post_id: postId,
         body: answerInput.trim(),
-        user_id: currentUserId,
       });
 
       if (error) {
@@ -300,7 +301,6 @@ export default function ForumPostDetail() {
         target_type: reportTarget.type,
         target_id: reportTarget.id,
         reason: reportReason.trim(),
-        user_id: currentUserId,
       });
 
       if (error) {
@@ -403,7 +403,7 @@ export default function ForumPostDetail() {
     );
   }
 
-  const isPostAuthor = currentUserId === post.user_id;
+  const isPostAuthor = currentUserId === post.author_id;
 
   return (
     <PageContainer maxWidth="max-w-4xl">
@@ -534,7 +534,7 @@ export default function ForumPostDetail() {
             {/* Author info & post date */}
             <div className="mt-3 flex items-center justify-between border-b border-slate-100 pb-4 dark:border-slate-800 text-xs">
               <div
-                onClick={() => navigate(`/community/u/${post.user_id}`)}
+                onClick={() => post.author_id && navigate(`/community/u/${post.author_id}`)}
                 className="flex items-center gap-2 cursor-pointer hover:opacity-80"
               >
                 <Avatar
@@ -619,9 +619,8 @@ export default function ForumPostDetail() {
           </div>
         ) : (
           answers.map((ans) => {
-            const ansAuthor = answerAuthorsMap[ans.user_id];
+            const ansAuthor = answerAuthorsMap[ans.author_id];
             const isAccepted = post.accepted_answer_id === ans.id;
-            const isAnsAuthor = currentUserId === ans.user_id;
 
             return (
               <div
@@ -641,7 +640,7 @@ export default function ForumPostDetail() {
 
                 <div className="flex items-center justify-between text-xs mb-3">
                   <div
-                    onClick={() => navigate(`/community/u/${ans.user_id}`)}
+                    onClick={() => ans.author_id && navigate(`/community/u/${ans.author_id}`)}
                     className="flex items-center gap-2 cursor-pointer hover:opacity-80"
                   >
                     <Avatar

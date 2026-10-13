@@ -128,7 +128,33 @@ export async function processVerifiedPayment({
       ? plan.price_kobo
       : plan.price_naira * 100;
 
-  // 2. Audit non-success or mismatched payment attempts in `payments` table without granting subscriptions
+  // 2. Idempotency check: return existing record if payment with this reference was already processed successfully
+  const { data: existingPayment } = await supabaseClient
+    .from("payments")
+    .select("*")
+    .eq("reference", reference)
+    .maybeSingle();
+
+  if (existingPayment && existingPayment.status === "success") {
+    if (existingPayment.user_id !== userId) {
+      throw new Error("Payment reference belongs to another user");
+    }
+
+    const { data: existingSub } = await supabaseClient
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    return {
+      payment: existingPayment,
+      subscription: existingSub,
+      plan,
+      alreadyProcessed: true,
+    };
+  }
+
+  // 3. Audit non-success or mismatched payment attempts in `payments` table without granting subscriptions
   if (
     paystackData.status !== "success" ||
     receivedCurrency !== expectedCurrency ||
@@ -165,32 +191,6 @@ export async function processVerifiedPayment({
         `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
       );
     }
-  }
-
-  // 3. Idempotency check: return existing record if payment with this reference was already processed
-  const { data: existingPayment } = await supabaseClient
-    .from("payments")
-    .select("*")
-    .eq("reference", reference)
-    .maybeSingle();
-
-  if (existingPayment && existingPayment.status === "success") {
-    if (existingPayment.user_id !== userId) {
-      throw new Error("Payment reference belongs to another user");
-    }
-
-    const { data: existingSub } = await supabaseClient
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
-    return {
-      payment: existingPayment,
-      subscription: existingSub,
-      plan,
-      alreadyProcessed: true,
-    };
   }
 
   // 4. Upsert into `payments` table keyed on unique reference (idempotent)

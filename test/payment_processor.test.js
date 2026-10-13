@@ -548,3 +548,47 @@ test("processVerifiedPayment correctly parses stringified JSON metadata", async 
   assert.strictEqual(result.payment.user_id, "user-uuid-333");
   assert.strictEqual(result.subscription.plan_id, "pro");
 });
+
+test("processVerifiedPayment returns alreadyProcessed when out-of-order charge.failed arrives after success", async () => {
+  const existingPayment = {
+    id: "payment-uuid-111",
+    user_id: "user-uuid-111",
+    reference: "ref_out_of_order_failed_8001",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-111",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    current_period_start: "2025-05-01T00:00:05.000Z",
+    current_period_end: "2025-06-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  // Simulate an out-of-order webhook or retry sending status: "failed" for an already successful payment
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_out_of_order_failed_8001",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "failed",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.status, "success");
+  assert.strictEqual(result.subscription.status, "active");
+});

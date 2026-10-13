@@ -9,9 +9,10 @@ interface SendPushRequest {
     body?: string;
     url?: string;
     tag?: string;
-    type?: "message" | "friend_request" | "friend_accepted";
+    type?: string;
     conversationId?: string;
     actorId?: string;
+    groupId?: string;
   };
 }
 
@@ -29,7 +30,6 @@ function isQuietHours(startStr: string | null, endStr: string | null): boolean {
     if (startMins < endMins) {
       return currentMins >= startMins && currentMins < endMins;
     } else {
-      // Overnight span e.g. 23:00 to 07:00
       return currentMins >= startMins || currentMins < endMins;
     }
   } catch (_e) {
@@ -79,7 +79,6 @@ Deno.serve(async (req: Request) => {
     let targetUserId = body.userId;
     let notifRow: any = null;
 
-    // 1. Load notification row if notificationId provided
     if (body.notificationId) {
       const { data: nData } = await adminClient
         .from("in_app_notifications")
@@ -91,7 +90,6 @@ Deno.serve(async (req: Request) => {
         notifRow = nData;
         targetUserId = nData.user_id;
 
-        // Idempotency check
         if (nData.delivery_status === "sent" || nData.delivery_status === "skipped") {
           return new Response(
             JSON.stringify({ success: true, message: "Notification already processed", status: nData.delivery_status }),
@@ -108,7 +106,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // 2. Load user preferences
     const { data: pref } = await adminClient
       .from("notification_preferences")
       .select("*")
@@ -118,8 +115,8 @@ Deno.serve(async (req: Request) => {
     const notifType = notifRow?.type || body.payload?.type || "message";
     const actorId = notifRow?.actor_id || body.payload?.actorId;
     const convId = notifRow?.conversation_id || body.payload?.conversationId;
+    const groupId = notifRow?.data?.group_id || body.payload?.groupId;
 
-    // Never notify a user about their own actions
     if (actorId && actorId === targetUserId) {
       if (notifRow) {
         await adminClient
@@ -133,7 +130,6 @@ Deno.serve(async (req: Request) => {
       });
     }
 
-    // Preference Checks
     if (pref) {
       if (pref.push_enabled === false) {
         if (notifRow) await adminClient.from("in_app_notifications").update({ delivery_status: "skipped" }).eq("id", notifRow.id);
@@ -161,7 +157,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 3. Conversation Mute Check
     if (convId) {
       const { data: muteData } = await adminClient
         .from("conversation_mutes")
@@ -179,7 +174,6 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    // 4. Fetch subscriptions
     const { data: subs } = await adminClient
       .from("push_subscriptions")
       .select("id, endpoint, p256dh, auth")
@@ -192,10 +186,9 @@ Deno.serve(async (req: Request) => {
       return new Response(JSON.stringify({ success: false, message: "No push subscriptions registered" }), { status: 200, headers: corsHeaders });
     }
 
-    // 5. Construct payload
     let title = notifRow?.title || body.payload?.title || "Hyper Tutor";
     let messageBody = notifRow?.body || body.payload?.body || "You have a new update.";
-    let url = body.payload?.url || "/community/chat";
+    let url = body.payload?.url || "/community/groups";
     let tag = body.payload?.tag || `notif-${Date.now()}`;
 
     if (notifType === "message") {
@@ -207,15 +200,17 @@ Deno.serve(async (req: Request) => {
       } else if (messageBody && messageBody.length > 100) {
         messageBody = messageBody.substring(0, 97) + "...";
       }
-    } else if (notifType === "friend_request") {
+    } else if (notifType === "friend_request" || notifType === "friend_accepted") {
       url = "/community/friends";
-      tag = "friend-requests";
-    } else if (notifType === "friend_accepted") {
-      url = "/community/friends";
-      tag = "friend-accepts";
+      tag = notifType;
+    } else if (notifType === "group_join_request") {
+      url = groupId ? `/community/groups?groupId=${groupId}&tab=requests` : "/community/groups";
+      tag = groupId ? `group-req-${groupId}` : "group-requests";
+    } else if (notifType === "group_request_accepted" || notifType === "group_request_declined") {
+      url = groupId ? `/community/groups?groupId=${groupId}` : "/community/groups";
+      tag = groupId ? `group-status-${groupId}` : "group-status";
     }
 
-    // Fetch actor profile for avatar if available
     let icon = "/icons/icon-192.png";
     if (actorId) {
       const { data: actorProf } = await adminClient

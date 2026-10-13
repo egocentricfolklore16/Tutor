@@ -9,22 +9,8 @@ Hyper Tutor is an Hyper intelligent learning companion designed to boost student
 - **Personalized Study Planner**  
   AI-driven schedules, calendar integration, smart reminders, and adaptive plans.  
 
-- **AI Tutoring Assistant & Ready-Made Prompts**
-  Natural language Q&A, step-by-step explanations, curriculum-based practice questions, and 25 long expository ready-made prompt suggestions across 5 categories (Explain, Practice, Study plan, Summarize, Exam help).
-
-### Adding Ready-Made Lumo Prompts
-
-Prompts are stored in `src/lib/lumoPrompts.js`. To add a new prompt suggestion, append a single entry object to the `LUMO_PROMPTS` array:
-```javascript
-{
-  id: 'category-id-number',
-  category: 'explain' | 'practice' | 'study_plan' | 'summarize' | 'exam_help',
-  title: 'Prompt Title',
-  description: 'One-line summary shown on prompt cards.',
-  icon: 'IconName', // Lucide icon name, e.g. 'BookOpen', 'Sparkles', 'Calendar'
-  prompt: `ROLE: ... CONTEXT: ... TASK: ... PROCESS: ... OUTPUT FORMAT: ... QUALITY RULES: ... ENDING: ...`
-}
-```
+- **AI Tutoring Assistant**
+  Natural language Q&A, step-by-step explanations, and curriculum-based practice questions.
 
 ### AI Tutor Provider
 

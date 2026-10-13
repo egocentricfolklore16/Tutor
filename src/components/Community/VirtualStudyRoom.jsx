@@ -53,7 +53,9 @@ export default function VirtualStudyRoom() {
   // Chat state (broadcast)
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const [typingUsers, setTypingUsers] = useState({});
   const broadcastChannelRef = useRef(null);
+  const presenceChannelRef = useRef(null);
 
   // Share resource modal / Friend invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -194,7 +196,7 @@ export default function VirtualStudyRoom() {
     }, 45000);
 
     const handleLeave = () => {
-      Promise.resolve(supabase.rpc("leave_study_room", { p_room_id: roomId })).catch(() => {});
+      supabase.rpc("leave_study_room", { p_room_id: roomId }).catch(() => {});
     };
 
     window.addEventListener("pagehide", handleLeave);

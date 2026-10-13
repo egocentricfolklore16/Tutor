@@ -3,20 +3,13 @@ import { useNavigate, useLocation, useParams, Routes, Route } from "react-router
 import {
   Users,
   Trophy,
-  Zap,
   Search,
-  UserPlus,
-  UserCheck,
-  UserX,
   Plus,
-  Heart,
   Globe,
   Lock,
   Loader2,
   AlertCircle,
-  Check,
   X,
-  Flame,
   Shield,
   BookOpen,
   Sparkles,
@@ -24,20 +17,28 @@ import {
   MessageSquare,
   Calendar,
   HelpCircle,
-  Award,
   Clock,
   Maximize2,
   Minimize2,
+  UserCheck,
+  UserX,
+  UserPlus,
+  MoreVertical,
+  Trash2,
+  CheckCircle,
+  Settings as SettingsIcon,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
 import PageContainer from "../common/PageContainer";
+import Avatar from "../common/Avatar";
 
 import ChatInbox from "./ChatInbox";
 import ChatThread from "./ChatThread";
 import GroupStudySessions from "./GroupStudySessions";
 import SessionRoom from "./SessionRoom";
+import RequestJoinModal from "./RequestJoinModal";
 
 import ChooseUsernameCard from "./ChooseUsernameCard";
 import UserProfilePage from "./UserProfilePage";
@@ -49,6 +50,11 @@ import PeerTutors from "./PeerTutors";
 import LeaderboardTab from "./LeaderboardTab";
 import AchievementsPage from "./AchievementsPage";
 
+import { useExploreGroups } from "../../features/groups/useExploreGroups";
+import { useMyGroups } from "../../features/groups/useMyGroups";
+import { useGroupOverview } from "../../features/groups/useGroupOverview";
+import { useGroupActions } from "../../features/groups/useGroupActions";
+
 const Community = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -56,10 +62,11 @@ const Community = () => {
   const { profile } = useProfile();
   const collaborationInfo = getCollaborationInfo(profile?.collaboration_interest);
 
-  const [activeTab, setActiveTab] = useState("groups"); // 'groups' | 'rooms' | 'help' | 'tutors' | 'leaderboard' | 'friends' | 'chat' | 'feed'
+  const [activeTab, setActiveTab] = useState("groups");
   const [openSessionId, setOpenSessionId] = useState(null);
   const [user, setUser] = useState(null);
 
+  // Maximize / Minimize state for chat
   const [isMaximized, setIsMaximized] = useState(() => {
     try {
       return sessionStorage.getItem("hyper_tutor_chat_maximized") === "true";
@@ -76,7 +83,7 @@ const Community = () => {
       try {
         sessionStorage.setItem("hyper_tutor_chat_maximized", String(next));
       } catch {
-        // Ignore sessionStorage errors
+        // Ignore errors
       }
       return next;
     });
@@ -86,7 +93,6 @@ const Community = () => {
     if (!isMaximized) return;
 
     maximizeBtnRef.current?.focus();
-
     const prevOverflow = document.body.style.overflow;
     document.body.style.overflow = "hidden";
 
@@ -96,13 +102,12 @@ const Community = () => {
         try {
           sessionStorage.setItem("hyper_tutor_chat_maximized", "false");
         } catch {
-          // Ignore sessionStorage errors
+          // Ignore
         }
       }
     };
 
     window.addEventListener("keydown", handleKeyDown);
-
     return () => {
       document.body.style.overflow = prevOverflow;
       window.removeEventListener("keydown", handleKeyDown);
@@ -120,14 +125,13 @@ const Community = () => {
         onClick={toggleMaximize}
         aria-label={label}
         title={label}
-        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-emerald-600 focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2 outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition-colors ${additionalClass}`}
+        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-emerald-600 focus-visible:shadow-focus outline-none dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-emerald-400 transition-colors ${additionalClass}`}
       >
         <MaxIcon className="h-5 w-5" />
       </button>
     );
   };
 
-  // Sync tab with URL path
   const pathLower = location.pathname.toLowerCase();
   const isChatRoute = pathLower.includes("/chat");
 
@@ -137,7 +141,6 @@ const Community = () => {
     }
   }, [isChatRoute]);
 
-  // Get signed in user
   useEffect(() => {
     const fetchAuthUser = async () => {
       const {
@@ -151,150 +154,203 @@ const Community = () => {
   const activeConversationId = params["*"]?.startsWith("chat/") ? params["*"].split("chat/")[1] : null;
 
   // ==========================================
-  // GROUPS STATE & LOGIC
+  // GROUPS STATE & HOOKS
   // ==========================================
-  const [publicGroups, setPublicGroups] = useState([]);
-  const [myGroups, setMyGroups] = useState([]);
-  const [groupsLoading, setGroupsLoading] = useState(false);
-  const [groupsError, setGroupsError] = useState(null);
+  const [groupSearch, setGroupSearch] = useState("");
+  const [selectedSubject, setSelectedSubject] = useState("all");
+  const [selectedPrivacy, setSelectedPrivacy] = useState("all");
 
-  const [selectedGroup, setSelectedGroup] = useState(null);
-  const [selectedGroupConversationId, setSelectedGroupConversationId] = useState(null);
-  const [selectedGroupSubTab, setSelectedGroupSubTab] = useState("overview"); // 'overview' | 'sessions'
-  const [groupMembers, setGroupMembers] = useState([]);
-  const [groupLeaderboard, setGroupLeaderboard] = useState([]);
-  const [groupDetailLoading, setGroupDetailLoading] = useState(false);
+  const { groups: exploreGroups, loading: exploreLoading, error: exploreError, refetch: refetchExplore } = useExploreGroups({
+    search: groupSearch,
+    subject: selectedSubject,
+    privacy: selectedPrivacy,
+  });
 
+  const { myGroups, loading: myGroupsLoading, refetch: refetchMyGroups } = useMyGroups(user?.id);
+
+  const [selectedGroupId, setSelectedGroupId] = useState(null);
+  const { overview: groupOverview, loading: overviewLoading, refetch: refetchOverview } = useGroupOverview(selectedGroupId);
+
+  const groupActions = useGroupActions();
+
+  // Create Group State
   const [showCreateGroup, setShowCreateGroup] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
   const [newGroupDescription, setNewGroupDescription] = useState("");
   const [newGroupSubject, setNewGroupSubject] = useState("");
-  const [newGroupIsPublic, setNewGroupIsPublic] = useState(true);
+  const [newGroupPrivacy, setNewGroupPrivacy] = useState("public"); // 'public' | 'private'
   const [createGroupLoading, setCreateGroupLoading] = useState(false);
 
-  const fetchGroupsData = useCallback(async () => {
-    if (!user) return;
-    setGroupsLoading(true);
-    setGroupsError(null);
-    try {
-      const [{ data: pubData, error: pubErr }, { data: myData, error: myErr }] =
-        await Promise.all([
-          supabase.from("study_groups").select("*").eq("is_public", true),
-          supabase
-            .from("study_group_members")
-            .select("*, group:study_groups(*)")
-            .eq("user_id", user.id),
-        ]);
+  // Request Join Modal State
+  const [requestTargetGroup, setRequestTargetGroup] = useState(null);
 
-      if (pubErr) throw pubErr;
-      if (myErr) throw myErr;
+  // Toast Notification
+  const [toastMsg, setToastMsg] = useState(null);
+  const showToast = (msg) => {
+    setToastMsg(msg);
+    setTimeout(() => setToastMsg(null), 4000);
+  };
 
-      setPublicGroups(pubData || []);
-      setMyGroups(myData || []);
-    } catch (err) {
-      console.error("Error fetching groups:", err);
-      setGroupsError(err.message || "Failed to load study groups.");
-    } finally {
-      setGroupsLoading(false);
-    }
-  }, [user]);
+  // Group Modal Sub-tabs ('overview' | 'members' | 'sessions' | 'requests' | 'settings')
+  const [modalSubTab, setModalSubTab] = useState("overview");
+
+  // Member Management Menu state
+  const [activeMemberMenuId, setActiveMemberMenuId] = useState(null);
+
+  // Settings Edit Form State
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
+  const [editPrivacy, setEditPrivacy] = useState("public");
+  const [deleteConfirmName, setDeleteConfirmName] = useState("");
 
   useEffect(() => {
-    if (activeTab === "groups") {
-      fetchGroupsData();
+    if (groupOverview?.group) {
+      setEditName(groupOverview.group.name || "");
+      setEditDesc(groupOverview.group.description || "");
+      setEditPrivacy(groupOverview.group.privacy || "public");
     }
-  }, [activeTab, fetchGroupsData]);
-
-  const openGroupDetail = async (group) => {
-    setSelectedGroup(group);
-    setSelectedGroupSubTab("overview");
-    setGroupDetailLoading(true);
-    try {
-      const { data: convData } = await supabase
-        .from("conversations")
-        .select("id")
-        .eq("study_group_id", group.id)
-        .maybeSingle();
-
-      if (convData) {
-        setSelectedGroupConversationId(convData.id);
-      }
-
-      const { data: memberRows, error: memErr } = await supabase
-        .from("study_group_members")
-        .select("*")
-        .eq("group_id", group.id);
-
-      if (memErr) throw memErr;
-
-      const userIds = (memberRows || []).map((m) => m.user_id);
-      let memProfilesMap = {};
-      if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .in("user_id", userIds);
-        (profs || []).forEach((p) => {
-          memProfilesMap[p.user_id] = p;
-        });
-      }
-
-      setGroupMembers(
-        (memberRows || []).map((m) => ({
-          ...m,
-          profile: memProfilesMap[m.user_id] || null,
-        }))
-      );
-
-      const { data: gLeaderboard } = await supabase.rpc("get_group_leaderboard", {
-        p_group_id: group.id,
-      });
-      setGroupLeaderboard(gLeaderboard || []);
-    } catch (err) {
-      console.error("Error opening group detail:", err);
-    } finally {
-      setGroupDetailLoading(false);
-    }
-  };
+  }, [groupOverview]);
 
   const handleCreateGroup = async (e) => {
     e.preventDefault();
     if (!user || !newGroupName.trim() || !newGroupSubject.trim()) return;
     setCreateGroupLoading(true);
     try {
-      const { error } = await supabase.from("study_groups").insert({
-        name: newGroupName.trim(),
-        description: newGroupDescription.trim(),
-        subject: newGroupSubject.trim(),
-        is_public: newGroupIsPublic,
-        created_by: user.id,
-      });
+      const { data: newGrp, error } = await supabase
+        .from("study_groups")
+        .insert({
+          name: newGroupName.trim(),
+          description: newGroupDescription.trim(),
+          subject: newGroupSubject.trim(),
+          privacy: newGroupPrivacy,
+          owner_id: user.id,
+          created_by: user.id,
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+
+      // Add owner to members table
+      if (newGrp) {
+        await supabase.from("study_group_members").insert({
+          group_id: newGrp.id,
+          user_id: user.id,
+          role: "owner",
+        });
+
+        // Create group chat conversation
+        await supabase.from("conversations").insert({
+          type: "group",
+          study_group_id: newGrp.id,
+          created_by: user.id,
+        });
+      }
 
       setShowCreateGroup(false);
       setNewGroupName("");
       setNewGroupDescription("");
       setNewGroupSubject("");
-      setNewGroupIsPublic(true);
-      fetchGroupsData();
+      setNewGroupPrivacy("public");
+
+      showToast("Group created successfully!");
+      refetchExplore();
+      refetchMyGroups();
     } catch (err) {
       console.error("Error creating group:", err);
+      showToast(err.message || "Failed to create group.");
     } finally {
       setCreateGroupLoading(false);
     }
   };
 
-  const handleJoinPublicGroup = async (groupId) => {
-    if (!user) return;
+  const handleJoinOrRequest = async (grp) => {
+    if (grp.my_status === "member") {
+      setSelectedGroupId(grp.id);
+      setModalSubTab("overview");
+      return;
+    }
+
+    if (grp.privacy === "public") {
+      try {
+        const res = await groupActions.requestJoin(grp.id);
+        if (res?.success) {
+          showToast("Joined group successfully!");
+          refetchExplore();
+          refetchMyGroups();
+        }
+      } catch (err) {
+        showToast("Unable to join group.");
+      }
+    } else {
+      setRequestTargetGroup(grp);
+    }
+  };
+
+  const handleSendJoinRequest = async (msg) => {
+    if (!requestTargetGroup) return;
     try {
-      const { error } = await supabase
-        .from("study_group_members")
-        .insert({ group_id: groupId, user_id: user.id, role: "member" });
-      if (error) throw error;
-      fetchGroupsData();
+      const res = await groupActions.requestJoin(requestTargetGroup.id, msg);
+      if (res?.success) {
+        showToast("Join request sent to group owner!");
+        setRequestTargetGroup(null);
+        refetchExplore();
+      } else {
+        showToast(res?.error === "max_pending_reached" ? "You have reached the maximum 10 pending requests." : "Failed to send request.");
+      }
     } catch (err) {
-      console.error("Error joining group:", err);
+      showToast("Error sending join request.");
+    }
+  };
+
+  const handleDecideRequest = async (reqId, decision) => {
+    try {
+      await groupActions.decideRequest(reqId, decision);
+      showToast(`Request ${decision}.`);
+      refetchOverview();
+      refetchExplore();
+      refetchMyGroups();
+    } catch (err) {
+      showToast("Failed to process request.");
+    }
+  };
+
+  const handleSaveSettings = async (e) => {
+    e.preventDefault();
+    if (!selectedGroupId || !editName.trim()) return;
+
+    try {
+      await supabase
+        .from("study_groups")
+        .update({
+          name: editName.trim(),
+          description: editDesc.trim(),
+          privacy: editPrivacy,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("id", selectedGroupId);
+
+      showToast("Group settings saved.");
+      refetchOverview();
+      refetchExplore();
+      refetchMyGroups();
+    } catch (err) {
+      console.error("Error updating group settings:", err);
+      showToast("Failed to save settings.");
+    }
+  };
+
+  const handleDeleteGroup = async () => {
+    if (!selectedGroupId || deleteConfirmName !== groupOverview?.group?.name) return;
+    try {
+      await supabase.from("study_groups").delete().eq("id", selectedGroupId);
+      showToast("Group deleted.");
+      setSelectedGroupId(null);
+      refetchExplore();
+      refetchMyGroups();
+    } catch (err) {
+      console.error("Error deleting group:", err);
+      showToast("Failed to delete group.");
     }
   };
 
@@ -410,7 +466,6 @@ const Community = () => {
 
   const acceptedFriends = friendships.filter((f) => f.status === "accepted");
   const pendingIncoming = friendships.filter((f) => f.status === "pending" && f.addressee_id === user?.id);
-  const pendingSent = friendships.filter((f) => f.status === "pending" && f.requester_id === user?.id);
 
   const userSubjects = Array.isArray(profile?.subjects) ? profile.subjects : [];
 
@@ -424,10 +479,17 @@ const Community = () => {
         path="*"
         element={
           <PageContainer maxWidth="max-w-7xl">
+            {toastMsg && (
+              <div className="fixed bottom-6 right-6 z-[250] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-xs font-bold text-white shadow-overlay animate-fade-in dark:bg-white dark:text-slate-900">
+                <CheckCircle className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
+                <span>{toastMsg}</span>
+              </div>
+            )}
+
             <ChooseUsernameCard />
 
             {/* Header Banner */}
-            <div className="relative overflow-hidden rounded-3xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-[#14171c] sm:p-8">
+            <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-surface dark:bg-[#14171c] sm:p-8">
               <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div>
                   <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
@@ -443,7 +505,7 @@ const Community = () => {
                 </div>
 
                 {collaborationInfo && (
-                  <div className="flex shrink-0 items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50/90 p-4 text-xs dark:border-emerald-900/50 dark:bg-emerald-950/40 dark:text-emerald-200 shadow-sm max-w-xs">
+                  <div className="flex shrink-0 items-center gap-3 rounded-2xl bg-emerald-50/90 p-4 text-xs dark:bg-emerald-950/40 dark:text-emerald-200 shadow-surface max-w-xs">
                     <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                     <div>
                       <span className="font-bold text-emerald-900 dark:text-emerald-100 block">
@@ -458,7 +520,7 @@ const Community = () => {
               </div>
 
               {/* Navigation Sub-Tabs Segmented Bar */}
-              <div className="mt-8 flex w-full gap-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1.5 dark:bg-[#18211f] dark:border dark:border-slate-800">
+              <div className="mt-8 flex w-full gap-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1.5 dark:bg-[#18211f]">
                 {[
                   { id: "groups", label: "Groups", icon: Shield, path: "/community/groups" },
                   { id: "rooms", label: "Rooms", icon: Clock, path: "/community/rooms" },
@@ -480,7 +542,7 @@ const Community = () => {
                       }}
                       className={`flex min-h-[44px] flex-1 min-w-[110px] items-center justify-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition duration-200 ${
                         isActive
-                          ? "bg-white text-slate-900 shadow-sm dark:bg-[#14171c] dark:text-white"
+                          ? "bg-white text-slate-900 shadow-surface dark:bg-[#14171c] dark:text-white"
                           : "text-slate-600 hover:bg-white/50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       }`}
                     >
@@ -494,26 +556,29 @@ const Community = () => {
 
             {/* Sub-tab Content Render */}
             <div className="mt-6">
+              {/* GROUPS TAB */}
               {activeTab === "groups" && (
                 <div className="space-y-6">
-                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
+                  {/* Top CTA */}
+                  <div className="flex flex-wrap items-center justify-between gap-4 rounded-2xl bg-white p-4 shadow-surface dark:bg-[#14171c]">
                     <div>
                       <h2 className="text-xl font-bold text-slate-900 dark:text-white">Study Groups</h2>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Join or create study rooms with classmates</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Join or create study groups with classmates</p>
                     </div>
 
                     <button
                       type="button"
                       onClick={() => setShowCreateGroup(true)}
-                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-700"
+                      className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
                     >
                       <Plus className="h-4 w-4" /> Create Group
                     </button>
                   </div>
 
+                  {/* Create Group Form Modal */}
                   {showCreateGroup && (
-                    <form onSubmit={handleCreateGroup} className="rounded-2xl border border-emerald-300 bg-emerald-50/50 p-5 dark:border-emerald-900/50 dark:bg-emerald-950/20">
-                      <div className="flex items-center justify-between mb-4">
+                    <form onSubmit={handleCreateGroup} className="rounded-2xl bg-emerald-50/80 p-5 dark:bg-emerald-950/20 shadow-surface space-y-3">
+                      <div className="flex items-center justify-between mb-2">
                         <p className="text-base font-bold text-emerald-950 dark:text-emerald-200">Create New Study Group</p>
                         <button type="button" onClick={() => setShowCreateGroup(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button>
                       </div>
@@ -521,27 +586,33 @@ const Community = () => {
                       <div className="space-y-3">
                         <div>
                           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Group Name</label>
-                          <input required value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="e.g. Calculus Champions" className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white" />
+                          <input required value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="e.g. Calculus Champions" className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
                         </div>
 
                         <div>
                           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subject</label>
-                          <input required value={newGroupSubject} onChange={(e) => setNewGroupSubject(e.target.value)} placeholder="e.g. Mathematics" className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white" />
+                          <input required value={newGroupSubject} onChange={(e) => setNewGroupSubject(e.target.value)} placeholder="e.g. Mathematics" className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
                         </div>
 
                         <div>
                           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
-                          <textarea value={newGroupDescription} onChange={(e) => setNewGroupDescription(e.target.value)} placeholder="What will this group work on?" rows={2} className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-sm text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white" />
+                          <textarea value={newGroupDescription} onChange={(e) => setNewGroupDescription(e.target.value)} placeholder="What will this group work on?" rows={2} className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
                         </div>
 
-                        <div className="flex items-center gap-2 pt-1">
-                          <input type="checkbox" id="publicGroupToggle" checked={newGroupIsPublic} onChange={(e) => setNewGroupIsPublic(e.target.checked)} className="h-4 w-4 rounded accent-emerald-600" />
-                          <label htmlFor="publicGroupToggle" className="text-xs font-bold text-slate-700 dark:text-slate-300">Public Group (anyone can join)</label>
+                        <div className="flex items-center gap-4 pt-1">
+                          <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                            <input type="radio" name="privacy" value="public" checked={newGroupPrivacy === "public"} onChange={() => setNewGroupPrivacy("public")} className="accent-emerald-600" />
+                            <span>Public (anyone can join)</span>
+                          </label>
+                          <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
+                            <input type="radio" name="privacy" value="private" checked={newGroupPrivacy === "private"} onChange={() => setNewGroupPrivacy("private")} className="accent-emerald-600" />
+                            <span>Private (requires owner approval)</span>
+                          </label>
                         </div>
 
                         <div className="pt-2 flex justify-end gap-2">
                           <button type="button" onClick={() => setShowCreateGroup(false)} className="rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">Cancel</button>
-                          <button type="submit" disabled={createGroupLoading} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50">
+                          <button type="submit" disabled={createGroupLoading} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-button-primary">
                             {createGroupLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
                             <span>Save Group</span>
                           </button>
@@ -550,210 +621,525 @@ const Community = () => {
                     </form>
                   )}
 
-                  {groupsLoading ? (
-                    <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-[#14171c]">
-                      <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-                      <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Loading study groups...</p>
+                  {/* My Groups Section */}
+                  {myGroups.length > 0 && (
+                    <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
+                      <p className="text-base font-bold text-slate-900 dark:text-white mb-4">My Groups ({myGroups.length})</p>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {myGroups.map((mem) => {
+                          const grp = mem.group;
+                          if (!grp) return null;
+                          return (
+                            <div
+                              key={grp.id}
+                              onClick={() => {
+                                setSelectedGroupId(grp.id);
+                                setModalSubTab("overview");
+                              }}
+                              className="cursor-pointer rounded-2xl bg-slate-50/70 p-4 shadow-surface hover:shadow-surface-hover transition dark:bg-[#18211f]"
+                            >
+                              <div className="flex items-start justify-between">
+                                <span className="inline-flex items-center gap-1 rounded-2xl bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                  {grp.subject}
+                                </span>
+                                {grp.privacy === "public" ? <Globe className="h-4 w-4 text-slate-400" /> : <Lock className="h-4 w-4 text-amber-500" />}
+                              </div>
+                              <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
+                              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
+                              <div className="mt-3 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                                <span>{grp.member_count || 1} members</span>
+                                <ChevronRight className="h-4 w-4" />
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
-                  ) : groupsError ? (
-                    <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border border-rose-200 bg-rose-50 p-8 text-center dark:border-rose-900/40 dark:bg-rose-950/20">
-                      <AlertCircle className="h-8 w-8 text-rose-600" />
-                      <p className="mt-2 text-sm font-bold text-rose-800 dark:text-rose-200">{groupsError}</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      {myGroups.length > 0 && (
-                        <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
-                          <p className="text-base font-bold text-slate-900 dark:text-white mb-4">My Groups</p>
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {myGroups.map((mem) => {
-                              const grp = mem.group;
-                              if (!grp) return null;
-                              return (
-                                <div
-                                  key={grp.id}
-                                  onClick={() => openGroupDetail(grp)}
-                                  className="cursor-pointer rounded-2xl border border-slate-200 bg-slate-50/70 p-4 transition hover:border-emerald-400 dark:border-slate-800 dark:bg-[#18211f] dark:hover:border-emerald-600"
-                                >
-                                  <div className="flex items-start justify-between">
-                                    <div>
-                                      <span className="inline-flex items-center gap-1 rounded-2xl bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                        {grp.subject}
-                                      </span>
-                                      <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
-                                    </div>
-                                    {grp.is_public ? <Globe className="h-4 w-4 text-slate-400" /> : <Lock className="h-4 w-4 text-slate-400" />}
-                                  </div>
-                                  <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
-                                  <div className="mt-3 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                    <span>View Details & Sessions</span>
-                                    <ChevronRight className="h-4 w-4" />
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
+                  )}
+
+                  {/* Discover / Explore Section */}
+                  <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between mb-4">
+                      <p className="text-base font-bold text-slate-900 dark:text-white">Discover Groups</p>
+
+                      {/* Filters */}
+                      <div className="flex flex-wrap items-center gap-2">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-2.5 h-3.5 w-3.5 text-slate-400" />
+                          <input
+                            type="text"
+                            value={groupSearch}
+                            onChange={(e) => setGroupSearch(e.target.value)}
+                            placeholder="Search groups..."
+                            className="rounded-xl bg-slate-50 py-1.5 pl-8 pr-3 text-xs text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white min-w-[140px]"
+                          />
                         </div>
-                      )}
 
-                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
-                        <p className="text-base font-bold text-slate-900 dark:text-white mb-4">Explore Public Groups</p>
+                        <select
+                          value={selectedPrivacy}
+                          onChange={(e) => setSelectedPrivacy(e.target.value)}
+                          className="rounded-xl bg-slate-50 py-1.5 px-3 text-xs font-bold text-slate-700 shadow-inset-field dark:bg-[#18211f] dark:text-slate-200"
+                        >
+                          <option value="all">All Privacy</option>
+                          <option value="public">Public</option>
+                          <option value="private">Private</option>
+                        </select>
+                      </div>
+                    </div>
 
-                        {publicGroups.length === 0 ? (
-                          <div className="py-8 text-center">
-                            <Shield className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-700" />
-                            <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-400">No public study groups yet</p>
+                    {exploreLoading ? (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 py-4">
+                        {[1, 2, 3].map((i) => (
+                          <div key={i} className="h-36 rounded-2xl bg-slate-100 dark:bg-slate-800/50 animate-pulse" />
+                        ))}
+                      </div>
+                    ) : exploreGroups.length === 0 ? (
+                      <div className="py-8 text-center">
+                        <Shield className="mx-auto h-8 w-8 text-slate-300 dark:text-slate-700" />
+                        <p className="mt-2 text-sm font-semibold text-slate-600 dark:text-slate-400">No matching study groups found</p>
+                      </div>
+                    ) : (
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {exploreGroups.map((grp) => {
+                          const isMember = grp.my_status === "member";
+                          const isPending = grp.my_status === "pending";
+                          const isCooldown = grp.my_status === "declined_cooldown";
+
+                          return (
+                            <div
+                              key={grp.id}
+                              className="flex flex-col justify-between rounded-2xl bg-slate-50/70 p-4 shadow-surface hover:shadow-surface-hover transition dark:bg-[#18211f]"
+                            >
+                              <div>
+                                <div className="flex items-start justify-between">
+                                  <span className="inline-flex items-center gap-1 rounded-2xl bg-cyan-100 px-2.5 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                                    {grp.subject}
+                                  </span>
+                                  {grp.privacy === "public" ? <Globe className="h-4 w-4 text-slate-400" /> : <Lock className="h-4 w-4 text-amber-500" title="Private: owner approves new members" />}
+                                </div>
+                                <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
+                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
+
+                                <div className="mt-3 flex items-center gap-2">
+                                  <Avatar src={grp.owner_avatar} name={grp.owner_name} username={grp.owner_username} size="xs" />
+                                  <span className="text-[11px] text-slate-500 font-medium truncate">
+                                    Owner: {grp.owner_name || grp.owner_username || "Unknown"}
+                                  </span>
+                                </div>
+                              </div>
+
+                              <div className="mt-4 flex items-center justify-between pt-3">
+                                <span className="text-xs font-bold text-slate-500">
+                                  {grp.member_count} {grp.member_count === 1 ? "member" : "members"}
+                                </span>
+
+                                {isMember ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      setSelectedGroupId(grp.id);
+                                      setModalSubTab("overview");
+                                    }}
+                                    className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
+                                  >
+                                    Open Group
+                                  </button>
+                                ) : isPending ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => groupActions.cancelRequest(grp.my_request_id).then(() => refetchExplore())}
+                                    className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200"
+                                  >
+                                    Request pending (Cancel)
+                                  </button>
+                                ) : isCooldown ? (
+                                  <span className="rounded-2xl bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
+                                    Try again in {grp.cooldown_days_left}d
+                                  </span>
+                                ) : (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleJoinOrRequest(grp)}
+                                    className="rounded-2xl bg-emerald-600 px-3.5 py-1 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700"
+                                  >
+                                    {grp.privacy === "public" ? "Join Group" : "Request to join"}
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Group Detail Modal */}
+                  {selectedGroupId && (
+                    <div
+                      className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs"
+                      onClick={() => setSelectedGroupId(null)}
+                    >
+                      <div
+                        className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl bg-white p-6 shadow-overlay dark:bg-[#14171c]"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {overviewLoading ? (
+                          <div className="flex min-h-[250px] items-center justify-center">
+                            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
+                          </div>
+                        ) : groupOverview?.is_member === false ? (
+                          /* TEASER VIEW FOR PRIVATE GROUP NON-MEMBERS */
+                          <div className="space-y-4">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                  {groupOverview.group.subject}
+                                </span>
+                                <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-white flex items-center gap-2">
+                                  {groupOverview.group.name}
+                                  <Lock className="h-5 w-5 text-amber-500" />
+                                </h2>
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  {groupOverview.group.description}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedGroupId(null)}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              >
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
+
+                            <div className="rounded-2xl bg-slate-50 p-6 text-center shadow-surface dark:bg-[#18211f] space-y-3">
+                              <Lock className="mx-auto h-8 w-8 text-amber-500" />
+                              <p className="text-sm font-bold text-slate-800 dark:text-slate-200">
+                                Private Group Content Protected
+                              </p>
+                              <p className="text-xs text-slate-500 max-w-xs mx-auto">
+                                Join to see member list, rankings, scheduled study sessions, and live chat!
+                              </p>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setSelectedGroupId(null);
+                                  setRequestTargetGroup(groupOverview.group);
+                                }}
+                                className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700"
+                              >
+                                <Lock className="h-3.5 w-3.5" />
+                                Request to Join
+                              </button>
+                            </div>
                           </div>
                         ) : (
-                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                            {publicGroups.map((grp) => {
-                              const isMember = myGroups.some((m) => m.group_id === grp.id);
+                          /* FULL VIEW FOR MEMBERS */
+                          <div className="space-y-5">
+                            <div className="flex items-start justify-between">
+                              <div>
+                                <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                                  {groupOverview?.group?.subject}
+                                </span>
+                                <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">
+                                  {groupOverview?.group?.name}
+                                </h2>
+                                <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                                  {groupOverview?.group?.description}
+                                </p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setSelectedGroupId(null)}
+                                className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"
+                              >
+                                <X className="h-5 w-5" />
+                              </button>
+                            </div>
 
-                              return (
-                                <div
-                                  key={grp.id}
-                                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-slate-50/70 p-4 dark:border-slate-800 dark:bg-[#18211f]"
+                            {/* Sub-tabs */}
+                            <div className="flex border-b border-slate-100 dark:border-slate-800 gap-4 overflow-x-auto no-scrollbar">
+                              {[
+                                { id: "overview", label: "Overview" },
+                                { id: "members", label: `Members (${groupOverview?.members?.length || 0})` },
+                                { id: "sessions", label: "Sessions" },
+                                ...(groupOverview?.my_role === "owner" || groupOverview?.my_role === "admin"
+                                  ? [
+                                      {
+                                        id: "requests",
+                                        label: `Requests (${groupOverview?.pending_requests?.length || 0})`,
+                                        badge: groupOverview?.pending_requests?.length,
+                                      },
+                                      { id: "settings", label: "Settings" },
+                                    ]
+                                  : []),
+                              ].map((tab) => (
+                                <button
+                                  key={tab.id}
+                                  type="button"
+                                  onClick={() => setModalSubTab(tab.id)}
+                                  className={`pb-2.5 text-xs font-bold border-b-2 transition flex items-center gap-1.5 whitespace-nowrap ${
+                                    modalSubTab === tab.id
+                                      ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
+                                      : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
+                                  }`}
                                 >
-                                  <div>
-                                    <div className="flex items-start justify-between">
-                                      <span className="inline-flex items-center gap-1 rounded-2xl bg-cyan-100 px-2.5 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-                                        {grp.subject}
-                                      </span>
-                                      <Globe className="h-4 w-4 text-slate-400" />
-                                    </div>
-                                    <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
-                                    <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description."}</p>
-                                  </div>
+                                  <span>{tab.label}</span>
+                                  {tab.badge > 0 && (
+                                    <span className="flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-600 px-1 text-[9px] font-bold text-white">
+                                      {tab.badge}
+                                    </span>
+                                  )}
+                                </button>
+                              ))}
+                            </div>
 
-                                  <div className="mt-4 flex items-center justify-between border-t border-slate-200/60 pt-3 dark:border-slate-800">
-                                    <button type="button" onClick={() => openGroupDetail(grp)} className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-300 dark:hover:text-white">Details</button>
-                                    {isMember ? (
-                                      <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Joined</span>
-                                    ) : (
-                                      <button type="button" onClick={() => handleJoinPublicGroup(grp.id)} className="rounded-2xl bg-emerald-600 px-3.5 py-1 text-xs font-bold text-white hover:bg-emerald-700">Join Group</button>
-                                    )}
+                            {/* Overview Sub-tab */}
+                            {modalSubTab === "overview" && (
+                              <div className="space-y-5 pt-2">
+                                {groupOverview?.conversation_id && (
+                                  <button
+                                    type="button"
+                                    onClick={() => {
+                                      navigate(`/community/chat/${groupOverview.conversation_id}`);
+                                      setSelectedGroupId(null);
+                                    }}
+                                    className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-button-primary"
+                                  >
+                                    <MessageSquare className="h-4 w-4" /> Open Group Chat
+                                  </button>
+                                )}
+
+                                <div>
+                                  <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
+                                    Top Members ({groupOverview?.rankings?.length || 0})
+                                  </h3>
+                                  <div className="space-y-1.5">
+                                    {(groupOverview?.rankings || []).map((item, idx) => (
+                                      <div
+                                        key={item.user_id || idx}
+                                        className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 dark:bg-[#18211f] shadow-surface"
+                                      >
+                                        <div className="flex items-center gap-3">
+                                          <span className="w-5 text-center text-xs font-bold text-slate-400">
+                                            #{idx + 1}
+                                          </span>
+                                          <Avatar src={item.user_img} name={item.full_name} username={item.username} size="xs" />
+                                          <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                            {item.full_name || item.username}
+                                          </p>
+                                        </div>
+                                        <span className="text-xs font-bold text-amber-600 dark:text-amber-400">
+                                          {item.xp_points || 0} XP
+                                        </span>
+                                      </div>
+                                    ))}
                                   </div>
                                 </div>
-                              );
-                            })}
+                              </div>
+                            )}
+
+                            {/* Members Sub-tab */}
+                            {modalSubTab === "members" && (
+                              <div className="space-y-3 pt-2">
+                                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                                  {(groupOverview?.members || []).map((m) => (
+                                    <div
+                                      key={m.id}
+                                      className="flex items-center justify-between rounded-xl bg-slate-50 p-2.5 dark:bg-[#18211f] shadow-surface"
+                                    >
+                                      <div className="flex items-center gap-2.5 min-w-0">
+                                        <Avatar
+                                          src={m.profile?.user_img}
+                                          name={m.profile?.full_name}
+                                          username={m.profile?.username}
+                                          size="sm"
+                                        />
+                                        <div className="min-w-0">
+                                          <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                                            {m.profile?.full_name || m.profile?.username || "Member"}
+                                          </p>
+                                          <p className="text-[10px] text-slate-500">@{m.profile?.username || "user"}</p>
+                                        </div>
+                                      </div>
+
+                                      <div className="flex items-center gap-1.5">
+                                        <span className="rounded-full bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                                          {m.role}
+                                        </span>
+
+                                        {groupOverview?.my_role === "owner" && m.user_id !== user?.id && (
+                                          <div className="relative">
+                                            <button
+                                              type="button"
+                                              onClick={() => setActiveMemberMenuId(activeMemberMenuId === m.id ? null : m.id)}
+                                              className="p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+                                            >
+                                              <MoreVertical className="h-3.5 w-3.5" />
+                                            </button>
+
+                                            {activeMemberMenuId === m.id && (
+                                              <div className="absolute right-0 top-full mt-1 z-30 w-32 rounded-xl bg-white p-1 shadow-overlay dark:bg-[#18211f]">
+                                                {m.role === "member" ? (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => groupActions.setRole(selectedGroupId, m.user_id, "admin").then(() => refetchOverview())}
+                                                    className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg"
+                                                  >
+                                                    Promote Admin
+                                                  </button>
+                                                ) : (
+                                                  <button
+                                                    type="button"
+                                                    onClick={() => groupActions.setRole(selectedGroupId, m.user_id, "member").then(() => refetchOverview())}
+                                                    className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 rounded-lg"
+                                                  >
+                                                    Demote Member
+                                                  </button>
+                                                )}
+                                                <button
+                                                  type="button"
+                                                  onClick={() => groupActions.removeMember(selectedGroupId, m.user_id, false).then(() => refetchOverview())}
+                                                  className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 rounded-lg"
+                                                >
+                                                  Remove
+                                                </button>
+                                              </div>
+                                            )}
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Sessions Sub-tab */}
+                            {modalSubTab === "sessions" && (
+                              <div className="pt-2">
+                                <GroupStudySessions
+                                  groupId={selectedGroupId}
+                                  groupConversationId={groupOverview?.conversation_id}
+                                  currentUserId={user?.id}
+                                  onJoinSession={(sessionId) => {
+                                    setOpenSessionId(sessionId);
+                                    setSelectedGroupId(null);
+                                  }}
+                                />
+                              </div>
+                            )}
+
+                            {/* Requests Sub-tab */}
+                            {modalSubTab === "requests" && (
+                              <div className="space-y-3 pt-2">
+                                {(groupOverview?.pending_requests || []).length === 0 ? (
+                                  <p className="py-6 text-center text-xs text-slate-500">
+                                    No pending join requests right now.
+                                  </p>
+                                ) : (
+                                  (groupOverview?.pending_requests || []).map((req) => (
+                                    <div
+                                      key={req.id}
+                                      className="flex flex-col gap-2 rounded-xl bg-slate-50 p-3 dark:bg-[#18211f] shadow-surface"
+                                    >
+                                      <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2.5">
+                                          <Avatar
+                                            src={req.profile?.user_img}
+                                            name={req.profile?.full_name}
+                                            username={req.profile?.username}
+                                            size="sm"
+                                          />
+                                          <div>
+                                            <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                              {req.profile?.full_name || req.profile?.username}
+                                            </p>
+                                            <p className="text-[10px] text-slate-400">@{req.profile?.username}</p>
+                                          </div>
+                                        </div>
+
+                                        <div className="flex items-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDecideRequest(req.id, "accepted")}
+                                            className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-button-primary"
+                                          >
+                                            <UserCheck className="h-3.5 w-3.5" /> Accept
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDecideRequest(req.id, "declined")}
+                                            className="inline-flex items-center gap-1 rounded-xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                          >
+                                            <UserX className="h-3.5 w-3.5" /> Decline
+                                          </button>
+                                        </div>
+                                      </div>
+
+                                      {req.message && (
+                                        <p className="rounded-lg bg-white p-2.5 text-xs text-slate-600 dark:bg-[#14171c] dark:text-slate-300 shadow-inset-field">
+                                          "{req.message}"
+                                        </p>
+                                      )}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            )}
+
+                            {/* Settings Sub-tab */}
+                            {modalSubTab === "settings" && groupOverview?.my_role === "owner" && (
+                              <div className="space-y-5 pt-2">
+                                <form onSubmit={handleSaveSettings} className="space-y-3">
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Group Name</label>
+                                    <input value={editName} onChange={(e) => setEditName(e.target.value)} className="w-full rounded-xl bg-slate-50 p-2.5 text-xs text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white" required />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
+                                    <textarea value={editDesc} onChange={(e) => setEditDesc(e.target.value)} rows={2} className="w-full rounded-xl bg-slate-50 p-2.5 text-xs text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white" />
+                                  </div>
+
+                                  <div>
+                                    <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Privacy</label>
+                                    <select value={editPrivacy} onChange={(e) => setEditPrivacy(e.target.value)} className="w-full rounded-xl bg-slate-50 p-2.5 text-xs text-slate-900 shadow-inset-field dark:bg-[#18211f] dark:text-white">
+                                      <option value="public">Public (anyone can join)</option>
+                                      <option value="private">Private (requires owner approval)</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="pt-2 flex justify-end">
+                                    <button type="submit" className="rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700">Save Group Settings</button>
+                                  </div>
+                                </form>
+
+                                <div className="border-t border-rose-200/50 pt-4 space-y-3 dark:border-rose-900/40">
+                                  <p className="text-xs font-bold text-rose-600">Danger Zone: Delete Group</p>
+                                  <p className="text-[11px] text-slate-500">Type "<strong>{groupOverview.group.name}</strong>" below to delete this group and all member data.</p>
+                                  <input value={deleteConfirmName} onChange={(e) => setDeleteConfirmName(e.target.value)} placeholder="Type group name to confirm..." className="w-full rounded-xl bg-rose-50/50 p-2.5 text-xs text-slate-900 shadow-inset-field dark:bg-rose-950/20 dark:text-white" />
+                                  <button type="button" onClick={handleDeleteGroup} disabled={deleteConfirmName !== groupOverview.group.name} className="w-full inline-flex items-center justify-center gap-1.5 rounded-xl bg-rose-600 py-2 text-xs font-bold text-white disabled:opacity-40 hover:bg-rose-700">
+                                    <Trash2 className="h-3.5 w-3.5" /> Delete Study Group
+                                  </button>
+                                </div>
+                              </div>
+                            )}
                           </div>
                         )}
                       </div>
                     </div>
                   )}
 
-                  {selectedGroup && (
-                    <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-sm" onClick={() => setSelectedGroup(null)}>
-                      <div className="max-h-[85vh] w-full max-w-2xl overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c]" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-start justify-between">
-                          <div>
-                            <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">{selectedGroup.subject}</span>
-                            <h2 className="mt-2 text-2xl font-black text-slate-900 dark:text-white">{selectedGroup.name}</h2>
-                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{selectedGroup.description}</p>
-                          </div>
-                          <button type="button" onClick={() => setSelectedGroup(null)} className="rounded-full p-1 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800"><X className="h-5 w-5" /></button>
-                        </div>
-
-                        <div className="mt-5 flex border-b border-slate-100 dark:border-slate-800 gap-4">
-                          <button
-                            type="button"
-                            onClick={() => setSelectedGroupSubTab("overview")}
-                            className={`pb-2.5 text-xs font-bold border-b-2 transition ${
-                              selectedGroupSubTab === "overview"
-                                ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
-                                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            Overview & Members
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedGroupSubTab("sessions")}
-                            className={`pb-2.5 text-xs font-bold border-b-2 transition flex items-center gap-1.5 ${
-                              selectedGroupSubTab === "sessions"
-                                ? "border-emerald-600 text-emerald-600 dark:border-emerald-400 dark:text-emerald-400"
-                                : "border-transparent text-slate-500 hover:text-slate-800 dark:text-slate-400"
-                            }`}
-                          >
-                            <Calendar className="h-3.5 w-3.5" />
-                            Study Sessions
-                          </button>
-                        </div>
-
-                        {groupDetailLoading ? (
-                          <div className="flex min-h-[200px] items-center justify-center">
-                            <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-                          </div>
-                        ) : selectedGroupSubTab === "overview" ? (
-                          <div className="mt-6 space-y-6">
-                            {selectedGroupConversationId && (
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  navigate(`/community/chat/${selectedGroupConversationId}`);
-                                  setSelectedGroup(null);
-                                }}
-                                className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-sm"
-                              >
-                                <MessageSquare className="h-4 w-4" /> Open Group Chat
-                              </button>
-                            )}
-
-                            <div>
-                              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Group Members ({groupMembers.length})</h3>
-                              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
-                                {groupMembers.map((m) => (
-                                  <div key={m.id} className="flex items-center gap-3 rounded-xl border border-slate-100 bg-slate-50 p-2.5 dark:border-slate-800 dark:bg-[#18211f]">
-                                    {m.profile?.user_img ? (
-                                      <img src={m.profile.user_img} alt={m.profile.username} className="h-8 w-8 rounded-full object-cover" />
-                                    ) : (
-                                      <div className="flex h-8 w-8 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
-                                        {(m.profile?.full_name || m.profile?.username || "U").charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
-                                    <div className="min-w-0">
-                                      <p className="truncate text-xs font-bold text-slate-900 dark:text-white">{m.profile?.full_name || m.profile?.username || "Member"}</p>
-                                      <p className="text-[10px] text-slate-500">@{m.profile?.username || "user"}</p>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
-                            </div>
-
-                            <div>
-                              <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3">Group Rankings</h3>
-                              {groupLeaderboard.length === 0 ? (
-                                <p className="text-xs text-slate-500">No member activity recorded yet.</p>
-                              ) : (
-                                <div className="space-y-1.5">
-                                  {groupLeaderboard.map((item, idx) => (
-                                    <div key={item.user_id || idx} className="flex items-center justify-between rounded-xl border border-slate-100 p-2.5 dark:border-slate-800">
-                                      <div className="flex items-center gap-3">
-                                        <span className="w-5 text-center text-xs font-bold text-slate-400">#{idx + 1}</span>
-                                        <p className="text-xs font-bold text-slate-900 dark:text-white">{item.full_name || item.username}</p>
-                                      </div>
-                                      <span className="text-xs font-bold text-amber-600 dark:text-amber-400">{item.xp_points || 0} XP</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        ) : (
-                          <div className="mt-6">
-                            <GroupStudySessions
-                              groupId={selectedGroup.id}
-                              groupConversationId={selectedGroupConversationId}
-                              currentUserId={user?.id}
-                              onJoinSession={(sessionId) => {
-                                setOpenSessionId(sessionId);
-                                setSelectedGroup(null);
-                              }}
-                            />
-                          </div>
-                        )}
-                      </div>
-                    </div>
+                  {/* Request Join Sheet Modal */}
+                  {requestTargetGroup && (
+                    <RequestJoinModal
+                      isOpen={Boolean(requestTargetGroup)}
+                      onClose={() => setRequestTargetGroup(null)}
+                      groupName={requestTargetGroup.name}
+                      submitting={groupActions.submitting}
+                      onSubmit={handleSendJoinRequest}
+                    />
                   )}
                 </div>
               )}
@@ -769,7 +1155,7 @@ const Community = () => {
               {/* FRIENDS TAB */}
               {activeTab === "friends" && (
                 <div className="space-y-6">
-                  <form onSubmit={handleSearchUsers} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
+                  <form onSubmit={handleSearchUsers} className="rounded-2xl bg-white p-4 shadow-surface dark:bg-[#14171c]">
                     <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Find People</p>
                     <div className="flex items-center gap-2">
                       <div className="relative flex-1">
@@ -779,13 +1165,13 @@ const Community = () => {
                           value={searchQuery}
                           onChange={(e) => setSearchQuery(e.target.value)}
                           placeholder="Search by username or full name..."
-                          className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+                          className="w-full rounded-2xl bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white"
                         />
                       </div>
                       <button
                         type="submit"
                         disabled={searchLoading}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
+                        className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-button-primary hover:bg-emerald-700 disabled:opacity-50"
                       >
                         {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
                         <span>Search</span>
@@ -805,13 +1191,7 @@ const Community = () => {
                           return (
                             <div key={p.user_id} className="flex items-center justify-between py-2.5">
                               <div className="flex items-center gap-3">
-                                {p.user_img ? (
-                                  <img src={p.user_img} alt={p.username} className="h-9 w-9 rounded-full object-cover" />
-                                ) : (
-                                  <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-100 font-bold text-emerald-800 text-xs dark:bg-emerald-950 dark:text-emerald-200">
-                                    {(p.full_name || p.username || "U").charAt(0).toUpperCase()}
-                                  </div>
-                                )}
+                                <Avatar src={p.user_img} name={p.full_name} username={p.username} size="sm" />
                                 <div>
                                   <p className="text-sm font-bold text-slate-900 dark:text-white">{p.full_name || p.username}</p>
                                   <p className="text-xs text-slate-500">@{p.username} · Lvl {p.level || 1}</p>
@@ -823,7 +1203,7 @@ const Community = () => {
                               ) : isPendingSent ? (
                                 <button type="button" onClick={() => removeFriendship(existing.id)} className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Request sent</button>
                               ) : (
-                                <button type="button" onClick={() => sendFriendRequest(p.user_id)} className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700">Add friend</button>
+                                <button type="button" onClick={() => sendFriendRequest(p.user_id)} className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700">Add friend</button>
                               )}
                             </div>
                           );
@@ -833,25 +1213,26 @@ const Community = () => {
                   </form>
 
                   {friendsLoading ? (
-                    <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-[#14171c]">
+                    <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-surface dark:bg-[#14171c]">
                       <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
                     </div>
                   ) : (
                     <div className="space-y-6">
                       {pendingIncoming.length > 0 && (
-                        <div className="rounded-2xl border border-amber-200 bg-amber-50/60 p-5 dark:border-amber-900/40 dark:bg-amber-950/20">
+                        <div className="rounded-2xl bg-amber-50/60 p-5 shadow-surface dark:bg-amber-950/20">
                           <p className="text-sm font-bold text-amber-900 dark:text-amber-200 mb-3">Pending Requests ({pendingIncoming.length})</p>
                           <div className="space-y-3">
                             {pendingIncoming.map((req) => {
                               const prof = friendProfiles[req.requester_id];
                               return (
-                                <div key={req.id} className="flex items-center justify-between rounded-xl bg-white p-3 shadow-sm dark:bg-[#14171c]">
+                                <div key={req.id} className="flex items-center justify-between rounded-xl bg-white p-3 shadow-surface dark:bg-[#14171c]">
                                   <div className="flex items-center gap-3">
+                                    <Avatar src={prof?.user_img} name={prof?.full_name} username={prof?.username} size="sm" />
                                     <p className="text-sm font-bold text-slate-900 dark:text-white">{prof?.full_name || prof?.username}</p>
                                   </div>
                                   <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "accepted")} className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white">Accept</button>
-                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "declined")} className="rounded-2xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700">Decline</button>
+                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "accepted")} className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary">Accept</button>
+                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "declined")} className="rounded-2xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">Decline</button>
                                   </div>
                                 </div>
                               );
@@ -860,7 +1241,7 @@ const Community = () => {
                         </div>
                       )}
 
-                      <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
+                      <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
                         <p className="text-base font-bold text-slate-900 dark:text-white mb-4">My Friends ({acceptedFriends.length})</p>
                         {acceptedFriends.length === 0 ? (
                           <p className="text-xs text-slate-500 py-4 text-center">No friends added yet.</p>
@@ -871,15 +1252,9 @@ const Community = () => {
                               const prof = friendProfiles[otherId];
 
                               return (
-                                <div key={f.id} className="flex items-center justify-between rounded-2xl border border-slate-200 bg-slate-50/60 p-3.5 dark:border-slate-800 dark:bg-[#18211f]">
+                                <div key={f.id} className="flex items-center justify-between rounded-2xl bg-slate-50/60 p-3.5 dark:bg-[#18211f] shadow-surface">
                                   <div className="flex items-center gap-3">
-                                    {prof?.user_img ? (
-                                      <img src={prof.user_img} alt={prof.username} className="h-10 w-10 rounded-full object-cover" />
-                                    ) : (
-                                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-200 text-xs font-bold text-emerald-900">
-                                        {(prof?.full_name || prof?.username || "U").charAt(0).toUpperCase()}
-                                      </div>
-                                    )}
+                                    <Avatar src={prof?.user_img} name={prof?.full_name} username={prof?.username} size="sm" />
                                     <div>
                                       <p className="text-sm font-bold text-slate-900 dark:text-white">{prof?.full_name || prof?.username}</p>
                                     </div>
@@ -892,7 +1267,7 @@ const Community = () => {
                                         const { data: convId } = await supabase.rpc("get_or_create_direct_conversation", { p_other_user_id: otherId });
                                         if (convId) navigate(`/community/chat/${convId}`);
                                       }}
-                                      className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+                                      className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700"
                                     >
                                       Message
                                     </button>
@@ -914,12 +1289,11 @@ const Community = () => {
                   className={
                     isMaximized
                       ? "fixed inset-0 z-[120] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe"
-                      : "w-full h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-xs dark:border-slate-800 dark:bg-[#14171c]"
+                      : "w-full h-[calc(100dvh-5rem)] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c]"
                   }
                 >
-                  {/* Desktop Layout: 2-pane split screen */}
                   <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden">
-                    <div className="w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 h-full overflow-y-auto">
+                    <div className="w-80 shrink-0 border-r border-slate-100 dark:border-slate-800 h-full overflow-y-auto">
                       <ChatInbox
                         currentUserId={user?.id}
                         onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
@@ -952,7 +1326,6 @@ const Community = () => {
                     </div>
                   </div>
 
-                  {/* Mobile Layout */}
                   <div className="block md:hidden h-full w-full">
                     {activeConversationId ? (
                       <div className="h-full w-full">
@@ -982,7 +1355,7 @@ const Community = () => {
             {openSessionId && (
               <SessionRoom
                 sessionId={openSessionId}
-                groupConversationId={selectedGroupConversationId}
+                groupConversationId={groupOverview?.conversation_id}
                 currentUserId={user?.id}
                 onClose={() => setOpenSessionId(null)}
               />

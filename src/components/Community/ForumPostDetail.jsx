@@ -621,6 +621,7 @@ export default function ForumPostDetail() {
           answers.map((ans) => {
             const ansAuthor = answerAuthorsMap[ans.user_id];
             const isAccepted = post.accepted_answer_id === ans.id;
+            const isAnsAuthor = currentUserId === ans.user_id;
 
             return (
               <div

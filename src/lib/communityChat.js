@@ -37,12 +37,11 @@ export function formatRelativeTime(dateInput) {
 /**
  * Formats a date into a section header label: "Today", "Yesterday", or "MMM D, YYYY"
  */
-export function formatDateSectionLabel(dateInput) {
+export function formatDateSectionLabel(dateInput, now = new Date()) {
   if (!dateInput) return "Today";
   const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
   if (Number.isNaN(date.getTime())) return "Today";
 
-  const now = new Date();
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
@@ -61,6 +60,8 @@ export function formatDateSectionLabel(dateInput) {
 
 /**
  * Groups messages chronologically by day and clusters consecutive messages by sender.
+ * Fast O(N) path when array is already sorted, string comparison sorting fallback,
+ * and date label caching per call.
  * Returns array of date groups:
  * [
  *   {
@@ -75,28 +76,57 @@ export function formatDateSectionLabel(dateInput) {
 export function groupMessagesByDateAndSender(messages = []) {
   if (!Array.isArray(messages) || messages.length === 0) return [];
 
-  // Sort messages chronologically (oldest first)
-  const sorted = [...messages].sort(
-    (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
-  );
+  // Parse timestamps and check if array is already sorted chronologically in a single pass
+  let isSorted = true;
+  const items = new Array(messages.length);
+  let prevTime = -Infinity;
+
+  for (let i = 0; i < messages.length; i++) {
+    const msg = messages[i];
+    const time = msg && msg.created_at ? new Date(msg.created_at).getTime() : 0;
+    if (time < prevTime) {
+      isSorted = false;
+    }
+    prevTime = time;
+    items[i] = { msg, time };
+  }
+
+  if (!isSorted) {
+    items.sort((a, b) => a.time - b.time);
+  }
 
   const dateGroupsMap = new Map();
+  const dateLabelCache = new Map();
+  const now = new Date();
 
-  for (const message of sorted) {
-    const label = formatDateSectionLabel(message.created_at);
-    if (!dateGroupsMap.has(label)) {
-      dateGroupsMap.set(label, []);
+  for (let i = 0; i < items.length; i++) {
+    const { msg, time } = items[i];
+    if (!msg) continue;
+
+    const dateObj = new Date(time);
+    // Use local calendar date string (e.g. "Mon May 15 2023") as accurate local timezone cache key
+    const localDayKey = dateObj.toDateString();
+
+    let label = dateLabelCache.get(localDayKey);
+    if (!label) {
+      label = formatDateSectionLabel(dateObj, now);
+      dateLabelCache.set(localDayKey, label);
     }
 
-    const clusters = dateGroupsMap.get(label);
+    let clusters = dateGroupsMap.get(label);
+    if (!clusters) {
+      clusters = [];
+      dateGroupsMap.set(label, clusters);
+    }
+
     const lastCluster = clusters[clusters.length - 1];
 
-    if (lastCluster && lastCluster.senderId === message.sender_id) {
-      lastCluster.messages.push(message);
+    if (lastCluster && lastCluster.senderId === msg.sender_id) {
+      lastCluster.messages.push(msg);
     } else {
       clusters.push({
-        senderId: message.sender_id,
-        messages: [message],
+        senderId: msg.sender_id,
+        messages: [msg],
       });
     }
   }

@@ -67,6 +67,17 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ success: false, message: "Missing Authorization header" }),
+        { status: 401, headers: corsHeaders }
+      );
+    }
+
+    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
+
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
 
     let body: SendPushRequest = {};
@@ -77,6 +88,38 @@ Deno.serve(async (req: Request) => {
     }
 
     let targetUserId = body.userId;
+
+    if (token !== serviceRoleKey) {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const {
+        data: { user },
+        error: userError,
+      } = await userClient.auth.getUser();
+
+      if (userError || !user) {
+        return new Response(
+          JSON.stringify({ success: false, message: "Unauthorized user" }),
+          { status: 401, headers: corsHeaders }
+        );
+      }
+
+      if (body.userId && body.userId !== user.id) {
+        return new Response(
+          JSON.stringify({
+            success: false,
+            message: "Forbidden: Cannot send push notification to another user",
+          }),
+          { status: 403, headers: corsHeaders }
+        );
+      }
+
+      if (!targetUserId) {
+        targetUserId = user.id;
+      }
+    }
+
     let notifRow: any = null;
 
     if (body.notificationId) {

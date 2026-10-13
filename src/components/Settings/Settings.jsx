@@ -14,7 +14,7 @@ import {
 } from "../../lib/notifications";
 
 const STORAGE_BUCKET = "user-images";
-const levels = ["9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
+const levels = ["High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
 const primaryGoalOptions = ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"];
 const learnerTypeOptions = ["Academic achiever", "Struggling learner", "Lifelong learner"];
 const generalSubjects = ["Mathematics", "Science", "English", "History", "Computer Science", "Languages", "Business", "Arts"];

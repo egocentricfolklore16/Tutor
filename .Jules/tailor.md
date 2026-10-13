@@ -4,7 +4,7 @@
 |---|---|---|---|---|---|
 | `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
-| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
@@ -43,3 +43,7 @@
 ## 2026-10-18 - Connecting Learning Style to Dashboard AI Suggestions & Settings Options
 **Learning:** `learning_style` was collected in Onboarding Step 3 ("How do you learn best?"), stored in `profiles.learning_style`, and passed to the AI Tutor system prompt, but Dashboard AI Suggestions rendered only generic string lowercasing, and Settings choice options ("Analogy-based") were misaligned with Onboarding choices ("Practice first", "Conversation").
 **Action:** Create `getLearningStyleSuggestion` in `src/lib/learningStyle.js` with tests in `test/learningStyle.test.js`, connect it to `AISuggestions.jsx` to render tailored learning strategy advice, and align `styles` in `Settings.jsx` with onboarding options so preferences can be edited with instant UI propagation via `ProfileContext`.
+
+## 2026-10-24 - Connecting Education Level to Dashboard AI Suggestions & Settings Options
+**Learning:** `education_level` was collected in Onboarding Step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and passed to the AI Tutor system prompt, but was omitted from Dashboard recommendations and Settings `levels` options lacked onboarding choices ("High school", "College / university", "Working professional", "Independent learner"), displaying empty selection.
+**Action:** Create `getEducationLevelSuggestion` in `src/lib/educationLevel.js` with tests in `test/educationLevel.test.js`, connect it to `AISuggestions.jsx` to render tailored academic study context notes, and update `levels` in `Settings.jsx` to include onboarding choices for instant UI propagation via `ProfileContext`.

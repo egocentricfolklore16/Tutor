@@ -14,11 +14,13 @@ import {
   Search,
   Timer,
   Trophy,
+  Users,
   X,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { deleteSession } from "../../lib/sessionService";
 import { useStreak } from "../../hooks/useStreak";
+import { useCombinedSessions } from "../../hooks/useCombinedSessions";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
@@ -104,9 +106,10 @@ function StudyHome() {
   const location = useLocation();
   const { currentStreak } = useStreak();
 
-  const [sessions, setSessions] = useState([]);
+  const { sessions: combinedSessions, loading: combinedLoading, refreshSessions } = useCombinedSessions();
+
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
@@ -126,36 +129,28 @@ function StudyHome() {
 
   useEffect(() => {
     let mounted = true;
-    const load = async () => {
-      setLoading(true);
-      setError("");
+    const loadHistory = async () => {
+      setHistoryLoading(true);
       try {
         const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
-        if (!currentUser) {
-          if (mounted) setError("User not authenticated");
-          return;
-        }
-        const [activeResult, historyResult] = await Promise.all([
-          supabase.from("Study").select("*").eq("user_id", currentUser.id).neq("session_status", "completed"),
-          supabase.from("study_history").select("id, subject, topic, duration_minutes, started_at, completed_at, status, xp_earned").eq("user_id", currentUser.id).order("completed_at", { ascending: false }),
-        ]);
+        if (!currentUser) return;
 
-        if (activeResult.error) throw activeResult.error;
-        if (historyResult.error) throw historyResult.error;
+        const { data: historyData, error: historyErr } = await supabase
+          .from("study_history")
+          .select("id, subject, topic, duration_minutes, started_at, completed_at, status, xp_earned")
+          .eq("user_id", currentUser.id)
+          .order("completed_at", { ascending: false });
 
-        if (mounted) {
-          setSessions(activeResult.data || []);
-          setHistory(historyResult.data || []);
-        }
+        if (historyErr) throw historyErr;
+        if (mounted) setHistory(historyData || []);
       } catch (err) {
-        console.error("Unable to load study data:", err);
-        if (mounted) setError(err.message || "Unable to load study data.");
+        console.error("Unable to load study history:", err);
       } finally {
-        if (mounted) setLoading(false);
+        if (mounted) setHistoryLoading(false);
       }
     };
-    load();
+    loadHistory();
     return () => { mounted = false; };
   }, []);
 
@@ -189,11 +184,11 @@ function StudyHome() {
         },
         ...current.filter((item) => String(item.id) !== String(entry.id)),
       ]);
-      setSessions((current) => current.filter((item) => String(item.id) !== String(entry.session_id)));
+      refreshSessions();
     };
     window.addEventListener("hyper-tutor-session-completed", onCompleted);
     return () => window.removeEventListener("hyper-tutor-session-completed", onCompleted);
-  }, []);
+  }, [refreshSessions]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -215,14 +210,14 @@ function StudyHome() {
     if (Number.isNaN(start.getTime()) || start <= new Date()) return false;
     const end = new Date(start.getTime() + hours * 3600000);
 
-    return !sessions.some((other) => {
-      if (String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
+    return !combinedSessions.some((other) => {
+      if (other.is_group_session || String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
       const otherStart = localDateTime(other.Date, other.Start);
       if (Number.isNaN(otherStart.getTime())) return false;
       const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
       return start < otherEnd && end > otherStart;
     });
-  }, [form, sessions, editingId]);
+  }, [form, combinedSessions, editingId]);
 
   const validationMessage = useMemo(() => {
     if (form.date && form.time) {
@@ -238,8 +233,8 @@ function StudyHome() {
     if (form.date && form.time && hours > 0 && hours <= 100) {
       const start = localDateTime(form.date, form.time);
       const end = new Date(start.getTime() + hours * 3600000);
-      const overlap = sessions.some((other) => {
-        if (String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
+      const overlap = combinedSessions.some((other) => {
+        if (other.is_group_session || String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
         const otherStart = localDateTime(other.Date, other.Start);
         if (Number.isNaN(otherStart.getTime())) return false;
         const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
@@ -248,7 +243,7 @@ function StudyHome() {
       if (overlap) return "This time overlaps another scheduled session.";
     }
     return "";
-  }, [form, sessions, editingId]);
+  }, [form, combinedSessions, editingId]);
 
   const openCreate = () => {
     setFormMode("create");
@@ -307,31 +302,26 @@ function StudyHome() {
       };
 
       if (formMode === "edit") {
-        const { data, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from("Study")
           .update(values)
           .eq("id", editingId)
-          .eq("user_id", currentUser.id)
-          .select("*")
-          .single();
+          .eq("user_id", currentUser.id);
         if (updateError) throw updateError;
-        setSessions((current) => current.map((item) => (String(item.id) === String(editingId) ? data : item)));
       } else {
-        const { data, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from("Study")
           .insert({
             ...values,
             session_status: "active",
             muted: false,
             user_id: currentUser.id,
-          })
-          .select("*")
-          .single();
+          });
         if (insertError) throw insertError;
-        setSessions((current) => [...current, data]);
       }
       setForm(INITIAL_FORM);
       setFormOpen(false);
+      refreshSessions();
     } catch (saveError) {
       console.error("Unable to save study session:", saveError);
       setError(saveError.message || "Unable to save study session.");
@@ -343,11 +333,11 @@ function StudyHome() {
   const removeSession = async (sessionItem) => {
     setMenuId(null);
     if (!window.confirm(`Delete “${sessionItem.Topic || sessionItem.Subject}” and its attached materials?`)) return;
-    setSessions((current) => current.filter((item) => String(item.id) !== String(sessionItem.id)));
     const { error: deleteError } = await deleteSession({ id: sessionItem.id });
     if (deleteError) {
-      setSessions((current) => [...current, sessionItem]);
       setError(deleteError.message || "Unable to delete session.");
+    } else {
+      refreshSessions();
     }
   };
 
@@ -364,7 +354,13 @@ function StudyHome() {
     setDeletingHistoryId(null);
   };
 
-  const startSession = (sessionItem) => navigate(`/Study/${encodeURIComponent(sessionItem.id)}`);
+  const startSession = (sessionItem) => {
+    if (sessionItem.is_group_session) {
+      navigate(`/community?tab=groups&groupId=${sessionItem.group_id}`);
+    } else {
+      navigate(`/Study/${encodeURIComponent(sessionItem.id)}`);
+    }
+  };
 
   const today = localDateString(new Date(clockNow));
   const upcomingBuckets = useMemo(() => {
@@ -374,7 +370,7 @@ function StudyHome() {
     const upcoming = [];
     const overdue = [];
 
-    sessions.forEach((item) => {
+    combinedSessions.forEach((item) => {
       const state = normalizeStatus(item.session_status);
       if (state === "paused") {
         paused.push(item);
@@ -401,7 +397,7 @@ function StudyHome() {
       today: todayItems.sort(byStart),
       upcoming: upcoming.sort(byStart),
     };
-  }, [sessions, clockNow, today]);
+  }, [combinedSessions, clockNow, today]);
 
   const uniqueSubjects = useMemo(() => [...new Set(history.map((item) => item.subject).filter(Boolean))].sort(), [history]);
 
@@ -441,17 +437,13 @@ function StudyHome() {
     return [...groups.values()];
   }, [visibleHistory]);
 
-  // BOLT OPTIMIZATION:
-  // Memoize aggregated history and active session study statistics.
-  // Eliminates multiple array traversals and Date object allocations on every render pass
-  // (e.g., when typing in the search input, toggling subject/range filters, or opening menus).
   const statsSummary = useMemo(() => {
     const todayHistoryMinutes = history.reduce((total, item) => {
       if (!item.completed_at || localDateString(new Date(item.completed_at)) !== today) return total;
       return total + (Number(item.duration_minutes) || 0);
     }, 0);
 
-    const activeTodayMinutes = sessions.reduce((total, item) => {
+    const activeTodayMinutes = combinedSessions.reduce((total, item) => {
       if (item.Date !== today) return total;
       return total + Math.floor(sessionElapsedSeconds(item) / 60);
     }, 0);
@@ -473,7 +465,7 @@ function StudyHome() {
       totalHistoryMinutes,
       totalHistoryXp,
     };
-  }, [history, sessions, clockNow, today, filteredHistory]);
+  }, [history, combinedSessions, clockNow, today, filteredHistory]);
 
   const {
     todayMinutes,
@@ -504,72 +496,97 @@ function StudyHome() {
     return (
       <article
         key={item.id}
-        className="group flex min-h-[250px] flex-col rounded-xl border border-slate-200 bg-white p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 hover:border-emerald-300 hover:shadow-md focus-within:ring-2 focus-within:ring-emerald-500 dark:border-slate-700 dark:bg-slate-900 dark:hover:border-emerald-700"
+        className={`group flex min-h-[250px] flex-col rounded-xl border p-5 shadow-sm transition duration-200 hover:-translate-y-0.5 focus-within:ring-2 focus-within:ring-emerald-500 ${
+          item.is_group_session
+            ? "border-cyan-200 bg-cyan-50/20 dark:border-cyan-900/40 dark:bg-cyan-950/10 hover:border-cyan-400"
+            : "border-slate-200 bg-white dark:border-slate-700 dark:bg-slate-900 hover:border-emerald-300 dark:hover:border-emerald-700"
+        }`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-              <BookOpen className="h-5 w-5" />
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                item.is_group_session
+                  ? "bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300"
+                  : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+              }`}
+            >
+              {item.is_group_session ? <Users className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
             </span>
             <div className="min-w-0">
+              {item.is_group_session && (
+                <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <Users className="h-3 w-3" />
+                  <span>{item.group_name}</span>
+                </div>
+              )}
               <h3 className="truncate text-base font-bold text-slate-900 dark:text-white">
-                {titleCase(item.Topic || item.Subject)}
+                {titleCase(item.title || item.Topic || item.Subject)}
               </h3>
               <p className="mt-1 truncate text-sm text-slate-500 dark:text-slate-400">
-                {titleCase(item.Subject)}
+                {titleCase(item.subject || item.Subject)}
               </p>
             </div>
           </div>
 
-          <div className="relative shrink-0 kebab-menu-container">
-            <button
-              type="button"
-              aria-label={`More options for ${item.Topic || item.Subject}`}
-              aria-expanded={menuId === item.id}
-              onClick={() => setMenuId(menuId === item.id ? null : item.id)}
-              className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-slate-800"
-            >
-              <MoreHorizontal className="h-5 w-5" />
-            </button>
-            {menuId === item.id && (
-              <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  Edit
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item)}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  Reschedule
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openEdit(item, "duplicate")}
-                  className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
-                >
-                  Duplicate
-                </button>
-                <button
-                  type="button"
-                  onClick={() => removeSession(item)}
-                  className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
-                >
-                  Delete
-                </button>
-              </div>
-            )}
-          </div>
+          {!item.is_group_session && (
+            <div className="relative shrink-0 kebab-menu-container">
+              <button
+                type="button"
+                aria-label={`More options for ${item.Topic || item.Subject}`}
+                aria-expanded={menuId === item.id}
+                onClick={() => setMenuId(menuId === item.id ? null : item.id)}
+                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:hover:bg-slate-800"
+              >
+                <MoreHorizontal className="h-5 w-5" />
+              </button>
+              {menuId === item.id && (
+                <div className="absolute right-0 z-20 mt-1 w-40 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-xl dark:border-slate-700 dark:bg-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item)}
+                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Edit
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item)}
+                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Reschedule
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(item, "duplicate")}
+                    className="block w-full px-4 py-2 text-left text-sm text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    Duplicate
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removeSession(item)}
+                    className="block w-full px-4 py-2 text-left text-sm text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30"
+                  >
+                    Delete
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         <div className="mt-4 flex flex-wrap items-center gap-2">
-          <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityClasses}`}>
-            {item.Status || "Importance not set"}
-          </span>
+          {!item.is_group_session && (
+            <span className={`rounded-full border px-2.5 py-1 text-xs font-semibold ${priorityClasses}`}>
+              {item.Status || "Importance not set"}
+            </span>
+          )}
+          {item.is_group_session && (
+            <span className="rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-bold capitalize text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+              RSVP: {item.user_rsvp || "Not responded"} ({item.going_count} going)
+            </span>
+          )}
           <span
             className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
               running
@@ -595,7 +612,7 @@ function StudyHome() {
           </p>
           <p className="flex items-center gap-2">
             <Clock3 className="h-4 w-4 shrink-0 text-slate-400" />
-            {formatDuration(sessionDurationHours(item) * 60)} planned
+            {formatDuration((item.duration_minutes || sessionDurationHours(item) * 60))} planned
           </p>
         </div>
 
@@ -619,23 +636,16 @@ function StudyHome() {
             type="button"
             onClick={() => startSession(item)}
             className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-              paused
+              item.is_group_session
+                ? "bg-cyan-600 text-white hover:bg-cyan-700 focus-visible:ring-cyan-500"
+                : paused
                 ? "bg-amber-500 text-slate-950 hover:bg-amber-400 focus-visible:ring-amber-500"
                 : "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500"
             }`}
           >
             <Play className="h-4 w-4 fill-current" />
-            {paused || running ? "Resume" : overdue ? "Reschedule" : "Start"}
+            {item.is_group_session ? "View Group Session" : paused || running ? "Resume" : overdue ? "Reschedule" : "Start"}
           </button>
-          {overdue && (
-            <button
-              type="button"
-              onClick={() => startSession(item)}
-              className="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Start now
-            </button>
-          )}
         </div>
       </article>
     );
@@ -720,7 +730,7 @@ function StudyHome() {
           ))}
         </section>
 
-        {loading ? (
+        {combinedLoading ? (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading sessions">
             {Array.from({ length: 3 }, (_, index) => (
               <div
@@ -799,7 +809,7 @@ function StudyHome() {
             </div>
           </div>
 
-          {loading ? (
+          {historyLoading ? (
             <div className="mt-5 space-y-3" aria-label="Loading history">
               {Array.from({ length: 4 }, (_, index) => (
                 <div key={index} className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />

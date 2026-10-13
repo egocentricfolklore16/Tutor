@@ -143,7 +143,7 @@ export function recordNotification(notification, preferences = null, date = new 
   if (quietHoursActive) {
     const muted = { ...notificationRecord, muted: true };
     saveStoredNotifications(getStoredNotifications().map((item) => item.id === muted.id ? muted : item));
-    return notificationRecord;
+    return muted;
   }
 
   return notificationRecord;

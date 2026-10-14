@@ -1,32 +1,12 @@
 import React, { useMemo } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Repeat } from 'lucide-react';
 
-const RecurringSetup = ({
-  sessions = [],
-  onUpdateRecurring,
-  onRequestRemove,
-  onAddActivity,
-}) => {
-  const recurringSessions = useMemo(() => {
-    const seenIds = new Set();
-    const result = [];
-
-    for (const session of sessions || []) {
-      const isRec = Boolean(
-        session.isRecurring ||
-        (session.recurring && session.recurring !== 'none') ||
-        session.type === 'recurring_session'
-      );
-      if (!isRec) continue;
-
-      const uniqueKey = session.activityId || session.id;
-      if (uniqueKey && !seenIds.has(uniqueKey)) {
-        seenIds.add(uniqueKey);
-        result.push(session);
-      }
-    }
-    return result;
-  }, [sessions]);
+const RecurringSetup = ({ sessions, onUpdateRecurring, onAddActivity }) => {
+  // Memoize recurring sessions filter to prevent unnecessary array allocations on parent re-renders
+  const recurringSessions = useMemo(
+    () => (Array.isArray(sessions) ? sessions.filter((session) => session && session.recurring && session.recurring !== 'none') : []),
+    [sessions]
+  );
 
   return (
     <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5 shadow-surface dark:bg-slate-900">

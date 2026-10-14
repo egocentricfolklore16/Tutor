@@ -52,43 +52,11 @@ const PlannerPage = () => {
     to: rangeTo,
   });
 
-  const { groupSessions } = useCombinedSessions();
-
-  // Merge group sessions into planner activities list
-  const mergedActivities = useMemo(() => {
-    const plannerList = activities || [];
-    if (!groupSessions || groupSessions.length === 0) return plannerList;
-
-    const formattedGroupItems = groupSessions.map((gs) => ({
-      id: `group-${gs.id}`,
-      original_group_session_id: gs.id,
-      title: gs.title,
-      subject: gs.subject,
-      date: gs.Date,
-      startTime: gs.Start,
-      duration: gs.duration_minutes,
-      type: "group_session",
-      activityType: "session",
-      is_group_session: true,
-      group_id: gs.group_id,
-      group_name: gs.group_name,
-      user_rsvp: gs.user_rsvp,
-      going_count: gs.going_count,
-      color: "bg-cyan-600",
-      status: gs.session_status,
-    }));
-
-    return [...plannerList, ...formattedGroupItems];
-  }, [activities, groupSessions]);
-
-  // Filter out optimistically deleted activities
-  const visibleActivities = useMemo(() => {
-    if (removedSessionIds.size === 0) return mergedActivities;
-    return mergedActivities.filter((act) => {
-      const key = act.activityId || act.id;
-      return !removedSessionIds.has(key);
-    });
-  }, [mergedActivities, removedSessionIds]);
+  // Memoize blocked times filter to avoid creating new array instances on every Planner re-render
+  const blockedTimes = useMemo(
+    () => (Array.isArray(activities) ? activities.filter((a) => a && a.type === "time_block") : []),
+    [activities]
+  );
 
   const { createActivity, isSaving: isCreating } = useCreateActivity();
   const { updateActivity, isSaving: isUpdating } = useUpdateActivity();
@@ -416,7 +384,7 @@ const PlannerPage = () => {
               onAddActivity={() => handleAddActivity(selectedDate, "recurring")}
             />
             <TimeBlocking
-              blockedTimes={visibleActivities.filter((a) => a.type === "time_block")}
+              blockedTimes={blockedTimes}
               onAddActivity={() => handleAddActivity(selectedDate, "timeblock")}
               onDeleteBlock={(id) => handleDeleteActivity(id, "all")}
             />

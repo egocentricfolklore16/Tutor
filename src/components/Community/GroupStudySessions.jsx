@@ -11,6 +11,29 @@ import {
   Loader2,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import ResponsiveSheet from "../common/ResponsiveSheet";
+
+function AvatarItem({ prof }) {
+  const [imgError, setImgError] = useState(false);
+  const initial = (prof?.full_name || prof?.username || "U").charAt(0).toUpperCase();
+
+  if (prof?.user_img && !imgError) {
+    return (
+      <img
+        src={prof.user_img}
+        alt={prof.username || "User"}
+        onError={() => setImgError(true)}
+        className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-[#14171c] object-cover"
+      />
+    );
+  }
+
+  return (
+    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-900 ring-2 ring-white dark:ring-[#14171c] dark:bg-emerald-900 dark:text-emerald-100">
+      {initial}
+    </div>
+  );
+}
 
 export default function GroupStudySessions({
   groupId,
@@ -172,24 +195,32 @@ export default function GroupStudySessions({
       </div>
 
       {/* Schedule Form Modal */}
-      {showScheduleForm && (
-        <form
-          onSubmit={handleScheduleSubmit}
-          className="rounded-2xl border border-emerald-200 bg-emerald-50/60 p-4 dark:border-emerald-900/50 dark:bg-emerald-950/20 space-y-3"
-        >
-          <div className="flex items-center justify-between">
-            <p className="text-sm font-bold text-emerald-950 dark:text-emerald-200">
-              Schedule Group Study Session
-            </p>
+      <ResponsiveSheet
+        isOpen={showScheduleForm}
+        onClose={() => setShowScheduleForm(false)}
+        title="Schedule Group Study Session"
+        footer={
+          <div className="flex justify-end gap-2 w-full">
             <button
               type="button"
               onClick={() => setShowScheduleForm(false)}
-              className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"
+              className="rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700"
             >
-              <X className="h-4 w-4" />
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={handleScheduleSubmit}
+              disabled={scheduling || !title.trim() || !scheduledStart}
+              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
+            >
+              {scheduling && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+              <span>Save Session</span>
             </button>
           </div>
-
+        }
+      >
+        <form onSubmit={handleScheduleSubmit} className="space-y-4">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
@@ -200,7 +231,7 @@ export default function GroupStudySessions({
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
                 placeholder="e.g. Midterm Exam Prep"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -212,7 +243,7 @@ export default function GroupStudySessions({
                 value={subject}
                 onChange={(e) => setSubject(e.target.value)}
                 placeholder="e.g. Organic Chemistry"
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -225,7 +256,7 @@ export default function GroupStudySessions({
                 type="datetime-local"
                 value={scheduledStart}
                 onChange={(e) => setScheduledStart(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
 
@@ -239,30 +270,12 @@ export default function GroupStudySessions({
                 max={240}
                 value={durationMinutes}
                 onChange={(e) => setDurationMinutes(e.target.value)}
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs text-slate-900 dark:border-slate-700 dark:bg-[#14171c] dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
               />
             </div>
           </div>
-
-          <div className="flex justify-end gap-2 pt-1">
-            <button
-              type="button"
-              onClick={() => setShowScheduleForm(false)}
-              className="rounded-xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={scheduling}
-              className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-4 py-1.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
-            >
-              {scheduling && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-              <span>Save Session</span>
-            </button>
-          </div>
         </form>
-      )}
+      </ResponsiveSheet>
 
       {/* Sessions List */}
       {loading ? (
@@ -339,21 +352,7 @@ export default function GroupStudySessions({
                     <div className="flex -space-x-2 overflow-hidden">
                       {goingUsers.slice(0, 5).map((p) => {
                         const prof = participantProfiles[p.user_id];
-                        return prof?.user_img ? (
-                          <img
-                            key={p.id}
-                            src={prof.user_img}
-                            alt={prof.username}
-                            className="inline-block h-7 w-7 rounded-full ring-2 ring-white dark:ring-[#14171c] object-cover"
-                          />
-                        ) : (
-                          <div
-                            key={p.id}
-                            className="flex h-7 w-7 items-center justify-center rounded-full bg-emerald-200 text-[10px] font-bold text-emerald-900 ring-2 ring-white dark:ring-[#14171c] dark:bg-emerald-900 dark:text-emerald-100"
-                          >
-                            {(prof?.full_name || prof?.username || "U").charAt(0).toUpperCase()}
-                          </div>
-                        );
+                        return <AvatarItem key={p.id} prof={prof} />;
                       })}
                     </div>
 

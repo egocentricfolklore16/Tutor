@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Plus,
   ChevronLeft,
@@ -26,6 +26,7 @@ import {
   useUpdateActivity,
   useDeleteActivity,
 } from "../../hooks/usePlanner";
+import { useCombinedSessions } from "../../hooks/useCombinedSessions";
 
 const PlannerPage = () => {
   const { profile } = useProfile();
@@ -44,6 +45,35 @@ const PlannerPage = () => {
     from: rangeFrom,
     to: rangeTo,
   });
+
+  const { groupSessions } = useCombinedSessions();
+
+  // Merge group sessions into planner activities list
+  const mergedActivities = useMemo(() => {
+    const plannerList = activities || [];
+    if (!groupSessions || groupSessions.length === 0) return plannerList;
+
+    const formattedGroupItems = groupSessions.map((gs) => ({
+      id: `group-${gs.id}`,
+      original_group_session_id: gs.id,
+      title: gs.title,
+      subject: gs.subject,
+      date: gs.Date,
+      startTime: gs.Start,
+      duration: gs.duration_minutes,
+      type: "group_session",
+      activityType: "session",
+      is_group_session: true,
+      group_id: gs.group_id,
+      group_name: gs.group_name,
+      user_rsvp: gs.user_rsvp,
+      going_count: gs.going_count,
+      color: "bg-cyan-600",
+      status: gs.session_status,
+    }));
+
+    return [...plannerList, ...formattedGroupItems];
+  }, [activities, groupSessions]);
 
   const { createActivity, isSaving: isCreating } = useCreateActivity();
   const { updateActivity, isSaving: isUpdating } = useUpdateActivity();
@@ -104,6 +134,7 @@ const PlannerPage = () => {
   };
 
   const handleEditActivity = (activity) => {
+    if (activity.is_group_session) return; // Disallow editing group sessions in planner
     setEditingActivity(activity);
     let mode = "session";
     if (activity.type === "time_block") mode = "timeblock";
@@ -146,6 +177,7 @@ const PlannerPage = () => {
   };
 
   const handleDuplicateActivity = (activity) => {
+    if (activity.is_group_session) return;
     setEditingActivity(null);
     const duplicateData = {
       ...activity,
@@ -160,9 +192,6 @@ const PlannerPage = () => {
     try {
       await updateActivity(activityId, { status: newStatus }, "this_only");
       showToast(`Session marked as ${newStatus}`);
-      if (newStatus === "completed") {
-        console.info("Planner session completed hook: XP/Streak logic can be invoked here.");
-      }
       refetch();
     } catch (err) {
       console.error("Status update error:", err);
@@ -239,7 +268,7 @@ const PlannerPage = () => {
         <>
           <PlannerStatsBar />
           <DeadlineManager
-            sessions={activities}
+            sessions={mergedActivities}
             onAddActivity={() => handleAddActivity(selectedDate, "deadline")}
           />
 
@@ -311,7 +340,7 @@ const PlannerPage = () => {
               currentDate={currentDate}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
-              sessions={activities}
+              sessions={mergedActivities}
               handleDrop={() => {}}
               setSelectedSession={setSelectedSession}
               selectedSession={selectedSession}
@@ -323,16 +352,16 @@ const PlannerPage = () => {
 
           <div className="mb-6 flex flex-col gap-4">
             <RecurringSetup
-              sessions={activities}
+              sessions={mergedActivities}
               onAddActivity={() => handleAddActivity(selectedDate, "recurring")}
             />
             <TimeBlocking
-              blockedTimes={activities.filter((a) => a.type === "time_block")}
+              blockedTimes={mergedActivities.filter((a) => a.type === "time_block")}
               onAddActivity={() => handleAddActivity(selectedDate, "timeblock")}
               onDeleteBlock={(id) => handleDeleteActivity(id, "all")}
             />
           </div>
-          <ExternalCalendarSync sessions={activities} />
+          <ExternalCalendarSync sessions={mergedActivities} />
         </>
       )}
 

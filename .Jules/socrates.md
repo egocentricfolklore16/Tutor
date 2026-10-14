@@ -21,3 +21,9 @@
 **Learning:** When multiple Edge Functions serve AI chat features (e.g., `ai-tutor` vs `ai-tutor-chat`), prompt-only strictness rules in lightweight endpoints (such as `STRICTNESS_PROMPTS` instructing "or explicitly ask you to just tell them") create bypass holes where answer locking is skipped on attempt 0. Sharing server-side attempt counting (`countGenuineAttempts`) and state formatting (`getStrictnessRules`) across all AI endpoints ensures uniform lock enforcement.
 
 **Action:** Whenever introducing or updating AI prompt edge functions, ensure every chat endpoint computes turn history attempts server-side and injects `SERVER-ENFORCED STATE: LOCKED/UNLOCKED` rules rather than relying on static inline text.
+
+## 2026-10-06 - Closing Answer-Unlock Demand Phrase Bypass Holes in Turn Counting
+
+**Learning:** Students can bypass answer-locking logic by introducing mild modifier adjectives (e.g., "tell me the final answer", "give me the correct answer", "what is the right answer") or phrasing variations ("solve this for me", "i do not know", "i do not understand") that match neither exact string matches nor rigid demand regexes. Expanding regexes to handle optional descriptive adjectives and alternate pronouns ensures students cannot trick the turn counter into unlocking answers without genuine effort.
+
+**Action:** Maintain regex patterns in `countGenuineAttempts` that accommodate optional adjectives (`(?:final|correct|exact|right|actual|complete|full|real)\s*`) and verb target variations (`this` vs `it`) while maintaining strict boundaries so valid student queries remain recognized as genuine attempts.

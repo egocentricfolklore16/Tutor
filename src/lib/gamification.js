@@ -1,4 +1,4 @@
-import supabase from "./supabase";
+import supabase from "./supabase.js";
 
 /**
  * Calculates XP level info given total XP points.

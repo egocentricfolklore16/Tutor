@@ -19,3 +19,7 @@
 ## 2026-10-12 - Streak Slip Reason Preservation & Module ESM Extension
 **Learning:** `checkAndLogStreakSlip` in `src/lib/streaks.js` calculated `slipReason` as `"missed_day"` vs `"streak_broken"` depending on freeze token availability, but hardcoded `"streak_broken"` in its return payload. Additionally, dynamic ESM imports in `src/lib/` require explicit `.js` extensions (e.g., `import("./streaksCore.js")`) for Node's native test runner.
 **Action:** When testing streak slip detection, verify both the persisted database payload and returned result object match `slipReason`, and ensure all dynamic imports specify `.js` file extensions.
+
+## 2026-10-14 - Gamification ESM Import Specifiers & RPC Fallbacks
+**Learning:** `src/lib/gamification.js` imported `supabase` without an explicit `.js` file extension (`import supabase from "./supabase"`), which caused `ERR_MODULE_NOT_FOUND` in Node's native test runner. Explicit `.js` extension specifiers are required across `src/lib/` modules.
+**Action:** When testing library utilities or RPC fallbacks in `src/lib/`, ensure relative imports include explicit `.js` extensions.

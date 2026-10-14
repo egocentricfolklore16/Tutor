@@ -11,3 +11,7 @@
 ## 2025-05-22 - Cross-User Reference Isolation and Metadata Stringification
 **Learning:** Paystack webhooks and API callbacks can deliver `metadata` as stringified JSON strings rather than objects. Additionally, without validating that `existingPayment.user_id === userId` on re-processed references, a user can attempt reference hijacking across accounts.
 **Action:** Always parse `metadata` and `customer.metadata` defensively with `JSON.parse`, check `plan.is_active === false`, and ensure `existingPayment.user_id === userId` before returning processed subscription state.
+
+## 2025-05-23 - Edge Function Metadata String Parsing and Strict IDOR Verification
+**Learning:** In Edge Functions like `verify-payment`, checking `metadataUserId` without parsing stringified `paystackData.data.metadata` or `customer.metadata` results in `metadataUserId` evaluating to `undefined`. If the ownership check condition allows `undefined` through or fails to require `metadataUserId === user.id`, an attacker could verify payments belonging to other users or bypass authentication checks when Paystack passes stringified metadata.
+**Action:** Always defensively parse stringified `metadata` and `customer.metadata` in verification Edge Functions before checking `!metadataUserId || metadataUserId !== user.id` to enforce strict ownership matching.

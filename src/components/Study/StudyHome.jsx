@@ -15,11 +15,13 @@ import {
   Search,
   Timer,
   Trophy,
+  Users,
   X,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { deleteSession } from "../../lib/sessionService";
 import { useStreak } from "../../hooks/useStreak";
+import { useCombinedSessions } from "../../hooks/useCombinedSessions";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
@@ -123,9 +125,10 @@ function StudyHome() {
   const location = useLocation();
   const { currentStreak = 0 } = useStreak() || {};
 
-  const [sessions, setSessions] = useState([]);
+  const { sessions: combinedSessions, loading: combinedLoading, refreshSessions } = useCombinedSessions();
+
   const [history, setHistory] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [historyLoading, setHistoryLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
@@ -226,7 +229,7 @@ function StudyHome() {
     };
     window.addEventListener("hyper-tutor-session-completed", onCompleted);
     return () => window.removeEventListener("hyper-tutor-session-completed", onCompleted);
-  }, []);
+  }, [refreshSessions]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -255,7 +258,7 @@ function StudyHome() {
       const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
       return start < otherEnd && end > otherStart;
     });
-  }, [form, sessions, editingId]);
+  }, [form, combinedSessions, editingId]);
 
   const validationMessage = useMemo(() => {
     if (form.date && form.time) {
@@ -283,7 +286,7 @@ function StudyHome() {
       }
     }
     return "";
-  }, [form, sessions, editingId]);
+  }, [form, combinedSessions, editingId]);
 
   const openEdit = (sessionItem, mode = "edit") => {
     if (!sessionItem) return;
@@ -338,31 +341,28 @@ function StudyHome() {
       };
 
       if (formMode === "edit") {
-        const { data, error: updateError } = await supabase
+        const { error: updateError } = await supabase
           .from("Study")
           .update(values)
           .eq("id", editingId)
-          .eq("user_id", currentUser.id)
-          .select("*")
-          .single();
+          .eq("user_id", currentUser.id);
         if (updateError) throw updateError;
         setSessions((current) => (current ?? []).map((item) => (String(item.id) === String(editingId) ? data : item)));
       } else {
-        const { data, error: insertError } = await supabase
+        const { error: insertError } = await supabase
           .from("Study")
           .insert({
             ...values,
             session_status: "active",
             muted: false,
             user_id: currentUser.id,
-          })
-          .select("*")
-          .single();
+          });
         if (insertError) throw insertError;
         setSessions((current) => [...(current ?? []), data]);
       }
       setForm(INITIAL_FORM);
       setFormOpen(false);
+      refreshSessions();
     } catch (saveError) {
       console.error("Unable to save study session:", saveError);
       setError(saveError?.message || "Unable to save study session.");
@@ -447,7 +447,7 @@ function StudyHome() {
       today: todayItems.sort(byStart),
       upcoming: upcoming.sort(byStart),
     };
-  }, [sessions, clockNow, today]);
+  }, [combinedSessions, clockNow, today]);
 
   const uniqueSubjects = useMemo(() => [...new Set((history ?? []).map((item) => item?.subject).filter(Boolean))].sort(), [history]);
 
@@ -521,7 +521,7 @@ function StudyHome() {
       totalHistoryMinutes,
       totalHistoryXp,
     };
-  }, [history, sessions, clockNow, today, filteredHistory]);
+  }, [history, combinedSessions, clockNow, today, filteredHistory]);
 
   const {
     todayMinutes,
@@ -564,10 +564,22 @@ function StudyHome() {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-start gap-3">
-            <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
-              <BookOpen className="h-5 w-5" />
+            <span
+              className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${
+                item.is_group_session
+                  ? "bg-cyan-100 text-cyan-800 dark:bg-cyan-950 dark:text-cyan-300"
+                  : "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+              }`}
+            >
+              {item.is_group_session ? <Users className="h-5 w-5" /> : <BookOpen className="h-5 w-5" />}
             </span>
             <div className="min-w-0">
+              {item.is_group_session && (
+                <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <Users className="h-3 w-3" />
+                  <span>{item.group_name}</span>
+                </div>
+              )}
               <h3 className="truncate text-base font-bold text-slate-900 dark:text-white">
                 {titleCase(itemTopic || itemSubject || "Untitled Session")}
               </h3>
@@ -651,7 +663,7 @@ function StudyHome() {
           </p>
           <p className="flex items-center gap-2">
             <Clock3 className="h-4 w-4 shrink-0 text-slate-400" />
-            {formatDuration(sessionDurationHours(item) * 60)} planned
+            {formatDuration((item.duration_minutes || sessionDurationHours(item) * 60))} planned
           </p>
         </div>
 
@@ -675,23 +687,16 @@ function StudyHome() {
             type="button"
             onClick={() => startSession(item)}
             className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
-              paused
+              item.is_group_session
+                ? "bg-cyan-600 text-white hover:bg-cyan-700 focus-visible:ring-cyan-500"
+                : paused
                 ? "bg-amber-500 text-slate-950 hover:bg-amber-400 focus-visible:ring-amber-500"
                 : "bg-emerald-600 text-white hover:bg-emerald-700 focus-visible:ring-emerald-500"
             }`}
           >
             <Play className="h-4 w-4 fill-current" />
-            {paused || running ? "Resume" : overdue ? "Reschedule" : "Start"}
+            {item.is_group_session ? "View Group Session" : paused || running ? "Resume" : overdue ? "Reschedule" : "Start"}
           </button>
-          {overdue && (
-            <button
-              type="button"
-              onClick={() => startSession(item)}
-              className="min-h-10 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:border-slate-600 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Start now
-            </button>
-          )}
         </div>
       </article>
     );
@@ -788,7 +793,7 @@ function StudyHome() {
           ))}
         </section>
 
-        {loading ? (
+        {combinedLoading ? (
           <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading sessions">
             {Array.from({ length: 3 }, (_, index) => (
               <div
@@ -882,7 +887,7 @@ function StudyHome() {
             </div>
           </div>
 
-          {loading ? (
+          {historyLoading ? (
             <div className="mt-5 space-y-3" aria-label="Loading history">
               {Array.from({ length: 4 }, (_, index) => (
                 <div key={index} className="h-16 animate-pulse rounded-lg bg-slate-100 dark:bg-slate-800" />

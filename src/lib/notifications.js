@@ -9,6 +9,10 @@ export const defaultNotificationPreferences = {
   systemAlerts: true,
   digest: "normal",
   autoPrompt: true,
+  group_reminders_enabled: true,
+  group_reminder_30m: true,
+  group_reminder_15m: true,
+  group_reminder_0m: true,
   quietHours: {
     enabled: true,
     start: "22:00",
@@ -17,11 +21,39 @@ export const defaultNotificationPreferences = {
 };
 
 const reminderTimers = new Map();
+const FIRED_REMINDERS_KEY = "hyper-tutor-fired-group-reminders";
+
+function getFiredGroupReminders() {
+  try {
+    const raw = localStorage.getItem(FIRED_REMINDERS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setFiredGroupReminder(tagKey, expiresAt) {
+  try {
+    const fired = getFiredGroupReminders();
+    fired[tagKey] = expiresAt;
+
+    // Prune expired tags
+    const now = Date.now();
+    const clean = {};
+    for (const [k, exp] of Object.entries(fired)) {
+      if (exp > now) clean[k] = exp;
+    }
+    clean[tagKey] = expiresAt;
+    localStorage.setItem(FIRED_REMINDERS_KEY, JSON.stringify(clean));
+  } catch {
+    // ignore
+  }
+}
 
 export function resolveSessionDateTime(session) {
   if (!session) return null;
 
-  const rawDate = session.Date ?? session.date;
+  const rawDate = session.Date ?? session.date ?? session.scheduled_start;
   let baseDate;
 
   if (rawDate instanceof Date) {
@@ -44,7 +76,9 @@ export function resolveSessionDateTime(session) {
   const timeValue = session.Start ?? session.startTime ?? "09:00";
   const [hours = 0, minutes = 0] = String(timeValue).split(":").map(Number);
   const scheduledAt = new Date(baseDate);
-  scheduledAt.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  if (!session.scheduled_start) {
+    scheduledAt.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  }
 
   return scheduledAt;
 }
@@ -222,6 +256,92 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
 
   reminderTimers.set(session.id, timer);
   return timer;
+}
+
+/**
+ * TODO: Group session background notifications when the app is completely closed
+ * require Web Push Service Worker push handling (out of scope here).
+ */
+export function scheduleGroupSessionReminders(groupSessions, preferences = null, now = Date.now()) {
+  const prefs = normalizeNotificationPreferences(preferences || getNotificationPreferences());
+  if (!prefs.group_reminders_enabled) return;
+
+  const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
+  const firedMap = getFiredGroupReminders();
+
+  const offsets = [
+    { key: "group_reminder_30m", offsetMins: 30, text: (t, g) => `Starts in 30 minutes: ${t} · ${g}` },
+    { key: "group_reminder_15m", offsetMins: 15, text: (t, g) => `Starts in 15 minutes: ${t} · ${g}` },
+    { key: "group_reminder_0m", offsetMins: 0, text: (t, g) => `Starting now: ${t} · ${g}` },
+  ];
+
+  (groupSessions || []).forEach((sess) => {
+    if (!sess || sess.user_rsvp === "declined") return;
+
+    const startMs = new Date(sess.scheduled_start).getTime();
+    if (isNaN(startMs)) return;
+
+    const durationMins = sess.duration_minutes || 60;
+    const expiresAt = startMs + durationMins * 60 * 1000;
+
+    offsets.forEach(({ key, offsetMins, text }) => {
+      if (!prefs[key]) return;
+
+      const tagKey = `${sess.id}-${offsetMins}`;
+      if (firedMap[tagKey]) return; // Already fired
+
+      const fireTimeMs = startMs - offsetMins * 60 * 1000;
+      const timeDiff = fireTimeMs - currentTime;
+
+      // Tolerance window: if fire time is past by less than 2 minutes, fire immediately
+      if (timeDiff <= 0 && timeDiff >= -120000) {
+        // Fire now
+        const bodyText = text(sess.title || "Study Session", sess.group_name || "Group");
+        recordNotification({
+          title: "Group Study Session",
+          body: bodyText,
+          type: "community",
+          context: "community",
+        }, prefs);
+
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification("Group Study Session", {
+            body: bodyText,
+            tag: tagKey,
+          });
+        }
+
+        setFiredGroupReminder(tagKey, expiresAt);
+      } else if (timeDiff > 0) {
+        // Set in-tab timer
+        if (reminderTimers.has(tagKey)) {
+          clearTimeout(reminderTimers.get(tagKey));
+        }
+
+        const timer = setTimeout(() => {
+          const bodyText = text(sess.title || "Study Session", sess.group_name || "Group");
+          recordNotification({
+            title: "Group Study Session",
+            body: bodyText,
+            type: "community",
+            context: "community",
+          }, prefs);
+
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            new Notification("Group Study Session", {
+              body: bodyText,
+              tag: tagKey,
+            });
+          }
+
+          setFiredGroupReminder(tagKey, expiresAt);
+          reminderTimers.delete(tagKey);
+        }, timeDiff);
+
+        reminderTimers.set(tagKey, timer);
+      }
+    });
+  });
 }
 
 export async function scheduleSessionRemindersFromSessions(sessions, preferences = null, now = Date.now()) {

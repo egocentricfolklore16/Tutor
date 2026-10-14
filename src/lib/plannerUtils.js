@@ -31,6 +31,20 @@ export function formatTimeSlot(timeStr) {
 /**
  * Calculates end time string from startTime ("14:00") and durationMinutes (45)
  */
+/**
+ * Calculates minutes difference between two time strings ("09:00" and "10:30")
+ */
+export function calculateMinutesBetween(startTimeStr, endTimeStr) {
+  if (!startTimeStr || !endTimeStr) return 60;
+  const [sh, sm] = startTimeStr.split(':').map(Number);
+  const [eh, em] = endTimeStr.split(':').map(Number);
+  if (isNaN(sh) || isNaN(sm) || isNaN(eh) || isNaN(em)) return 60;
+  let startMins = sh * 60 + sm;
+  let endMins = eh * 60 + em;
+  if (endMins < startMins) endMins += 24 * 60;
+  return Math.max(0, endMins - startMins);
+}
+
 export function calculateEndTimeString(startTimeStr, durationMinutes) {
   if (!startTimeStr) return '';
   const [hours, minutes] = startTimeStr.split(':').map(Number);

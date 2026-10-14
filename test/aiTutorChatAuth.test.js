@@ -80,6 +80,24 @@ test("ai-tutor-chat prompt building enforces server-enforced LOCKED state for at
   assert.strictEqual(rules.includes("SERVER-ENFORCED STATE: LOCKED"), true);
   assert.strictEqual(rules.includes("CRITICAL MANDATE: You ARE STRICTLY FORBIDDEN"), true);
   assert.strictEqual(rules.includes("or explicitly ask you to just tell them"), false, "Must not contain bypass text");
+
+  // Additional test cases for demand variants with adjectives and "solve this for me"
+  const demandVariants = [
+    "tell me the final answer",
+    "give me the correct answer",
+    "what is the right answer",
+    "solve this for me",
+    "i do not know",
+    "i do not understand",
+  ];
+  for (const variant of demandVariants) {
+    const varHistory = [...conversationHistory, { role: "user", content: variant }];
+    assert.strictEqual(
+      countGenuineAttempts(varHistory),
+      0,
+      `Demand variant '${variant}' must not count as a genuine attempt`
+    );
+  }
 });
 
 test("ai-tutor-chat prompt building unlocks answer after genuine attempt threshold", () => {

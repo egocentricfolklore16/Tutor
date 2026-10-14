@@ -11,7 +11,7 @@
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
-| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
+| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor prompt, Root Document Accessibility Classes (`high-contrast`, `accessibility-large-text`) | Used |
 | `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
 
 ## Journal
@@ -47,3 +47,7 @@
 ## 2026-10-24 - Connecting Education Level to Dashboard AI Suggestions & Settings Options
 **Learning:** `education_level` was collected in Onboarding Step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and passed to the AI Tutor system prompt, but was omitted from Dashboard recommendations and Settings `levels` options lacked onboarding choices ("High school", "College / university", "Working professional", "Independent learner"), displaying empty selection.
 **Action:** Create `getEducationLevelSuggestion` in `src/lib/educationLevel.js` with tests in `test/educationLevel.test.js`, connect it to `AISuggestions.jsx` to render tailored academic study context notes, and update `levels` in `Settings.jsx` to include onboarding choices for instant UI propagation via `ProfileContext`.
+
+## 2026-10-28 - Connecting Accessibility Needs to Document Root Classes & Aligning Settings Options
+**Learning:** `accessibility_needs` was collected in Onboarding Step 3 ("Would any accessibility support help?"), stored in `profiles.accessibility_needs`, and sent to the AI Tutor prompt, but option casing in Settings ("Screen Reader", "High Contrast", "Larger Text") was misaligned with Onboarding ("Screen reader", "High contrast", "Larger text"), breaking option pre-filling and selection. Furthermore, selecting "High contrast" or "Larger text" did not toggle root UI accessibility classes on the document element.
+**Action:** Create `hasAccessibilityNeed` and `getAccessibilityClasses` in `src/lib/accessibility.js` with tests in `test/accessibility.test.js`, connect `ProfileContext.jsx` to dynamically toggle `.high-contrast` and `.accessibility-large-text` on `document.documentElement`, and align options in `Settings.jsx` with case-insensitive matching.

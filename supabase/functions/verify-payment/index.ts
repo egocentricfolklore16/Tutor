@@ -82,14 +82,31 @@ Deno.serve(async (req) => {
     }
 
     // Security: Validate that authenticated user matches the payment transaction metadata
-    const metadata = paystackData?.data?.metadata || {};
+    let metadata = paystackData?.data?.metadata || {};
+    if (typeof metadata === "string") {
+      try {
+        metadata = JSON.parse(metadata);
+      } catch {
+        metadata = {};
+      }
+    }
+
+    let customerMetadata = paystackData?.data?.customer?.metadata || {};
+    if (typeof customerMetadata === "string") {
+      try {
+        customerMetadata = JSON.parse(customerMetadata);
+      } catch {
+        customerMetadata = {};
+      }
+    }
+
     const metadataUserId =
       metadata.userId ||
       metadata.user_id ||
-      paystackData?.data?.customer?.metadata?.userId ||
-      paystackData?.data?.customer?.metadata?.user_id;
+      customerMetadata.userId ||
+      customerMetadata.user_id;
 
-    if (metadataUserId && metadataUserId !== user.id) {
+    if (!metadataUserId || metadataUserId !== user.id) {
       return new Response(
         JSON.stringify({ error: "Forbidden: Payment user ID mismatch" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

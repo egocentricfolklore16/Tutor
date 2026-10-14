@@ -40,6 +40,24 @@
   --shadow-button-primary: 0 2px 10px rgb(5 150 105 / 0.35);
 }
 
+/* Accessibility Personalization Classes */
+html.high-contrast {
+  --text-primary: #ffffff;
+  --text-secondary: #e2e8f0;
+  filter: contrast(120%);
+}
+html.high-contrast button,
+html.high-contrast input,
+html.high-contrast select,
+html.high-contrast textarea,
+html.high-contrast .shadow-surface,
+html.high-contrast .settings-card {
+  border: 1px solid rgba(255, 255, 255, 0.25) !important;
+}
+html.accessibility-large-text {
+  font-size: 112.5%;
+}
+
 /* Custom Depth & Shadow Utility Classes */
 .shadow-surface { box-shadow: var(--shadow-surface); }
 .shadow-surface-hover { box-shadow: var(--shadow-surface-hover); }

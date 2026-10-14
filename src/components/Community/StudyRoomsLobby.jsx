@@ -47,6 +47,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const [joiningRoom, setJoiningRoom] = useState(null);
   const [userGoal, setUserGoal] = useState("");
   const [joinError, setJoinError] = useState(null);
+  const [joining, setJoining] = useState(false);
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -143,8 +144,9 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
 
   const handleConfirmJoin = async (e) => {
     e.preventDefault();
-    if (!joiningRoom) return;
+    if (!joiningRoom || joining) return;
     setJoinError(null);
+    setJoining(true);
 
     try {
       const { data: success, error } = await supabase.rpc("join_study_room", {
@@ -153,8 +155,17 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
       });
 
       if (error) {
-        if (error.message?.includes("full") || error.message?.includes("closed")) {
+        const errMsg = error.message?.toLowerCase() || "";
+        if (errMsg.includes("full") || errMsg.includes("closed")) {
           setJoinError("This room is full or has been closed.");
+          return;
+        }
+        if (errMsg.includes("private") || errMsg.includes("approval")) {
+          setJoinError("This room is private and requires host approval.");
+          return;
+        }
+        if (errMsg.includes("already") || errMsg.includes("member")) {
+          navigate(`/community/rooms/${joiningRoom.id}`);
           return;
         }
         throw error;
@@ -164,6 +175,8 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
     } catch (err) {
       console.error("Error joining room:", err);
       setJoinError(err.message || "Failed to join room.");
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -597,9 +610,11 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-2xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  disabled={joining}
+                  className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  Enter Room
+                  {joining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>Enter Room</span>
                 </button>
               </div>
             </form>

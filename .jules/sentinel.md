@@ -7,3 +7,8 @@
 **Vulnerability:** The `ai-tutor-chat` Edge Function allowed unauthenticated requests, falling back to anonymous defaults instead of rejecting missing or invalid JWT tokens with HTTP 401 Unauthorized.
 **Learning:** Edge Functions initialized with `SUPABASE_SERVICE_ROLE_KEY` bypass Row Level Security. Failing to strictly enforce JWT verification allows unauthenticated callers to trigger LLM API calls and write to internal tables like `ai_error_log`.
 **Prevention:** Always check for `Authorization` header and validate JWT via `supabase.auth.getUser(token)` returning `HTTP 401` immediately if missing or invalid.
+
+## 2025-05-28 - Unauthenticated Background Cron Edge Functions Operating with Service Role
+**Vulnerability:** Background job / cron Edge Functions (like `planner-reminders`) that execute with `SUPABASE_SERVICE_ROLE_KEY` lacked authentication headers or secret validation, allowing anonymous HTTP callers to trigger background tasks and database mutations.
+**Learning:** Cron and internal worker Edge Functions bypass RLS by using service role keys. Without validating `x-cron-secret` or `Authorization` Bearer tokens, external callers can spam the endpoint, cause database contention, or mutate data.
+**Prevention:** Always authenticate background/cron Edge Functions by validating `x-cron-secret` or `Authorization: Bearer <secret>` using timing-safe string comparison before executing service role operations.

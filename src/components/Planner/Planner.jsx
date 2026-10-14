@@ -19,6 +19,7 @@ import ExternalCalendarSync from "./ExternalCalendarSync";
 import { useProfile } from "../../app/ProfileContext";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
+import Modal from "../common/ResponsiveSheet";
 import NotificationPromptCard from "../Notifications/NotificationPromptCard";
 import {
   usePlannerActivities,
@@ -26,6 +27,7 @@ import {
   useUpdateActivity,
   useDeleteActivity,
 } from "../../hooks/usePlanner";
+import { useCombinedSessions } from "../../hooks/useCombinedSessions";
 
 const PlannerPage = () => {
   const { profile } = useProfile();
@@ -36,6 +38,11 @@ const PlannerPage = () => {
   const [editingActivity, setEditingActivity] = useState(null);
   const [toastMessage, setToastMessage] = useState("");
   const [customSubjects, setCustomSubjects] = useState([]);
+
+  // State for removing recurring sessions
+  const [sessionToDelete, setSessionToDelete] = useState(null);
+  const [isDeletingSession, setIsDeletingSession] = useState(false);
+  const [removedSessionIds, setRemovedSessionIds] = useState(new Set());
 
   const rangeFrom = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1).toISOString();
   const rangeTo = new Date(currentDate.getFullYear(), currentDate.getMonth() + 2, 0).toISOString();
@@ -110,6 +117,7 @@ const PlannerPage = () => {
   };
 
   const handleEditActivity = (activity) => {
+    if (activity.is_group_session) return; // Disallow editing group sessions in planner
     setEditingActivity(activity);
     let mode = "session";
     if (activity.type === "time_block") mode = "timeblock";
@@ -151,7 +159,51 @@ const PlannerPage = () => {
     }
   };
 
+  const handleRequestRemoveRecurring = (session) => {
+    setSessionToDelete(session);
+  };
+
+  const handleUpdateRecurringFrequency = async (id, newFrequency) => {
+    try {
+      await updateActivity(id, { recurring_frequency: newFrequency }, "all");
+      showToast("Recurring frequency updated");
+      refetch();
+    } catch (err) {
+      console.error("Update frequency error:", err);
+      showToast("Failed to update frequency");
+    }
+  };
+
+  const confirmRemoveRecurring = async () => {
+    if (!sessionToDelete) return;
+
+    const targetId = sessionToDelete.activityId || sessionToDelete.id;
+    setIsDeletingSession(true);
+
+    // Optimistic removal from view
+    setRemovedSessionIds((prev) => new Set(prev).add(targetId));
+
+    try {
+      await deleteActivity(targetId, "all");
+      showToast("Recurring session removed");
+      setSessionToDelete(null);
+      refetch();
+    } catch (err) {
+      console.error("Delete recurring error:", err);
+      // Restore card on failure
+      setRemovedSessionIds((prev) => {
+        const next = new Set(prev);
+        next.delete(targetId);
+        return next;
+      });
+      showToast("Couldn't remove session. Try again.");
+    } finally {
+      setIsDeletingSession(false);
+    }
+  };
+
   const handleDuplicateActivity = (activity) => {
+    if (activity.is_group_session) return;
     setEditingActivity(null);
     const duplicateData = {
       ...activity,
@@ -166,9 +218,6 @@ const PlannerPage = () => {
     try {
       await updateActivity(activityId, { status: newStatus }, "this_only");
       showToast(`Session marked as ${newStatus}`);
-      if (newStatus === "completed") {
-        console.info("Planner session completed hook: XP/Streak logic can be invoked here.");
-      }
       refetch();
     } catch (err) {
       console.error("Status update error:", err);
@@ -245,7 +294,7 @@ const PlannerPage = () => {
         <>
           <PlannerStatsBar />
           <DeadlineManager
-            sessions={activities}
+            sessions={visibleActivities}
             onAddActivity={() => handleAddActivity(selectedDate, "deadline")}
           />
 
@@ -317,7 +366,7 @@ const PlannerPage = () => {
               currentDate={currentDate}
               selectedDate={selectedDate}
               setSelectedDate={setSelectedDate}
-              sessions={activities}
+              sessions={visibleActivities}
               handleDrop={() => {}}
               setSelectedSession={setSelectedSession}
               selectedSession={selectedSession}
@@ -329,7 +378,9 @@ const PlannerPage = () => {
 
           <div className="mb-6 flex flex-col gap-4">
             <RecurringSetup
-              sessions={activities}
+              sessions={visibleActivities}
+              onUpdateRecurring={handleUpdateRecurringFrequency}
+              onRequestRemove={handleRequestRemoveRecurring}
               onAddActivity={() => handleAddActivity(selectedDate, "recurring")}
             />
             <TimeBlocking
@@ -338,7 +389,7 @@ const PlannerPage = () => {
               onDeleteBlock={(id) => handleDeleteActivity(id, "all")}
             />
           </div>
-          <ExternalCalendarSync sessions={activities} />
+          <ExternalCalendarSync sessions={visibleActivities} />
         </>
       )}
 
@@ -356,6 +407,43 @@ const PlannerPage = () => {
         onDelete={handleDeleteActivity}
         onDuplicate={handleDuplicateActivity}
       />
+
+      {/* Confirmation Modal for removing recurring session */}
+      <Modal
+        isOpen={Boolean(sessionToDelete)}
+        onClose={() => !isDeletingSession && setSessionToDelete(null)}
+        title="Remove recurring session?"
+        maxWidth="max-w-md"
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => !isDeletingSession && setSessionToDelete(null)}
+              disabled={isDeletingSession}
+              className="rounded-xl px-4 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800 disabled:opacity-50"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={confirmRemoveRecurring}
+              disabled={isDeletingSession}
+              className="inline-flex items-center gap-2 rounded-xl bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700 disabled:opacity-50"
+            >
+              {isDeletingSession && <Loader2 className="h-4 w-4 animate-spin" />}
+              {isDeletingSession ? "Removing..." : "Remove"}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-slate-600 dark:text-slate-300">
+          Remove recurring session? This will delete{" "}
+          <span className="font-bold text-slate-900 dark:text-white">
+            '{sessionToDelete?.title}'
+          </span>{" "}
+          and all future repeats.
+        </p>
+      </Modal>
     </PageContainer>
   );
 };

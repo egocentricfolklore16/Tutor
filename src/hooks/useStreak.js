@@ -81,10 +81,14 @@ export function useStreak() {
       const todayCutoffStr = getLocalCutoffDate(new Date(), userTz, 3);
 
       // Check stale streak on mount/fetch
-      await supabase.rpc("check_stale_streak", {
-        p_user_timezone: userTz,
-        p_cutoff_hour: 3,
-      }).catch(() => null);
+      try {
+        await supabase.rpc("check_stale_streak", {
+          p_user_timezone: userTz,
+          p_cutoff_hour: 3,
+        });
+      } catch (err) {
+        console.warn("check_stale_streak warning:", err);
+      }
 
       // Fetch user_streaks record
       const { data: streakRow, error: streakErr } = await supabase

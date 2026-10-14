@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import supabase from "../lib/supabase.js";
 import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
+import { getAccessibilityClasses } from "../lib/accessibility.js";
 
 const ProfileContext = createContext(null);
 
@@ -22,6 +23,13 @@ export function ProfileProvider({ user, children }) {
     document.documentElement.classList.toggle("dark", darkMode);
     localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    const root = document.documentElement;
+    const classes = getAccessibilityClasses(profile);
+    root.classList.toggle("high-contrast", classes.includes("high-contrast"));
+    root.classList.toggle("accessibility-large-text", classes.includes("accessibility-large-text"));
+  }, [profile]);
 
   const touchLastSeenThrottled = async () => {
     if (!user?.id) return;
@@ -66,7 +74,7 @@ export function ProfileProvider({ user, children }) {
       await supabase.rpc("check_stale_streak", {
         p_user_timezone: getUserTimeZone(),
         p_cutoff_hour: 3,
-      }).catch(() => null);
+      });
     } catch (e) {
       // Ignore RPC availability issues
     }

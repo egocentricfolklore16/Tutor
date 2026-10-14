@@ -14,9 +14,11 @@ import {
   Check,
   AlertCircle,
   HelpCircle,
+  Users,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { enablePush, disablePush, isPushSupported, isIosNeedingInstall } from "../../lib/push";
+import { getNotificationPreferences, persistNotificationPreferences } from "../../lib/notifications";
 
 export default function NotificationSettings({ userId }) {
   const [loading, setLoading] = useState(true);
@@ -33,6 +35,10 @@ export default function NotificationSettings({ userId }) {
     push_friend_requests: true,
     push_friend_accepts: true,
     show_message_preview: true,
+    group_reminders_enabled: true,
+    group_reminder_30m: true,
+    group_reminder_15m: true,
+    group_reminder_0m: true,
     quiet_hours_start: "",
     quiet_hours_end: "",
   });
@@ -54,6 +60,8 @@ export default function NotificationSettings({ userId }) {
     setIosInstallNeeded(isIosNeedingInstall());
 
     try {
+      const localPrefs = getNotificationPreferences();
+
       // 1. Fetch preferences
       const { data: prefData } = await supabase
         .from("notification_preferences")
@@ -68,9 +76,21 @@ export default function NotificationSettings({ userId }) {
           push_friend_requests: prefData.push_friend_requests ?? true,
           push_friend_accepts: prefData.push_friend_accepts ?? true,
           show_message_preview: prefData.show_message_preview ?? true,
+          group_reminders_enabled: localPrefs.group_reminders_enabled ?? true,
+          group_reminder_30m: localPrefs.group_reminder_30m ?? true,
+          group_reminder_15m: localPrefs.group_reminder_15m ?? true,
+          group_reminder_0m: localPrefs.group_reminder_0m ?? true,
           quiet_hours_start: prefData.quiet_hours_start || "",
           quiet_hours_end: prefData.quiet_hours_end || "",
         });
+      } else {
+        setPrefs((prev) => ({
+          ...prev,
+          group_reminders_enabled: localPrefs.group_reminders_enabled ?? true,
+          group_reminder_30m: localPrefs.group_reminder_30m ?? true,
+          group_reminder_15m: localPrefs.group_reminder_15m ?? true,
+          group_reminder_0m: localPrefs.group_reminder_0m ?? true,
+        }));
       }
 
       // 2. Fetch registered push subscription devices
@@ -119,6 +139,13 @@ export default function NotificationSettings({ userId }) {
     setSaving(true);
 
     try {
+      persistNotificationPreferences({
+        group_reminders_enabled: updated.group_reminders_enabled,
+        group_reminder_30m: updated.group_reminder_30m,
+        group_reminder_15m: updated.group_reminder_15m,
+        group_reminder_0m: updated.group_reminder_0m,
+      });
+
       const { error } = await supabase
         .from("notification_preferences")
         .upsert(
@@ -245,6 +272,61 @@ export default function NotificationSettings({ userId }) {
             <div className="peer h-6 w-11 rounded-full bg-slate-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:bg-white after:transition-all after:content-[''] peer-checked:bg-emerald-600 peer-checked:after:translate-x-full dark:bg-slate-700" />
           </label>
         </div>
+      </div>
+
+      {/* Group Session Reminders Settings */}
+      <div className="rounded-2xl border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-[#14171c] space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+          <div className="flex items-center gap-2.5">
+            <Users className="h-4 w-4 text-emerald-600" />
+            <div>
+              <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400">Group Session Reminders</h4>
+              <p className="text-[11px] text-slate-500">Configure default reminders for group study sessions you are attending</p>
+            </div>
+          </div>
+          <input
+            type="checkbox"
+            checked={prefs.group_reminders_enabled}
+            onChange={(e) => handleUpdatePref("group_reminders_enabled", e.target.checked)}
+            disabled={saving}
+            className="h-4 w-4 rounded accent-emerald-600"
+          />
+        </div>
+
+        {prefs.group_reminders_enabled && (
+          <div className="space-y-3 pt-1">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">30 minutes before session</span>
+              <input
+                type="checkbox"
+                checked={prefs.group_reminder_30m}
+                onChange={(e) => handleUpdatePref("group_reminder_30m", e.target.checked)}
+                disabled={saving}
+                className="h-4 w-4 rounded accent-emerald-600"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">15 minutes before session</span>
+              <input
+                type="checkbox"
+                checked={prefs.group_reminder_15m}
+                onChange={(e) => handleUpdatePref("group_reminder_15m", e.target.checked)}
+                disabled={saving}
+                className="h-4 w-4 rounded accent-emerald-600"
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-200">At session start time</span>
+              <input
+                type="checkbox"
+                checked={prefs.group_reminder_0m}
+                onChange={(e) => handleUpdatePref("group_reminder_0m", e.target.checked)}
+                disabled={saving}
+                className="h-4 w-4 rounded accent-emerald-600"
+              />
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Event Category Toggles */}

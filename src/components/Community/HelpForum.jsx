@@ -47,7 +47,7 @@ export default function HelpForum({ user, userSubjects = [] }) {
       } else if (activeSubTab === "answered") {
         query = query.gt("answers_count", 0);
       } else if (activeSubTab === "my" && user) {
-        query = query.eq("user_id", user.id);
+        query = query.eq("author_id", user.id);
       }
 
       // Subject filter
@@ -78,8 +78,8 @@ export default function HelpForum({ user, userSubjects = [] }) {
       const items = postRows || [];
       setPosts(items);
 
-      // Collect author user_ids and merge community_profiles
-      const authorIds = Array.from(new Set(items.map((p) => p.user_id)));
+      // Collect author_ids and merge community_profiles
+      const authorIds = Array.from(new Set(items.map((p) => p.author_id).filter(Boolean)));
       if (authorIds.length > 0) {
         const { data: profs } = await supabase
           .from("community_profiles")
@@ -239,7 +239,7 @@ export default function HelpForum({ user, userSubjects = [] }) {
       ) : (
         <div className="space-y-3">
           {posts.map((post) => {
-            const author = authorsMap[post.user_id];
+            const author = authorsMap[post.author_id];
             const isClosed = post.status === "closed";
             const hasAcceptedAnswer = Boolean(post.accepted_answer_id);
 
@@ -306,7 +306,7 @@ export default function HelpForum({ user, userSubjects = [] }) {
                       name={author?.full_name}
                       username={author?.username}
                       size="xs"
-                      userId={post.user_id}
+                      userId={post.author_id}
                     />
                     <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
                       {author?.full_name || author?.username || "Learner"}
@@ -344,6 +344,7 @@ export default function HelpForum({ user, userSubjects = [] }) {
           onClose={() => setShowAskModal(false)}
           onSuccess={(postId) => {
             setShowAskModal(false);
+            fetchPosts();
             navigate(`/community/help/${postId}`);
           }}
         />

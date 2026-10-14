@@ -11,14 +11,31 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
     return { status: 401, error: "Unauthorized: Invalid or expired session token" };
   }
 
-  const metadata = paystackData?.data?.metadata || {};
+  let metadata = paystackData?.data?.metadata || {};
+  if (typeof metadata === "string") {
+    try {
+      metadata = JSON.parse(metadata);
+    } catch {
+      metadata = {};
+    }
+  }
+
+  let customerMetadata = paystackData?.data?.customer?.metadata || {};
+  if (typeof customerMetadata === "string") {
+    try {
+      customerMetadata = JSON.parse(customerMetadata);
+    } catch {
+      customerMetadata = {};
+    }
+  }
+
   const metadataUserId =
     metadata.userId ||
     metadata.user_id ||
-    paystackData?.data?.customer?.metadata?.userId ||
-    paystackData?.data?.customer?.metadata?.user_id;
+    customerMetadata.userId ||
+    customerMetadata.user_id;
 
-  if (metadataUserId && metadataUserId !== user.id) {
+  if (!metadataUserId || metadataUserId !== user.id) {
     return { status: 403, error: "Forbidden: Payment user ID mismatch" };
   }
 
@@ -57,6 +74,40 @@ test("verifyPaymentAuthorization succeeds when user.id matches payment metadata 
   const result = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackData);
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.authorized, true);
+});
+
+test("verifyPaymentAuthorization correctly parses stringified JSON metadata and customer metadata", () => {
+  const paystackDataStringified = {
+    data: {
+      metadata: JSON.stringify({ userId: "user_owner_456" }),
+    },
+  };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackDataStringified);
+  assert.strictEqual(result1.status, 200);
+  assert.strictEqual(result1.authorized, true);
+
+  const paystackCustomerStringified = {
+    data: {
+      customer: {
+        metadata: JSON.stringify({ user_id: "user_owner_456" }),
+      },
+    },
+  };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackCustomerStringified);
+  assert.strictEqual(result2.status, 200);
+  assert.strictEqual(result2.authorized, true);
+});
+
+test("verifyPaymentAuthorization returns 403 if metadataUserId is missing or unparseable", () => {
+  const missingMeta = { data: {} };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, missingMeta);
+  assert.strictEqual(result1.status, 403);
+  assert.strictEqual(result1.error, "Forbidden: Payment user ID mismatch");
+
+  const unparseableMeta = { data: { metadata: "not-json" } };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, unparseableMeta);
+  assert.strictEqual(result2.status, 403);
+  assert.strictEqual(result2.error, "Forbidden: Payment user ID mismatch");
 });
 
 test("processVerifiedPayment error mapping produces correct HTTP status codes", () => {

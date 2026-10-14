@@ -24,7 +24,6 @@ import {
   generateRecurrencePreview,
   suggestNextFreeSlot,
 } from "../../lib/plannerUtils";
-import { plannerActivitySchema } from "../../lib/plannerSchema";
 import { usePlannerConflicts } from "../../hooks/usePlanner";
 
 const fieldClass =
@@ -61,22 +60,22 @@ function PlannerActivityModal({
         id: initialData.id,
         ruleId: initialData.ruleId,
         type: initialData.type || (mode === "timeblock" ? "time_block" : mode === "recurring" ? "recurring_session" : mode === "deadline" ? "deadline" : "study"),
-        title: initialData.title || "",
+        title: initialData.title || initialData.purpose || "",
         subject: initialData.subject || defaults.subject || "",
         subject_id: initialData.subjectId || null,
-        date: initialData.date ? new Date(initialData.date).toISOString().slice(0, 10) : defaults.date,
-        startTime: initialData.startTime || defaults.startTime,
+        date: initialData.date ? new Date(initialData.date).toISOString().slice(0, 10) : (initialData.block_date || defaults.date),
+        startTime: initialData.startTime || initialData.start_time || defaults.startTime,
         duration: initialData.duration || defaults.duration,
         priority: initialData.priority || defaults.priority,
         color: initialData.color || defaults.color,
         reminder: initialData.reminder ?? defaults.reminder,
         notes: initialData.notes || "",
         break_reminder: Boolean(initialData.break_reminder),
-        recurring_frequency: initialData.recurring_frequency || (mode === "recurring" ? "daily" : "none"),
+        recurring_frequency: initialData.recurring_frequency || initialData.frequency || (mode === "recurring" ? "daily" : "none"),
         recurring_interval: initialData.recurring_interval || 1,
-        recurring_days_of_week: initialData.recurring_days_of_week || [new Date().getDay()],
+        recurring_days_of_week: initialData.recurring_days_of_week || initialData.days_of_week || [new Date().getDay()],
         recurring_ends_mode: initialData.recurring_ends_mode || "never",
-        recurring_ends_on: initialData.recurring_ends_on || null,
+        recurring_ends_on: initialData.recurring_ends_on || initialData.end_date || null,
         recurring_max_occurrences: initialData.recurring_max_occurrences || null,
       };
     }
@@ -107,7 +106,6 @@ function PlannerActivityModal({
   const [showDetails, setShowDetails] = useState(false);
   const [showNewSubjectInput, setShowNewSubjectInput] = useState(false);
   const [newSubjectName, setNewSubjectName] = useState("");
-  const [editScope, setEditScope] = useState("all"); // 'this_only' | 'all'
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   // Autofocus title input on mount
@@ -126,7 +124,7 @@ function PlannerActivityModal({
   const permission = getPermissionState();
   const isTimeBlock = mode === "timeblock" || form.type === "time_block";
   const isDeadline = mode === "deadline" || form.type === "deadline";
-  const isRecurring = mode === "recurring" || form.recurring_frequency !== "none";
+  const isRecurring = mode === "recurring" || form.type === "recurring_session" || form.recurring_frequency !== "none";
   const isEditing = Boolean(form.id);
 
   const titles = {
@@ -147,7 +145,7 @@ function PlannerActivityModal({
     const next = current.includes(dayIndex)
       ? current.filter((d) => d !== dayIndex)
       : [...current, dayIndex];
-    update("recurring_days_of_week", next.length > 0 ? next : [dayIndex]);
+    update("recurring_days_of_week", next);
   };
 
   const handleCreateSubjectInline = () => {
@@ -169,30 +167,39 @@ function PlannerActivityModal({
     e.preventDefault();
     setValidationError("");
 
-    // Zod validation
-    const result = plannerActivitySchema.safeParse({
-      ...form,
-      duration_minutes: Number(form.duration),
-      reminder_minutes_before: form.reminder !== null ? Number(form.reminder) : null,
-    });
-
-    if (!result.success) {
-      const firstErr = result.error.issues[0]?.message || "Please check form fields.";
-      setValidationError(firstErr);
+    // Custom Validation logic per type
+    if (!form.title.trim()) {
+      setValidationError("Please enter a title.");
       return;
     }
 
-    // Past time warning check for new one-off items
-    if (!isEditing && currentStartAt) {
-      const selectedDateTime = new Date(currentStartAt);
-      if (selectedDateTime < new Date(Date.now() - 5 * 60000)) {
-        if (!window.confirm("This session is scheduled in the past. Do you want to proceed?")) {
-          return;
-        }
+    if (!form.date) {
+      setValidationError("Please select a date.");
+      return;
+    }
+
+    if (isTimeBlock) {
+      if (!form.startTime) {
+        setValidationError("Please select a start time.");
+        return;
+      }
+      const endTime = calculateEndTimeString(form.startTime, form.duration);
+      if (endTime <= form.startTime && !endTime.includes("PM")) {
+        setValidationError("End time must be after start time.");
+        return;
       }
     }
 
-    onSubmit(form, editScope);
+    if (isRecurring) {
+      let freq = form.recurring_frequency;
+      if (freq === "custom") freq = "weekly";
+      if (freq === "weekly" && (!Array.isArray(form.recurring_days_of_week) || form.recurring_days_of_week.length === 0)) {
+        setValidationError("Please select at least one day of the week for weekly recurring sessions.");
+        return;
+      }
+    }
+
+    onSubmit(form);
   };
 
   const recurrencePreview = generateRecurrencePreview({
@@ -278,37 +285,6 @@ function PlannerActivityModal({
         )}
 
         <form onSubmit={validateAndSubmit} className="space-y-4 text-sm">
-          {/* Editing Recurring Scope Selector */}
-          {isEditing && isRecurring && (
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-800/50">
-              <span className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5">Apply changes to:</span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => setEditScope("this_only")}
-                  className={`flex-1 rounded-lg py-1.5 px-3 text-xs font-bold transition ${
-                    editScope === "this_only"
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  This session only
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setEditScope("all")}
-                  className={`flex-1 rounded-lg py-1.5 px-3 text-xs font-bold transition ${
-                    editScope === "all"
-                      ? "bg-blue-600 text-white shadow-xs"
-                      : "bg-white text-slate-700 border border-slate-200 hover:bg-slate-100 dark:bg-slate-900 dark:border-slate-700 dark:text-slate-300"
-                  }`}
-                >
-                  All sessions in series
-                </button>
-              </div>
-            </div>
-          )}
-
           {/* Title input */}
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
             Title <span className="text-red-500">*</span>
@@ -414,7 +390,7 @@ function PlannerActivityModal({
                   Duration (minutes)
                 </span>
                 <span className="text-xs font-medium text-slate-500 dark:text-slate-400">
-                  {formatTimeSlot(form.startTime)} to {calculateEndTimeString(form.startTime, form.duration)} ({form.duration} min)
+                  {formatTimeSlot(form.startTime)} ({form.duration} min)
                 </span>
               </div>
 
@@ -476,6 +452,23 @@ function PlannerActivityModal({
             </div>
           )}
 
+          {/* Priority for Deadline */}
+          {isDeadline && (
+            <div className="block text-xs font-bold text-slate-700 dark:text-slate-300">
+              <span className="mb-1.5 block">Priority</span>
+              <select
+                value={form.priority}
+                onChange={(e) => update("priority", e.target.value)}
+                className={fieldClass}
+              >
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="important">Important</option>
+                <option value="urgent">Urgent</option>
+              </select>
+            </div>
+          )}
+
           {/* Repeat Rhythm Controls (Recurring) */}
           {mode === "recurring" && (
             <div className="space-y-3 rounded-2xl border border-slate-200 bg-slate-50 p-3.5 dark:border-slate-800 dark:bg-slate-800/40">
@@ -491,7 +484,7 @@ function PlannerActivityModal({
                   <option value="daily">Daily</option>
                   <option value="weekdays">Mon - Fri (Weekdays)</option>
                   <option value="weekly">Weekly</option>
-                  <option value="custom">Custom</option>
+                  <option value="monthly">Monthly</option>
                 </select>
               </label>
 
@@ -652,43 +645,22 @@ function PlannerActivityModal({
                 Are you sure you want to delete "{form.title}"?
               </p>
 
-              {isRecurring && (
-                <div className="mt-3 space-y-2">
-                  <button
-                    type="button"
-                    onClick={() => onDelete(form.id, "this_only", form.ruleId, form.date)}
-                    className="w-full rounded-xl border border-slate-200 bg-slate-50 p-2.5 text-xs font-bold text-slate-800 hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                  >
-                    Delete this session only
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(form.id, "all")}
-                    className="w-full rounded-xl bg-red-600 p-2.5 text-xs font-bold text-white hover:bg-red-700"
-                  >
-                    Delete all sessions in series
-                  </button>
-                </div>
-              )}
-
-              {!isRecurring && (
-                <div className="mt-4 flex justify-end gap-2">
-                  <button
-                    type="button"
-                    onClick={() => setShowDeleteConfirm(false)}
-                    className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => onDelete(form.id, "all")}
-                    className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700"
-                  >
-                    Confirm delete
-                  </button>
-                </div>
-              )}
+              <div className="mt-4 flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDeleteConfirm(false)}
+                  className="rounded-xl px-4 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onDelete(form.id, form.type)}
+                  className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold text-white hover:bg-red-700"
+                >
+                  Confirm delete
+                </button>
+              </div>
             </div>
           </div>
         )}

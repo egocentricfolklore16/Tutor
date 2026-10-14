@@ -24,13 +24,14 @@ const cards = [
   {
     key: "exams",
     label: "THIS WEEK",
-    subtext: "exams",
+    subtext: "exams & deadlines",
     icon: GraduationCap,
     color: "purple",
     background: "bg-purple-50 dark:bg-purple-500/10",
     iconColor: "text-purple-600 dark:text-purple-400",
   },
 ];
+
 function getWeekRange() {
   const today = new Date();
   const day = today.getDay();
@@ -50,13 +51,19 @@ function PlannerStatsBar() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
       const { start, end } = getWeekRange();
-      const [{ data: sessions, error: sessionError }, { count: pomodoros, error: pomodoroError }] = await Promise.all([
+
+      const [
+        { data: sessions, error: sessionError },
+        { count: pomodoros, error: pomodoroError },
+        { data: deadlines, error: deadlineError },
+      ] = await Promise.all([
         supabase.from("Study").select("Date,completed,activity_type").eq("user_id", user.id).neq("session_status", "completed").gte("Date", start).lt("Date", end),
         supabase.from("study_pomodoros").select("id", { count: "exact", head: true }).eq("user_id", user.id).gte("completed_at", `${start}T00:00:00`).lt("completed_at", `${end}T00:00:00`),
+        supabase.from("deadlines").select("id,due_date").eq("user_id", user.id).gte("due_date", start).lt("due_date", end),
       ]);
 
-      if (sessionError || pomodoroError) {
-        console.error("Planner stats fetch error:", sessionError || pomodoroError);
+      if (sessionError || pomodoroError || deadlineError) {
+        console.error("Planner stats fetch error:", sessionError || pomodoroError || deadlineError);
         return;
       }
 
@@ -64,7 +71,7 @@ function PlannerStatsBar() {
         tasksDone: (sessions || []).filter((session) => session.completed).length,
         tasksTotal: sessions?.length || 0,
         pomodoros: pomodoros || 0,
-        exams: (sessions || []).filter((session) => session.activity_type === "exam").length,
+        exams: deadlines?.length || 0,
       });
     };
     loadStats();

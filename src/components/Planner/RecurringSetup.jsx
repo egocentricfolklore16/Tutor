@@ -2,20 +2,34 @@ import React, { useMemo } from 'react';
 import { Plus } from 'lucide-react';
 
 const RecurringSetup = ({
+  recurringRules = [],
   sessions = [],
   onUpdateRecurring,
   onRequestRemove,
   onAddActivity,
 }) => {
   const recurringSessions = useMemo(() => {
+    // Prefer recurringRules from table if provided
+    if (Array.isArray(recurringRules) && recurringRules.length > 0) {
+      return recurringRules.map(rule => ({
+        id: rule.id,
+        activityId: rule.id,
+        title: rule.title,
+        subject: rule.subject,
+        frequency: rule.frequency || 'daily',
+        days_of_week: rule.days_of_week,
+        type: 'recurring_session',
+      }));
+    }
+
     const seenIds = new Set();
     const result = [];
 
     for (const session of sessions || []) {
       const isRec = Boolean(
+        session.type === 'recurring_session' ||
         session.isRecurring ||
-        (session.recurring && session.recurring !== 'none') ||
-        session.type === 'recurring_session'
+        (session.recurring && session.recurring !== 'none')
       );
       if (!isRec) continue;
 
@@ -26,7 +40,7 @@ const RecurringSetup = ({
       }
     }
     return result;
-  }, [sessions]);
+  }, [recurringRules, sessions]);
 
   return (
     <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5 shadow-surface dark:bg-slate-900">
@@ -51,7 +65,7 @@ const RecurringSetup = ({
         <ul className="flex flex-row flex-wrap gap-3">
           {recurringSessions.map((session) => {
             const key = session.activityId || session.id;
-            const freq = session.recurring || 'daily';
+            const freq = session.frequency || session.recurring || 'daily';
             return (
               <li
                 key={key}
@@ -77,6 +91,7 @@ const RecurringSetup = ({
                     className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
                   >
                     <option value="daily">Daily</option>
+                    <option value="weekdays">Weekdays</option>
                     <option value="weekly">Weekly</option>
                     <option value="monthly">Monthly</option>
                   </select>

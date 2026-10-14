@@ -53,6 +53,13 @@ function setFiredGroupReminder(tagKey, expiresAt) {
 export function resolveSessionDateTime(session) {
   if (!session) return null;
 
+  if (session.type === "deadline" || session.due_date || session.deadline) {
+    const rawDueDate = session.due_date || session.deadline || session.date;
+    if (!rawDueDate) return null;
+    const baseDate = new Date(`${rawDueDate}T09:00:00`);
+    return Number.isNaN(baseDate.getTime()) ? null : baseDate;
+  }
+
   const rawDate = session.Date ?? session.date ?? session.scheduled_start;
   let baseDate;
 
@@ -73,7 +80,7 @@ export function resolveSessionDateTime(session) {
     return null;
   }
 
-  const timeValue = session.Start ?? session.startTime ?? "09:00";
+  const timeValue = session.Start ?? session.startTime ?? session.start_time ?? "09:00";
   const [hours = 0, minutes = 0] = String(timeValue).split(":").map(Number);
   const scheduledAt = new Date(baseDate);
   if (!session.scheduled_start) {
@@ -197,6 +204,11 @@ export async function hasActivePushSubscription() {
 export async function scheduleStudyReminder(session, preferences = null, now = Date.now()) {
   if (!session || !session.id) return null;
 
+  // Do not fire study session starting notifications for time blocks
+  if (session.type === "time_block" || session.activityType === "time_block") {
+    return null;
+  }
+
   // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
   if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
     return null;
@@ -209,7 +221,12 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
   }
 
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  if (!mergedPreferences.studyReminders) return null;
+
+  if (session.type === "deadline" || session.activityType === "deadline") {
+    if (!mergedPreferences.deadlineReminders) return null;
+  } else {
+    if (!mergedPreferences.studyReminders) return null;
+  }
 
   const scheduledAt = resolveSessionDateTime(session);
   if (!scheduledAt) return null;
@@ -221,22 +238,27 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
 
   if (delayMs <= 0) return null;
 
-  if (reminderTimers.has(session.id)) {
-    clearTimeout(reminderTimers.get(session.id));
+  const timerKey = session.isRecurring ? `${session.activityId || session.id}-${scheduledAt.toISOString().slice(0, 10)}-${reminderMins}` : session.id;
+
+  if (reminderTimers.has(timerKey)) {
+    clearTimeout(reminderTimers.get(timerKey));
   }
 
   const timer = setTimeout(async () => {
-    const title = "Study session starting soon";
-    const sessionTopic = session.Topic || session.title || "Session";
-    const sessionSubject = session.Subject || session.subject || "Study";
-    const body = reminderMins === 0 ? `${sessionSubject} - ${sessionTopic} starts now` : `${sessionSubject} - ${sessionTopic} starts in ${reminderMins} minutes`;
+    const isDl = session.type === "deadline" || session.activityType === "deadline";
+    const title = isDl ? "Upcoming deadline reminder" : "Study session starting soon";
+    const sessionTopic = session.Topic || session.title || session.purpose || "Session";
+    const sessionSubject = session.Subject || session.subject || (isDl ? "Deadline" : "Study");
+    const body = reminderMins === 0
+      ? `${sessionSubject} - ${sessionTopic} starts now`
+      : `${sessionSubject} - ${sessionTopic} in ${reminderMins} minutes`;
     const dateStr = scheduledAt.toISOString().slice(0, 10);
-    const tagStr = `session-${session.id}-${dateStr}`;
+    const tagStr = `${session.type || "session"}-${session.id}-${dateStr}`;
 
     recordNotification({
       title,
       body,
-      type: "studyReminders",
+      type: isDl ? "deadlineReminders" : "studyReminders",
       context: "study",
     }, mergedPreferences);
 
@@ -247,21 +269,17 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
         icon: "/icons/icon-192.png",
         badge: "/icons/badge-72.png",
         tag: tagStr,
-        data: { url: `/Study/${session.id}` },
+        data: { url: isDl ? "/Planner" : `/Study/${session.id}` },
       });
     }
 
-    reminderTimers.delete(session.id);
+    reminderTimers.delete(timerKey);
   }, delayMs);
 
-  reminderTimers.set(session.id, timer);
+  reminderTimers.set(timerKey, timer);
   return timer;
 }
 
-/**
- * TODO: Group session background notifications when the app is completely closed
- * require Web Push Service Worker push handling (out of scope here).
- */
 export function scheduleGroupSessionReminders(groupSessions, preferences = null, now = Date.now()) {
   const prefs = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   if (!prefs.group_reminders_enabled) return;

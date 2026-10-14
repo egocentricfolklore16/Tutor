@@ -1,8 +1,12 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Plus, Repeat } from 'lucide-react';
 
 const RecurringSetup = ({ sessions, onUpdateRecurring, onAddActivity }) => {
-  const recurringSessions = sessions.filter(session => session.recurring !== 'none');
+  // Memoize recurring sessions filter to prevent unnecessary array allocations on parent re-renders
+  const recurringSessions = useMemo(
+    () => (Array.isArray(sessions) ? sessions.filter((session) => session && session.recurring && session.recurring !== 'none') : []),
+    [sessions]
+  );
 
   return (
     <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5">

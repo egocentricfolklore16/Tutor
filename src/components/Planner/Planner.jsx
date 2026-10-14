@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useMemo } from "react";
 import {
   Plus,
   ChevronLeft,
@@ -44,6 +44,12 @@ const PlannerPage = () => {
     from: rangeFrom,
     to: rangeTo,
   });
+
+  // Memoize blocked times filter to avoid creating new array instances on every Planner re-render
+  const blockedTimes = useMemo(
+    () => (Array.isArray(activities) ? activities.filter((a) => a && a.type === "time_block") : []),
+    [activities]
+  );
 
   const { createActivity, isSaving: isCreating } = useCreateActivity();
   const { updateActivity, isSaving: isUpdating } = useUpdateActivity();
@@ -327,7 +333,7 @@ const PlannerPage = () => {
               onAddActivity={() => handleAddActivity(selectedDate, "recurring")}
             />
             <TimeBlocking
-              blockedTimes={activities.filter((a) => a.type === "time_block")}
+              blockedTimes={blockedTimes}
               onAddActivity={() => handleAddActivity(selectedDate, "timeblock")}
               onDeleteBlock={(id) => handleDeleteActivity(id, "all")}
             />

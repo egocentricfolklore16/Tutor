@@ -17,7 +17,7 @@ export default function AskQuestionModal({ user, userSubjects = [], onClose, onS
   const handleAddTag = (e) => {
     if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      const cleaned = tagInput.trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
+      const cleaned = tagInput.replace(/^#/, "").trim().toLowerCase().replace(/[^a-z0-9_]/g, "");
       if (cleaned && tags.length < 5 && !tags.includes(cleaned)) {
         setTags([...tags, cleaned]);
         setTagInput("");
@@ -46,6 +46,14 @@ export default function AskQuestionModal({ user, userSubjects = [], onClose, onS
       return;
     }
 
+    const cleanTags = Array.from(
+      new Set(
+        tags
+          .map((t) => String(t || "").replace(/^#/, "").trim().toLowerCase())
+          .filter(Boolean)
+      )
+    ).slice(0, 5);
+
     setLoading(true);
     try {
       const { data, error } = await supabase
@@ -54,8 +62,7 @@ export default function AskQuestionModal({ user, userSubjects = [], onClose, onS
           title: cleanTitle,
           body: cleanBody,
           subject,
-          tags,
-          user_id: user.id,
+          tags: cleanTags,
         })
         .select("id")
         .single();

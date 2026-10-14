@@ -151,11 +151,15 @@ export default function VirtualStudyRoom() {
         });
 
         if (joinErr) {
-          if (
-            joinErr.message?.toLowerCase().includes("full") ||
-            joinErr.message?.toLowerCase().includes("closed")
-          ) {
+          const errMsg = joinErr.message?.toLowerCase() || "";
+          if (errMsg.includes("full") || errMsg.includes("closed")) {
             throw new Error("This study room is full or closed.");
+          } else if (errMsg.includes("private") || errMsg.includes("approval")) {
+            throw new Error("This study room is private and requires host approval.");
+          } else if (errMsg.includes("already") || errMsg.includes("member")) {
+            // Already a member - proceed smoothly into room
+          } else {
+            console.warn("join_study_room notice:", joinErr.message);
           }
         }
 
@@ -196,7 +200,11 @@ export default function VirtualStudyRoom() {
     }, 45000);
 
     const handleLeave = () => {
-      supabase.rpc("leave_study_room", { p_room_id: roomId }).catch(() => {});
+      try {
+        void supabase.rpc("leave_study_room", { p_room_id: roomId });
+      } catch (e) {
+        console.warn("leave_study_room warning:", e);
+      }
     };
 
     window.addEventListener("pagehide", handleLeave);

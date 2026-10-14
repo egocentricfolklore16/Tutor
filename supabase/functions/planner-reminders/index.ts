@@ -2,8 +2,18 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
 };
+
+// Constant time string comparison to prevent timing attacks
+function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -11,6 +21,7 @@ Deno.serve(async (req) => {
   }
 
   try {
+    const cronSecret = Deno.env.get("CRON_SECRET") || "";
     const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 
@@ -18,6 +29,32 @@ Deno.serve(async (req) => {
       return new Response(
         JSON.stringify({ error: "Missing Supabase configuration env variables" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Security: Authenticate calling cron trigger or internal service caller
+    const headerCronSecret = req.headers.get("x-cron-secret") || "";
+    const authHeader = req.headers.get("authorization") || "";
+    const bearerToken = authHeader.replace(/^Bearer\s+/i, "").trim();
+
+    const isAuthorizedByCronSecretHeader = Boolean(
+      cronSecret && headerCronSecret && timingSafeEqualStr(cronSecret, headerCronSecret)
+    );
+    const isAuthorizedByCronSecretBearer = Boolean(
+      cronSecret && bearerToken && timingSafeEqualStr(cronSecret, bearerToken)
+    );
+    const isAuthorizedByServiceRoleBearer = Boolean(
+      supabaseServiceKey && bearerToken && timingSafeEqualStr(supabaseServiceKey, bearerToken)
+    );
+
+    if (
+      !isAuthorizedByCronSecretHeader &&
+      !isAuthorizedByCronSecretBearer &&
+      !isAuthorizedByServiceRoleBearer
+    ) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 

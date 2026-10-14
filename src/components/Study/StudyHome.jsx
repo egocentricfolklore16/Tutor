@@ -125,7 +125,7 @@ function StudyHome() {
   const location = useLocation();
   const { currentStreak = 0 } = useStreak() || {};
 
-  const { sessions: combinedSessions, loading: combinedLoading, refreshSessions } = useCombinedSessions();
+  const { sessions = [], loading: combinedLoading, refreshSessions } = useCombinedSessions();
 
   const [history, setHistory] = useState([]);
   const [historyLoading, setHistoryLoading] = useState(true);
@@ -147,7 +147,7 @@ function StudyHome() {
   const [clockNow, setClockNow] = useState(Date.now());
 
   const loadData = useCallback(async () => {
-    setLoading(true);
+    setHistoryLoading(true);
     setError("");
     try {
       const { data: { user: currentUser }, error: userError } = await supabase.auth.getUser();
@@ -156,31 +156,24 @@ function StudyHome() {
         setError("User not authenticated");
         return;
       }
-      const [activeResult, historyResult] = await Promise.allSettled([
-        supabase.from("Study").select("*").eq("user_id", currentUser.id).neq("session_status", "completed"),
-        supabase.from("study_history").select("id, subject, topic, duration_minutes, started_at, completed_at, status, xp_earned").eq("user_id", currentUser.id).order("completed_at", { ascending: false }),
-      ]);
 
-      if (activeResult.status === "rejected") {
-        console.error("Active sessions fetch failed:", activeResult.reason);
-      } else if (activeResult.value?.error) {
-        console.error("Active sessions fetch error:", activeResult.value.error);
-      } else {
-        setSessions(activeResult.value?.data ?? []);
-      }
+      const { data: historyData, error: historyErr } = await supabase
+        .from("study_history")
+        .select("id, subject, topic, duration_minutes, started_at, completed_at, status, xp_earned")
+        .eq("user_id", currentUser.id)
+        .order("completed_at", { ascending: false });
 
-      if (historyResult.status === "rejected") {
-        console.error("Study history fetch failed:", historyResult.reason);
-      } else if (historyResult.value?.error) {
-        console.error("Study history fetch error:", historyResult.value.error);
+      if (historyErr) {
+        console.error("Study history fetch error:", historyErr);
+        setError("Unable to load study history.");
       } else {
-        setHistory(historyResult.value?.data ?? []);
+        setHistory(historyData ?? []);
       }
     } catch (err) {
       console.error("Unable to load study data:", err);
       setError(err?.message || "Unable to load study data.");
     } finally {
-      setLoading(false);
+      setHistoryLoading(false);
     }
   }, []);
 
@@ -225,7 +218,7 @@ function StudyHome() {
         },
         ...(current ?? []).filter((item) => String(item?.id) !== String(entry?.id)),
       ]);
-      setSessions((current) => (current ?? []).filter((item) => String(item?.id) !== String(entry?.session_id)));
+      refreshSessions();
     };
     window.addEventListener("hyper-tutor-session-completed", onCompleted);
     return () => window.removeEventListener("hyper-tutor-session-completed", onCompleted);
@@ -258,7 +251,7 @@ function StudyHome() {
       const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
       return start < otherEnd && end > otherStart;
     });
-  }, [form, combinedSessions, editingId]);
+  }, [form, sessions, editingId]);
 
   const validationMessage = useMemo(() => {
     if (form.date && form.time) {
@@ -286,7 +279,7 @@ function StudyHome() {
       }
     }
     return "";
-  }, [form, combinedSessions, editingId]);
+  }, [form, sessions, editingId]);
 
   const openEdit = (sessionItem, mode = "edit") => {
     if (!sessionItem) return;
@@ -347,7 +340,6 @@ function StudyHome() {
           .eq("id", editingId)
           .eq("user_id", currentUser.id);
         if (updateError) throw updateError;
-        setSessions((current) => (current ?? []).map((item) => (String(item.id) === String(editingId) ? data : item)));
       } else {
         const { error: insertError } = await supabase
           .from("Study")
@@ -358,7 +350,6 @@ function StudyHome() {
             user_id: currentUser.id,
           });
         if (insertError) throw insertError;
-        setSessions((current) => [...(current ?? []), data]);
       }
       setForm(INITIAL_FORM);
       setFormOpen(false);
@@ -376,11 +367,11 @@ function StudyHome() {
     setMenuId(null);
     const label = sessionItem.Topic || sessionItem.topic || sessionItem.Subject || sessionItem.subject || "Session";
     if (!window.confirm(`Delete “${label}” and its attached materials?`)) return;
-    setSessions((current) => (current ?? []).filter((item) => String(item.id) !== String(sessionItem.id)));
     const { error: deleteError } = await deleteSession({ id: sessionItem.id });
     if (deleteError) {
-      setSessions((current) => [...(current ?? []), sessionItem]);
       setError(deleteError?.message || "Unable to delete session.");
+    } else {
+      refreshSessions();
     }
   };
 
@@ -447,7 +438,7 @@ function StudyHome() {
       today: todayItems.sort(byStart),
       upcoming: upcoming.sort(byStart),
     };
-  }, [combinedSessions, clockNow, today]);
+  }, [sessions, clockNow, today]);
 
   const uniqueSubjects = useMemo(() => [...new Set((history ?? []).map((item) => item?.subject).filter(Boolean))].sort(), [history]);
 
@@ -521,7 +512,7 @@ function StudyHome() {
       totalHistoryMinutes,
       totalHistoryXp,
     };
-  }, [history, combinedSessions, clockNow, today, filteredHistory]);
+  }, [history, sessions, clockNow, today, filteredHistory]);
 
   const {
     todayMinutes,

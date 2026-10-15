@@ -3,7 +3,7 @@ export function countGenuineAttempts(messages: any[]): number {
 
   const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand)|no\s*idea|no\s*clue|pass|help|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
-  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve)\s*(?:me\s*)?(?:the\s*)?(?:(?:final|correct|exact|right|actual|complete|full|real)\s*)?(?:answer|solution|result)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:(?:final|correct|exact|right|actual|complete|full|real)\s*)?(?:answer|solution|result)|(?:answer|solution|result)\s*(?:please|pls)|(?:solve|do|write)\s*(?:it|this)\s*(?:for\s*me|now|please)|just\s*(?:solve|do|write|give|tell)\s*(?:it|this|me|answer|solution|result)?|ignore\s*(?:all\s*)?(?:previous\s*|your\s*)?instructions|system\s*prompt|you\s*are\s*now|pretend\s*(?:you\s*are|to\s*be)/i;
+  const nonAttemptDemandRegex = /(?:give|tell|show|send|write|solve)\s*(?:me\s*)?(?:the\s*)?(?:(?:final|correct|exact|right|actual|complete|full|real)\s*)?(?:answer|solution|result)|(?:what|whats|what's)\s*(?:is\s*)?(?:the\s*)?(?:(?:final|correct|exact|right|actual|complete|full|real)\s*)?(?:answer|solution|result)|(?:answer|solution|result)\s*(?:please|pls)|(?:can\s+you\s+|please\s+)?(?:solve|do|write|calculate|figure\s*(?:out)?|work\s*(?:out)?)\s*(?:it|this|the\s*(?:problem|question|equation))?\s*(?:for\s*me|now|please)?|just\s*(?:solve|do|write|give|tell|calculate)\s*(?:it|this|me|answer|solution|result)?|ignore\s*(?:all\s*)?(?:previous\s*|your\s*)?instructions|system\s*prompt|you\s*are\s*now|pretend\s*(?:you\s*are|to\s*be)/i;
 
   const promptInjectionRegex = /(?:ignore|disregard)\s+(?:all\s+|previous\s+|prior\s+|above\s+|system\s+)*(?:instructions|prompts|rules|directives)|system\s+prompt|you\s+are\s+now|jailbreak|(?:bypass|override)\s+(?:all\s+|system\s+|socratic\s+)*(?:rules|restrictions|mode|limits)/i;
 
@@ -34,7 +34,7 @@ export function countGenuineAttempts(messages: any[]): number {
       ) {
         if (clean.length < 50 && !cleanLower.includes("because") && !cleanLower.includes("think")) continue;
       }
-      if (nonAttemptDemandRegex.test(clean) && !cleanLower.includes("because")) continue;
+      if (nonAttemptDemandRegex.test(clean) && !cleanLower.includes("because") && !cleanLower.includes("tried") && !cleanLower.includes("think")) continue;
 
       attemptCount++;
     }

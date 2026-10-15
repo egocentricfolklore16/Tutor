@@ -27,3 +27,9 @@
 **Learning:** Students can bypass answer-locking logic by introducing mild modifier adjectives (e.g., "tell me the final answer", "give me the correct answer", "what is the right answer") or phrasing variations ("solve this for me", "i do not know", "i do not understand") that match neither exact string matches nor rigid demand regexes. Expanding regexes to handle optional descriptive adjectives and alternate pronouns ensures students cannot trick the turn counter into unlocking answers without genuine effort.
 
 **Action:** Maintain regex patterns in `countGenuineAttempts` that accommodate optional adjectives (`(?:final|correct|exact|right|actual|complete|full|real)\s*`) and verb target variations (`this` vs `it`) while maintaining strict boundaries so valid student queries remain recognized as genuine attempts.
+
+## 2026-10-07 - Filtering Bare Problem-Solving Demands in Turn Counting
+
+**Learning:** Bare problem-solving demands (e.g., "solve this", "can you solve this", "work it out", "calculate this", "figure it out") previously bypassed `countGenuineAttempts` because the demand regex required specific tail pronouns/modifiers ("for me") or "answer/solution" keywords. Expanding `nonAttemptDemandRegex` to capture verbs (`solve`, `calculate`, `figure out`, `work out`) with target nouns (`this`, `it`, `the problem`, `the question`) ensures zero-effort problem submissions do not unlock answers prematurely while allowing genuine reasoning statements containing keywords like `because`, `tried`, or `think`.
+
+**Action:** Test bare problem-solving command phrasing against `countGenuineAttempts` and ensure non-attempt regexes match problem submission verbs with target objects (`this`, `it`, `problem`) while preserving genuine reasoning statements.

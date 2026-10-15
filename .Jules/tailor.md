@@ -6,7 +6,7 @@
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
-| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
+| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Community | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
@@ -51,3 +51,7 @@
 ## 2026-10-28 - Connecting Accessibility Needs to Document Root Classes & Aligning Settings Options
 **Learning:** `accessibility_needs` was collected in Onboarding Step 3 ("Would any accessibility support help?"), stored in `profiles.accessibility_needs`, and sent to the AI Tutor prompt, but option casing in Settings ("Screen Reader", "High Contrast", "Larger Text") was misaligned with Onboarding ("Screen reader", "High contrast", "Larger text"), breaking option pre-filling and selection. Furthermore, selecting "High contrast" or "Larger text" did not toggle root UI accessibility classes on the document element.
 **Action:** Create `hasAccessibilityNeed` and `getAccessibilityClasses` in `src/lib/accessibility.js` with tests in `test/accessibility.test.js`, connect `ProfileContext.jsx` to dynamically toggle `.high-contrast` and `.accessibility-large-text` on `document.documentElement`, and align options in `Settings.jsx` with case-insensitive matching.
+
+## 2026-11-02 - Connecting Onboarding Subjects to Settings Options & Profile Sync
+**Learning:** `subjects` was collected in Onboarding Step 1 ("What would you like to study?"), stored in `profiles.subjects` as an array, but Settings subject options used "Mathematics" instead of onboarding choice "Math", leaving the Settings dropdown unselected for onboarding users. Saving in Settings updated only `settings_subject` without updating `profiles.subjects`, causing target subjects across Dashboard and AISuggestions to remain stale.
+**Action:** Create `getUserSubjectsFormatted` and `getSubjectOptions` in `src/lib/userSubjects.js` with tests in `test/userSubjects.test.js`, update `AISuggestions.jsx` to format user subjects cleanly with safe defaults, align `Settings.jsx` subject options with onboarding choices, and update both `settings_subject` and `subjects` in Supabase `profiles` on save for instant UI propagation via `ProfileContext`.

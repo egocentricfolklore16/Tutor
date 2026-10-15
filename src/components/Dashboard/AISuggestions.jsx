@@ -7,11 +7,12 @@ import { getPreferredTimeNote } from "../../lib/preferredTime.js";
 import { getWeeklyHours } from "../../lib/weeklyHours.js";
 import { getLearningStyleSuggestion } from "../../lib/learningStyle.js";
 import { getEducationLevelSuggestion } from "../../lib/educationLevel.js";
+import { getUserSubjectsFormatted } from "../../lib/userSubjects.js";
 
 function AISuggestions() {
   const navigate = useNavigate();
   const { profile } = useProfile();
-  const subjects = profile?.subjects?.length ? profile.subjects.join(", ") : "your priority subjects";
+  const subjects = getUserSubjectsFormatted(profile);
   const weeklyHours = getWeeklyHours(profile);
   const styleInfo = getLearningStyleSuggestion(profile?.learning_style);
   const learnerTypeInfo = getLearnerTypeSuggestion(profile?.learner_type);

@@ -5,7 +5,6 @@ import supabase from "../../lib/supabase.js";
 import Billing from "./Billing";
 import SocraticStrictness from "./SocraticStrictness";
 import NotificationSettings from "./NotificationSettings";
-import { useNotifications } from "../../hooks/useNotifications";
 import PageContainer from "../common/PageContainer";
 import {
   getNotificationPreferences,
@@ -13,13 +12,12 @@ import {
   recordNotification,
 } from "../../lib/notifications";
 import { hasAccessibilityNeed } from "../../lib/accessibility.js";
+import { getSubjectOptions } from "../../lib/userSubjects.js";
 
 const STORAGE_BUCKET = "user-images";
 const levels = ["High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
 const primaryGoalOptions = ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"];
 const learnerTypeOptions = ["Academic achiever", "Struggling learner", "Lifelong learner"];
-const generalSubjects = ["Mathematics", "Science", "English", "History", "Computer Science", "Languages", "Business", "Arts"];
-const schoolSubjects = ["AP Biology", "AP Chemistry", "AP Physics", "AP Calculus", "Common Core Algebra II", "Geometry", "Statistics"];
 const styles = ["Visual", "Practice first", "Step-by-step", "Conversation"];
 const accessibilityOptions = ["Screen reader", "Text-to-speech", "High contrast", "Larger text", "None"];
 const collaborationOptions = ["Keep me focused", "Find study groups", "Peer support", "Just me for now"];
@@ -48,7 +46,7 @@ function Settings() {
   const [gapInput, setGapInput] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
   const [preview, setPreview] = useState("");
-  const [notificationSettings, setNotificationSettings] = useState(() => getNotificationPreferences());
+  const notificationSettings = getNotificationPreferences();
   const [activeTab, setActiveTab] = useState("Profile");
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
@@ -105,7 +103,11 @@ function Settings() {
       const { error: uploadError } = await supabase.storage.from(STORAGE_BUCKET).upload(userImg, selectedFile);
       if (uploadError) { setError(uploadError.message); setIsSaving(false); return; }
     }
-    const payload = { primary_goal: settings.primaryGoal, learner_type: settings.learnerType, education_level: settings.studentLevel, settings_subject: settings.subject, current_topic: settings.currentTopic.trim(), curriculum_standard: settings.curriculumStandard, learning_style: settings.learningStyle, knowledge_gaps: settings.knowledgeGaps, socratic_strictness: settings.socraticStrictness, accessibility_needs: settings.accessibilityNeeds, language: settings.language, reduced_motion: settings.reducedMotion, collaboration_interest: settings.collaborationInterest, preferred_time: settings.preferredTime, study_days: settings.studyDays, weekly_hours: Number(settings.weeklyHours) || 5, dark_mode: darkMode, ...(selectedFile ? { user_img: userImg } : {}) };
+    const updatedSubjects = settings.subject
+      ? Array.from(new Set([settings.subject, ...(Array.isArray(profile?.subjects) ? profile.subjects : [])].filter(Boolean)))
+      : (Array.isArray(profile?.subjects) ? profile.subjects : []);
+
+    const payload = { primary_goal: settings.primaryGoal, learner_type: settings.learnerType, education_level: settings.studentLevel, settings_subject: settings.subject, subjects: updatedSubjects, current_topic: settings.currentTopic.trim(), curriculum_standard: settings.curriculumStandard, learning_style: settings.learningStyle, knowledge_gaps: settings.knowledgeGaps, socratic_strictness: settings.socraticStrictness, accessibility_needs: settings.accessibilityNeeds, language: settings.language, reduced_motion: settings.reducedMotion, collaboration_interest: settings.collaborationInterest, preferred_time: settings.preferredTime, study_days: settings.studyDays, weekly_hours: Number(settings.weeklyHours) || 5, dark_mode: darkMode, ...(selectedFile ? { user_img: userImg } : {}) };
     const { error: saveError } = await supabase.from("profiles").update(payload).eq("user_id", user.id);
     if (saveError) { if (selectedFile) await supabase.storage.from(STORAGE_BUCKET).remove([userImg]); setError(saveError.message); setIsSaving(false); return; }
 
@@ -125,7 +127,7 @@ function Settings() {
 
   const image = preview || profile?.avatar_url;
   const name = profile?.full_name || profile?.username || "Learner";
-  const subjectOptions = settings.studentLevel.includes("Grade") ? [...generalSubjects, ...schoolSubjects] : generalSubjects;
+  const subjectOptions = getSubjectOptions(settings.studentLevel);
   const fieldClass = "rounded-xl border border-slate-200 px-4 py-3 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-100";
 
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];

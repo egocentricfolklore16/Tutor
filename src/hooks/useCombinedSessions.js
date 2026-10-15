@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import supabase from "../lib/supabase";
 import { scheduleGroupSessionReminders, getNotificationPreferences } from "../lib/notifications";
 
@@ -12,6 +12,10 @@ export function useCombinedSessions() {
   const [groupSessions, setGroupSessions] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Keep a ref to groupSessions so interval and event listeners access the latest sessions without triggering effect re-subscriptions
+  const groupSessionsRef = useRef(groupSessions);
+  groupSessionsRef.current = groupSessions;
 
   const fetchCombinedSessions = useCallback(async () => {
     setLoading(true);
@@ -159,16 +163,16 @@ export function useCombinedSessions() {
   useEffect(() => {
     fetchCombinedSessions();
 
-    // Check reminders periodically and on tab focus
+    // Check reminders periodically and on tab focus using groupSessionsRef to prevent re-attaching listeners on state updates
     const interval = setInterval(() => {
-      if (groupSessions.length > 0) {
-        scheduleGroupSessionReminders(groupSessions, getNotificationPreferences());
+      if (groupSessionsRef.current.length > 0) {
+        scheduleGroupSessionReminders(groupSessionsRef.current, getNotificationPreferences());
       }
     }, 45000);
 
     const handleFocus = () => {
-      if (groupSessions.length > 0) {
-        scheduleGroupSessionReminders(groupSessions, getNotificationPreferences());
+      if (groupSessionsRef.current.length > 0) {
+        scheduleGroupSessionReminders(groupSessionsRef.current, getNotificationPreferences());
       }
     };
 
@@ -178,7 +182,7 @@ export function useCombinedSessions() {
       clearInterval(interval);
       window.removeEventListener("focus", handleFocus);
     };
-  }, [fetchCombinedSessions, groupSessions]);
+  }, [fetchCombinedSessions]);
 
   return {
     sessions,

@@ -222,6 +222,24 @@ export function clearChatDraft(conversationId) {
 }
 
 /**
+ * Sanitizes a URL string to prevent XSS attacks (e.g. javascript:, data:, vbscript: protocols).
+ * Returns the sanitized URL string or '#' if unsafe.
+ */
+export function sanitizeUrl(urlInput) {
+  if (!urlInput || typeof urlInput !== "string") return "#";
+  const trimmed = urlInput.trim();
+  if (!trimmed) return "#";
+
+  // Allow safe absolute and relative URL protocols (http, https, mailto, tel, relative path / or #)
+  if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed)) {
+    return trimmed;
+  }
+
+  // Fallback to safe anchor for dangerous protocols (javascript:, data:, vbscript:, etc.)
+  return "#";
+}
+
+/**
  * Parses text and returns an array of string parts and clickable URL links safely
  */
 export function parseLinksInText(text) {
@@ -235,8 +253,9 @@ export function parseLinksInText(text) {
     if (match.index > lastIndex) {
       parts.push({ type: "text", value: text.substring(lastIndex, match.index) });
     }
-    parts.push({ type: "link", value: match[0] });
-    lastIndex = match.index + match[0].length;
+    const rawUrl = match[0];
+    parts.push({ type: "link", value: sanitizeUrl(rawUrl), raw: rawUrl });
+    lastIndex = match.index + rawUrl.length;
   }
 
   if (lastIndex < text.length) {

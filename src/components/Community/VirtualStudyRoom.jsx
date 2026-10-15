@@ -26,6 +26,7 @@ import {
 import supabase from "../../lib/supabase";
 import Avatar from "../common/Avatar";
 import FriendPicker from "./FriendPicker";
+import { sanitizeUrl } from "../../lib/communityChat";
 
 export default function VirtualStudyRoom() {
   const { roomId } = useParams();
@@ -776,7 +777,7 @@ export default function VirtualStudyRoom() {
                     <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 p-2.5 text-xs text-emerald-200">
                       <span className="font-bold block text-emerald-400">{msg.name}</span>
                       <a
-                        href={msg.link}
+                        href={sanitizeUrl(msg.link)}
                         target="_blank"
                         rel="noreferrer"
                         className="underline break-all text-xs text-sky-400"

@@ -5,6 +5,8 @@ import {
   formatDateSectionLabel,
   groupMessagesByDateAndSender,
   calculateUnreadCount,
+  sanitizeUrl,
+  parseLinksInText,
 } from "../src/lib/communityChat.js";
 
 test("formatRelativeTime returns 'just now' for null or invalid inputs", () => {
@@ -85,4 +87,36 @@ test("calculateUnreadCount counts messages newer than last_read_at sent by other
 
   const count = calculateUnreadCount(messages, lastReadAt, currentUserId);
   assert.equal(count, 2);
+});
+
+test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", () => {
+  assert.equal(sanitizeUrl("https://example.com/study"), "https://example.com/study");
+  assert.equal(sanitizeUrl("http://localhost:3000"), "http://localhost:3000");
+  assert.equal(sanitizeUrl("mailto:support@example.com"), "mailto:support@example.com");
+  assert.equal(sanitizeUrl("/community/chat"), "/community/chat");
+  assert.equal(sanitizeUrl("#section"), "#section");
+
+  // XSS payloads
+  assert.equal(sanitizeUrl("javascript:alert(1)"), "#");
+  assert.equal(sanitizeUrl("JAVASCRIPT:alert('xss')"), "#");
+  assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
+  assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
+
+  // Edge cases
+  assert.equal(sanitizeUrl(null), "#");
+  assert.equal(sanitizeUrl(undefined), "#");
+  assert.equal(sanitizeUrl(""), "#");
+});
+
+test("parseLinksInText extracts and sanitizes links from message text", () => {
+  const text = "Check out https://hypertutor.app for study tools";
+  const parts = parseLinksInText(text);
+
+  assert.equal(parts.length, 3);
+  assert.equal(parts[0].type, "text");
+  assert.equal(parts[0].value, "Check out ");
+  assert.equal(parts[1].type, "link");
+  assert.equal(parts[1].value, "https://hypertutor.app");
+  assert.equal(parts[2].type, "text");
+  assert.equal(parts[2].value, " for study tools");
 });

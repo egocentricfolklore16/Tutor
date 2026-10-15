@@ -592,3 +592,63 @@ test("processVerifiedPayment returns alreadyProcessed when out-of-order charge.f
   assert.strictEqual(result.payment.status, "success");
   assert.strictEqual(result.subscription.status, "active");
 });
+
+test("processVerifiedPayment rejects cross-user reference hijacking on failed or pending payments", async () => {
+  const existingFailedPayment = {
+    id: "payment-uuid-999",
+    user_id: "user-original-owner-111",
+    reference: "ref_failed_hijack_9001",
+    amount: 250000,
+    currency: "NGN",
+    status: "failed",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment: existingFailedPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_failed_hijack_9001",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro",
+            userId: "user-attacker-222",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment reference belongs to another user",
+    }
+  );
+});
+
+test("processVerifiedPayment handles stringified null metadata without TypeError", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_null_metadata_9002",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: "null",
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Missing planId in Paystack metadata",
+    }
+  );
+});

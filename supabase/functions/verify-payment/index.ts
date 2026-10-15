@@ -90,6 +90,9 @@ Deno.serve(async (req) => {
         metadata = {};
       }
     }
+    if (!metadata || typeof metadata !== "object") {
+      metadata = {};
+    }
 
     let customerMetadata = paystackData?.data?.customer?.metadata || {};
     if (typeof customerMetadata === "string") {
@@ -98,6 +101,9 @@ Deno.serve(async (req) => {
       } catch {
         customerMetadata = {};
       }
+    }
+    if (!customerMetadata || typeof customerMetadata !== "object") {
+      customerMetadata = {};
     }
 
     const metadataUserId =

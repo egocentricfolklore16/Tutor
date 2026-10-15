@@ -19,6 +19,9 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
       metadata = {};
     }
   }
+  if (!metadata || typeof metadata !== "object") {
+    metadata = {};
+  }
 
   let customerMetadata = paystackData?.data?.customer?.metadata || {};
   if (typeof customerMetadata === "string") {
@@ -27,6 +30,9 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
     } catch {
       customerMetadata = {};
     }
+  }
+  if (!customerMetadata || typeof customerMetadata !== "object") {
+    customerMetadata = {};
   }
 
   const metadataUserId =
@@ -108,6 +114,11 @@ test("verifyPaymentAuthorization returns 403 if metadataUserId is missing or unp
   const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, unparseableMeta);
   assert.strictEqual(result2.status, 403);
   assert.strictEqual(result2.error, "Forbidden: Payment user ID mismatch");
+
+  const nullStringMeta = { data: { metadata: "null" } };
+  const result3 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, nullStringMeta);
+  assert.strictEqual(result3.status, 403);
+  assert.strictEqual(result3.error, "Forbidden: Payment user ID mismatch");
 });
 
 test("processVerifiedPayment error mapping produces correct HTTP status codes", () => {

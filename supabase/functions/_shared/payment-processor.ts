@@ -73,7 +73,7 @@ export async function processVerifiedPayment({
   reference,
   paystackData,
 }: ProcessPaymentParams) {
-  let metadata: any = paystackData.metadata || {};
+  let metadata: any = paystackData?.metadata || {};
   if (typeof metadata === "string") {
     try {
       metadata = JSON.parse(metadata);
@@ -81,14 +81,20 @@ export async function processVerifiedPayment({
       metadata = {};
     }
   }
+  if (!metadata || typeof metadata !== "object") {
+    metadata = {};
+  }
 
-  let customerMetadata: any = paystackData.customer?.metadata || {};
+  let customerMetadata: any = paystackData?.customer?.metadata || {};
   if (typeof customerMetadata === "string") {
     try {
       customerMetadata = JSON.parse(customerMetadata);
     } catch {
       customerMetadata = {};
     }
+  }
+  if (!customerMetadata || typeof customerMetadata !== "object") {
+    customerMetadata = {};
   }
 
   const planId = metadata.planId || metadata.plan_id;
@@ -128,30 +134,32 @@ export async function processVerifiedPayment({
       ? plan.price_kobo
       : plan.price_naira * 100;
 
-  // 2. Idempotency check: return existing record if payment with this reference was already processed successfully
+  // 2. Idempotency check: validate user ownership on existing reference & return existing record if already successful
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
     .eq("reference", reference)
     .maybeSingle();
 
-  if (existingPayment && existingPayment.status === "success") {
+  if (existingPayment) {
     if (existingPayment.user_id !== userId) {
       throw new Error("Payment reference belongs to another user");
     }
 
-    const { data: existingSub } = await supabaseClient
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+    if (existingPayment.status === "success") {
+      const { data: existingSub } = await supabaseClient
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
 
-    return {
-      payment: existingPayment,
-      subscription: existingSub,
-      plan,
-      alreadyProcessed: true,
-    };
+      return {
+        payment: existingPayment,
+        subscription: existingSub,
+        plan,
+        alreadyProcessed: true,
+      };
+    }
   }
 
   // 3. Audit non-success or mismatched payment attempts in `payments` table without granting subscriptions

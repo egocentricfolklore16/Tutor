@@ -15,3 +15,7 @@
 ## 2025-05-23 - Edge Function Metadata String Parsing and Strict IDOR Verification
 **Learning:** In Edge Functions like `verify-payment`, checking `metadataUserId` without parsing stringified `paystackData.data.metadata` or `customer.metadata` results in `metadataUserId` evaluating to `undefined`. If the ownership check condition allows `undefined` through or fails to require `metadataUserId === user.id`, an attacker could verify payments belonging to other users or bypass authentication checks when Paystack passes stringified metadata.
 **Action:** Always defensively parse stringified `metadata` and `customer.metadata` in verification Edge Functions before checking `!metadataUserId || metadataUserId !== user.id` to enforce strict ownership matching.
+
+## 2025-05-24 - Cross-State Reference Ownership and Defensive Null Metadata Parsing
+**Learning:** Checking user ownership on existing payment references only when `status === 'success'` allowed attackers to target payment references in `failed` or `pending` states and hijack them during upsert. Additionally, parsing stringified `"null"` metadata produced `null` values instead of objects, leading to unhandled `TypeError` exceptions during property access.
+**Action:** Enforce `existingPayment.user_id === userId` ownership validation whenever `existingPayment` is present regardless of status, and normalize parsed metadata to non-null objects (`if (!metadata || typeof metadata !== "object") metadata = {};`).

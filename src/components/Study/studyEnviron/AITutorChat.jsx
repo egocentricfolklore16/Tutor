@@ -19,8 +19,10 @@ import {
   X,
   MessageSquarePlus,
   ChevronRight,
+  SlidersHorizontal,
 } from "lucide-react";
 import LumoAvatar from "../../common/LumoAvatar";
+import { useAITutor } from "../../../app/AITutorContext";
 import ResponsiveSheet from "../../common/ResponsiveSheet";
 import TypewriterText from "./TypewriterText";
 import "katex/dist/katex.min.css";
@@ -57,9 +59,19 @@ const AITutorChat = ({
   const animatedMessageIdsRef = useRef(new Set());
   const isFirstMountRef = useRef(true);
 
+  const { strictness = "hints_then_answer", updateStrictness } = useAITutor();
   const [copyState, setCopyState] = useState({});
   const [isPromptsSheetOpen, setIsPromptsSheetOpen] = useState(false);
+  const [isModeSwitcherOpen, setIsModeSwitcherOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+
+  const MODE_LABELS = {
+    always_guide: "Guide first",
+    hints_then_answer: "Hints then answer",
+    direct_help: "Direct help",
+  };
+
+  const currentModeLabel = MODE_LABELS[strictness] || "Hints then answer";
 
   const panelAccent = theme?.accentButton || "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600";
 
@@ -461,7 +473,19 @@ const AITutorChat = ({
             </button>
             <LumoAvatar size="sm" state={lumoState} />
             <div>
-              <h2 className="text-base font-bold text-slate-900 dark:text-white">Lumo</h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-base font-bold text-slate-900 dark:text-white">Lumo</h2>
+                <button
+                  type="button"
+                  onClick={() => setIsModeSwitcherOpen(true)}
+                  title="Switch strictness mode"
+                  aria-label="Switch strictness mode"
+                  className="inline-flex items-center gap-1 rounded-full bg-emerald-100/90 px-2 py-0.5 text-[10px] font-bold text-emerald-800 transition hover:bg-emerald-200 dark:bg-emerald-950/80 dark:text-emerald-300 min-h-[28px]"
+                >
+                  <SlidersHorizontal className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
+                  <span>{currentModeLabel}</span>
+                </button>
+              </div>
               <p className="text-[11px] text-slate-500 dark:text-slate-400">Your AI study partner</p>
             </div>
           </div>
@@ -673,6 +697,60 @@ const AITutorChat = ({
           </div>
         </div>
       </div>
+
+      <ResponsiveSheet
+        isOpen={isModeSwitcherOpen}
+        onClose={() => setIsModeSwitcherOpen(false)}
+        title="AI Tutor Mode"
+      >
+        <div className="space-y-3">
+          <p className="text-xs text-slate-500 dark:text-slate-400">
+            Choose how Lumo helps you solve questions during your study sessions.
+          </p>
+          <div className="space-y-2">
+            {[
+              {
+                value: "always_guide",
+                label: "Always Guide First",
+                description: "The tutor asks questions and gives you steps to try. It won't hand over the answer.",
+              },
+              {
+                value: "hints_then_answer",
+                label: "Hints Then Answer",
+                description: "You get hints first, and the full answer if you're still stuck.",
+              },
+              {
+                value: "direct_help",
+                label: "Direct Help",
+                description: "You get the answer and explanation right away.",
+              },
+            ].map((opt) => {
+              const isSelected = strictness === opt.value;
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => {
+                    updateStrictness(opt.value);
+                    setIsModeSwitcherOpen(false);
+                  }}
+                  className={`w-full rounded-2xl p-3.5 text-left transition border ${
+                    isSelected
+                      ? "bg-emerald-50 border-emerald-500 text-emerald-950 dark:bg-emerald-950/50 dark:border-emerald-500 dark:text-emerald-100 shadow-sm"
+                      : "bg-white border-slate-200 text-slate-800 hover:bg-slate-50 dark:bg-slate-900 dark:border-slate-800 dark:text-slate-200 dark:hover:bg-slate-800/60"
+                  }`}
+                >
+                  <div className="flex items-center justify-between font-bold text-sm">
+                    <span>{opt.label}</span>
+                    {isSelected && <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />}
+                  </div>
+                  <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">{opt.description}</p>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      </ResponsiveSheet>
 
       <ResponsiveSheet
         isOpen={isPromptsSheetOpen}

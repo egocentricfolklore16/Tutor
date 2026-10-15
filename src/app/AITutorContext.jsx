@@ -95,6 +95,11 @@ export function AITutorProvider({ children, session }) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  // Socratic strictness preference state
+  const [strictness, setStrictness] = useState("hints_then_answer");
+  const [strictnessSaveStatus, setStrictnessSaveStatus] = useState("idle");
+  const [strictnessError, setStrictnessError] = useState("");
+
   // Live client state pieces
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [focusMode, setFocusMode] = useState("Deep work");
@@ -114,6 +119,70 @@ export function AITutorProvider({ children, session }) {
   }, [activeSessionId]);
 
   const user = session?.user || null;
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStrictness() {
+      if (!user?.id) return;
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("socratic_strictness")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Failed to fetch user_preferences.socratic_strictness:", error);
+        return;
+      }
+
+      if (isMounted && data?.socratic_strictness) {
+        setStrictness(data.socratic_strictness);
+      }
+    }
+
+    loadStrictness();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  const updateStrictness = async (newValue) => {
+    if (!newValue || newValue === strictness) return;
+    const previousValue = strictness;
+    setStrictness(newValue);
+    setStrictnessSaveStatus("saving");
+    setStrictnessError("");
+
+    const { error: rpcError } = await supabase.rpc("set_socratic_strictness", {
+      p_strictness: newValue,
+    });
+
+    let saveError = rpcError;
+    if (saveError) {
+      const { data: currentUserData } = await supabase.auth.getUser();
+      const currentUid = currentUserData?.user?.id || user?.id;
+      if (currentUid) {
+        const { error: upsertError } = await supabase
+          .from("user_preferences")
+          .upsert(
+            { user_id: currentUid, socratic_strictness: newValue, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          );
+        saveError = upsertError;
+      }
+    }
+
+    if (saveError) {
+      setStrictness(previousValue);
+      setStrictnessSaveStatus("error");
+      setStrictnessError(saveError.message || "Failed to update Socratic strictness preference.");
+    } else {
+      setStrictnessSaveStatus("saved");
+      setTimeout(() => {
+        setStrictnessSaveStatus("idle");
+      }, 2000);
+    }
+  };
 
   const getTutorClientState = (customPath = location.pathname) => {
     const clientState = {
@@ -316,6 +385,10 @@ export function AITutorProvider({ children, session }) {
         panel,
         quizInProgress,
         requestedQuizId,
+        strictness,
+        strictnessSaveStatus,
+        strictnessError,
+        updateStrictness,
       }}
     >
       {children}
@@ -348,6 +421,10 @@ export function useAITutor() {
       setRequestedQuizId: () => {},
       requestedQuizId: null,
       panel: "none",
+      strictness: "hints_then_answer",
+      strictnessSaveStatus: "idle",
+      strictnessError: "",
+      updateStrictness: () => {},
     }
   );
 }

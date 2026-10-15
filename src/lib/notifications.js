@@ -282,10 +282,11 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
 
 export function scheduleGroupSessionReminders(groupSessions, preferences = null, now = Date.now()) {
   const prefs = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  if (!prefs.group_reminders_enabled) return;
+  if (!prefs.group_reminders_enabled) return [];
 
   const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
   const firedMap = getFiredGroupReminders();
+  const scheduledTimers = [];
 
   const offsets = [
     { key: "group_reminder_30m", offsetMins: 30, text: (t, g) => `Starts in 30 minutes: ${t} · ${g}` },
@@ -357,9 +358,12 @@ export function scheduleGroupSessionReminders(groupSessions, preferences = null,
         }, timeDiff);
 
         reminderTimers.set(tagKey, timer);
+        scheduledTimers.push(timer);
       }
     });
   });
+
+  return scheduledTimers;
 }
 
 export async function scheduleSessionRemindersFromSessions(sessions, preferences = null, now = Date.now()) {

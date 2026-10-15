@@ -9,6 +9,7 @@ import {
   writeNotification,
   recordNotification,
   scheduleStudyReminder,
+  scheduleGroupSessionReminders,
   scheduleSessionRemindersFromSessions,
   markAllNotificationsRead,
   dismissNotification,
@@ -81,10 +82,12 @@ function mockBrowserGlobals({ permission = "granted", pushSubscription = null, h
   const originalNotification = Object.getOwnPropertyDescriptor(globalThis, "Notification");
   const originalNavigator = Object.getOwnPropertyDescriptor(globalThis, "navigator");
 
-  const mockNotificationClass = {
-    permission,
-    requestPermission: () => Promise.resolve("granted"),
-  };
+  function mockNotificationClass(title, options) {
+    this.title = title;
+    this.options = options;
+  }
+  mockNotificationClass.permission = permission;
+  mockNotificationClass.requestPermission = () => Promise.resolve("granted");
 
   const mockWin = hasWindow
     ? {
@@ -453,6 +456,119 @@ test("markAllNotificationsRead and dismissNotification update stored state", () 
     const afterDismiss = dismissNotification("n1");
     assert.equal(afterDismiss.length, 1);
     assert.equal(afterDismiss[0].id, "n2");
+  } finally {
+    cleanup();
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("scheduleGroupSessionReminders skips when group_reminders_enabled is false, or rsvp is declined, or date is invalid", () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+
+  try {
+    const disabledPrefs = normalizeNotificationPreferences({ group_reminders_enabled: false });
+    const groupSessions = [
+      { id: "g1", scheduled_start: "2026-06-15T09:30:00Z", title: "Physics Lab", group_name: "Quantum" },
+      { id: "g2", scheduled_start: "2026-06-15T09:30:00Z", user_rsvp: "declined" },
+      { id: "g3", scheduled_start: "invalid-date" },
+    ];
+
+    // 1. Returns [] when group_reminders_enabled is false
+    const timersDisabled = scheduleGroupSessionReminders(groupSessions, disabledPrefs, fixedNow);
+    assert.deepEqual(timersDisabled, []);
+
+    // 2. Returns [] when user_rsvp is declined or scheduled_start is invalid
+    const activePrefs = normalizeNotificationPreferences({ group_reminders_enabled: true });
+    const invalidSessions = [
+      { id: "g2", scheduled_start: "2026-06-15T09:30:00Z", user_rsvp: "declined" },
+      { id: "g3", scheduled_start: "invalid-date" },
+    ];
+    const timersInvalid = scheduleGroupSessionReminders(invalidSessions, activePrefs, fixedNow);
+    assert.deepEqual(timersInvalid, []);
+    assert.deepEqual(getStoredNotifications(), []);
+  } finally {
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("scheduleGroupSessionReminders fires immediate notification within 2-minute tolerance window and deduplicates", () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  const cleanup = mockBrowserGlobals({ permission: "granted" });
+
+  // Fixed time: 10:00:30 UTC
+  // Session starts at 10:30:00 UTC -> 30m offset fire time is 10:00:00 UTC (timeDiff = -30s -> within [-120000, 0] tolerance)
+  const fixedNow = new Date("2026-06-15T10:00:30Z").getTime();
+  const groupSessions = [
+    { id: "g_tol_1", scheduled_start: "2026-06-15T10:30:00Z", title: "Math Group", group_name: "Calculus Crew" },
+  ];
+
+  try {
+    const activePrefs = normalizeNotificationPreferences({ group_reminders_enabled: true });
+
+    // First call -> fires 30m offset notification immediately
+    const timers1 = scheduleGroupSessionReminders(groupSessions, activePrefs, fixedNow);
+    timers1.forEach((t) => clearTimeout(t));
+
+    const stored = getStoredNotifications();
+    assert.equal(stored.length, 1);
+    assert.ok(stored[0].body.includes("Starts in 30 minutes"));
+    assert.ok(stored[0].body.includes("Math Group"));
+
+    // Check localStorage deduplication map contains fired tag key
+    const rawFired = globalThis.localStorage.getItem("hyper-tutor-fired-group-reminders");
+    assert.ok(rawFired);
+    const firedMap = JSON.parse(rawFired);
+    assert.ok(firedMap["g_tol_1-30"]);
+
+    // Second call with same parameters -> skips because tag key is recorded in firedMap
+    const timers2 = scheduleGroupSessionReminders(groupSessions, activePrefs, fixedNow);
+    timers2.forEach((t) => clearTimeout(t));
+    assert.equal(getStoredNotifications().length, 1, "Must not duplicate notification for already fired offset");
+  } finally {
+    cleanup();
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("scheduleGroupSessionReminders schedules future timers for active offsets and respects individual toggles", () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  const cleanup = mockBrowserGlobals({ permission: "granted" });
+
+  // Fixed time: 09:00:00 UTC
+  // Session starts at 10:00:00 UTC -> 30m offset is 09:30:00 (in 30 mins), 15m is 09:45:00 (in 45 mins), 0m is 10:00:00 (in 60 mins)
+  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+  const groupSessions = [
+    { id: "g_fut_1", scheduled_start: "2026-06-15T10:00:00Z", title: "Chemistry Prep", group_name: "OrgChem" },
+  ];
+
+  try {
+    // 1. All offsets enabled -> returns 3 active timer handles (30m, 15m, 0m)
+    const allPrefs = normalizeNotificationPreferences({
+      group_reminders_enabled: true,
+      group_reminder_30m: true,
+      group_reminder_15m: true,
+      group_reminder_0m: true,
+    });
+
+    const timers = scheduleGroupSessionReminders(groupSessions, allPrefs, fixedNow);
+    assert.equal(timers.length, 3, "Must schedule 3 timers for 30m, 15m, and 0m offsets");
+    timers.forEach((t) => clearTimeout(t));
+
+    // 2. 15m offset disabled -> returns 2 active timer handles (30m, 0m)
+    const partialPrefs = normalizeNotificationPreferences({
+      group_reminders_enabled: true,
+      group_reminder_30m: true,
+      group_reminder_15m: false,
+      group_reminder_0m: true,
+    });
+
+    const partialTimers = scheduleGroupSessionReminders(groupSessions, partialPrefs, fixedNow);
+    assert.equal(partialTimers.length, 2, "Must schedule 2 timers when 15m offset is disabled");
+    partialTimers.forEach((t) => clearTimeout(t));
   } finally {
     cleanup();
     globalThis.localStorage = originalLocalStorage;

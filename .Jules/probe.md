@@ -23,3 +23,7 @@
 ## 2026-10-14 - Gamification ESM Import Specifiers & RPC Fallbacks
 **Learning:** `src/lib/gamification.js` imported `supabase` without an explicit `.js` file extension (`import supabase from "./supabase"`), which caused `ERR_MODULE_NOT_FOUND` in Node's native test runner. Explicit `.js` extension specifiers are required across `src/lib/` modules.
 **Action:** When testing library utilities or RPC fallbacks in `src/lib/`, ensure relative imports include explicit `.js` extensions.
+
+## 2026-10-18 - Group Session Reminders & Timer Handle Lifecycle Tracking
+**Learning:** `scheduleGroupSessionReminders` computes multi-offset delays (30m, 15m, 0m) relative to session start time. When testing functions that schedule future `setTimeout` timers, test runners like Node's native runner (`node --test`) will block process termination waiting for open event loop handles unless timer handles are explicitly captured and cleared via `clearTimeout`. `scheduleGroupSessionReminders` now returns `scheduledTimers`, enabling callers and test suites to cleanly manage active timer handles and prevent test timeouts.
+**Action:** When scheduling in-tab offset timers, ensure timer scheduling functions return created timer handles, and explicitly clear them in test `finally` blocks.

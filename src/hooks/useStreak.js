@@ -18,7 +18,7 @@ export function getLocalCutoffDate(date = new Date(), timeZone = getUserTimeZone
     const month = String(localDate.getMonth() + 1).padStart(2, "0");
     const day = String(localDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  } catch (err) {
+  } catch (_err) {
     const year = date.getUTCFullYear();
     const month = String(date.getUTCMonth() + 1).padStart(2, "0");
     const day = String(date.getUTCDate()).padStart(2, "0");
@@ -56,6 +56,36 @@ export function getCurrentWeekDays(todayCutoffStr) {
     });
   }
   return weekDays;
+}
+
+/**
+ * Computes status and visual state for each day in baseWeek.
+ */
+export function computeWeekDays(baseWeek, statusByDate = {}, todayCutoffStr, activeOrCompleted) {
+  const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;
+
+  return baseWeek.map((day) => {
+    let state = "missed";
+    const dayStatus = statusByDate[day.dateStr];
+
+    if (dayStatus === "completed") {
+      state = "completed";
+    } else if (dayStatus === "frozen") {
+      state = "frozen";
+    } else if (day.isToday) {
+      state = isTodayCompleted ? "completed" : "today-pending";
+    } else if (day.isFuture) {
+      state = "future";
+    } else {
+      state = "missed";
+    }
+
+    return {
+      ...day,
+      state,
+      status: dayStatus || (state === "completed" ? "completed" : null),
+    };
+  });
 }
 
 export function useStreak() {
@@ -157,28 +187,7 @@ export function useStreak() {
       const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;
       setTodayCompleted(Boolean(isTodayCompleted));
 
-      const computedWeekDays = baseWeek.map((day) => {
-        let state = "missed";
-        const dayStatus = statusByDate[day.dateStr];
-
-        if (dayStatus === "completed") {
-          state = "completed";
-        } else if (dayStatus === "frozen") {
-          state = "frozen";
-        } else if (day.isToday) {
-          state = isTodayCompleted ? "completed" : "today-pending";
-        } else if (day.isFuture) {
-          state = "future";
-        } else {
-          state = "missed";
-        }
-
-        return {
-          ...day,
-          state,
-          status: dayStatus || (state === "completed" ? "completed" : null),
-        };
-      });
+      const computedWeekDays = computeWeekDays(baseWeek, statusByDate, todayCutoffStr, activeOrCompleted);
 
       setWeekDays(computedWeekDays);
       setError(null);

@@ -48,6 +48,7 @@ import HelpForum from "./HelpForum";
 import ForumPostDetail from "./ForumPostDetail";
 import PeerTutors from "./PeerTutors";
 import LeaderboardTab from "./LeaderboardTab";
+import { ActivityFeed } from "../../features/community/components/feed/ActivityFeed";
 import AchievementsPage from "./AchievementsPage";
 
 import { useExploreGroups } from "../../features/groups/useExploreGroups";
@@ -136,10 +137,15 @@ const Community = () => {
   const isChatRoute = pathLower.includes("/chat");
 
   useEffect(() => {
-    if (isChatRoute) {
-      setActiveTab("chat");
-    }
-  }, [isChatRoute]);
+    if (pathLower.includes("/chat")) setActiveTab("chat");
+    else if (pathLower.includes("/rooms")) setActiveTab("rooms");
+    else if (pathLower.includes("/help")) setActiveTab("help");
+    else if (pathLower.includes("/tutors")) setActiveTab("tutors");
+    else if (pathLower.includes("/leaderboard")) setActiveTab("leaderboard");
+    else if (pathLower.includes("/friends")) setActiveTab("friends");
+    else if (pathLower.includes("/feed")) setActiveTab("feed");
+    else if (pathLower.includes("/groups")) setActiveTab("groups");
+  }, [pathLower]);
 
   useEffect(() => {
     const fetchAuthUser = async () => {
@@ -522,6 +528,7 @@ const Community = () => {
               {/* Navigation Sub-Tabs Segmented Bar */}
               <div className="mt-8 flex w-full gap-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1.5 dark:bg-[#18211f]">
                 {[
+                  { id: "feed", label: "Activity Feed", icon: Sparkles, path: "/community/feed" },
                   { id: "groups", label: "Groups", icon: Shield, path: "/community/groups" },
                   { id: "rooms", label: "Rooms", icon: Clock, path: "/community/rooms" },
                   { id: "help", label: "Help Forum", icon: HelpCircle, path: "/community/help" },
@@ -556,6 +563,11 @@ const Community = () => {
 
             {/* Sub-tab Content Render */}
             <div className="mt-6">
+              {/* ACTIVITY FEED TAB */}
+              {activeTab === "feed" && (
+                <ActivityFeed onUserClick={(userId) => navigate(`/community/u/${userId}`)} />
+              )}
+
               {/* GROUPS TAB */}
               {activeTab === "groups" && (
                 <div className="space-y-6">

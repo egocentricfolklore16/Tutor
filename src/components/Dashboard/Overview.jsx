@@ -134,6 +134,12 @@ function Overview() {
   </button>
 </div>
           </section>
+
+          {/* Keeps Slipping section placed directly below greeting banner */}
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <KeepsSlipping />
+          </div>
+
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <DashboardStatsBar />
           </div>
@@ -157,11 +163,8 @@ function Overview() {
             <Leaderboard />
           </div>
 
-          <div className="min-w-0 2xl:col-span-4">
+          <div className="min-w-0 2xl:col-span-12">
             <StudyStreak currentStreak={currentStreak} loading={streakLoading} error={streakError} />
-          </div>
-          <div className="min-w-0 2xl:col-span-8">
-            <KeepsSlipping userId={userId} />
           </div>
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <AISuggestions />

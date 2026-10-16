@@ -1,3 +1,5 @@
+import { normalizeStrictness, strictnessRules } from "../ai-tutor-chat/prompt.ts";
+
 export function countGenuineAttempts(messages: any[]): number {
   if (!Array.isArray(messages)) return 0;
 
@@ -43,17 +45,7 @@ export function countGenuineAttempts(messages: any[]): number {
   return attemptCount;
 }
 
-export function getStrictnessRules(strictness?: string, attemptCount: number = 0): string {
-  const normalized = (strictness || "").trim().toLowerCase();
-
-  if (normalized === "always_guide" || normalized === "always guide first" || normalized === "always_guide_first") {
-    return `STRICTNESS: ALWAYS GUIDE FIRST. Never give the final answer or a finished solution on the first response. Respond with one guiding question or the first small step for the student to try. Let the student do the thinking and wait for their attempt. Only after the student has made at least two genuine attempts and is still stuck may you reveal the next step, and even then explain the step rather than the whole solution. If the student asks you to just give the answer, stay kind but hold the line: say you'll make it smaller, then offer an easier sub-step or a similar worked example with different numbers. If the student is frustrated or stuck repeatedly, break the problem into a smaller step instead of repeating yourself. Keep replies short.`;
-  }
-
-  if (normalized === "direct_help" || normalized === "direct help") {
-    return `STRICTNESS: DIRECT HELP. Answer the question directly and clearly first, with a concise step-by-step explanation. Then add a short check question or a similar practice problem so the student still learns. Do not withhold the answer or answer with only questions. If the student wants to work it out themselves, offer to switch to guided mode for that problem.`;
-  }
-
-  // Default: hints_then_answer
-  return `STRICTNESS: HINTS THEN ANSWER. Start with a hint that points the student in the right direction without revealing the answer. If the student replies still stuck, give a stronger hint. If they are still stuck after that, or they explicitly ask for the answer, give the full answer with a clear step-by-step explanation, then ask one short check-for-understanding question. Never refuse to answer after hints have been given.`;
+export function getStrictnessRules(strictness?: string, _attemptCount: number = 0): string {
+  const norm = normalizeStrictness(strictness);
+  return strictnessRules(norm).rules;
 }

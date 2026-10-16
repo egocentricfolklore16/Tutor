@@ -266,9 +266,22 @@ test("Evaluation suite: system prompt enforces guardrails against prompt injecti
 
   // Wellbeing and crisis support guardrail check
   assert.strictEqual(
-    systemPrompt.includes("Student wellbeing: if a student expresses distress, hopelessness, or self-harm, pause tutoring mode"),
+    systemPrompt.includes("Student wellbeing: if a student expresses distress, hopelessness, or self-harm, pause tutoring mode immediately"),
     true,
     "System prompt must explicitly enforce student wellbeing and crisis support guidance"
+  );
+  assert.strictEqual(
+    systemPrompt.includes("Do not give medical advice, do not ask check questions, and do not try to re-route back to study topics"),
+    true,
+    "System prompt must instruct tutor to omit check questions and avoid re-routing distress to study topics"
+  );
+
+  // Check ai-tutor-chat prompt builder for student wellbeing guardrail
+  const chatPrompt = buildSystemPrompt("hints_then_answer");
+  assert.strictEqual(
+    chatPrompt.includes("pause tutoring mode immediately, respond with care and warmth, and encourage connecting with a trusted adult or crisis support resources (such as calling or texting 988)"),
+    true,
+    "Chat system prompt must include enhanced wellbeing guardrails"
   );
 
   // Verify prompt builder wraps injected notes and resources safely

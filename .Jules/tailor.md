@@ -5,7 +5,7 @@
 | `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
-| `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
+| `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Community | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
@@ -55,3 +55,7 @@
 ## 2026-11-02 - Connecting Onboarding Subjects to Settings Options & Profile Sync
 **Learning:** `subjects` was collected in Onboarding Step 1 ("What would you like to study?"), stored in `profiles.subjects` as an array, but Settings subject options used "Mathematics" instead of onboarding choice "Math", leaving the Settings dropdown unselected for onboarding users. Saving in Settings updated only `settings_subject` without updating `profiles.subjects`, causing target subjects across Dashboard and AISuggestions to remain stale.
 **Action:** Create `getUserSubjectsFormatted` and `getSubjectOptions` in `src/lib/userSubjects.js` with tests in `test/userSubjects.test.js`, update `AISuggestions.jsx` to format user subjects cleanly with safe defaults, align `Settings.jsx` subject options with onboarding choices, and update both `settings_subject` and `subjects` in Supabase `profiles` on save for instant UI propagation via `ProfileContext`.
+
+## 2026-11-06 - Connecting Primary Goal to Dashboard AI Suggestions
+**Learning:** `primary_goal` was collected in Onboarding Step 1 ("What is your primary goal?"), stored in `profiles.primary_goal`, and displayed in the header, but was omitted from Dashboard recommendations on the `AISuggestions` card.
+**Action:** Create `getPrimaryGoalNote` in `src/lib/primaryGoal.js` with tests in `test/primaryGoal.test.js`, and connect it to `AISuggestions.jsx` so primary goal preferences ("Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career") directly personalize AI recommendation copy on the Dashboard with immediate propagation via `ProfileContext`.

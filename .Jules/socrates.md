@@ -33,3 +33,9 @@
 **Learning:** Bare problem-solving demands (e.g., "solve this", "can you solve this", "work it out", "calculate this", "figure it out") previously bypassed `countGenuineAttempts` because the demand regex required specific tail pronouns/modifiers ("for me") or "answer/solution" keywords. Expanding `nonAttemptDemandRegex` to capture verbs (`solve`, `calculate`, `figure out`, `work out`) with target nouns (`this`, `it`, `the problem`, `the question`) ensures zero-effort problem submissions do not unlock answers prematurely while allowing genuine reasoning statements containing keywords like `because`, `tried`, or `think`.
 
 **Action:** Test bare problem-solving command phrasing against `countGenuineAttempts` and ensure non-attempt regexes match problem submission verbs with target objects (`this`, `it`, `problem`) while preserving genuine reasoning statements.
+
+## 2026-10-08 - Explicit Non-Academic Boundary Instructions for Crisis Guardrails
+
+**Learning:** When system prompts instruct tutors to pause tutoring mode for student distress, models may still attempt to ask check questions or pivot back to academic subjects unless explicitly forbidden from asking follow-up check questions, providing medical/diagnostic advice, or re-routing back to study topics.
+
+**Action:** In wellbeing guardrails across all AI endpoints, explicitly append instructions to pause tutoring mode immediately, express care and warmth, provide crisis helpline resources (988 / trusted adult), omit check questions, avoid medical advice, and refrain from re-routing to academic topics.

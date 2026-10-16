@@ -1,303 +1,402 @@
-import React, { useEffect, useMemo, useState } from "react";
-import { AlertCircle, TrendingDown, Calendar, RotateCcw, ArrowRight, CheckCircle2 } from "lucide-react";
+import React, { useState } from "react";
+import { Play, Calendar, Trash2, Clock, AlertTriangle, RefreshCw, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { getUserSlippingData } from "../../lib/streaks";
+import useSlippingSessions from "../../hooks/useSlippingSessions";
+import { getOverdueDuration, getSessionStartDate, formatTimeSlot, getNextHalfHour } from "../../lib/plannerUtils";
 import supabase from "../../lib/supabase";
+import ResponsiveSheet from "../common/ResponsiveSheet";
 
-const SLIP_COLORS = [
-  {
-    name: "red",
-    bg: "bg-red-50 dark:bg-red-950/30",
-    text: "text-red-700 dark:text-red-400",
-    badge: "bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300",
-    icon: "text-red-600 dark:text-red-400",
-  },
-  {
-    name: "green",
-    bg: "bg-green-50 dark:bg-green-950/30",
-    text: "text-green-700 dark:text-green-400",
-    badge: "bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-    icon: "text-green-600 dark:text-green-400",
-  },
-  {
-    name: "amber",
-    bg: "bg-amber-50 dark:bg-amber-950/30",
-    text: "text-amber-700 dark:text-amber-400",
-    badge: "bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-300",
-    icon: "text-amber-600 dark:text-amber-400",
-  },
-  {
-    name: "purple",
-    bg: "bg-purple-50 dark:bg-purple-950/30",
-    text: "text-purple-700 dark:text-purple-400",
-    badge: "bg-purple-100 text-purple-800 dark:bg-purple-900/50 dark:text-purple-300",
-    icon: "text-purple-600 dark:text-purple-400",
-  },
-];
+function formatOriginalScheduledTime(session) {
+  const startDate = getSessionStartDate(session);
+  if (!startDate || isNaN(startDate.getTime())) return "Original time unavailable";
 
-const DAYS_OF_WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const now = new Date();
+  const isToday = startDate.toDateString() === now.toDateString();
 
-const getColorByIndex = (index) => SLIP_COLORS[index % SLIP_COLORS.length];
+  const yesterday = new Date(now);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const isYesterday = startDate.toDateString() === yesterday.toDateString();
 
-const parseSlipDate = (dateStr) => {
-  if (!dateStr) return new Date();
-  if (typeof dateStr === "string" && dateStr.includes("-") && !dateStr.includes("T")) {
-    const [year, month, day] = dateStr.split("-").map(Number);
-    return new Date(year, month - 1, day);
+  const timeStr = formatTimeSlot(
+    `${String(startDate.getHours()).padStart(2, "0")}:${String(startDate.getMinutes()).padStart(2, "0")}`
+  );
+
+  if (isToday) {
+    return `Today at ${timeStr}`;
   }
-  return new Date(dateStr);
-};
+  if (isYesterday) {
+    return `Yesterday at ${timeStr}`;
+  }
 
-function KeepsSlipping({ userId }) {
+  const dateStr = startDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return `${dateStr} at ${timeStr}`;
+}
+
+const pad = (val) => String(val).padStart(2, "0");
+const localDateStr = (d = new Date()) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+function KeepsSlipping() {
   const navigate = useNavigate();
-  const [slippingData, setSlippingData] = useState([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [sessionStats, setSessionStats] = useState(null);
+  const { slipping, loading, error, refetch } = useSlippingSessions();
 
-  useEffect(() => {
-    const fetchData = async () => {
-      if (!userId) {
-        setIsLoading(false);
-        return;
-      }
+  // Reschedule modal state
+  const [rescheduleSession, setRescheduleSession] = useState(null);
+  const [rescheduleDate, setRescheduleDate] = useState("");
+  const [rescheduleTime, setRescheduleTime] = useState("");
+  const [rescheduleError, setRescheduleError] = useState("");
+  const [rescheduling, setRescheduling] = useState(false);
 
-      try {
-        setIsLoading(true);
+  // Delete modal state
+  const [deleteSessionTarget, setDeleteSessionTarget] = useState(null);
+  const [deleting, setDeleting] = useState(false);
 
-        const { data: slips, error: slipsError } = await getUserSlippingData(userId, 5);
-        if (!slipsError && slips) {
-          setSlippingData(slips);
-        }
+  // Render nothing when no slipping sessions (and not loading/error)
+  if (!loading && !error && slipping.length === 0) {
+    return null;
+  }
 
-        const { data: recentSessions } = await supabase
-          .from("Study")
-          .select("Subject, Topic, Status, Date")
-          .eq("user_id", userId)
-          .neq("session_status", "completed")
-          .order("Date", { ascending: false })
-          .limit(10);
+  const handleStartNow = (session) => {
+    navigate(`/Study/${encodeURIComponent(session.id)}`);
+  };
 
-        if (recentSessions) {
-          const subjectCounts = {};
-          recentSessions.forEach((session) => {
-            const subject = session.Subject || "General";
-            subjectCounts[subject] = (subjectCounts[subject] || 0) + 1;
-          });
+  const openRescheduleModal = (session) => {
+    setRescheduleSession(session);
+    setRescheduleError("");
 
-          setSessionStats({
-            totalRecentSessions: recentSessions.length,
-            topSubjects: Object.entries(subjectCounts)
-              .sort((a, b) => b[1] - a[1])
-              .slice(0, 3),
-          });
-        }
-      } catch (error) {
-        console.error("Error fetching slipping data:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
 
-    fetchData();
-  }, [userId]);
+    setRescheduleDate(localDateStr(tomorrow));
+    setRescheduleTime("09:00");
+  };
 
-  const hasSlips = slippingData.length > 0;
+  const saveReschedule = async (e) => {
+    e.preventDefault();
+    if (!rescheduleSession) return;
 
-  const processedSlips = useMemo(() => {
-    return slippingData.slice(0, 3).map((slip, index) => {
-      const color = getColorByIndex(index);
-      const slipDate = parseSlipDate(slip.slip_date);
-      const dayName = DAYS_OF_WEEK[slipDate.getDay()];
-      const dateStr = slipDate.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-      return {
-        ...slip,
-        color,
-        dayName,
-        dateStr,
+    if (!rescheduleDate || !rescheduleTime) {
+      setRescheduleError("Please select both date and time.");
+      return;
+    }
+
+    const [year, month, day] = rescheduleDate.split("-").map(Number);
+    const [hours, minutes] = rescheduleTime.split(":").map(Number);
+    const selectedStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
+
+    if (isNaN(selectedStart.getTime()) || selectedStart <= new Date()) {
+      setRescheduleError("Rescheduled time must be in the future.");
+      return;
+    }
+
+    setRescheduling(true);
+    setRescheduleError("");
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const updatePayload = {
+        Date: rescheduleDate,
+        Start: rescheduleTime,
+        session_status: "active",
       };
-    });
-  }, [slippingData]);
+
+      const { error: updateErr } = await supabase
+        .from("Study")
+        .update(updatePayload)
+        .eq("id", rescheduleSession.id)
+        .eq("user_id", user.id);
+
+      if (updateErr) throw updateErr;
+
+      setRescheduleSession(null);
+      refetch?.();
+    } catch (err) {
+      console.error("Reschedule error:", err);
+      setRescheduleError(err?.message || "Failed to reschedule session.");
+    } finally {
+      setRescheduling(false);
+    }
+  };
+
+  const confirmDeleteSession = async () => {
+    if (!deleteSessionTarget) return;
+    setDeleting(true);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error("User not authenticated");
+
+      const { error: delErr } = await supabase
+        .from("Study")
+        .delete()
+        .eq("id", deleteSessionTarget.id)
+        .eq("user_id", user.id);
+
+      if (delErr) {
+        // Fallback for group study session or fallback tables
+        await supabase.from("group_study_sessions").delete().eq("id", deleteSessionTarget.id);
+      }
+
+      setDeleteSessionTarget(null);
+      refetch?.();
+    } catch (err) {
+      console.error("Delete error:", err);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-surface overflow-hidden transition-colors">
+    <section
+      aria-labelledby="keeps-slipping-title"
+      className="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/90 p-4 sm:p-6 shadow-surface transition-colors dark:border-amber-600/30 dark:bg-gradient-to-r dark:from-[#1d2222] dark:via-[#18211f] dark:to-[#1d2222]"
+    >
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-900 px-4 sm:px-6 py-4 sm:py-5">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${hasSlips ? "bg-red-100 dark:bg-red-950/50" : "bg-emerald-100 dark:bg-emerald-950/50"}`}>
-              {hasSlips ? (
-                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-              ) : (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-600 dark:bg-amber-500/20 dark:text-amber-400">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 id="keeps-slipping-title" className="text-xl font-bold text-slate-900 dark:text-white">
+                Keeps slipping
+              </h2>
+              {!loading && !error && (
+                <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 dark:bg-amber-950/80 dark:text-amber-300">
+                  Keeps slipping · {slipping.length}
+                </span>
               )}
             </div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Keeps Slipping</h2>
-          </div>
-          {hasSlips ? (
-            <AlertCircle className="h-5 w-5 text-amber-500 dark:text-amber-400" />
-          ) : (
-            <CheckCircle2 className="h-5 w-5 text-emerald-500 dark:text-emerald-400" />
-          )}
-        </div>
-        <p className="text-sm text-slate-600 dark:text-slate-400">
-          {hasSlips
-            ? "You've missed some sessions. Here's where you need to refocus."
-            : "No missed sessions logged! Keep up the great consistency."}
-        </p>
-      </div>
-
-      {/* Content */}
-      <div className="p-4 sm:p-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-slate-300 dark:border-slate-600"></div>
-          </div>
-        ) : !hasSlips && (!sessionStats || sessionStats.topSubjects.length === 0) ? (
-          /* Empty State */
-          <div className="flex flex-col items-center justify-center text-center py-8 px-4 space-y-3">
-            <div className="p-3 bg-emerald-50 dark:bg-emerald-950/40 rounded-full shadow-surface">
-              <CheckCircle2 className="h-10 w-10 text-emerald-500 dark:text-emerald-400" />
-            </div>
-            <p className="text-base font-semibold text-slate-800 dark:text-slate-200">On Top of Your Game!</p>
-            <p className="text-sm text-slate-500 dark:text-slate-400 max-w-sm">
-              No missed sessions or broken streaks logged. Keep up the consistent study habits!
+            <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">
+              These got pushed back. Pick one and get it done.
             </p>
-            <button
-              onClick={() => navigate("/Study")}
-              className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-lg shadow-button-primary transition-colors"
-            >
-              <span>Go to Workspace</span>
-              <ArrowRight className="h-4 w-4" />
-            </button>
           </div>
-        ) : (
-          <div className="space-y-6">
-            {/* Slipping Events */}
-            {hasSlips ? (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-                  <Calendar className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                  Recent Slips
-                </h3>
-                <div className="space-y-3">
-                  {processedSlips.map((slip) => {
-                    const { color, dayName, dateStr } = slip;
+        </div>
 
-                    return (
-                      <div
-                        key={slip.id}
-                        className={`flex items-start gap-3 sm:gap-4 p-3.5 sm:p-4 rounded-lg ${color.bg} shadow-surface hover:shadow-surface-hover transition-all`}
-                      >
-                        <div className="shrink-0">
-                          <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${color.bg} flex items-center justify-center shadow-xs`}>
-                            <span className="text-xs font-bold text-slate-600 dark:text-slate-300">{dayName}</span>
-                          </div>
-                        </div>
-                        <div className="grow min-w-0">
-                          <div className="flex items-start justify-between gap-2">
-                            <div>
-                              <p className={`font-semibold ${color.text}`}>{dateStr}</p>
-                              <p className="text-sm text-slate-600 dark:text-slate-300 mt-1">
-                                {slip.reason === "streak_broken"
-                                  ? "Your streak was broken 🔥"
-                                  : slip.reason === "missed_day"
-                                    ? "You missed a study session"
-                                    : "Missed session"}
-                              </p>
-                              {slip.missed_subject && (
-                                <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">
-                                  Subject: <span className="font-medium text-slate-700 dark:text-slate-300">{slip.missed_subject}</span>
-                                </p>
-                              )}
-                            </div>
-                            {!slip.recovered_at && (
-                              <span className={`px-2.5 py-1 text-xs font-semibold rounded-full shrink-0 ${color.badge}`}>Pending</span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              <div className="flex items-center gap-3 p-4 rounded-lg bg-emerald-50 dark:bg-emerald-950/30 shadow-surface">
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                <p className="text-sm font-medium text-emerald-900 dark:text-emerald-300">
-                  No active slip events! Your streak and schedule are intact.
-                </p>
-              </div>
-            )}
-
-            {/* Areas to Focus */}
-            {sessionStats && sessionStats.topSubjects.length > 0 && (
-              <div>
-                <h3 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 flex items-center gap-2">
-                  <AlertCircle className="h-4 w-4 text-slate-500 dark:text-slate-400" />
-                  Areas to Refocus On
-                </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                  {sessionStats.topSubjects.map((subject, index) => {
-                    const [subjectName, count] = subject;
-                    const color = getColorByIndex(index);
-
-                    return (
-                      <div
-                        key={subjectName}
-                        className={`p-4 rounded-lg ${color.bg} shadow-surface hover:shadow-surface-hover transition-all cursor-pointer group`}
-                        onClick={() => navigate("/Study")}
-                      >
-                        <div className="flex items-start justify-between mb-2">
-                          <p className={`font-semibold ${color.text} group-hover:underline`}>{subjectName}</p>
-                          <span className={`px-2 py-1 text-xs font-bold rounded ${color.badge}`}>{count}</span>
-                        </div>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mb-3">Sessions scheduled</p>
-                        <button className={`text-xs font-semibold ${color.text} flex items-center gap-1 hover:gap-2 transition-all`}>
-                          <span>Start session</span>
-                          <ArrowRight className="h-3 w-3" />
-                        </button>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Call to Action */}
-            <div className="mt-6 p-4 bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/40 dark:to-teal-950/30 rounded-lg shadow-surface">
-              <div className="flex items-start gap-3">
-                <RotateCcw className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
-                <div className="grow min-w-0">
-                  <p className="font-semibold text-emerald-900 dark:text-emerald-300 mb-1 sm:mb-2">Get Back on Track</p>
-                  <p className="text-sm text-emerald-700 dark:text-emerald-400 mb-3 sm:mb-4">
-                    Complete at least one study session today to rebuild or maintain your streak.
-                  </p>
-                  <button
-                    onClick={() => navigate("/Study")}
-                    className="px-4 py-2 bg-emerald-600 text-white text-sm font-semibold rounded-lg shadow-button-primary hover:bg-emerald-700 transition-colors flex items-center gap-2"
-                  >
-                    <span>Create a session</span>
-                    <ArrowRight className="h-4 w-4" />
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+        {error && (
+          <button
+            type="button"
+            onClick={() => refetch?.()}
+            className="inline-flex min-h-[44px] min-w-[44px] items-center gap-1.5 rounded-xl bg-amber-100 px-3 py-2 text-xs font-bold text-amber-900 transition hover:bg-amber-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:bg-amber-950/60 dark:text-amber-300 dark:hover:bg-amber-900/80"
+            title="Retry loading slipping sessions"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
         )}
       </div>
 
-      {/* Footer Stats */}
-      <div className="bg-slate-50 dark:bg-slate-800/50 px-4 sm:px-6 py-4 grid grid-cols-2 gap-4 text-center">
-        <div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{slippingData.length}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Slip Events</p>
+      {/* Loading Skeleton */}
+      {loading && (
+        <div className="space-y-3" aria-busy="true" aria-label="Loading slipping sessions">
+          {Array.from({ length: 2 }).map((_, idx) => (
+            <div
+              key={idx}
+              className="h-24 animate-pulse rounded-xl bg-slate-200/60 dark:bg-slate-800/50"
+            />
+          ))}
         </div>
-        <div>
-          <p className="text-2xl font-bold text-slate-900 dark:text-white">{sessionStats?.topSubjects.length || 0}</p>
-          <p className="text-xs text-slate-600 dark:text-slate-400 mt-1">Areas to Focus</p>
+      )}
+
+      {/* Error state */}
+      {!loading && error && (
+        <div className="rounded-xl border border-rose-200 bg-rose-50 p-4 text-xs font-medium text-rose-800 dark:border-rose-900/50 dark:bg-rose-950/40 dark:text-rose-300 flex items-center justify-between">
+          <span>Unable to check slipping sessions.</span>
+          <button
+            type="button"
+            onClick={() => refetch?.()}
+            className="inline-flex items-center gap-1 font-bold underline hover:text-rose-900 dark:hover:text-rose-100"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
         </div>
-      </div>
-    </div>
+      )}
+
+      {/* Slipping session cards */}
+      {!loading && !error && slipping.length > 0 && (
+        <div className="space-y-3">
+          {slipping.map((session) => {
+            const title = session.title || session.Topic || session.Subject || "Study Session";
+            const subject = session.subject || session.Subject || "General";
+            const scheduledTimeText = formatOriginalScheduledTime(session);
+            const overdueInfo = getOverdueDuration(session);
+
+            return (
+              <article
+                key={session.id}
+                className="motion-reduce:animate-none flex flex-col gap-3 rounded-xl border border-amber-200/90 bg-white p-4 shadow-sm transition hover:shadow-md sm:flex-row sm:items-center sm:justify-between dark:border-amber-600/30 dark:bg-[#18211f]"
+              >
+                <div className="min-w-0 flex-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="truncate text-base font-bold text-slate-900 dark:text-white">
+                      {title}
+                    </span>
+                    <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
+                      {subject}
+                    </span>
+                  </div>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-3 text-xs text-slate-600 dark:text-slate-300">
+                    <span className="flex items-center gap-1">
+                      <Clock className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+                      {scheduledTimeText}
+                    </span>
+                    <span>·</span>
+                    <time
+                      dateTime={getSessionStartDate(session)?.toISOString()}
+                      aria-label={`${overdueInfo.display}`}
+                      className="font-bold text-rose-600 dark:text-rose-400"
+                    >
+                      {overdueInfo.display}
+                    </time>
+                  </div>
+                </div>
+
+                {/* Actions */}
+                <div className="flex flex-wrap items-center gap-2 pt-2 sm:pt-0">
+                  <button
+                    type="button"
+                    onClick={() => handleStartNow(session)}
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-orange-500 px-3.5 py-2 text-xs font-bold text-white transition hover:bg-orange-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 shadow-button-primary dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400"
+                  >
+                    <Play className="h-3.5 w-3.5 fill-current" />
+                    <span>Start now</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => openRescheduleModal(session)}
+                    className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                  >
+                    <Calendar className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>Reschedule</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    title={`Remove ${title}`}
+                    aria-label={`Remove ${title}`}
+                    onClick={() => setDeleteSessionTarget(session)}
+                    className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl p-2 text-slate-400 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 dark:hover:bg-rose-950/40 dark:hover:text-rose-300"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Reschedule Modal */}
+      <ResponsiveSheet
+        isOpen={Boolean(rescheduleSession)}
+        onClose={() => setRescheduleSession(null)}
+        title="Reschedule session"
+      >
+        <form onSubmit={saveReschedule} className="space-y-4 text-slate-900 dark:text-slate-100" noValidate>
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-300">
+            Choose a future date and time for{" "}
+            <strong className="text-slate-900 dark:text-white">
+              {rescheduleSession?.title || rescheduleSession?.Topic || "this session"}
+            </strong>
+          </p>
+
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label htmlFor="reschedule-date" className="mb-1 block text-xs font-bold">
+                New Date
+              </label>
+              <input
+                id="reschedule-date"
+                type="date"
+                min={localDateStr()}
+                value={rescheduleDate}
+                onChange={(e) => setRescheduleDate(e.target.value)}
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+              />
+            </div>
+
+            <div>
+              <label htmlFor="reschedule-time" className="mb-1 block text-xs font-bold">
+                New Start Time
+              </label>
+              <input
+                id="reschedule-time"
+                type="time"
+                value={rescheduleTime}
+                onChange={(e) => setRescheduleTime(e.target.value)}
+                required
+                className="w-full rounded-xl border border-slate-300 bg-white p-3 text-sm outline-none focus:ring-2 focus:ring-amber-500 dark:border-slate-700 dark:bg-slate-900"
+              />
+            </div>
+          </div>
+
+          {rescheduleError && (
+            <p role="alert" className="flex items-center gap-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400">
+              <AlertTriangle className="h-4 w-4 shrink-0" />
+              {rescheduleError}
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setRescheduleSession(null)}
+              className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={rescheduling}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-orange-500 px-5 py-2 text-sm font-bold text-white hover:bg-orange-600 disabled:opacity-50 dark:bg-amber-500 dark:text-slate-950 dark:hover:bg-amber-400"
+            >
+              {rescheduling ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
+              Save New Schedule
+            </button>
+          </div>
+        </form>
+      </ResponsiveSheet>
+
+      {/* Delete Confirmation Modal */}
+      <ResponsiveSheet
+        isOpen={Boolean(deleteSessionTarget)}
+        onClose={() => setDeleteSessionTarget(null)}
+        title="Remove session?"
+      >
+        <div className="space-y-4 text-slate-900 dark:text-slate-100">
+          <p className="text-sm text-slate-600 dark:text-slate-300">
+            Are you sure you want to remove{" "}
+            <strong className="text-slate-900 dark:text-white">
+              “{deleteSessionTarget?.title || deleteSessionTarget?.Topic || "this session"}”
+            </strong>
+            ? This action cannot be undone.
+          </p>
+
+          <div className="flex items-center justify-end gap-2 pt-2">
+            <button
+              type="button"
+              onClick={() => setDeleteSessionTarget(null)}
+              className="min-h-[44px] rounded-xl px-4 py-2 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              disabled={deleting}
+              onClick={confirmDeleteSession}
+              className="inline-flex min-h-[44px] items-center gap-2 rounded-xl bg-rose-600 px-5 py-2 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50 dark:bg-rose-700 dark:hover:bg-rose-600"
+            >
+              {deleting ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Trash2 className="h-4 w-4" />}
+              Remove Session
+            </button>
+          </div>
+        </div>
+      </ResponsiveSheet>
+    </section>
   );
 }
 

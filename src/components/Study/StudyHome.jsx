@@ -22,6 +22,7 @@ import supabase from "../../lib/supabase";
 import { deleteSession } from "../../lib/sessionService";
 import { useStreak } from "../../hooks/useStreak";
 import { useCombinedSessions } from "../../hooks/useCombinedSessions";
+import { isSlipping } from "../../lib/plannerUtils";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
@@ -412,6 +413,11 @@ function StudyHome() {
         running.push(item);
         return;
       }
+      if (isSlipping(item, clockNow)) {
+        // Exclude slipping sessions (>60m overdue) so they appear in Keeps Slipping section
+        return;
+      }
+
       const itemDate = item.Date ?? item.date;
       const itemStart = item.Start ?? item.start_time ?? item.time;
       const start = localDateTime(itemDate, itemStart);

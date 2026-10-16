@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
+import { isSlipping } from "../../lib/plannerUtils";
 
 const UpcomingSessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -52,7 +53,9 @@ const UpcomingSessions = () => {
           setError("Failed to load upcoming sessions");
           console.error("Supabase fetch error:", error);
         } else {
-          const transformedSessions = data.map((session) => {
+          // Filter out slipping sessions so they don't appear in normal upcoming list
+          const activeSessions = (data || []).filter((session) => !isSlipping(session, now));
+          const transformedSessions = activeSessions.map((session) => {
             const sessionDate = new Date(session.Date);
 
             const isToday = sessionDate.toDateString() === now.toDateString();

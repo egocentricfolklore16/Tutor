@@ -249,3 +249,98 @@ export function suggestNextFreeSlot(startAtDate, durationMinutes, conflicts = []
 
   return { suggestedStart: startAtDate, suggestedStartStr: startAtDate.toTimeString().slice(0, 5) };
 }
+
+/**
+ * Returns the Date instance representing the session's scheduled start time in local timezone.
+ */
+export function getSessionStartDate(session) {
+  if (!session) return null;
+
+  if (session.date instanceof Date && !isNaN(session.date.getTime())) {
+    return session.date;
+  }
+
+  const dateStr = session.Date || (typeof session.date === 'string' ? session.date : null);
+  const timeStr = session.Start || session.startTime || session.start_time || '00:00';
+
+  if (dateStr && typeof dateStr === 'string' && dateStr.includes('-')) {
+    const dateParts = dateStr.slice(0, 10).split('-').map(Number);
+    if (dateParts.length === 3 && !dateParts.some(isNaN)) {
+      const [year, month, day] = dateParts;
+      const timeParts = String(timeStr).split(':').map(Number);
+      const hours = !isNaN(timeParts[0]) ? timeParts[0] : 0;
+      const minutes = !isNaN(timeParts[1]) ? timeParts[1] : 0;
+      return new Date(year, month - 1, day, hours, minutes, 0, 0);
+    }
+  }
+
+  if (session.scheduled_start) {
+    const d = new Date(session.scheduled_start);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  if (session.date) {
+    const d = new Date(session.date);
+    if (!isNaN(d.getTime())) return d;
+  }
+
+  return null;
+}
+
+/**
+ * Checks if a planned session is "slipping".
+ * A session is "slipping" when ALL are true:
+ * 1. Its scheduled start (date + time, in the USER'S LOCAL timezone) is more than 60 minutes before now
+ * 2. It has not been started, is not in progress, and is not completed
+ * 3. It has not been deleted
+ */
+export function isSlipping(session, now = new Date()) {
+  if (!session) return false;
+  if (session.deleted || session.is_deleted) return false;
+
+  if (session.completed === true || session.completed === 1) return false;
+
+  const statusStr = String(session.session_status || session.status || '').toLowerCase().trim();
+  if (
+    statusStr === 'completed' ||
+    statusStr === 'in_progress' ||
+    statusStr === 'paused' ||
+    statusStr === 'started' ||
+    statusStr === 'active_session'
+  ) {
+    return false;
+  }
+
+  const startDate = getSessionStartDate(session);
+  if (!startDate || isNaN(startDate.getTime())) return false;
+
+  const diffMs = now.getTime() - startDate.getTime();
+  // More than 60 minutes overdue (> 3,600,000 ms)
+  return diffMs > 60 * 60 * 1000;
+}
+
+/**
+ * Computes overdue duration object and display string ("Xh Ym overdue" or "Ym overdue").
+ */
+export function getOverdueDuration(session, now = new Date()) {
+  const startDate = getSessionStartDate(session);
+  if (!startDate || isNaN(startDate.getTime())) {
+    return { hours: 0, minutes: 0, totalMinutes: 0, display: '0m overdue' };
+  }
+
+  const diffMs = Math.max(0, now.getTime() - startDate.getTime());
+  const totalMinutes = Math.floor(diffMs / 60000);
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+
+  let display = '';
+  if (hours > 0 && minutes > 0) {
+    display = `${hours}h ${minutes}m overdue`;
+  } else if (hours > 0) {
+    display = `${hours}h overdue`;
+  } else {
+    display = `${minutes}m overdue`;
+  }
+
+  return { hours, minutes, totalMinutes, display };
+}

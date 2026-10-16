@@ -388,8 +388,7 @@ test("processVerifiedPayment extends current_period_end when renewing active sam
   assert.strictEqual(result.alreadyProcessed, false);
   assert.strictEqual(result.subscription.current_period_start, "2025-01-01T00:00:00.000Z");
 
-  const expectedEnd = new Date(futureEnd);
-  expectedEnd.setMonth(expectedEnd.getMonth() + 1);
+  const expectedEnd = addMonths(new Date(futureEnd), 1);
   assert.strictEqual(
     new Date(result.subscription.current_period_end).toISOString(),
     expectedEnd.toISOString()

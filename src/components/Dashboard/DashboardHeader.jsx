@@ -1,4 +1,4 @@
-import { Bell, BookOpen, Command, FileText, Flame, Layers3, Lock, LogOut, Menu, Moon, Search, Settings, Snowflake, Sun, Trophy, UserRound, Users, X, Zap, CheckCircle2 } from "lucide-react";
+import { Bell, BookOpen, Command, FileText, Flame, Layers3, Lock, LogOut, Menu, Moon, Search, Settings, Snowflake, Sun, Trophy, UserRound, Users, X, Zap, CheckCircle2, RefreshCw } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
@@ -25,7 +25,7 @@ function GemIcon({ className }) {
 
 function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
-  const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted } = useStreak();
+  const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = useStreak();
   const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -62,6 +62,8 @@ function DashboardHeader({ toggleSidebar }) {
   const gemsCount = profile?.gems ?? 0;
 
   const getMotivationalText = () => {
+    if (streakLoading) return "Loading streak...";
+    if (streakError) return "Unable to load streak";
     if (todayCompleted) return "Streak safe for today!";
     if (currentStreak === 0) return "Start a new streak today!";
     return "Study today to keep it going!";
@@ -197,7 +199,7 @@ function DashboardHeader({ toggleSidebar }) {
     else if (result.session_id) navigate(`/Study/${result.session_id}${result.kind === "Note" ? `/notes/${result.id}` : ""}`);
   };
 
-  const isSocietyUnlocked = currentStreak >= 7;
+  const isSocietyUnlocked = (currentStreak ?? 0) >= 7;
 
   return <>
     <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
@@ -240,7 +242,7 @@ function DashboardHeader({ toggleSidebar }) {
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
           >
             <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-            <span>{currentStreak}d</span>
+            <span>{streakLoading ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
           </button>
 
           {streakDropdownOpen && (
@@ -248,8 +250,20 @@ function DashboardHeader({ toggleSidebar }) {
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Flame className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
                 <div className="relative flex items-center justify-between">
-                  <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-300">{currentStreak} day streak</p>
-                  {freezeTokens > 0 && (
+                  <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-300">
+                    {streakLoading ? "– day streak" : streakError ? "– day streak" : `${currentStreak} day streak`}
+                  </p>
+                  {streakError && (
+                    <button
+                      type="button"
+                      onClick={() => refreshStreak()}
+                      className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200 dark:bg-rose-950/60 dark:text-rose-300"
+                      title="Retry fetching streak"
+                    >
+                      <RefreshCw className="h-3 w-3" /> Retry
+                    </button>
+                  )}
+                  {freezeTokens > 0 && !streakError && (
                     <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" title={`${freezeTokens} Streak Freeze Token(s) available`}>
                       <Snowflake className="h-3.5 w-3.5 text-blue-500" />
                       {freezeTokens}
@@ -262,7 +276,7 @@ function DashboardHeader({ toggleSidebar }) {
 
                 {/* 7-day Weekday Row */}
                 <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
-                  {weekDays.map((day, index) => {
+                  {(weekDays || []).map((day, index) => {
                     return (
                       <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
                         <span className={`text-[11px] font-bold ${day.isToday ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500"}`}>
@@ -306,7 +320,7 @@ function DashboardHeader({ toggleSidebar }) {
                 </div>
 
                 <div className="relative mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  <span>Longest Streak: <strong className="text-amber-700 dark:text-amber-300">{longestStreak} days</strong></span>
+                  <span>Longest Streak: <strong className="text-amber-700 dark:text-amber-300">{streakLoading || streakError || longestStreak === null ? "–" : `${longestStreak} days`}</strong></span>
                   <span>Freezes: <strong className="text-blue-600 dark:text-blue-300">{freezeTokens}</strong></span>
                 </div>
               </div>

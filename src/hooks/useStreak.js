@@ -59,10 +59,11 @@ export function getCurrentWeekDays(todayCutoffStr) {
 }
 
 export function useStreak() {
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [longestStreak, setLongestStreak] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(null);
+  const [longestStreak, setLongestStreak] = useState(null);
   const [freezeTokens, setFreezeTokens] = useState(0);
   const [lastCompletedDate, setLastCompletedDate] = useState(null);
+  const [lastActiveDate, setLastActiveDate] = useState(null);
   const [weekDays, setWeekDays] = useState([]);
   const [todayCompleted, setTodayCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,6 +73,8 @@ export function useStreak() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
+        setCurrentStreak(null);
+        setLongestStreak(null);
         setLoading(false);
         return;
       }
@@ -104,12 +107,14 @@ export function useStreak() {
       const curStreak = streakRow?.current_streak ?? 0;
       const longStreak = streakRow?.longest_streak ?? 0;
       const freezes = streakRow?.freeze_tokens ?? streakRow?.freeze_tokens_available ?? 0;
-      const lastCompleted = streakRow?.last_completed_date || streakRow?.last_active_date || null;
+      const lastCompleted = streakRow?.last_completed_date || null;
+      const lastActive = streakRow?.last_active_date || null;
 
       setCurrentStreak(curStreak);
       setLongestStreak(longStreak);
       setFreezeTokens(freezes);
-      setLastCompletedDate(lastCompleted);
+      setLastCompletedDate(lastCompleted || lastActive);
+      setLastActiveDate(lastActive || lastCompleted);
 
       // Fetch week activity from streak_days and daily_session_tracking
       const baseWeek = getCurrentWeekDays(todayCutoffStr, userTz);
@@ -143,12 +148,13 @@ export function useStreak() {
         }
       });
 
-      // If last_completed_date is in range, mark it completed as well
-      if (lastCompleted && statusByDate[lastCompleted] !== "frozen") {
-        statusByDate[lastCompleted] = "completed";
+      // If last_completed_date/last_active_date is in range, mark it completed as well
+      const activeOrCompleted = lastCompleted || lastActive;
+      if (activeOrCompleted && statusByDate[activeOrCompleted] !== "frozen") {
+        statusByDate[activeOrCompleted] = "completed";
       }
 
-      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || lastCompleted === todayCutoffStr;
+      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;
       setTodayCompleted(Boolean(isTodayCompleted));
 
       const computedWeekDays = baseWeek.map((day) => {
@@ -178,6 +184,8 @@ export function useStreak() {
       setError(null);
     } catch (err) {
       console.error("Error fetching streak data:", err);
+      setCurrentStreak(null);
+      setLongestStreak(null);
       setError(err);
     } finally {
       setLoading(false);
@@ -191,7 +199,15 @@ export function useStreak() {
       fetchStreakData();
     };
 
+    const handleFocusOrVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStreakData();
+      }
+    };
+
     window.addEventListener("hyper-tutor-streak-updated", handleUpdateEvent);
+    window.addEventListener("focus", handleFocusOrVisibility);
+    document.addEventListener("visibilitychange", handleFocusOrVisibility);
 
     // Supabase Realtime subscription on users_streaks
     let channel;
@@ -222,6 +238,8 @@ export function useStreak() {
     return () => {
       isMounted = false;
       window.removeEventListener("hyper-tutor-streak-updated", handleUpdateEvent);
+      window.removeEventListener("focus", handleFocusOrVisibility);
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility);
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -252,6 +270,7 @@ export function useStreak() {
     longestStreak,
     freezeTokens,
     lastCompletedDate,
+    lastActiveDate,
     weekDays,
     todayCompleted,
     loading,

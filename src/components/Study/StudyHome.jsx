@@ -123,7 +123,7 @@ const historyDateLabel = (value) => {
 function StudyHome() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentStreak = 0 } = useStreak() || {};
+  const { currentStreak, loading: streakLoading } = useStreak();
 
   const { sessions = [], loading: combinedLoading, refreshSessions } = useCombinedSessions();
 
@@ -771,7 +771,7 @@ function StudyHome() {
           {[
             [Timer, "Today", formatDuration(todayMinutes)],
             [Check, "Completed this week", String(sessionsThisWeek)],
-            [Flame, "Current streak", `${currentStreak} days`],
+            [Flame, "Current streak", streakLoading || currentStreak === null ? "–" : `${currentStreak} days`],
             [Trophy, "XP this week", String(xpThisWeek)],
           ].map(([StatIcon, label, value]) => (
             <div key={label} className="bg-white px-4 py-4 dark:bg-slate-900">

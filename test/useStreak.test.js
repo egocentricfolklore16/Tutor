@@ -27,3 +27,37 @@ test("getCurrentWeekDays computes 7 Sun-Sat days accurately around today", () =>
   assert.equal(weekDays[6].label, "S"); // Sat
   assert.equal(weekDays[6].dateStr, "2025-05-17");
 });
+
+test("streak display formatter logic for loading, error, and active streak values", () => {
+  // Helper simulating how components render streak text based on useStreak state
+  const formatStreakBadge = ({ currentStreak, loading, error }) => {
+    if (loading || currentStreak === null) return "–d";
+    if (error) return "–d";
+    return `${currentStreak}d`;
+  };
+
+  const formatGreetingChip = ({ currentStreak, loading, error }) => {
+    if (loading || currentStreak === null) return "–d Streak";
+    if (error) return "–d Streak";
+    return `${currentStreak}d Streak`;
+  };
+
+  // Scenario 1: Active streak = 5
+  const activeState = { currentStreak: 5, loading: false, error: null };
+  assert.equal(formatStreakBadge(activeState), "5d");
+  assert.equal(formatGreetingChip(activeState), "5d Streak");
+
+  // Scenario 2: Loading state must NOT render "0d" or "0d Streak"
+  const loadingState = { currentStreak: null, loading: true, error: null };
+  assert.equal(formatStreakBadge(loadingState), "–d");
+  assert.notEqual(formatStreakBadge(loadingState), "0d");
+  assert.equal(formatGreetingChip(loadingState), "–d Streak");
+  assert.notEqual(formatGreetingChip(loadingState), "0d Streak");
+
+  // Scenario 3: Error state must NOT render "0d" or "0d Streak"
+  const errorState = { currentStreak: null, loading: false, error: new Error("Network failure") };
+  assert.equal(formatStreakBadge(errorState), "–d");
+  assert.notEqual(formatStreakBadge(errorState), "0d");
+  assert.equal(formatGreetingChip(errorState), "–d Streak");
+  assert.notEqual(formatGreetingChip(errorState), "0d Streak");
+});

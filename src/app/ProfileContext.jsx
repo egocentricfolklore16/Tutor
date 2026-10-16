@@ -1,6 +1,6 @@
 import { createContext, useContext, useEffect, useState, useRef } from "react";
 import supabase from "../lib/supabase.js";
-import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
+import { getUserTimeZone } from "../lib/streaks";
 import { getAccessibilityClasses } from "../lib/accessibility.js";
 
 const ProfileContext = createContext(null);
@@ -16,7 +16,6 @@ export function ProfileProvider({ user, children }) {
       return false;
     }
   });
-  const [streak, setStreak] = useState(null);
   const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
@@ -46,7 +45,6 @@ export function ProfileProvider({ user, children }) {
   const loadProfile = async () => {
     if (!user?.id) {
       setProfile(null);
-      setStreak(null);
       setIsLoading(false);
       return;
     }
@@ -69,29 +67,6 @@ export function ProfileProvider({ user, children }) {
 
     // Touch last seen throttled
     touchLastSeenThrottled();
-
-    try {
-      await supabase.rpc("check_stale_streak", {
-        p_user_timezone: getUserTimeZone(),
-        p_cutoff_hour: 3,
-      });
-    } catch (e) {
-      // Ignore RPC availability issues
-    }
-
-    const { data: streakData } = await getUserStreak(user.id);
-    if (streakData) {
-      const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
-      const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
-      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: streakData.freeze_tokens ?? streakData.freeze_tokens_available ?? 0 });
-    } else {
-      setStreak(null);
-    }
-    
-    // Check for streak slips
-    if (streakData) {
-      await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
-    }
     
     setDarkMode(Boolean(nextProfile?.dark_mode));
     setIsLoading(false);
@@ -117,17 +92,6 @@ export function ProfileProvider({ user, children }) {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    const refreshStreak = async () => {
-      const { data } = await getUserStreak(user.id);
-      if (data) {
-        const displayStreak = getDisplayStreak(data, new Date(), getUserTimeZone());
-        const weekActivity = await getWeekActivity(user.id, { ...data, display_current_streak: displayStreak });
-        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: data.freeze_tokens ?? data.freeze_tokens_available ?? 0 });
-        // Check for slip when streak is refreshed
-        await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
-      }
-    };
 
     const handleRewardsUpdated = (event) => {
       const { xp = 0, gems = 0 } = event.detail || {};
@@ -155,24 +119,15 @@ export function ProfileProvider({ user, children }) {
             setProfile((prev) => ({ ...prev, ...payload.new }));
           }
         }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "users_streaks", filter: `user_id=eq.${user.id}` },
-        () => {
-          refreshStreak();
-        }
       );
 
     channel.subscribe();
 
-    window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
-      window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
     };
   }, [user?.id]);
@@ -185,7 +140,7 @@ export function ProfileProvider({ user, children }) {
     if (error) console.error("Unable to save dark mode preference:", error);
   };
 
-  return <ProfileContext.Provider value={{ profile, isLoading, refreshProfile: loadProfile, darkMode, toggleDarkMode, streak }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, isLoading, refreshProfile: loadProfile, darkMode, toggleDarkMode }}>{children}</ProfileContext.Provider>;
 }
 
 export function useProfile() {

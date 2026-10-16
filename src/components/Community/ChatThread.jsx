@@ -27,6 +27,7 @@ import {
   getChatDraft,
   clearChatDraft,
   parseLinksInText,
+  sanitizeUrl,
 } from "../../lib/communityChat";
 
 const EMOJI_LIST = ["😀", "😂", "😍", "👍", "❤️", "🔥", "🎉", "📚", "💡", "👏", "💯", "🙏", "✨", "🙌", "🎓", "⭐"];
@@ -974,7 +975,7 @@ export default function ChatThread({
                                       part.type === "link" ? (
                                         <a
                                           key={pIdx}
-                                          href={part.value}
+                                          href={sanitizeUrl(part.value)}
                                           target="_blank"
                                           rel="noopener noreferrer"
                                           className="underline font-normal hover:opacity-80"

@@ -13,7 +13,7 @@ import AchievementsCard from "./AchievementsCard";
 import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
-import useStreak from "../../hooks/useStreak";
+import { useGamification } from "../../features/gamification";
 import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
 
@@ -55,7 +55,8 @@ const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
 function Overview() {
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useProfile();
-  const { currentStreak, loading: streakLoading, error: streakError } = useStreak();
+  const { streak } = useGamification();
+  const { currentStreak, loading: streakLoading, error: streakError } = streak;
   const [userName, setUserName] = useState("");
   const [userId, setUserId] = useState(null);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });

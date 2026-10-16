@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { deleteSession } from "../../lib/sessionService";
-import { useStreak } from "../../hooks/useStreak";
+import { useGamification } from "../../features/gamification";
 import { useCombinedSessions } from "../../hooks/useCombinedSessions";
 import { isSlipping } from "../../lib/plannerUtils";
 import PageContainer from "../common/PageContainer";
@@ -124,7 +124,8 @@ const historyDateLabel = (value) => {
 function StudyHome() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { currentStreak, loading: streakLoading } = useStreak();
+  const { streak } = useGamification();
+  const { currentStreak, loading: streakLoading } = streak;
 
   const { sessions = [], loading: combinedLoading, refreshSessions } = useCombinedSessions();
 

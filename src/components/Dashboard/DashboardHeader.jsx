@@ -2,17 +2,15 @@ import { Bell, BookOpen, Command, FileText, Flame, Layers3, Lock, LogOut, Menu, 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
-import useStreak from "../../hooks/useStreak";
+import { useGamification } from "../../features/gamification";
+import XpToast from "../../features/gamification/components/XpToast";
 import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import NotificationCenter from "../Notifications/NotificationCenter";
 import AISuggestions from "./AISuggestions";
 import supabase from "../../lib/supabase";
 import {
-  dismissNotification,
   getStoredNotifications,
-  markAllNotificationsRead,
 } from "../../lib/notifications";
-import { calculateXpLevel } from "../../lib/gamification";
 
 function GemIcon({ className }) {
   return (
@@ -25,7 +23,8 @@ function GemIcon({ className }) {
 
 function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
-  const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = useStreak();
+  const { streak, xp, gems, toast } = useGamification();
+  const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = streak;
   const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -53,13 +52,12 @@ function DashboardHeader({ toggleSidebar }) {
 
   const activeFriendStreaks = profile?.active_friend_streaks ?? 0;
 
-  const xpPoints = profile?.xp_points ?? 0;
-  const xpInfo = calculateXpLevel(xpPoints);
-  const xpLevel = xpInfo.level;
-  const xpToNextLevel = xpInfo.xpToNextLevel;
-  const xpProgressPercent = xpInfo.xpProgressPercent;
+  const xpPoints = xp.total;
+  const xpLevel = xp.level;
+  const xpToNextLevel = xp.xpToNextLevel;
+  const xpProgressPercent = xp.xpProgressPercent;
 
-  const gemsCount = profile?.gems ?? 0;
+  const gemsCount = gems.balance;
 
   const getMotivationalText = () => {
     if (streakLoading) return "Loading streak...";
@@ -495,6 +493,8 @@ function DashboardHeader({ toggleSidebar }) {
         onClose={() => setNotificationsOpen(false)}
       />
     )}
+
+    <XpToast toast={toast} />
 
     {searchOpen && (
       <div className="fixed inset-0 z-[200] flex items-start justify-center bg-slate-950/35 px-4 pt-20 backdrop-blur-sm" onMouseDown={(event) => event.target === event.currentTarget && setSearchOpen(false)}>

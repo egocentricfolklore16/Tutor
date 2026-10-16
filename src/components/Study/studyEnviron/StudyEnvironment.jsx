@@ -23,7 +23,7 @@ import {
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 import { useStudySession } from "../../../hooks/useStudySession";
-import { useStreak } from "../../../hooks/useStreak";
+import { useGamification } from "../../../features/gamification";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
 import PracticeQuestions from "./PracticeQuestions";
@@ -44,7 +44,8 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     setRequestedQuizId,
   } = useAITutor();
 
-  const { currentStreak } = useStreak();
+  const { streak } = useGamification();
+  const { currentStreak } = streak;
 
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");

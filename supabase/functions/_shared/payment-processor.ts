@@ -176,7 +176,7 @@ export async function processVerifiedPayment({
           reference: reference,
           amount: typeof paystackData.amount === "number" ? paystackData.amount : 0,
           currency: receivedCurrency,
-          status: paystackData.status || "failed",
+          status: "failed",
           purpose: `subscription:${planId}`,
           verified_at: new Date().toISOString(),
         },

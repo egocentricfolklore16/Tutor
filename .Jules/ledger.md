@@ -19,3 +19,7 @@
 ## 2025-05-24 - Cross-State Reference Ownership and Defensive Null Metadata Parsing
 **Learning:** Checking user ownership on existing payment references only when `status === 'success'` allowed attackers to target payment references in `failed` or `pending` states and hijack them during upsert. Additionally, parsing stringified `"null"` metadata produced `null` values instead of objects, leading to unhandled `TypeError` exceptions during property access.
 **Action:** Enforce `existingPayment.user_id === userId` ownership validation whenever `existingPayment` is present regardless of status, and normalize parsed metadata to non-null objects (`if (!metadata || typeof metadata !== "object") metadata = {};`).
+
+## 2025-05-25 - Explicit Failure Status on Payment Mismatch Audit
+**Learning:** When audit rows were recorded for currency or amount mismatches while `paystackData.status` was `"success"`, recording `paystackData.status` directly saved `status: "success"` into the `payments` table. On subsequent idempotency checks, step 2 would see `existingPayment.status === "success"` and return success without validating amount or currency, granting unearned subscriptions.
+**Action:** Always explicitly set `status: "failed"` when upserting audit rows during currency or amount mismatch validation in `processVerifiedPayment`.

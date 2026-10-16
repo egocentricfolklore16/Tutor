@@ -252,7 +252,7 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
-test("processVerifiedPayment rejects amount mismatch", async () => {
+test("processVerifiedPayment rejects amount mismatch and records status as failed in payments table", async () => {
   const mockClient = createMockSupabaseClient();
   await assert.rejects(
     async () => {
@@ -275,6 +275,16 @@ test("processVerifiedPayment rejects amount mismatch", async () => {
       message: "Amount mismatch: expected 250000 kobo, received 100000 kobo",
     }
   );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_test_1003")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.amount, 100000);
 });
 
 test("processVerifiedPayment is idempotent when replaying duplicate reference", async () => {

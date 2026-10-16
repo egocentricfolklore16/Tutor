@@ -1,7 +1,7 @@
 import supabase from "./supabase";
 
 /**
- * Invokes the secure server-side Groq 'ai-tutor' Edge Function.
+ * Invokes the secure server-side Groq 'ai-tutor-chat' (or fallback 'ai-tutor') Edge Function.
  *
  * @param {Object} params
  * @param {number} params.sessionId - Current session ID from "Study" table
@@ -18,6 +18,26 @@ export async function invokeAiTutor({ sessionId, messages = [], clientState = {}
       content: (msg.content || msg.text || "").slice(0, 4000),
     }));
 
+  const lastUserMsg = [...formattedMessages].reverse().find((m) => m.role === "user")?.content || "";
+  const conversationHistory = formattedMessages.slice(0, -1);
+
+  // Try ai-tutor-chat first
+  const { data: chatData, error: chatError } = await supabase.functions.invoke("ai-tutor-chat", {
+    body: {
+      message: lastUserMsg,
+      conversationHistory,
+      sessionId: Number(sessionId),
+    },
+  });
+
+  if (!chatError && chatData && !chatData.error) {
+    return {
+      reply: chatData.reply || "",
+      actions: Array.isArray(chatData.actions) ? chatData.actions : [],
+    };
+  }
+
+  // Fallback to ai-tutor
   const { data, error } = await supabase.functions.invoke("ai-tutor", {
     body: {
       session_id: Number(sessionId),

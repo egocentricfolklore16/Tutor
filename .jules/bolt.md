@@ -9,3 +9,7 @@
 ## 2025-05-12 - useRef for Effect Timers and Global Event Listeners
 **Learning:** Including fast-changing state arrays (like `groupSessions`) in `useEffect` dependency arrays that run interval timers or event listeners causes effect cleanup and re-instantiation on every state update, triggering unnecessary re-fetch cascades. Ref-patterning (`useRef`) provides fresh state inside timers/listeners without effect re-triggers.
 **Action:** When a `useEffect` sets up `setInterval` or window event listeners that access state, hold the state in a `useRef` and remove the state array from the `useEffect` dependency array.
+
+## 2025-05-13 - Batching Queries Across Relations in Chat Inbox
+**Learning:** Performing per-item subqueries inside `.map(async ...)` (e.g. fetching messages and attached resources per conversation) creates $O(N)$ sequential/parallel network requests to PostgREST. Batching queries via `.in("conversation_id", convIds)` with an upper bound limit (`Math.max(convIds.length * 20, 100)`) and pre-grouping into a `Map` in JS collapses $2N$ queries into $O(1)$ batch requests, preventing network waterfalls and PostgREST empty array syntax errors (`in.()`).
+**Action:** When fetching nested relation summaries across a collection (e.g. latest messages per conversation, resource titles), batch the query using `.in()` with length guards and reasonable `.limit()` bounds, then group results in-memory with a Map.

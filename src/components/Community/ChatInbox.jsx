@@ -100,62 +100,86 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
         });
       }
 
-      // 5. Fetch latest messages & calculate unread
-      const convList = await Promise.all(
-        (convRows || []).map(async (conv) => {
-          const partInfo = participantMap[conv.id];
+      // 5. Fetch recent messages in a single batched query with upper limit to eliminate N+1 queries safely
+      let allMsgs = [];
+      if (convIds.length > 0) {
+        const messageLimit = Math.max(convIds.length * 20, 100);
+        const { data: msgData } = await supabase
+          .from("messages")
+          .select("*")
+          .in("conversation_id", convIds)
+          .order("created_at", { ascending: false })
+          .limit(messageLimit);
+        allMsgs = msgData || [];
+      }
 
-          const { data: msgs } = await supabase
-            .from("messages")
-            .select("*")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(20);
+      // Group messages by conversation ID
+      const messagesByConv = new Map();
+      (allMsgs || []).forEach((msg) => {
+        let group = messagesByConv.get(msg.conversation_id);
+        if (!group) {
+          group = [];
+          messagesByConv.set(msg.conversation_id, group);
+        }
+        group.push(msg);
+      });
 
-          const latestMsg = msgs && msgs.length > 0 ? msgs[0] : null;
-          const unreadCount = calculateUnreadCount(
-            msgs || [],
-            partInfo?.last_read_at,
-            currentUserId
-          );
-
-          let name = "Chat";
-          let avatarUrl = null;
-          let resourceTitle = null;
-
-          if (latestMsg?.resource_id) {
-            const { data: resData } = await supabase
-              .from("session_resources")
-              .select("title, file_name")
-              .eq("id", latestMsg.resource_id)
-              .maybeSingle();
-
-            if (resData) {
-              resourceTitle = resData.title || resData.file_name;
-            }
-          }
-
-          if (conv.type === "direct") {
-            const peer = directPeersMap[conv.id];
-            name = peer?.full_name || peer?.username || "Direct Message";
-            avatarUrl = peer?.user_img || null;
-          } else if (conv.type === "group") {
-            const grp = groupMap[conv.study_group_id];
-            name = grp?.name || "Study Group";
-          }
-
-          return {
-            ...conv,
-            name,
-            avatarUrl,
-            latestMsg,
-            resourceTitle,
-            unreadCount,
-            lastReadAt: partInfo?.last_read_at,
-            updatedAt: latestMsg ? latestMsg.created_at : conv.created_at,
-          };
-        })
+      // Gather distinct resource IDs attached to latest messages across conversations
+      const resourceIds = Array.from(
+        new Set(
+          (convRows || [])
+            .map((c) => messagesByConv.get(c.id)?.[0]?.resource_id)
+            .filter(Boolean)
+        )
       );
+
+      let resourceTitleMap = {};
+      if (resourceIds.length > 0) {
+        const { data: resRows } = await supabase
+          .from("session_resources")
+          .select("id, title, file_name")
+          .in("id", resourceIds);
+
+        (resRows || []).forEach((r) => {
+          resourceTitleMap[r.id] = r.title || r.file_name;
+        });
+      }
+
+      // Build final conversation objects synchronously in memory
+      const convList = (convRows || []).map((conv) => {
+        const partInfo = participantMap[conv.id];
+        const msgs = messagesByConv.get(conv.id) || [];
+        const latestMsg = msgs.length > 0 ? msgs[0] : null;
+        const unreadCount = calculateUnreadCount(
+          msgs,
+          partInfo?.last_read_at,
+          currentUserId
+        );
+
+        let name = "Chat";
+        let avatarUrl = null;
+        let resourceTitle = latestMsg?.resource_id ? resourceTitleMap[latestMsg.resource_id] || null : null;
+
+        if (conv.type === "direct") {
+          const peer = directPeersMap[conv.id];
+          name = peer?.full_name || peer?.username || "Direct Message";
+          avatarUrl = peer?.user_img || null;
+        } else if (conv.type === "group") {
+          const grp = groupMap[conv.study_group_id];
+          name = grp?.name || "Study Group";
+        }
+
+        return {
+          ...conv,
+          name,
+          avatarUrl,
+          latestMsg,
+          resourceTitle,
+          unreadCount,
+          lastReadAt: partInfo?.last_read_at,
+          updatedAt: latestMsg ? latestMsg.created_at : conv.created_at,
+        };
+      });
 
       // Sort by latest message time
       convList.sort(

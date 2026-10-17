@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.192.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { buildSystemPrompt, normalizeStrictness, Strictness } from "./prompt.ts";
+import { countGenuineAttempts } from "../ai-tutor/strictnessRules.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -55,7 +56,9 @@ serve(async (req) => {
     userId = userData.user.id;
 
     const strictness = await resolveStrictness(supabase, userId, strictnessOverride);
-    const systemPrompt = buildSystemPrompt(strictness);
+    const fullHistory = [...conversationHistory, { role: "user", content: message }];
+    const attemptCount = countGenuineAttempts(fullHistory);
+    const systemPrompt = buildSystemPrompt(strictness, attemptCount);
 
     const messages = [
       { role: "system", content: systemPrompt },

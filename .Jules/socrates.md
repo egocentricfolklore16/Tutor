@@ -39,3 +39,9 @@
 **Learning:** When system prompts instruct tutors to pause tutoring mode for student distress, models may still attempt to ask check questions or pivot back to academic subjects unless explicitly forbidden from asking follow-up check questions, providing medical/diagnostic advice, or re-routing back to study topics.
 
 **Action:** In wellbeing guardrails across all AI endpoints, explicitly append instructions to pause tutoring mode immediately, express care and warmth, provide crisis helpline resources (988 / trusted adult), omit check questions, avoid medical advice, and refrain from re-routing to academic topics.
+
+## 2026-10-09 - Propagating Genuine Attempt Counts to Prompt Builder Rules
+
+**Learning:** Unused attempt count parameters (`_attemptCount: number = 0`) in prompt builder functions cause strictness modes to render static prompt text without explicit `[SERVER-ENFORCED STATE: LOCKED/UNLOCKED]` markers. Ensuring all chat edge functions (`ai-tutor`, `ai-tutor-chat`) pass full conversation history to `countGenuineAttempts` and propagate `attemptCount` into `strictnessRules` guarantees explicit state injection on every turn.
+
+**Action:** Whenever updating prompt strictness or state handlers, verify that attempt counts flow from request turn history all the way into `strictnessRules` and generated system prompt strings.

@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 // Helper logic representing push notification authorization checks in send-push Edge Function
-function verifySendPushAuthorization(authHeader, user, requestBody) {
+function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow) {
   if (!authHeader) {
     return { status: 401, success: false, message: "Missing Authorization header" };
   }
@@ -19,7 +19,15 @@ function verifySendPushAuthorization(authHeader, user, requestBody) {
     };
   }
 
-  return { status: 200, success: true, targetUserId: user.id };
+  if (notificationRow && notificationRow.user_id !== user.id) {
+    return {
+      status: 403,
+      success: false,
+      message: "Forbidden: Cannot access another user's notification",
+    };
+  }
+
+  return { status: 200, success: true, targetUserId: notificationRow?.user_id || user.id };
 }
 
 test("verifySendPushAuthorization returns 401 if Authorization header is missing", () => {
@@ -52,6 +60,30 @@ test("verifySendPushAuthorization succeeds when requestBody.userId matches user.
     "Bearer valid_token",
     { id: "user_legit_123" },
     { userId: "user_legit_123", payload: { title: "Study Reminder" } }
+  );
+  assert.strictEqual(result.status, 200);
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.targetUserId, "user_legit_123");
+});
+
+test("verifySendPushAuthorization returns 403 if notificationId belongs to another user", () => {
+  const result = verifySendPushAuthorization(
+    "Bearer valid_token",
+    { id: "user_attacker_123" },
+    { notificationId: "notif_456" },
+    { id: "notif_456", user_id: "user_victim_789" }
+  );
+  assert.strictEqual(result.status, 403);
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.message, "Forbidden: Cannot access another user's notification");
+});
+
+test("verifySendPushAuthorization succeeds when notificationId belongs to calling user", () => {
+  const result = verifySendPushAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    { notificationId: "notif_123" },
+    { id: "notif_123", user_id: "user_legit_123" }
   );
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.success, true);

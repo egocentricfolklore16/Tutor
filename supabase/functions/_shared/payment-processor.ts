@@ -73,6 +73,10 @@ export async function processVerifiedPayment({
   reference,
   paystackData,
 }: ProcessPaymentParams) {
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    throw new Error("Missing or invalid payment reference");
+  }
+
   let metadata: any = paystackData?.metadata || {};
   if (typeof metadata === "string") {
     try {
@@ -127,12 +131,23 @@ export async function processVerifiedPayment({
     throw new Error(`Plan is not active: ${planId}`);
   }
 
-  const receivedCurrency = (paystackData.currency || "NGN").toUpperCase();
+  let rawAmount = paystackData?.amount;
+  let receivedAmountKobo = 0;
+  if (typeof rawAmount === "number" && Number.isFinite(rawAmount)) {
+    receivedAmountKobo = Math.round(rawAmount);
+  } else if (typeof rawAmount === "string" && rawAmount.trim() !== "") {
+    const parsed = Number(rawAmount);
+    if (Number.isFinite(parsed)) {
+      receivedAmountKobo = Math.round(parsed);
+    }
+  }
+
+  const receivedCurrency = (paystackData?.currency || "NGN").toUpperCase();
   const expectedCurrency = "NGN";
   const expectedAmountKobo =
-    typeof plan.price_kobo === "number"
-      ? plan.price_kobo
-      : plan.price_naira * 100;
+    typeof plan.price_kobo === "number" && Number.isFinite(plan.price_kobo)
+      ? Math.round(plan.price_kobo)
+      : Math.round((plan.price_naira || 0) * 100);
 
   // 2. Idempotency check: validate user ownership on existing reference & return existing record if already successful
   const { data: existingPayment } = await supabaseClient
@@ -166,23 +181,21 @@ export async function processVerifiedPayment({
   if (
     paystackData.status !== "success" ||
     receivedCurrency !== expectedCurrency ||
-    paystackData.amount !== expectedAmountKobo
+    receivedAmountKobo !== expectedAmountKobo
   ) {
     // Record payment failure/audit row idempotently if reference is present
-    if (reference) {
-      await supabaseClient.from("payments").upsert(
-        {
-          user_id: userId,
-          reference: reference,
-          amount: typeof paystackData.amount === "number" ? paystackData.amount : 0,
-          currency: receivedCurrency,
-          status: "failed",
-          purpose: `subscription:${planId}`,
-          verified_at: new Date().toISOString(),
-        },
-        { onConflict: "reference" }
-      );
-    }
+    await supabaseClient.from("payments").upsert(
+      {
+        user_id: userId,
+        reference: reference,
+        amount: receivedAmountKobo,
+        currency: receivedCurrency,
+        status: "failed",
+        purpose: `subscription:${planId}`,
+        verified_at: new Date().toISOString(),
+      },
+      { onConflict: "reference" }
+    );
 
     if (paystackData.status !== "success") {
       throw new Error(`Payment verification failed: status is ${paystackData.status}`);
@@ -194,9 +207,9 @@ export async function processVerifiedPayment({
       );
     }
 
-    if (paystackData.amount !== expectedAmountKobo) {
+    if (receivedAmountKobo !== expectedAmountKobo) {
       throw new Error(
-        `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
+        `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${receivedAmountKobo} kobo`
       );
     }
   }
@@ -208,7 +221,7 @@ export async function processVerifiedPayment({
       {
         user_id: userId,
         reference: reference,
-        amount: paystackData.amount,
+        amount: receivedAmountKobo,
         currency: receivedCurrency,
         status: paystackData.status,
         purpose: `subscription:${planId}`,

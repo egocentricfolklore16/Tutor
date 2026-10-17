@@ -82,9 +82,9 @@ export default function PaystackCheckoutButton({
       }
 
       const amountKobo =
-        typeof planData.price_kobo === "number"
-          ? planData.price_kobo
-          : planData.price_naira * 100;
+        typeof planData.price_kobo === "number" && Number.isFinite(planData.price_kobo)
+          ? Math.round(planData.price_kobo)
+          : Math.round((planData.price_naira || 0) * 100);
       const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
 
       // Async callback handler for server-side verification

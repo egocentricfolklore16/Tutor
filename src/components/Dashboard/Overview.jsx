@@ -16,6 +16,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { useGamification } from "../../features/gamification";
 import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
+import FeedbackDialog from "../common/FeedbackDialog";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -58,9 +59,10 @@ function Overview() {
   const { streak } = useGamification();
   const { currentStreak, loading: streakLoading, error: streakError } = streak;
   const [userName, setUserName] = useState("");
-  const [userId, setUserId] = useState(null);
+  const [_userId, setUserId] = useState(null);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
@@ -175,11 +177,18 @@ function Overview() {
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
         <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
-          <span>Give us feedback!</span>
-          <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="flex items-center gap-2 cursor-pointer text-left focus:outline-none"
+          >
+            <span>Give us feedback!</span>
+            <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          </button>
           <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950 dark:bg-slate-700 dark:hover:bg-slate-600">×</button>
         </div>
       </div>}
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </PageContainer>
   );
 }

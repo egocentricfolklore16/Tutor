@@ -13,10 +13,13 @@ import { getUserTimeZone } from "./streaks.js";
 export const pauseSession = async ({ id, time_left, elapsed_seconds }) => {
   if (!id) return { error: new Error("Missing session ID") };
 
+  const parsedTimeLeft = Number(time_left);
+  const parsedElapsed = Number(elapsed_seconds);
+
   const payload = {
     session_status: "paused",
-    time_left: time_left !== undefined && time_left !== null ? Math.max(0, Math.round(Number(time_left))) : null,
-    elapsed_seconds: elapsed_seconds !== undefined && elapsed_seconds !== null ? Math.max(0, Math.round(Number(elapsed_seconds))) : 0,
+    time_left: Number.isFinite(parsedTimeLeft) ? Math.max(0, Math.round(parsedTimeLeft)) : null,
+    elapsed_seconds: Number.isFinite(parsedElapsed) ? Math.max(0, Math.round(parsedElapsed)) : 0,
     paused_at: new Date().toISOString(),
   };
 
@@ -51,10 +54,13 @@ export const pauseSession = async ({ id, time_left, elapsed_seconds }) => {
 export const pauseSessionBeacon = ({ id, time_left, elapsed_seconds }) => {
   if (!id) return;
 
+  const parsedTimeLeft = Number(time_left);
+  const parsedElapsed = Number(elapsed_seconds);
+
   const payload = JSON.stringify({
     session_status: "paused",
-    time_left: time_left !== undefined && time_left !== null ? Math.max(0, Math.round(Number(time_left))) : null,
-    elapsed_seconds: elapsed_seconds !== undefined && elapsed_seconds !== null ? Math.max(0, Math.round(Number(elapsed_seconds))) : 0,
+    time_left: Number.isFinite(parsedTimeLeft) ? Math.max(0, Math.round(parsedTimeLeft)) : null,
+    elapsed_seconds: Number.isFinite(parsedElapsed) ? Math.max(0, Math.round(parsedElapsed)) : 0,
     paused_at: new Date().toISOString(),
   });
 

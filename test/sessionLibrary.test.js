@@ -1,6 +1,13 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { deleteSession, completeSession, pauseSessionBeacon } from "../src/lib/sessionService.js";
+import {
+  deleteSession,
+  completeSession,
+  pauseSession,
+  pauseSessionBeacon,
+  resumeSession,
+  heartbeatSession,
+} from "../src/lib/sessionService.js";
 import supabase from "../src/lib/supabase.js";
 
 test("deleteSession returns error if session ID is missing", async () => {
@@ -198,5 +205,173 @@ test("pauseSessionBeacon URL-encodes session ID and attaches authenticated JWT t
   } finally {
     globalThis.fetch = originalFetch;
     globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("pauseSession requires session ID and handles non-numeric time_left or elapsed_seconds safely", async () => {
+  const missingIdRes = await pauseSession({});
+  assert.ok(missingIdRes.error);
+  assert.equal(missingIdRes.error.message, "Missing session ID");
+
+  let updatePayload = null;
+  const originalFrom = supabase.from;
+
+  supabase.from = (table) => {
+    if (table === "Study") {
+      return {
+        update: (payload) => {
+          updatePayload = payload;
+          return {
+            eq: () => ({
+              neq: () => ({
+                select: () => Promise.resolve({ data: [{ id: 88, ...payload }], error: null }),
+              }),
+            }),
+          };
+        },
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    // Valid numeric values
+    const res = await pauseSession({ id: 88, time_left: 120, elapsed_seconds: 480 });
+    assert.equal(res.error, null);
+    assert.equal(updatePayload.session_status, "paused");
+    assert.equal(updatePayload.time_left, 120);
+    assert.equal(updatePayload.elapsed_seconds, 480);
+    assert.ok(updatePayload.paused_at);
+
+    // Invalid non-numeric or NaN values
+    const nanRes = await pauseSession({ id: 88, time_left: "invalid", elapsed_seconds: NaN });
+    assert.equal(nanRes.error, null);
+    assert.equal(updatePayload.time_left, null, "Invalid time_left must safely default to null");
+    assert.equal(updatePayload.elapsed_seconds, 0, "Invalid elapsed_seconds must safely default to 0");
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
+test("pauseSession Beacon handles non-numeric or NaN values safely without emitting NaN JSON", async () => {
+  let capturedBody = null;
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = (url, options) => {
+    capturedBody = JSON.parse(options.body);
+    return Promise.resolve({ ok: true });
+  };
+
+  try {
+    pauseSessionBeacon({ id: 99, time_left: "invalid", elapsed_seconds: "bad_val" });
+    assert.ok(capturedBody);
+    assert.equal(capturedBody.time_left, null, "Beacon invalid time_left must default to null");
+    assert.equal(capturedBody.elapsed_seconds, 0, "Beacon invalid elapsed_seconds must default to 0");
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
+test("pauseSession retries once on initial Supabase query error", async () => {
+  let attempts = 0;
+  const originalFrom = supabase.from;
+
+  supabase.from = (table) => {
+    if (table === "Study") {
+      return {
+        update: () => ({
+          eq: () => ({
+            neq: () => ({
+              select: () => {
+                attempts++;
+                if (attempts === 1) {
+                  return Promise.resolve({ data: null, error: new Error("DB Connection Error") });
+                }
+                return Promise.resolve({ data: [{ id: 77, session_status: "paused" }], error: null });
+              },
+            }),
+          }),
+        }),
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await pauseSession({ id: 77, time_left: 300, elapsed_seconds: 600 });
+    assert.equal(res.error, null);
+    assert.equal(attempts, 2, "pauseSession must retry query once on failure");
+    assert.equal(res.data[0].session_status, "paused");
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
+test("resumeSession validates session ID and resets paused state", async () => {
+  const missingIdRes = await resumeSession({});
+  assert.ok(missingIdRes.error);
+  assert.equal(missingIdRes.error.message, "Missing session ID");
+
+  let updatePayload = null;
+  const originalFrom = supabase.from;
+
+  supabase.from = (table) => {
+    if (table === "Study") {
+      return {
+        update: (payload) => {
+          updatePayload = payload;
+          return {
+            eq: () => ({
+              neq: () => ({
+                select: () => Promise.resolve({ data: [{ id: 66, ...payload }], error: null }),
+              }),
+            }),
+          };
+        },
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await resumeSession({ id: 66 });
+    assert.equal(res.error, null);
+    assert.equal(updatePayload.session_status, "active");
+    assert.equal(updatePayload.paused_at, null);
+    assert.ok(updatePayload.last_active_at);
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
+test("heartbeatSession requires active session ID and updates last_active_at", async () => {
+  // Missing ID -> early return no-op
+  await heartbeatSession({});
+
+  let updatePayload = null;
+  const originalFrom = supabase.from;
+
+  supabase.from = (table) => {
+    if (table === "Study") {
+      return {
+        update: (payload) => {
+          updatePayload = payload;
+          return {
+            eq: () => ({
+              eq: () => Promise.resolve({ error: null }),
+            }),
+          };
+        },
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    await heartbeatSession({ id: 44 });
+    assert.ok(updatePayload);
+    assert.ok(updatePayload.last_active_at);
+  } finally {
+    supabase.from = originalFrom;
   }
 });

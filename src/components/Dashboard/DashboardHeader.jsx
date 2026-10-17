@@ -2,7 +2,7 @@ import { Bell, BookOpen, Command, FileText, Flame, Layers3, Lock, LogOut, Menu, 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
-import { useGamification } from "../../features/gamification";
+import { useGamification, useCelebrations, CelebrationLayer } from "../../features/gamification";
 import XpToast from "../../features/gamification/components/XpToast";
 import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import NotificationCenter from "../Notifications/NotificationCenter";
@@ -25,6 +25,7 @@ function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
   const { streak, xp, gems, toast } = useGamification();
   const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = streak;
+  const { activeCelebration, dismissCelebration } = useCelebrations(xp.level);
   const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -494,6 +495,7 @@ function DashboardHeader({ toggleSidebar }) {
       />
     )}
 
+    <CelebrationLayer celebration={activeCelebration} onClose={dismissCelebration} />
     <XpToast toast={toast} />
 
     {searchOpen && (

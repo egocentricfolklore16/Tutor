@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import useCombinedSessions from './useCombinedSessions';
 import { isSlipping, getSessionStartDate } from '../lib/plannerUtils';
 
@@ -39,14 +39,20 @@ export function useSlippingSessions() {
     };
   }, [refreshSessions]);
 
-  // Filter slipping sessions and sort by most overdue first (earliest scheduled start time)
-  const slipping = sessions
-    .filter((session) => isSlipping(session, now))
-    .sort((a, b) => {
-      const timeA = getSessionStartDate(a)?.getTime() || 0;
-      const timeB = getSessionStartDate(b)?.getTime() || 0;
-      return timeA - timeB; // Earliest start time = most overdue
-    });
+  // Filter slipping sessions using isSlipping and sort by most overdue first (earliest scheduled start time)
+  // Memoized with pre-parsed start times to avoid O(N log N) date parsing during sort comparisons
+  const slipping = useMemo(() => {
+    if (!sessions || sessions.length === 0) return [];
+
+    return sessions
+      .filter((session) => isSlipping(session, now))
+      .map((session) => ({
+        session,
+        startTime: getSessionStartDate(session)?.getTime() || 0,
+      }))
+      .sort((a, b) => a.startTime - b.startTime)
+      .map((item) => item.session);
+  }, [sessions, now]);
 
   return {
     slipping,

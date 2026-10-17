@@ -23,3 +23,7 @@
 ## 2025-05-25 - Explicit Failure Status on Payment Mismatch Audit
 **Learning:** When audit rows were recorded for currency or amount mismatches while `paystackData.status` was `"success"`, recording `paystackData.status` directly saved `status: "success"` into the `payments` table. On subsequent idempotency checks, step 2 would see `existingPayment.status === "success"` and return success without validating amount or currency, granting unearned subscriptions.
 **Action:** Always explicitly set `status: "failed"` when upserting audit rows during currency or amount mismatch validation in `processVerifiedPayment`.
+
+## 2025-05-26 - Floating-Point Multiplication Imprecision and Kobo Normalization
+**Learning:** Multiplying Naira prices in floats (e.g., `25.99 * 100`) produces JavaScript floating-point inaccuracies like `2599.0000000000005`. Strict equality checks against Paystack's integer kobo payload (`2599`) cause legitimate payments to fail with `Amount mismatch`.
+**Action:** Always wrap kobo amount calculations with `Math.round()` and parse stringified numeric amounts safely to integer kobo before comparison or persistence in Postgres integer columns.

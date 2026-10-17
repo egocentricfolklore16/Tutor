@@ -7,7 +7,6 @@ export async function fetchActivityFeed({
   filter = "all",
   cursor = null,
   limit = 20,
-  currentUserId = null,
 }) {
   let query = supabase
     .from("activity_events")

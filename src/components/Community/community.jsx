@@ -8,25 +8,21 @@ import {
   Globe,
   Lock,
   Loader2,
-  AlertCircle,
   X,
   Shield,
   BookOpen,
   Sparkles,
   ChevronRight,
   MessageSquare,
-  Calendar,
   HelpCircle,
   Clock,
   Maximize2,
   Minimize2,
   UserCheck,
   UserX,
-  UserPlus,
   MoreVertical,
   Trash2,
   CheckCircle,
-  Settings as SettingsIcon,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
@@ -48,13 +44,16 @@ import HelpForum from "./HelpForum";
 import ForumPostDetail from "./ForumPostDetail";
 import PeerTutors from "./PeerTutors";
 import LeaderboardTab from "./LeaderboardTab";
-import { ActivityFeed } from "../../features/community/components/feed/ActivityFeed";
 import AchievementsPage from "./AchievementsPage";
 
-import { useExploreGroups } from "../../features/groups/useExploreGroups";
-import { useMyGroups } from "../../features/groups/useMyGroups";
-import { useGroupOverview } from "../../features/groups/useGroupOverview";
-import { useGroupActions } from "../../features/groups/useGroupActions";
+import { useFriends } from "../../features/community/hooks/useFriends";
+import { useGroups } from "../../features/community/hooks/useGroups";
+import FriendList from "../../features/community/components/friends/FriendList";
+import PendingRequests from "../../features/community/components/friends/PendingRequests";
+import UserSearch from "../../features/community/components/friends/UserSearch";
+import GroupCard from "../../features/community/components/groups/GroupCard";
+import CreateGroupModal from "../../features/community/components/groups/CreateGroupModal";
+import { ActivityFeed } from "../../features/community/components/feed/ActivityFeed";
 
 const Community = () => {
   const navigate = useNavigate();
@@ -134,7 +133,6 @@ const Community = () => {
   };
 
   const pathLower = location.pathname.toLowerCase();
-  const isChatRoute = pathLower.includes("/chat");
 
   useEffect(() => {
     if (pathLower.includes("/chat")) setActiveTab("chat");
@@ -163,28 +161,28 @@ const Community = () => {
   // GROUPS STATE & HOOKS
   // ==========================================
   const [groupSearch, setGroupSearch] = useState("");
-  const [selectedSubject, setSelectedSubject] = useState("all");
   const [selectedPrivacy, setSelectedPrivacy] = useState("all");
-
-  const { groups: exploreGroups, loading: exploreLoading, error: exploreError, refetch: refetchExplore } = useExploreGroups({
-    search: groupSearch,
-    subject: selectedSubject,
-    privacy: selectedPrivacy,
-  });
-
-  const { myGroups, loading: myGroupsLoading, refetch: refetchMyGroups } = useMyGroups(user?.id);
-
   const [selectedGroupId, setSelectedGroupId] = useState(null);
-  const { overview: groupOverview, loading: overviewLoading, refetch: refetchOverview } = useGroupOverview(selectedGroupId);
 
-  const groupActions = useGroupActions();
+  const {
+    exploreGroups,
+    exploreLoading,
+    refetchExplore,
+    myGroups,
+    refetchMyGroups,
+    groupOverview,
+    overviewLoading,
+    refetchOverview,
+    groupActions,
+  } = useGroups(user?.id, {
+    search: groupSearch,
+    subject: "all",
+    privacy: selectedPrivacy,
+    selectedGroupId,
+  });
 
   // Create Group State
   const [showCreateGroup, setShowCreateGroup] = useState(false);
-  const [newGroupName, setNewGroupName] = useState("");
-  const [newGroupDescription, setNewGroupDescription] = useState("");
-  const [newGroupSubject, setNewGroupSubject] = useState("");
-  const [newGroupPrivacy, setNewGroupPrivacy] = useState("public"); // 'public' | 'private'
   const [createGroupLoading, setCreateGroupLoading] = useState(false);
 
   // Request Join Modal State
@@ -217,18 +215,17 @@ const Community = () => {
     }
   }, [groupOverview]);
 
-  const handleCreateGroup = async (e) => {
-    e.preventDefault();
-    if (!user || !newGroupName.trim() || !newGroupSubject.trim()) return;
+  const handleCreateGroup = async ({ name, description, subject, privacy }) => {
+    if (!user) return;
     setCreateGroupLoading(true);
     try {
       const { data: newGrp, error } = await supabase
         .from("study_groups")
         .insert({
-          name: newGroupName.trim(),
-          description: newGroupDescription.trim(),
-          subject: newGroupSubject.trim(),
-          privacy: newGroupPrivacy,
+          name,
+          description,
+          subject,
+          privacy,
           owner_id: user.id,
           created_by: user.id,
         })
@@ -237,7 +234,6 @@ const Community = () => {
 
       if (error) throw error;
 
-      // Add owner to members table
       if (newGrp) {
         await supabase.from("study_group_members").insert({
           group_id: newGrp.id,
@@ -245,7 +241,6 @@ const Community = () => {
           role: "owner",
         });
 
-        // Create group chat conversation
         await supabase.from("conversations").insert({
           type: "group",
           study_group_id: newGrp.id,
@@ -254,11 +249,6 @@ const Community = () => {
       }
 
       setShowCreateGroup(false);
-      setNewGroupName("");
-      setNewGroupDescription("");
-      setNewGroupSubject("");
-      setNewGroupPrivacy("public");
-
       showToast("Group created successfully!");
       refetchExplore();
       refetchMyGroups();
@@ -285,7 +275,7 @@ const Community = () => {
           refetchExplore();
           refetchMyGroups();
         }
-      } catch (err) {
+      } catch {
         showToast("Unable to join group.");
       }
     } else {
@@ -304,7 +294,7 @@ const Community = () => {
       } else {
         showToast(res?.error === "max_pending_reached" ? "You have reached the maximum 10 pending requests." : "Failed to send request.");
       }
-    } catch (err) {
+    } catch {
       showToast("Error sending join request.");
     }
   };
@@ -316,7 +306,7 @@ const Community = () => {
       refetchOverview();
       refetchExplore();
       refetchMyGroups();
-    } catch (err) {
+    } catch {
       showToast("Failed to process request.");
     }
   };
@@ -361,114 +351,19 @@ const Community = () => {
   };
 
   // ==========================================
-  // FRIENDS LOGIC
+  // FRIENDS LOGIC VIA USEFRIENDS HOOK
   // ==========================================
-  const [friendships, setFriendships] = useState([]);
-  const [friendProfiles, setFriendProfiles] = useState({});
-  const [friendsLoading, setFriendsLoading] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searchResults, setSearchResults] = useState([]);
-  const [searchLoading, setSearchLoading] = useState(false);
-
-  const fetchFriendsData = useCallback(async () => {
-    if (!user) return;
-    setFriendsLoading(true);
-    try {
-      const { data: rawRows, error } = await supabase
-        .from("friendships")
-        .select("*")
-        .or(`requester_id.eq.${user.id},addressee_id.eq.${user.id}`);
-
-      if (error) throw error;
-      const rows = rawRows || [];
-      setFriendships(rows);
-
-      const otherUserIds = Array.from(
-        new Set(rows.map((r) => (r.requester_id === user.id ? r.addressee_id : r.requester_id)))
-      );
-
-      if (otherUserIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .in("user_id", otherUserIds);
-
-        const map = {};
-        (profs || []).forEach((p) => {
-          map[p.user_id] = p;
-        });
-        setFriendProfiles(map);
-      } else {
-        setFriendProfiles({});
-      }
-    } catch (err) {
-      console.error("Error fetching friends:", err);
-    } finally {
-      setFriendsLoading(false);
-    }
-  }, [user]);
-
-  useEffect(() => {
-    if (activeTab === "friends") fetchFriendsData();
-  }, [activeTab, fetchFriendsData]);
-
-  const handleSearchUsers = async (e) => {
-    e?.preventDefault();
-    const query = searchQuery.trim();
-    if (!query || !user) return;
-    setSearchLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from("community_profiles")
-        .select("*")
-        .or(`username.ilike.%${query}%,full_name.ilike.%${query}%`)
-        .limit(20);
-
-      if (error) throw error;
-      setSearchResults((data || []).filter((p) => p.user_id !== user.id));
-    } catch (err) {
-      console.error("Error searching users:", err);
-    } finally {
-      setSearchLoading(false);
-    }
-  };
-
-  const sendFriendRequest = async (addresseeId) => {
-    if (!user) return;
-    try {
-      const { error } = await supabase.from("friendships").insert({
-        requester_id: user.id,
-        addressee_id: addresseeId,
-        status: "pending",
-      });
-      if (error && !error.message?.includes("duplicate")) throw error;
-      fetchFriendsData();
-      if (searchQuery) handleSearchUsers();
-    } catch (err) {
-      console.error("Error sending friend request:", err);
-    }
-  };
-
-  const updateFriendshipStatus = async (friendshipId, status) => {
-    try {
-      await supabase
-        .from("friendships")
-        .update({ status, responded_at: new Date().toISOString() })
-        .eq("id", friendshipId);
-      fetchFriendsData();
-    } catch (err) {
-      console.error("Error updating friendship:", err);
-    }
-  };
-
-  const removeFriendship = async (friendshipId) => {
-    try {
-      await supabase.from("friendships").delete().eq("id", friendshipId);
-      fetchFriendsData();
-    } catch (err) {
-      console.error("Error removing friendship:", err);
-    }
-  };
+  const {
+    friendships,
+    loading: friendsLoading,
+    searchQuery,
+    searchResults,
+    searchLoading,
+    search: searchFriends,
+    sendFriendRequest,
+    updateStatus: updateFriendshipStatus,
+    removeFriendship,
+  } = useFriends(user?.id);
 
   const acceptedFriends = friendships.filter((f) => f.status === "accepted");
   const pendingIncoming = friendships.filter((f) => f.status === "pending" && f.addressee_id === user?.id);
@@ -588,50 +483,12 @@ const Community = () => {
                   </div>
 
                   {/* Create Group Form Modal */}
-                  {showCreateGroup && (
-                    <form onSubmit={handleCreateGroup} className="rounded-2xl bg-emerald-50/80 p-5 dark:bg-emerald-950/20 shadow-surface space-y-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <p className="text-base font-bold text-emerald-950 dark:text-emerald-200">Create New Study Group</p>
-                        <button type="button" onClick={() => setShowCreateGroup(false)} className="rounded-full p-1 text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-800"><X className="h-4 w-4" /></button>
-                      </div>
-
-                      <div className="space-y-3">
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Group Name</label>
-                          <input required value={newGroupName} onChange={(e) => setNewGroupName(e.target.value)} placeholder="e.g. Calculus Champions" className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Subject</label>
-                          <input required value={newGroupSubject} onChange={(e) => setNewGroupSubject(e.target.value)} placeholder="e.g. Mathematics" className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
-                        </div>
-
-                        <div>
-                          <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">Description</label>
-                          <textarea value={newGroupDescription} onChange={(e) => setNewGroupDescription(e.target.value)} placeholder="What will this group work on?" rows={2} className="w-full rounded-xl bg-white px-3.5 py-2 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#14171c] dark:text-white" />
-                        </div>
-
-                        <div className="flex items-center gap-4 pt-1">
-                          <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                            <input type="radio" name="privacy" value="public" checked={newGroupPrivacy === "public"} onChange={() => setNewGroupPrivacy("public")} className="accent-emerald-600" />
-                            <span>Public (anyone can join)</span>
-                          </label>
-                          <label className="flex items-center gap-2 text-xs font-bold text-slate-700 dark:text-slate-300 cursor-pointer">
-                            <input type="radio" name="privacy" value="private" checked={newGroupPrivacy === "private"} onChange={() => setNewGroupPrivacy("private")} className="accent-emerald-600" />
-                            <span>Private (requires owner approval)</span>
-                          </label>
-                        </div>
-
-                        <div className="pt-2 flex justify-end gap-2">
-                          <button type="button" onClick={() => setShowCreateGroup(false)} className="rounded-xl bg-slate-200 px-4 py-2 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">Cancel</button>
-                          <button type="submit" disabled={createGroupLoading} className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-button-primary">
-                            {createGroupLoading && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                            <span>Save Group</span>
-                          </button>
-                        </div>
-                      </div>
-                    </form>
-                  )}
+                  <CreateGroupModal
+                    isOpen={showCreateGroup}
+                    onClose={() => setShowCreateGroup(false)}
+                    onCreateGroup={handleCreateGroup}
+                    loading={createGroupLoading}
+                  />
 
                   {/* My Groups Section */}
                   {myGroups.length > 0 && (
@@ -712,75 +569,18 @@ const Community = () => {
                       </div>
                     ) : (
                       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                        {exploreGroups.map((grp) => {
-                          const isMember = grp.my_status === "member";
-                          const isPending = grp.my_status === "pending";
-                          const isCooldown = grp.my_status === "declined_cooldown";
-
-                          return (
-                            <div
-                              key={grp.id}
-                              className="flex flex-col justify-between rounded-2xl bg-slate-50/70 p-4 shadow-surface hover:shadow-surface-hover transition dark:bg-[#18211f]"
-                            >
-                              <div>
-                                <div className="flex items-start justify-between">
-                                  <span className="inline-flex items-center gap-1 rounded-2xl bg-cyan-100 px-2.5 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-                                    {grp.subject}
-                                  </span>
-                                  {grp.privacy === "public" ? <Globe className="h-4 w-4 text-slate-400" /> : <Lock className="h-4 w-4 text-amber-500" title="Private: owner approves new members" />}
-                                </div>
-                                <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
-                                <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
-
-                                <div className="mt-3 flex items-center gap-2">
-                                  <Avatar src={grp.owner_avatar} name={grp.owner_name} username={grp.owner_username} size="xs" />
-                                  <span className="text-[11px] text-slate-500 font-medium truncate">
-                                    Owner: {grp.owner_name || grp.owner_username || "Unknown"}
-                                  </span>
-                                </div>
-                              </div>
-
-                              <div className="mt-4 flex items-center justify-between pt-3">
-                                <span className="text-xs font-bold text-slate-500">
-                                  {grp.member_count} {grp.member_count === 1 ? "member" : "members"}
-                                </span>
-
-                                {isMember ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setSelectedGroupId(grp.id);
-                                      setModalSubTab("overview");
-                                    }}
-                                    className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300"
-                                  >
-                                    Open Group
-                                  </button>
-                                ) : isPending ? (
-                                  <button
-                                    type="button"
-                                    onClick={() => groupActions.cancelRequest(grp.my_request_id).then(() => refetchExplore())}
-                                    className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 hover:bg-amber-200"
-                                  >
-                                    Request pending (Cancel)
-                                  </button>
-                                ) : isCooldown ? (
-                                  <span className="rounded-2xl bg-slate-200 px-3 py-1 text-xs font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-400">
-                                    Try again in {grp.cooldown_days_left}d
-                                  </span>
-                                ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => handleJoinOrRequest(grp)}
-                                    className="rounded-2xl bg-emerald-600 px-3.5 py-1 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700"
-                                  >
-                                    {grp.privacy === "public" ? "Join Group" : "Request to join"}
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          );
-                        })}
+                        {exploreGroups.map((grp) => (
+                          <GroupCard
+                            key={grp.id}
+                            group={grp}
+                            onOpenGroup={(grpId) => {
+                              setSelectedGroupId(grpId);
+                              setModalSubTab("overview");
+                            }}
+                            onRequestJoin={handleJoinOrRequest}
+                            onCancelRequest={(reqId) => groupActions.cancelRequest(reqId).then(() => refetchExplore())}
+                          />
+                        ))}
                       </div>
                     )}
                   </div>
@@ -1167,62 +967,20 @@ const Community = () => {
               {/* FRIENDS TAB */}
               {activeTab === "friends" && (
                 <div className="space-y-6">
-                  <form onSubmit={handleSearchUsers} className="rounded-2xl bg-white p-4 shadow-surface dark:bg-[#14171c]">
-                    <p className="text-sm font-bold text-slate-900 dark:text-white mb-2">Find People</p>
-                    <div className="flex items-center gap-2">
-                      <div className="relative flex-1">
-                        <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
-                        <input
-                          type="text"
-                          value={searchQuery}
-                          onChange={(e) => setSearchQuery(e.target.value)}
-                          placeholder="Search by username or full name..."
-                          className="w-full rounded-2xl bg-slate-50 py-2.5 pl-10 pr-4 text-sm text-slate-900 outline-none shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white"
-                        />
-                      </div>
-                      <button
-                        type="submit"
-                        disabled={searchLoading}
-                        className="inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-sm font-bold text-white shadow-button-primary hover:bg-emerald-700 disabled:opacity-50"
-                      >
-                        {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Search className="h-4 w-4" />}
-                        <span>Search</span>
-                      </button>
-                    </div>
-
-                    {searchResults.length > 0 && (
-                      <div className="mt-4 border-t border-slate-100 pt-3 dark:border-slate-800 divide-y divide-slate-100 dark:divide-slate-800">
-                        <p className="text-xs font-bold text-slate-500 mb-2">Search Results</p>
-                        {searchResults.map((p) => {
-                          const existing = friendships.find(
-                            (f) => f.requester_id === p.user_id || f.addressee_id === p.user_id
-                          );
-                          const isAccepted = existing?.status === "accepted";
-                          const isPendingSent = existing?.status === "pending" && existing?.requester_id === user?.id;
-
-                          return (
-                            <div key={p.user_id} className="flex items-center justify-between py-2.5">
-                              <div className="flex items-center gap-3">
-                                <Avatar src={p.user_img} name={p.full_name} username={p.username} size="sm" />
-                                <div>
-                                  <p className="text-sm font-bold text-slate-900 dark:text-white">{p.full_name || p.username}</p>
-                                  <p className="text-xs text-slate-500">@{p.username} · Lvl {p.level || 1}</p>
-                                </div>
-                              </div>
-
-                              {isAccepted ? (
-                                <span className="rounded-2xl bg-emerald-100 px-3 py-1 text-xs font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">Friends</span>
-                              ) : isPendingSent ? (
-                                <button type="button" onClick={() => removeFriendship(existing.id)} className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800">Request sent</button>
-                              ) : (
-                                <button type="button" onClick={() => sendFriendRequest(p.user_id)} className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700">Add friend</button>
-                              )}
-                            </div>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </form>
+                  <UserSearch
+                    searchQuery={searchQuery}
+                    onSearchChange={searchFriends}
+                    onSearchSubmit={(e) => {
+                      e.preventDefault();
+                      searchFriends(searchQuery);
+                    }}
+                    searchResults={searchResults}
+                    searchLoading={searchLoading}
+                    friendships={friendships}
+                    currentUserId={user?.id}
+                    onSendRequest={sendFriendRequest}
+                    onCancelRequest={removeFriendship}
+                  />
 
                   {friendsLoading ? (
                     <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl bg-white p-8 shadow-surface dark:bg-[#14171c]">
@@ -1230,65 +988,25 @@ const Community = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
-                      {pendingIncoming.length > 0 && (
-                        <div className="rounded-2xl bg-amber-50/60 p-5 shadow-surface dark:bg-amber-950/20">
-                          <p className="text-sm font-bold text-amber-900 dark:text-amber-200 mb-3">Pending Requests ({pendingIncoming.length})</p>
-                          <div className="space-y-3">
-                            {pendingIncoming.map((req) => {
-                              const prof = friendProfiles[req.requester_id];
-                              return (
-                                <div key={req.id} className="flex items-center justify-between rounded-xl bg-white p-3 shadow-surface dark:bg-[#14171c]">
-                                  <div className="flex items-center gap-3">
-                                    <Avatar src={prof?.user_img} name={prof?.full_name} username={prof?.username} size="sm" />
-                                    <p className="text-sm font-bold text-slate-900 dark:text-white">{prof?.full_name || prof?.username}</p>
-                                  </div>
-                                  <div className="flex items-center gap-2">
-                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "accepted")} className="rounded-2xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary">Accept</button>
-                                    <button type="button" onClick={() => updateFriendshipStatus(req.id, "declined")} className="rounded-2xl bg-slate-200 px-3 py-1.5 text-xs font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">Decline</button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      )}
+                      <PendingRequests
+                        requests={pendingIncoming}
+                        onAccept={(reqId) => updateFriendshipStatus(reqId, "accepted")}
+                        onDecline={(reqId) => updateFriendshipStatus(reqId, "declined")}
+                      />
 
                       <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
-                        <p className="text-base font-bold text-slate-900 dark:text-white mb-4">My Friends ({acceptedFriends.length})</p>
-                        {acceptedFriends.length === 0 ? (
-                          <p className="text-xs text-slate-500 py-4 text-center">No friends added yet.</p>
-                        ) : (
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-                            {acceptedFriends.map((f) => {
-                              const otherId = f.requester_id === user?.id ? f.addressee_id : f.requester_id;
-                              const prof = friendProfiles[otherId];
-
-                              return (
-                                <div key={f.id} className="flex items-center justify-between rounded-2xl bg-slate-50/60 p-3.5 dark:bg-[#18211f] shadow-surface">
-                                  <div className="flex items-center gap-3">
-                                    <Avatar src={prof?.user_img} name={prof?.full_name} username={prof?.username} size="sm" />
-                                    <div>
-                                      <p className="text-sm font-bold text-slate-900 dark:text-white">{prof?.full_name || prof?.username}</p>
-                                    </div>
-                                  </div>
-
-                                  <div className="flex items-center gap-1.5">
-                                    <button
-                                      type="button"
-                                      onClick={async () => {
-                                        const { data: convId } = await supabase.rpc("get_or_create_direct_conversation", { p_other_user_id: otherId });
-                                        if (convId) navigate(`/community/chat/${convId}`);
-                                      }}
-                                      className="rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700"
-                                    >
-                                      Message
-                                    </button>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
+                        <p className="text-base font-bold text-slate-900 dark:text-white mb-4">
+                          My Friends ({acceptedFriends.length})
+                        </p>
+                        <FriendList
+                          friends={acceptedFriends}
+                          currentUserId={user?.id}
+                          onMessage={async (otherId) => {
+                            const { data: convId } = await supabase.rpc("get_or_create_direct_conversation", { p_other_user_id: otherId });
+                            if (convId) navigate(`/community/chat/${convId}`);
+                          }}
+                          onRemoveFriend={removeFriendship}
+                        />
                       </div>
                     </div>
                   )}

@@ -45,7 +45,7 @@ export function countGenuineAttempts(messages: any[]): number {
   return attemptCount;
 }
 
-export function getStrictnessRules(strictness?: string, _attemptCount: number = 0): string {
+export function getStrictnessRules(strictness?: string, attemptCount: number = 0): string {
   const norm = normalizeStrictness(strictness);
-  return strictnessRules(norm).rules;
+  return strictnessRules(norm, attemptCount).rules;
 }

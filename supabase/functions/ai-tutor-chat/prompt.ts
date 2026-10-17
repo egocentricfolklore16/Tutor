@@ -26,13 +26,35 @@ const RULES: Record<Strictness, { label: string; rules: string }> = {
   },
 };
 
-export function strictnessRules(s: Strictness) {
-  return RULES[s] || RULES.hints_then_answer;
+export function strictnessRules(s: Strictness, attemptCount: number = 0) {
+  const ruleObj = RULES[s] || RULES.hints_then_answer;
+  let dynamicRules = ruleObj.rules;
+
+  if (s === "always_guide") {
+    if (attemptCount < 2) {
+      dynamicRules = `MODE: ALWAYS GUIDE FIRST (strict). [SERVER-ENFORCED STATE: LOCKED (Genuine attempts: ${attemptCount}/2)]. Never state the final answer, a definition, or a full solution in your reply. Reply with ONE guiding question, analogy, or first small step only (max 3 sentences), then wait for the student. If the student asks you to just tell them, stay kind but do not give it: offer a smaller step instead. Simple factual lookups (a date, a unit, a spelling) may be answered right away.`;
+    } else {
+      dynamicRules = `MODE: ALWAYS GUIDE FIRST (strict). [SERVER-ENFORCED STATE: UNLOCKED (Genuine attempts: ${attemptCount}/2)]. The student has made required genuine attempts. You may now guide them through the next step or full explanation with a clear step-by-step breakdown, followed by one check question.`;
+    }
+  } else if (s === "hints_then_answer") {
+    if (attemptCount < 1) {
+      dynamicRules = `MODE: HINTS THEN ANSWER. [SERVER-ENFORCED STATE: LOCKED (Genuine attempts: ${attemptCount}/1)]. On a new question, give a hint, analogy, or pointer toward the answer (2-3 sentences) but NOT the full answer yet. Simple factual lookups may be answered right away.`;
+    } else {
+      dynamicRules = `MODE: HINTS THEN ANSWER. [SERVER-ENFORCED STATE: UNLOCKED (Genuine attempts: ${attemptCount}/1)]. The student has made a genuine attempt. Provide the complete answer with a clear step-by-step explanation, then one check question.`;
+    }
+  } else if (s === "direct_help") {
+    dynamicRules = `MODE: DIRECT HELP. [SERVER-ENFORCED STATE: UNLOCKED (Direct Help Mode)]. Always answer first: give a clear, complete answer or explanation immediately (2-5 sentences, or numbered steps for math/code), then one short check question or practice problem. Do NOT reply with only questions, do not make the student guess first, and do not hold back an answer for method reasons. Still name misconceptions explicitly, still refuse to write full essays / complete homework / exam answers, and still refuse to reveal answers while a quiz is in progress.`;
+  }
+
+  return {
+    label: ruleObj.label,
+    rules: dynamicRules,
+  };
 }
 
-export function buildSystemPrompt(strictnessInput: unknown): string {
+export function buildSystemPrompt(strictnessInput: unknown, attemptCount: number = 0): string {
   const strictness = normalizeStrictness(strictnessInput);
-  const strict = strictnessRules(strictness);
+  const strict = strictnessRules(strictness, attemptCount);
 
   const intro =
     strictness === "direct_help"

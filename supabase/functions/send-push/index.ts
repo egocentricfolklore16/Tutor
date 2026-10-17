@@ -88,6 +88,7 @@ Deno.serve(async (req: Request) => {
     }
 
     let targetUserId = body.userId;
+    let callingUser: { id: string } | null = null;
 
     if (token !== serviceRoleKey) {
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
@@ -104,6 +105,8 @@ Deno.serve(async (req: Request) => {
           { status: 401, headers: corsHeaders }
         );
       }
+
+      callingUser = user;
 
       if (body.userId && body.userId !== user.id) {
         return new Response(
@@ -130,6 +133,16 @@ Deno.serve(async (req: Request) => {
         .single();
 
       if (nData) {
+        if (callingUser && nData.user_id !== callingUser.id) {
+          return new Response(
+            JSON.stringify({
+              success: false,
+              message: "Forbidden: Cannot access another user's notification",
+            }),
+            { status: 403, headers: corsHeaders }
+          );
+        }
+
         notifRow = nData;
         targetUserId = nData.user_id;
 

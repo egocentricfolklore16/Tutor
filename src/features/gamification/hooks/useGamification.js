@@ -20,12 +20,14 @@ export function useGamification() {
   const xpLevelInfo = calculateXpLevel(xpPoints);
   const gems = profile?.gems ?? 0;
 
+  const { refreshStreak } = streakState;
+
   const refreshAll = useCallback(async () => {
     await Promise.all([
       refreshProfile?.(),
-      streakState.refreshStreak?.(),
+      refreshStreak?.(),
     ]);
-  }, [refreshProfile, streakState.refreshStreak]);
+  }, [refreshProfile, refreshStreak]);
 
   // Toast listener for reward events
   useEffect(() => {

@@ -6,6 +6,7 @@ import {
   calculateEndTimeString,
   generateRecurrencePreview,
   suggestNextFreeSlot,
+  getPlannerDefaults,
 } from '../src/lib/plannerUtils.js';
 import { plannerActivitySchema } from '../src/lib/plannerSchema.js';
 
@@ -55,6 +56,24 @@ test('suggestNextFreeSlot shifts candidate time past conflicts', () => {
 
   const suggested = suggestNextFreeSlot(start, 45, conflicts);
   assert.ok(suggested.suggestedStart > start);
+});
+
+test('getPlannerDefaults derives default startTime from preferredTime', () => {
+  assert.equal(getPlannerDefaults('Morning').startTime, '09:00');
+  assert.equal(getPlannerDefaults('Afternoon').startTime, '14:00');
+  assert.equal(getPlannerDefaults('Evening').startTime, '19:00');
+});
+
+test('getPlannerDefaults falls back safely for Flexible, null, undefined, or unknown preferredTime', () => {
+  const flexibleDefault = getPlannerDefaults('Flexible');
+  const nullDefault = getPlannerDefaults(null);
+  const undefinedDefault = getPlannerDefaults(undefined);
+  const unknownDefault = getPlannerDefaults('Midnight');
+
+  assert.ok(flexibleDefault.startTime.includes(':'));
+  assert.ok(nullDefault.startTime.includes(':'));
+  assert.ok(undefinedDefault.startTime.includes(':'));
+  assert.ok(unknownDefault.startTime.includes(':'));
 });
 
 test('plannerActivitySchema validates valid payload and rejects invalid duration', () => {

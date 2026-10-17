@@ -429,6 +429,7 @@ const PlannerPage = () => {
         mode={activityMode}
         initialData={editingActivity}
         subjects={allSubjects}
+        preferredTime={profile?.preferred_time}
         onAddSubject={(newSub) => setCustomSubjects((prev) => [...prev, newSub])}
         isSaving={isSavingSession}
         onClose={() => {

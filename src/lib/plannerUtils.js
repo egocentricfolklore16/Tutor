@@ -63,10 +63,22 @@ export function calculateEndTimeString(startTimeStr, durationMinutes) {
 /**
  * Reads form defaults from localStorage or returns fallback defaults
  */
-export function getPlannerDefaults() {
+export function getPlannerDefaults(preferredTime = null) {
+  let defaultStartTime = getNextHalfHour();
+  if (preferredTime) {
+    const normalized = String(preferredTime).trim().toLowerCase();
+    if (normalized === 'morning') {
+      defaultStartTime = '09:00';
+    } else if (normalized === 'afternoon') {
+      defaultStartTime = '14:00';
+    } else if (normalized === 'evening') {
+      defaultStartTime = '19:00';
+    }
+  }
+
   const fallback = {
     date: new Date().toISOString().slice(0, 10),
-    startTime: getNextHalfHour(),
+    startTime: defaultStartTime,
     duration: 45,
     reminder: 15,
     subject: '',
@@ -75,17 +87,20 @@ export function getPlannerDefaults() {
   };
 
   try {
-    const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
-    if (raw) {
-      const parsed = JSON.parse(raw);
-      return {
-        ...fallback,
-        duration: parsed.duration ?? fallback.duration,
-        reminder: parsed.reminder ?? fallback.reminder,
-        subject: parsed.subject ?? fallback.subject,
-        priority: parsed.priority ?? fallback.priority,
-        color: parsed.color ?? fallback.color,
-      };
+    if (typeof localStorage !== 'undefined') {
+      const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        return {
+          ...fallback,
+          startTime: parsed.startTime ?? fallback.startTime,
+          duration: parsed.duration ?? fallback.duration,
+          reminder: parsed.reminder ?? fallback.reminder,
+          subject: parsed.subject ?? fallback.subject,
+          priority: parsed.priority ?? fallback.priority,
+          color: parsed.color ?? fallback.color,
+        };
+      }
     }
   } catch (e) {
     console.warn('Failed to parse planner defaults from localStorage:', e);

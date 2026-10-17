@@ -50,8 +50,9 @@ function PlannerActivityModal({
   onSubmit,
   onDelete = null,
   onDuplicate = null,
+  preferredTime = null,
 }) {
-  const defaults = getPlannerDefaults();
+  const defaults = getPlannerDefaults(preferredTime);
   const titleInputRef = useRef(null);
 
   const [form, setForm] = useState(() => {

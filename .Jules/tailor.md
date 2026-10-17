@@ -59,3 +59,7 @@
 ## 2026-11-06 - Connecting Primary Goal to Dashboard AI Suggestions
 **Learning:** `primary_goal` was collected in Onboarding Step 1 ("What is your primary goal?"), stored in `profiles.primary_goal`, and displayed in the header, but was omitted from Dashboard recommendations on the `AISuggestions` card.
 **Action:** Create `getPrimaryGoalNote` in `src/lib/primaryGoal.js` with tests in `test/primaryGoal.test.js`, and connect it to `AISuggestions.jsx` so primary goal preferences ("Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career") directly personalize AI recommendation copy on the Dashboard with immediate propagation via `ProfileContext`.
+
+## 2026-11-10 - Connecting Preferred Time to Planner Activity Modal Defaults
+**Learning:** `preferred_time` was collected in Onboarding Step 2 ("When do you focus best?"), stored in `profiles.preferred_time`, and rendered as a recommendation note in `AISuggestions.jsx`, but `getPlannerDefaults` in `src/lib/plannerUtils.js` ignored `preferred_time` when creating new study sessions, time blocks, or recurring sessions, defaulting to `getNextHalfHour()`.
+**Action:** Update `getPlannerDefaults` in `src/lib/plannerUtils.js` to derive default start times from `preferredTime` ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening, or `getNextHalfHour()` for Flexible / missing inputs) and pass `preferredTime={profile?.preferred_time}` from `Planner.jsx` to `PlannerActivityModal.jsx`.

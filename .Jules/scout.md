@@ -11,3 +11,7 @@
 ## 2026-10-16 - Third-Party OAuth Token Expiration in Client Code
 **Learning:** `ExternalCalendarSync.jsx` and `googleCalendarSync.js` fetched Google Calendar events using `session.provider_token` directly from client-side JS. Because provider access tokens expire after 60 minutes, direct client calls fail without refresh token handling.
 **Action:** Delegate third-party OAuth calendar synchronization to a dedicated Edge Function proxy that manages token refreshes securely on the server.
+
+## 2026-10-17 - Full Codebase Audit & Gap Tracking Verification
+**Learning:** Verified all 160 frontend source files under `src/` against backend SQL schemas and Edge Functions. Confirmed that no new backend gap regressions were introduced across recent PR merges.
+**Action:** Maintain running ledger index entries in `docs/backend-gaps/INDEX.md` and keep previous reports immutable for historical diff auditing.

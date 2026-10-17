@@ -1,7 +1,7 @@
 import supabase from "../../../lib/supabase.js";
 
 /**
- * Fetch leaderboard entries via single source of truth RPC
+ * Fetch leaderboard entries via single source of truth RPC get_leaderboard
  */
 export async function fetchLeaderboardData({
   scope = "global",
@@ -34,16 +34,17 @@ export async function fetchLeaderboardData({
     is_me: Boolean(e.is_me),
   }));
 
-  const me = data?.my_rank
+  const meRaw = data?.me;
+  const me = meRaw
     ? {
-        user_id: data.my_rank.user_id,
-        username: data.my_rank.username || "You",
-        full_name: data.my_rank.full_name || data.my_rank.username || "You",
-        user_img: data.my_rank.user_img || null,
-        rank: data.my_rank.rank,
-        rank_change: data.my_rank.rank_change ?? 0,
-        value: Number(data.my_rank.value) || 0,
-        level: Number(data.my_rank.level) || 1,
+        user_id: meRaw.user_id,
+        username: meRaw.username || "You",
+        full_name: meRaw.full_name || meRaw.username || "You",
+        user_img: meRaw.user_img || null,
+        rank: meRaw.rank,
+        rank_change: meRaw.rank_change ?? 0,
+        value: Number(meRaw.value) || 0,
+        level: Number(meRaw.level) || 1,
         is_me: true,
       }
     : null;

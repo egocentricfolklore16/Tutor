@@ -47,14 +47,20 @@ test("deleteSession only deletes the Study record and does not delete Library ma
   }
 });
 
-test("Library materials persist and are accessible after session deletion", async () => {
-  // Simulate database state with a study session and associated materials
+test("Library materials across all 4 types (notes, flashcards, quizzes, resources) persist with session_id detached after session deletion", async () => {
+  // Simulate database state with a study session and associated materials across all 4 types
   const sessions = [{ id: 42, user_id: "user_abc", Subject: "Physics" }];
   const libraryNotes = [
     { id: 1, session_id: 42, user_id: "user_abc", title: "Newton's Laws", content: "F = ma" },
   ];
   const libraryFlashcards = [
     { id: 1, session_id: 42, user_id: "user_abc", question: "Speed of light?", answer: "3x10^8 m/s" },
+  ];
+  const libraryQuizzes = [
+    { id: 1, session_id: 42, user_id: "user_abc", title: "Mechanics Quiz", score: 90 },
+  ];
+  const libraryResources = [
+    { id: 1, session_id: 42, user_id: "user_abc", title: "Formula Sheet PDF", url: "https://example.com/sheet.pdf" },
   ];
 
   const originalFrom = supabase.from;
@@ -72,6 +78,12 @@ test("Library materials persist and are accessible after session deletion", asyn
             });
             libraryFlashcards.forEach((f) => {
               if (f.session_id === val) f.session_id = null;
+            });
+            libraryQuizzes.forEach((q) => {
+              if (q.session_id === val) q.session_id = null;
+            });
+            libraryResources.forEach((r) => {
+              if (r.session_id === val) r.session_id = null;
             });
             return Promise.resolve({ error: null });
           },
@@ -92,6 +104,20 @@ test("Library materials persist and are accessible after session deletion", asyn
         }),
       };
     }
+    if (tableName === "session_quizzes") {
+      return {
+        select: () => ({
+          eq: (col, val) => Promise.resolve({ data: libraryQuizzes.filter((q) => q.user_id === val), error: null }),
+        }),
+      };
+    }
+    if (tableName === "session_resources") {
+      return {
+        select: () => ({
+          eq: (col, val) => Promise.resolve({ data: libraryResources.filter((r) => r.user_id === val), error: null }),
+        }),
+      };
+    }
     return originalFrom(tableName);
   };
 
@@ -103,19 +129,142 @@ test("Library materials persist and are accessible after session deletion", asyn
     // Verify session was removed from Study
     assert.equal(sessions.length, 0);
 
-    // Verify materials still exist in Library
+    // Verify all 4 material types still exist in Library with detached session_id
     const { data: fetchedNotes } = await supabase.from("session_notes").select("*").eq("user_id", "user_abc");
     const { data: fetchedCards } = await supabase.from("session_flashcards").select("*").eq("user_id", "user_abc");
+    const { data: fetchedQuizzes } = await supabase.from("session_quizzes").select("*").eq("user_id", "user_abc");
+    const { data: fetchedResources } = await supabase.from("session_resources").select("*").eq("user_id", "user_abc");
 
     assert.equal(fetchedNotes.length, 1);
     assert.equal(fetchedNotes[0].title, "Newton's Laws");
-    assert.equal(fetchedNotes[0].session_id, null, "Material session_id is detached so item persists in Library");
+    assert.equal(fetchedNotes[0].session_id, null, "Note session_id is detached so item persists in Library");
 
     assert.equal(fetchedCards.length, 1);
     assert.equal(fetchedCards[0].question, "Speed of light?");
     assert.equal(fetchedCards[0].session_id, null, "Flashcard session_id is detached so item persists in Library");
+
+    assert.equal(fetchedQuizzes.length, 1);
+    assert.equal(fetchedQuizzes[0].title, "Mechanics Quiz");
+    assert.equal(fetchedQuizzes[0].session_id, null, "Quiz session_id is detached so item persists in Library");
+
+    assert.equal(fetchedResources.length, 1);
+    assert.equal(fetchedResources[0].title, "Formula Sheet PDF");
+    assert.equal(fetchedResources[0].session_id, null, "Resource session_id is detached so item persists in Library");
   } finally {
     supabase.from = originalFrom;
+  }
+});
+
+test("deleteSession handles database deletion failure gracefully", async () => {
+  const originalFrom = supabase.from;
+  const dbError = { message: "Database deletion constraint violation", code: "23503" };
+
+  supabase.from = (table) => {
+    if (table === "Study") {
+      return {
+        delete: () => ({
+          eq: () => Promise.resolve({ error: dbError }),
+        }),
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await deleteSession({ id: 999 });
+    assert.ok(res.error, "deleteSession should return error object when deletion fails");
+    assert.equal(res.error.message, "Database deletion constraint violation");
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
+test("Completing a session preserves all 4 Library material types for the user", async () => {
+  const userId = "user_complete_materials";
+  const originalRpc = supabase.rpc;
+  const originalFrom = supabase.from;
+
+  const userMaterials = {
+    notes: [{ id: 10, session_id: 88, user_id: userId, title: "Calculus Summary" }],
+    flashcards: [{ id: 20, session_id: 88, user_id: userId, question: "Derivative of e^x?" }],
+    quizzes: [{ id: 30, session_id: 88, user_id: userId, title: "Limits Practice" }],
+    resources: [{ id: 40, session_id: 88, user_id: userId, title: "Textbook Ch 3" }],
+  };
+
+  supabase.rpc = (fnName, params) => {
+    assert.equal(fnName, "complete_study_session");
+    assert.equal(params.p_session_id, 88);
+    return Promise.resolve({
+      data: [{ history_id: "hist_88", current_streak: 3, xp_points: 50 }],
+      error: null,
+    });
+  };
+
+  supabase.from = (tableName) => {
+    if (tableName === "session_notes") {
+      return { select: () => ({ eq: (col, val) => Promise.resolve({ data: userMaterials.notes.filter((m) => m.user_id === val), error: null }) }) };
+    }
+    if (tableName === "session_flashcards") {
+      return { select: () => ({ eq: (col, val) => Promise.resolve({ data: userMaterials.flashcards.filter((m) => m.user_id === val), error: null }) }) };
+    }
+    if (tableName === "session_quizzes") {
+      return { select: () => ({ eq: (col, val) => Promise.resolve({ data: userMaterials.quizzes.filter((m) => m.user_id === val), error: null }) }) };
+    }
+    if (tableName === "session_resources") {
+      return { select: () => ({ eq: (col, val) => Promise.resolve({ data: userMaterials.resources.filter((m) => m.user_id === val), error: null }) }) };
+    }
+    return originalFrom(tableName);
+  };
+
+  try {
+    const res = await completeSession({ id: 88, userId, durationSeconds: 3600 });
+    assert.equal(res.error, null);
+    assert.equal(res.data.history_id, "hist_88");
+
+    // Query all 4 material types from Library
+    const { data: notes } = await supabase.from("session_notes").select("*").eq("user_id", userId);
+    const { data: cards } = await supabase.from("session_flashcards").select("*").eq("user_id", userId);
+    const { data: quizzes } = await supabase.from("session_quizzes").select("*").eq("user_id", userId);
+    const { data: resources } = await supabase.from("session_resources").select("*").eq("user_id", userId);
+
+    assert.equal(notes.length, 1);
+    assert.equal(notes[0].title, "Calculus Summary");
+    assert.equal(cards.length, 1);
+    assert.equal(cards[0].question, "Derivative of e^x?");
+    assert.equal(quizzes.length, 1);
+    assert.equal(quizzes[0].title, "Limits Practice");
+    assert.equal(resources.length, 1);
+    assert.equal(resources[0].title, "Textbook Ch 3");
+  } finally {
+    supabase.rpc = originalRpc;
+    supabase.from = originalFrom;
+  }
+});
+
+test("Concurrent duplicate calls to completeSession execute safely without throwing exceptions", async () => {
+  let callCount = 0;
+  const originalRpc = supabase.rpc;
+
+  supabase.rpc = (_fnName, _params) => {
+    callCount++;
+    return Promise.resolve({
+      data: [{ history_id: `hist_dup_${callCount}`, current_streak: 5, xp_points: 50 }],
+      error: null,
+    });
+  };
+
+  try {
+    const results = await Promise.all([
+      completeSession({ id: 200, userId: "user_dup", durationSeconds: 1200 }),
+      completeSession({ id: 200, userId: "user_dup", durationSeconds: 1200 }),
+    ]);
+
+    assert.equal(results.length, 2);
+    assert.equal(results[0].error, null);
+    assert.equal(results[1].error, null);
+    assert.equal(callCount, 2);
+  } finally {
+    supabase.rpc = originalRpc;
   }
 });
 

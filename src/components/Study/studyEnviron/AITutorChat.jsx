@@ -32,6 +32,8 @@ import {
   FEATURED_PROMPTS,
   hasPlaceholder,
   getPromptsByCategory,
+  getLumoGreeting,
+  formatPromptForProfile,
 } from "../../../lib/lumoPrompts";
 
 const AITutorChat = ({
@@ -50,6 +52,7 @@ const AITutorChat = ({
   theme,
   isTyping,
   user,
+  profile,
   reducedMotion = false,
 }) => {
   const messagesEndRef = useRef(null);
@@ -162,28 +165,30 @@ const AITutorChat = ({
   const handleSelectPrompt = (promptText) => {
     if (!promptText) return;
 
-    if (hasPlaceholder(promptText)) {
+    const formattedText = formatPromptForProfile(promptText, profile);
+
+    if (hasPlaceholder(formattedText)) {
       if (onMessageChange) {
-        onMessageChange(promptText);
+        onMessageChange(formattedText);
       }
       setTimeout(() => {
         if (textareaRef.current) {
           textareaRef.current.focus();
-          const match = /\[.*?\]/.exec(promptText);
+          const match = /\[.*?\]/.exec(formattedText);
           if (match) {
             textareaRef.current.setSelectionRange(match.index, match.index + match[0].length);
           } else {
-            textareaRef.current.setSelectionRange(promptText.length, promptText.length);
+            textareaRef.current.setSelectionRange(formattedText.length, formattedText.length);
           }
         }
       }, 50);
     } else {
       if (onMessageChange) {
-        onMessageChange(promptText);
+        onMessageChange(formattedText);
       }
       setTimeout(() => {
         if (onSendMessage) {
-          onSendMessage(promptText);
+          onSendMessage(formattedText);
         }
       }, 50);
     }
@@ -562,7 +567,7 @@ const AITutorChat = ({
                     <div className="absolute h-20 w-20 rounded-full bg-emerald-500/20 blur-xl dark:bg-emerald-400/20" aria-hidden="true" />
                     <LumoAvatar size="lg" state="thinking" className="relative z-10 animate-lumo-gentle-float" />
                   </div>
-                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">Hi, I'm Lumo. What are we studying?</h3>
+                  <h3 className="text-lg font-bold text-slate-900 dark:text-white">{getLumoGreeting(profile)}</h3>
                   <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     Tap a prompt suggestion to start or ask anything.
                   </p>

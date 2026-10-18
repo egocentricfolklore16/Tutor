@@ -179,3 +179,60 @@ export const FEATURED_PROMPTS = [
   LUMO_PROMPTS.find((p) => p.id === 'sum-1'),
   LUMO_PROMPTS.find((p) => p.id === 'exam-1'),
 ].filter(Boolean);
+
+/**
+ * Generates a personalized empty-state greeting for Lumo using student profile data.
+ * @param {object} [profile]
+ * @returns {string}
+ */
+export function getLumoGreeting(profile) {
+  const firstName = profile?.full_name ? String(profile.full_name).trim().split(' ')[0] : null;
+  const primarySubject =
+    (profile?.settings_subject && String(profile.settings_subject).trim()) ||
+    (Array.isArray(profile?.subjects) && profile.subjects[0] && String(profile.subjects[0]).trim()) ||
+    null;
+
+  if (firstName && primarySubject) {
+    return `Hi ${firstName}, I'm Lumo. Ready to work on ${primarySubject}?`;
+  }
+  if (firstName) {
+    return `Hi ${firstName}, I'm Lumo. What are we studying?`;
+  }
+  return "Hi, I'm Lumo. What are we studying?";
+}
+
+/**
+ * Replaces prompt placeholders like [topic], [subject], [topic/concept] with profile values when available.
+ * If data is missing or not applicable, leaves the original bracket placeholder untouched for manual editing.
+ * @param {string} promptText
+ * @param {object} [profile]
+ * @returns {string}
+ */
+export function formatPromptForProfile(promptText, profile) {
+  if (!promptText || typeof promptText !== 'string') return '';
+  if (!profile || typeof profile !== 'object') return promptText;
+
+  const currentTopic = profile.current_topic ? String(profile.current_topic).trim() : null;
+  const primarySubject =
+    (profile.settings_subject && String(profile.settings_subject).trim()) ||
+    (Array.isArray(profile.subjects) && profile.subjects[0] && String(profile.subjects[0]).trim()) ||
+    null;
+
+  let formatted = promptText;
+
+  if (currentTopic) {
+    formatted = formatted
+      .replaceAll('[topic]', currentTopic)
+      .replaceAll('[topic/concept]', currentTopic)
+      .replaceAll('[topic/subject]', currentTopic);
+  }
+
+  if (primarySubject) {
+    formatted = formatted
+      .replaceAll('[subject]', primarySubject)
+      .replaceAll('[subject/exam]', primarySubject)
+      .replaceAll('[topic/exam]', primarySubject);
+  }
+
+  return formatted;
+}

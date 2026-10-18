@@ -6,6 +6,8 @@ import {
   FEATURED_PROMPTS,
   hasPlaceholder,
   getPromptsByCategory,
+  getLumoGreeting,
+  formatPromptForProfile,
 } from '../src/lib/lumoPrompts.js';
 
 test('LUMO_CATEGORIES contains expected standard categories', () => {
@@ -55,4 +57,59 @@ test('FEATURED_PROMPTS contains non-empty featured prompts', () => {
   assert.ok(Array.isArray(FEATURED_PROMPTS));
   assert.ok(FEATURED_PROMPTS.length >= 4);
   assert.ok(FEATURED_PROMPTS.every((p) => Boolean(p.text && p.label)));
+});
+
+test('getLumoGreeting generates personalized greeting based on profile', () => {
+  assert.strictEqual(
+    getLumoGreeting({ full_name: 'Jules Student', subjects: ['Math'] }),
+    "Hi Jules, I'm Lumo. Ready to work on Math?"
+  );
+
+  assert.strictEqual(
+    getLumoGreeting({ full_name: 'Alex Developer', settings_subject: 'Computer science' }),
+    "Hi Alex, I'm Lumo. Ready to work on Computer science?"
+  );
+
+  assert.strictEqual(
+    getLumoGreeting({ full_name: 'Sarah' }),
+    "Hi Sarah, I'm Lumo. What are we studying?"
+  );
+
+  assert.strictEqual(
+    getLumoGreeting(null),
+    "Hi, I'm Lumo. What are we studying?"
+  );
+
+  assert.strictEqual(
+    getLumoGreeting({}),
+    "Hi, I'm Lumo. What are we studying?"
+  );
+});
+
+test('formatPromptForProfile replaces placeholders with profile values safely', () => {
+  const profile = {
+    full_name: 'Alex Student',
+    current_topic: 'Calculus',
+    subjects: ['Math'],
+  };
+
+  assert.strictEqual(
+    formatPromptForProfile('Explain [topic] simply, then give a real-life example.', profile),
+    'Explain Calculus simply, then give a real-life example.'
+  );
+
+  assert.strictEqual(
+    formatPromptForProfile('Help me review [subject] for 2 hours.', profile),
+    'Help me review Math for 2 hours.'
+  );
+
+  // When profile has no current_topic or subjects, original placeholder remains
+  assert.strictEqual(
+    formatPromptForProfile('Explain [topic] simply.', {}),
+    'Explain [topic] simply.'
+  );
+
+  // Invalid or null inputs return fallback safely
+  assert.strictEqual(formatPromptForProfile(null, profile), '');
+  assert.strictEqual(formatPromptForProfile('Hello [topic]', null), 'Hello [topic]');
 });

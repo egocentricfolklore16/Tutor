@@ -7,3 +7,7 @@
 ## 2025-10-17 - Modular Community Refactoring & Safety Reporting Major Win
 **Learning:** Monolithic tab views like `LeaderboardTab` and `community.jsx` re-implemented inline state and direct PostgREST calls for friends, search, and rankings, bypassing services and leading to inconsistent payload handling (e.g., `data.my_rank` vs `data.me`). Additionally, safety reporting for community content was missing.
 **Action:** Restructure Community components into `src/features/community/` (`leaderboard/`, `friends/`, `groups/`, `shared/`), unify data fetching via `leaderboardService`, `friendsService`, `groupsService`, and `reportsService`, and implement the `community_reports` database migration and `ReportDialog` component.
+
+## 2025-10-18 - Community Audit & Leaderboard Experience Major Win
+**Learning:** The single-source-of-truth RPC `get_leaderboard` calculates server-enforced XP, study hours, and streak rankings securely without allowing client-side rating manipulation. Ensuring minimum 44px touch targets on podium cards and list items guarantees accessible mobile interaction across all density viewports.
+**Action:** Audit all seven layers of Community. Confirm zero client-side write access for XP/leaderboards and verify RLS policies across all tables (`profiles`, `friendships`, `study_groups`, `activity_events`, `community_reports`). Enhance touch targets and ARIA labels across leaderboard podium and table components.

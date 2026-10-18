@@ -5,3 +5,7 @@
 ## 2026-10-17 - Unified Gamification Celebration System
 **Learning:** Managing level-up celebrations via a local storage key (`hyper_tutor_last_seen_level`) inside `useCelebrations` prevents duplicate modal popups across re-renders and refreshes while immediately celebrating level transitions whenever `xp.level` increments.
 **Action:** Always wrap celebrations with `CelebrationLayer` and check `prefers-reduced-motion` and `aria-live="polite"` attributes so celebrations are accessible and non-disruptive.
+
+## 2026-10-18 - Contiguous Active Streak Date Backfilling for Weekday Rows
+**Learning:** When displaying 7-day weekday activity rows in streak dropdowns, sparse DB activity tables (`streak_days`, `daily_session_tracking`) may lack explicit rows for past days of an active streak. Backfilling contiguous dates backwards from `lastCompletedDate` / `lastActiveDate` for `currentStreak` days ensures active streaks correctly render completed fire icons across all days in the week.
+**Action:** Always derive contiguous active streak dates relative to the user's 3am local-time cutoff when computing 7-day streak visual states.

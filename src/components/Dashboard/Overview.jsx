@@ -99,7 +99,7 @@ function Overview() {
     }
   }, [isProfileLoading, profile]);
 
-  const streakDisplayLabel = streakLoading || currentStreak === null ? "–d Streak" : `${currentStreak}d Streak`;
+  const streakDisplayLabel = streakLoading || currentStreak === null || streakError ? "–d Streak" : `${currentStreak}d Streak`;
 
   return (
     <PageContainer maxWidth="max-w-7xl">

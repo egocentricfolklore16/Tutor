@@ -2,11 +2,11 @@
 
 | Field | Collected in | Table/Column | Loaded in | Used in | Status |
 |---|---|---|---|---|---|
-| `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
+| `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings, Lumo AI Chat empty state greeting & user avatar | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
-| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Community | Used |
+| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Community, Lumo AI Chat prompt suggestions & empty state greeting | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
@@ -63,3 +63,7 @@
 ## 2026-11-10 - Connecting Preferred Time to Planner Activity Modal Defaults
 **Learning:** `preferred_time` was collected in Onboarding Step 2 ("When do you focus best?"), stored in `profiles.preferred_time`, and rendered as a recommendation note in `AISuggestions.jsx`, but `getPlannerDefaults` in `src/lib/plannerUtils.js` ignored `preferred_time` when creating new study sessions, time blocks, or recurring sessions, defaulting to `getNextHalfHour()`.
 **Action:** Update `getPlannerDefaults` in `src/lib/plannerUtils.js` to derive default start times from `preferredTime` ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening, or `getNextHalfHour()` for Flexible / missing inputs) and pass `preferredTime={profile?.preferred_time}` from `Planner.jsx` to `PlannerActivityModal.jsx`.
+
+## 2026-11-14 - Connecting Profile Name & Onboarding Subjects to Lumo AI Tutor Prompts & Greeting
+**Learning:** `full_name` and `subjects` were collected in Onboarding, but Global Lumo AI Tutor (`GlobalAITutorFab.jsx` and `AITutorChat.jsx`) did not receive `profile` or `user` details, showing generic "Hi, I'm Lumo. What are we studying?" and unfilled prompt placeholders (`[topic]`, `[subject]`), and rendering user chat avatars with a hardcoded fallback initial ("U").
+**Action:** Create `getLumoGreeting` and `formatPromptForProfile` in `src/lib/lumoPrompts.js` with tests in `test/lumoPrompts.test.js`, pass `profile` and user info from `GlobalAITutorFab.jsx` to `AITutorChat.jsx`, and personalize empty-state greetings, prompt placeholder completions, and user message avatar initials.

@@ -88,6 +88,8 @@ const GlobalAITutorFab = ({ session }) => {
             onSendMessage={handleSendMessage}
             onClear={clearMessages}
             isTyping={isTyping}
+            user={{ name: profile?.full_name, avatar: profile?.user_img }}
+            profile={profile}
             onActionExecute={handleActionExecute}
             width={mode === "fullpage" ? "100%" : 380}
             theme={{ accentButton: "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600", accentBg: "bg-violet-100 dark:bg-violet-900/40" }}

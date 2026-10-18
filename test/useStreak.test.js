@@ -142,6 +142,47 @@ test("getLocalCutoffDate handles year rollover and timezone travel boundaries", 
   assert.equal(getLocalCutoffDate(utcInstant, "Pacific/Honolulu", 3), "2025-12-31");
 });
 
+test("computeWeekDays backfills contiguous active streak days as completed", () => {
+  // Suppose today is Wednesday 2026-10-21 under local cutoff
+  const baseWeek = getCurrentWeekDays("2026-10-21");
+
+  // Suppose user has a 3-day active streak ending yesterday (2026-10-20)
+  // statusByDate initially only has 2026-10-20 explicitly recorded in DB
+  const statusByDate = {
+    "2026-10-20": "completed",
+  };
+
+  // Backfill 3 contiguous streak days (2026-10-20, 2026-10-19, 2026-10-18)
+  const displayStreak = 3;
+  const activeOrCompleted = "2026-10-20";
+  const anchorParts = activeOrCompleted.split("-").map(Number);
+  const anchorDate = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+  for (let i = 0; i < displayStreak; i++) {
+    const d = new Date(anchorDate);
+    d.setUTCDate(anchorDate.getUTCDate() - i);
+    const dateStr = d.toISOString().slice(0, 10);
+    statusByDate[dateStr] = "completed";
+  }
+
+  const computed = computeWeekDays(baseWeek, statusByDate, "2026-10-21", activeOrCompleted);
+
+  // Sun Oct 18 -> completed
+  assert.equal(computed[0].dateStr, "2026-10-18");
+  assert.equal(computed[0].state, "completed");
+
+  // Mon Oct 19 -> completed
+  assert.equal(computed[1].dateStr, "2026-10-19");
+  assert.equal(computed[1].state, "completed");
+
+  // Tue Oct 20 -> completed
+  assert.equal(computed[2].dateStr, "2026-10-20");
+  assert.equal(computed[2].state, "completed");
+
+  // Wed Oct 21 -> today-pending
+  assert.equal(computed[3].dateStr, "2026-10-21");
+  assert.equal(computed[3].state, "today-pending");
+});
+
 test("getCurrentWeekDays handles Sunday start, Saturday end, and month transitions", () => {
   // 1. Sunday today (2026-06-07)
   const sunWeek = getCurrentWeekDays("2026-06-07");

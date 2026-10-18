@@ -238,10 +238,12 @@ function DashboardHeader({ toggleSidebar }) {
           <button
             type="button"
             onClick={toggleStreakDropdownMobile}
+            aria-label={`Study streak: ${streakLoading || currentStreak === null ? "loading" : streakError ? "error" : `${currentStreak} days`}`}
+            aria-expanded={streakDropdownOpen}
             className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
           >
             <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-            <span>{streakLoading ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
+            <span>{streakLoading || currentStreak === null ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
           </button>
 
           {streakDropdownOpen && (
@@ -363,9 +365,15 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openXpDropdown}
           onMouseLeave={closeXpDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface dark:bg-amber-500/15 dark:text-amber-300">
+          <button
+            type="button"
+            onClick={() => setXpDropdownOpen((prev) => !prev)}
+            aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
+            aria-expanded={xpDropdownOpen}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
+          >
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
-          </span>
+          </button>
           {xpDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
@@ -411,9 +419,15 @@ function DashboardHeader({ toggleSidebar }) {
           onMouseEnter={openGemsDropdown}
           onMouseLeave={closeGemsDropdown}
         >
-          <span className="inline-flex cursor-default items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface dark:bg-cyan-500/15 dark:text-cyan-300">
+          <button
+            type="button"
+            onClick={() => setGemsDropdownOpen((prev) => !prev)}
+            aria-label={`Gems balance: ${gemsCount}`}
+            aria-expanded={gemsDropdownOpen}
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
+          >
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
-          </span>
+          </button>
           {gemsDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-cyan-100 p-5 dark:bg-cyan-500/10">

@@ -139,8 +139,22 @@ export function useStreak() {
       const freezes = streakRow?.freeze_tokens ?? streakRow?.freeze_tokens_available ?? 0;
       const lastCompleted = streakRow?.last_completed_date || null;
       const lastActive = streakRow?.last_active_date || null;
+      const activeOrCompleted = lastCompleted || lastActive;
 
-      setCurrentStreak(curStreak);
+      // Stale streak resolution check
+      let displayStreak = curStreak;
+      if (activeOrCompleted) {
+        const anchorParts = activeOrCompleted.split("-").map(Number);
+        const anchorUtc = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+        const todayParts = todayCutoffStr.split("-").map(Number);
+        const todayUtc = new Date(Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]));
+        const diffDays = Math.round((todayUtc - anchorUtc) / 86400000);
+        if (diffDays > 1 && freezes === 0) {
+          displayStreak = 0;
+        }
+      }
+
+      setCurrentStreak(displayStreak);
       setLongestStreak(longStreak);
       setFreezeTokens(freezes);
       setLastCompletedDate(lastCompleted || lastActive);
@@ -179,9 +193,25 @@ export function useStreak() {
       });
 
       // If last_completed_date/last_active_date is in range, mark it completed as well
-      const activeOrCompleted = lastCompleted || lastActive;
       if (activeOrCompleted && statusByDate[activeOrCompleted] !== "frozen") {
         statusByDate[activeOrCompleted] = "completed";
+      }
+
+      // Backfill active streak dates contiguous from activeOrCompleted backwards for displayStreak days
+      if (displayStreak > 0 && activeOrCompleted) {
+        const anchorParts = activeOrCompleted.split("-").map(Number);
+        const anchorDate = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+        for (let i = 0; i < displayStreak; i++) {
+          const d = new Date(anchorDate);
+          d.setUTCDate(anchorDate.getUTCDate() - i);
+          const year = d.getUTCFullYear();
+          const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          const streakDateStr = `${year}-${month}-${day}`;
+          if (statusByDate[streakDateStr] !== "frozen") {
+            statusByDate[streakDateStr] = "completed";
+          }
+        }
       }
 
       const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;

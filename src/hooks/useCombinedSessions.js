@@ -39,6 +39,9 @@ export function useCombinedSessions() {
 
       const normalizedPersonal = (personalData || []).map((item) => {
         const startIso = item.Date && item.Start ? `${item.Date}T${item.Start.slice(0, 5)}:00` : null;
+        const startDateObj = startIso ? new Date(startIso) : new Date();
+        const isValidDate = !isNaN(startDateObj.getTime());
+        const startMs = isValidDate ? startDateObj.getTime() : Date.now();
         return {
           ...item,
           id: item.id,
@@ -48,7 +51,8 @@ export function useCombinedSessions() {
           Start: item.Start,
           Duration: item.Duration || 1,
           duration_minutes: (Number(item.Duration) || 1) * 60,
-          scheduled_start: startIso ? new Date(startIso).toISOString() : new Date().toISOString(),
+          scheduled_start: isValidDate ? startDateObj.toISOString() : new Date().toISOString(),
+          scheduled_start_ms: startMs,
           is_group_session: false,
           Status: item.Status || "Medium",
         };
@@ -107,6 +111,7 @@ export function useCombinedSessions() {
               const goingCount = parts.filter((p) => p.status === "going").length;
 
               const startDateObj = new Date(item.scheduled_start);
+              const startMs = !isNaN(startDateObj.getTime()) ? startDateObj.getTime() : 0;
               const dateStr = !isNaN(startDateObj.getTime())
                 ? startDateObj.toISOString().slice(0, 10)
                 : "";
@@ -123,6 +128,7 @@ export function useCombinedSessions() {
                 Duration: (Number(item.duration_minutes) || 60) / 60,
                 duration_minutes: Number(item.duration_minutes) || 60,
                 scheduled_start: item.scheduled_start,
+                scheduled_start_ms: startMs,
                 is_group_session: true,
                 group_id: item.group_id,
                 group_name: groupNameMap[item.group_id] || "Study Group",
@@ -142,10 +148,9 @@ export function useCombinedSessions() {
       setPersonalSessions(normalizedPersonal);
       setGroupSessions(normalizedGroup);
 
+      // BOLT OPTIMIZATION: Pre-parsed `scheduled_start_ms` timestamp avoids O(N log N) Date allocations & string parses during sort comparator.
       const combined = [...normalizedPersonal, ...normalizedGroup].sort((a, b) => {
-        const timeA = new Date(a.scheduled_start).getTime();
-        const timeB = new Date(b.scheduled_start).getTime();
-        return timeA - timeB;
+        return (a.scheduled_start_ms || 0) - (b.scheduled_start_ms || 0);
       });
 
       setSessions(combined);

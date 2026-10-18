@@ -33,6 +33,7 @@ import {
   hasPlaceholder,
   getPromptsByCategory,
 } from "../../../lib/lumoPrompts";
+import { sanitizeUrl } from "../../../lib/communityChat";
 
 const AITutorChat = ({
   isOpen,
@@ -299,7 +300,7 @@ const AITutorChat = ({
         li: ({ children }) => <li>{children}</li>,
         strong: ({ children }) => <strong className="font-semibold text-slate-950 dark:text-white">{children}</strong>,
         a: ({ href, children }) => (
-          <a href={href} target="_blank" rel="noreferrer" className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300">
+          <a href={sanitizeUrl(href)} target="_blank" rel="noopener noreferrer" className="font-medium text-violet-600 underline underline-offset-2 dark:text-violet-300">
             {children}
           </a>
         ),

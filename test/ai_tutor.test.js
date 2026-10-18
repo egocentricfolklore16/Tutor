@@ -14,7 +14,7 @@ import {
   validateScheduleStudySession,
   wrapStudentData,
 } from "../supabase/functions/ai-tutor/validators.ts";
-import { buildSystemPrompt as buildChatSystemPrompt, normalizeStrictness, strictnessRules } from "../supabase/functions/ai-tutor-chat/prompt.ts";
+import { buildSystemPrompt as buildChatSystemPrompt, strictnessRules } from "../supabase/functions/ai-tutor-chat/prompt.ts";
 
 test("PromptBuilder replaces all placeholders and leaves zero '{{'", () => {
   const prompt = buildSystemPrompt({
@@ -116,6 +116,23 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     { role: "user", content: "just give me the answer" },
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
+
+  const stepAndWorkDemands = [
+    "show me the steps",
+    "give me the step by step",
+    "show your work",
+    "tell me the steps",
+    "explain how to solve it",
+    "what are the steps",
+  ];
+  for (const demand of stepAndWorkDemands) {
+    const demandHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: demand },
+    ];
+    assert.strictEqual(countGenuineAttempts(demandHistory), 0, `Demand '${demand}' must be filtered as 0 genuine attempts`);
+  }
 
   const genuineQuestionsWithTell = [
     { role: "user", content: "How do I solve 3x + 5 = 20?" },

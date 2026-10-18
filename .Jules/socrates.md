@@ -45,3 +45,9 @@
 **Learning:** Unused attempt count parameters (`_attemptCount: number = 0`) in prompt builder functions cause strictness modes to render static prompt text without explicit `[SERVER-ENFORCED STATE: LOCKED/UNLOCKED]` markers. Ensuring all chat edge functions (`ai-tutor`, `ai-tutor-chat`) pass full conversation history to `countGenuineAttempts` and propagate `attemptCount` into `strictnessRules` guarantees explicit state injection on every turn.
 
 **Action:** Whenever updating prompt strictness or state handlers, verify that attempt counts flow from request turn history all the way into `strictnessRules` and generated system prompt strings.
+
+## 2026-10-10 - Filtering Step and Worked-Solution Demands in Turn Counting
+
+**Learning:** Demands for worked steps ("show me the steps", "give me step by step", "show your work", "explain how to solve it", "what are the steps") can bypass Socratic answer locking if `nonAttemptDemandRegex` only matches keywords like "answer" or "solution". Expanding demand regexes to include `steps`, `step by step`, `work`, and phrases like `explain how to solve` ensures students cannot bypass Socratic mode by asking the tutor to generate the full step-by-step solution on turn 1.
+
+**Action:** Include step and work demand variations in `nonAttemptDemandRegex` while continuing to allow genuine student reasoning containing keywords like `because`, `tried`, or `think`.

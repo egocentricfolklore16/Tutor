@@ -168,12 +168,16 @@ export async function processVerifiedPayment({
         .eq("user_id", userId)
         .maybeSingle();
 
-      return {
-        payment: existingPayment,
-        subscription: existingSub,
-        plan,
-        alreadyProcessed: true,
-      };
+      const isSubPayment = (existingPayment.purpose || "").startsWith("subscription:");
+
+      if (!isSubPayment || (existingSub && existingSub.payment_id === existingPayment.id)) {
+        return {
+          payment: existingPayment,
+          subscription: existingSub,
+          plan,
+          alreadyProcessed: true,
+        };
+      }
     }
   }
 

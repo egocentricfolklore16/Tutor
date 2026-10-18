@@ -252,6 +252,39 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
+test("processVerifiedPayment returns alreadyProcessed for non-subscription payments when replayed", async () => {
+  const existingPayment = {
+    id: "payment-uuid-gems-1002",
+    user_id: "user-uuid-111",
+    reference: "ref_gems_pack_1002",
+    amount: 50000,
+    currency: "NGN",
+    status: "success",
+    purpose: "gems_500",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_gems_pack_1002",
+    paystackData: {
+      amount: 50000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.reference, "ref_gems_pack_1002");
+});
+
 test("processVerifiedPayment rejects missing or invalid payment reference", async () => {
   const mockClient = createMockSupabaseClient();
 
@@ -366,6 +399,7 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
+    payment_id: "payment-uuid-999",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
   };
@@ -619,6 +653,42 @@ test("processVerifiedPayment correctly parses stringified JSON metadata", async 
   assert.strictEqual(result.subscription.plan_id, "pro");
 });
 
+test("processVerifiedPayment completes subscription grant when retried after payment row exists but subscription is unlinked", async () => {
+  const existingPayment = {
+    id: "payment-uuid-unlinked-1001",
+    user_id: "user-uuid-111",
+    reference: "ref_unlinked_sub_1001",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  // No linked subscription existing yet (e.g. prior attempt recorded payment but failed before updating subscription)
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub: null });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_unlinked_sub_1001",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_unlinked_sub_1001");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-ref_unlinked_sub_1001");
+  assert.strictEqual(result.subscription.status, "active");
+});
+
 test("processVerifiedPayment returns alreadyProcessed when out-of-order charge.failed arrives after success", async () => {
   const existingPayment = {
     id: "payment-uuid-111",
@@ -637,6 +707,7 @@ test("processVerifiedPayment returns alreadyProcessed when out-of-order charge.f
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
+    payment_id: "payment-uuid-111",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
   };

@@ -27,3 +27,7 @@
 ## 2025-05-26 - Floating-Point Multiplication Imprecision and Kobo Normalization
 **Learning:** Multiplying Naira prices in floats (e.g., `25.99 * 100`) produces JavaScript floating-point inaccuracies like `2599.0000000000005`. Strict equality checks against Paystack's integer kobo payload (`2599`) cause legitimate payments to fail with `Amount mismatch`.
 **Action:** Always wrap kobo amount calculations with `Math.round()` and parse stringified numeric amounts safely to integer kobo before comparison or persistence in Postgres integer columns.
+
+## 2025-05-27 - Unlinked Subscription Payment Retry Idempotency
+**Learning:** If a payment attempt creates a `payments` row with `status: "success"` but fails or crashes before upserting into `subscriptions`, returning `alreadyProcessed: true` solely based on `existingPayment.status === "success"` leaves the user un-granted. Differentiating subscription payments (`purpose.startsWith("subscription:")`) to require `existingSub && existingSub.payment_id === existingPayment.id` allows retries to complete subscription grants while returning `alreadyProcessed: true` immediately for non-subscription or already linked subscription payments.
+**Action:** When performing step 2 idempotency checks in `processVerifiedPayment`, verify `existingSub && existingSub.payment_id === existingPayment.id` specifically for subscription payments while preserving immediate `alreadyProcessed: true` returns for non-subscription payments.

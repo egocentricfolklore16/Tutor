@@ -36,7 +36,6 @@ export default function ChatThread({
   conversationId,
   currentUserId,
   onBack,
-  onOpenGroupInfo,
   headerAction,
 }) {
   const [conversation, setConversation] = useState(null);
@@ -45,7 +44,7 @@ export default function ChatThread({
   const [senderProfiles, setSenderProfiles] = useState({});
   const [groupDetails, setGroupDetails] = useState(null);
   const [groupMemberCount, setGroupMemberCount] = useState(0);
-  const [groupMembers, setGroupMembers] = useState([]);
+  const [groupMembers] = useState([]);
   const [showGroupMembersSheet, setShowGroupMembersSheet] = useState(false);
 
   const [messages, setMessages] = useState([]);
@@ -114,7 +113,7 @@ export default function ChatThread({
       } else {
         setIsMuted(false);
       }
-    } catch (_e) {
+    } catch {
       // Ignore error
     }
   }, [conversationId, currentUserId]);

@@ -13,7 +13,7 @@ function formatFileSize(bytes) {
 
 function getFileTypeInfo(resource) {
   const fileName = resource.file_name || resource.title || resource.file_path || resource.url || "";
-  const extMatch = fileName.match(/\.([a-zA-Z0-9]+)(?:[\?#]|$)/);
+  const extMatch = fileName.match(/\.([a-zA-Z0-9]+)(?:[?#]|$)/);
   const ext = extMatch ? extMatch[1].toUpperCase() : "";
   const kind = (resource.kind || resource.file_type || "").toLowerCase();
 

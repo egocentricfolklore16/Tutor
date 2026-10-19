@@ -19,10 +19,11 @@ import {
   X,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { useProfile } from "../../app/ProfileContext";
 import { deleteSession } from "../../lib/sessionService";
 import { useGamification } from "../../features/gamification";
 import { useCombinedSessions } from "../../hooks/useCombinedSessions";
-import { isSlipping } from "../../lib/plannerUtils";
+import { getStudySessionDefaults, isSlipping } from "../../lib/plannerUtils";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
@@ -124,6 +125,7 @@ const historyDateLabel = (value) => {
 function StudyHome() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { profile } = useProfile();
   const { streak } = useGamification();
   const { currentStreak, loading: streakLoading } = streak;
 
@@ -183,19 +185,25 @@ function StudyHome() {
     loadData();
   }, [loadData]);
 
-  const openCreate = () => {
+  const openCreate = useCallback(() => {
     setFormMode("create");
     setEditingId(null);
-    setForm({ ...INITIAL_FORM, date: localDateString(), time: "" });
+    const defaults = getStudySessionDefaults(profile);
+    setForm({
+      ...INITIAL_FORM,
+      subject: defaults.subject ? titleCase(defaults.subject) : "",
+      date: defaults.date || localDateString(),
+      time: defaults.time,
+    });
     setFormOpen(true);
-  };
+  }, [profile]);
 
   useEffect(() => {
     if (location.state?.openCreateSession) {
       openCreate();
       navigate(location.pathname, { replace: true, state: null });
     }
-  }, [location, navigate]);
+  }, [location, navigate, openCreate]);
 
   useEffect(() => {
     const refreshClock = () => setClockNow(Date.now());

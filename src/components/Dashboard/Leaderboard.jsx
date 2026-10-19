@@ -16,8 +16,6 @@ import useLeaderboard from "../../hooks/useLeaderboard";
 import Avatar from "../common/Avatar";
 import { formatXpDisplay } from "../../lib/leaderboardUtils";
 
-export { formatXpDisplay };
-
 export default function Leaderboard() {
   const navigate = useNavigate();
   const [period, setPeriod] = useState("weekly"); // 'weekly' | 'all_time'

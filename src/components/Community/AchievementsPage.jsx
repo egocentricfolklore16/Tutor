@@ -35,7 +35,6 @@ export default function AchievementsPage() {
       } = await supabase.auth.getUser();
 
       if (!user) throw new Error("Unauthenticated");
-      setCurrentUserId(user.id);
 
       // Trigger sync first
       try {

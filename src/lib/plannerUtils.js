@@ -110,6 +110,30 @@ export function getPlannerDefaults(preferredTime = null) {
 }
 
 /**
+ * Derives default study session form values (subject, time, date) from student profile
+ */
+export function getStudySessionDefaults(profile = null) {
+  const defaultSubject =
+    profile?.settings_subject ||
+    (Array.isArray(profile?.subjects) && profile.subjects.find((s) => typeof s === 'string' && s.trim().length > 0)) ||
+    '';
+
+  const defaultTime = getPlannerDefaults(profile?.preferred_time)?.startTime || '';
+
+  const date = new Date();
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  const defaultDate = `${year}-${month}-${day}`;
+
+  return {
+    subject: defaultSubject,
+    time: defaultTime,
+    date: defaultDate,
+  };
+}
+
+/**
  * Saves form preferences to localStorage
  */
 export function savePlannerDefaults(settings) {

@@ -35,7 +35,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const [createName, setCreateName] = useState("");
   const [createSubject, setCreateSubject] = useState("");
   const [createDesc, setCreateDesc] = useState("");
-  const [createIsPublic, setCreateIsPublic] = useState(true);
+  const [createIsPublic] = useState(true);
   const [createCapacity, setCreateCapacity] = useState(10);
   const [createFocusMinutes, setCreateFocusMinutes] = useState(25);
   const [createBreakMinutes, setCreateBreakMinutes] = useState(5);
@@ -149,7 +149,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
     setJoining(true);
 
     try {
-      const { data: success, error } = await supabase.rpc("join_study_room", {
+      const { error } = await supabase.rpc("join_study_room", {
         p_room_id: joiningRoom.id,
         p_goal: userGoal.trim() || "Studying",
       });

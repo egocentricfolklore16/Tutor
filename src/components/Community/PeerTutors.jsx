@@ -48,7 +48,6 @@ export default function PeerTutors({ user, userSubjects = [] }) {
   // Sub-state: My Requests
   const [myRequests, setMyRequests] = useState([]);
   const [requestProfilesMap, setRequestProfilesMap] = useState({});
-  const [requestsLoading, setRequestsLoading] = useState(false);
 
   // Rating Sheet Modal for requester
   const [ratingTarget, setRatingTarget] = useState(null); // request obj
@@ -57,7 +56,6 @@ export default function PeerTutors({ user, userSubjects = [] }) {
   const [submittingRating, setSubmittingRating] = useState(false);
 
   // Sub-state: Become a Tutor
-  const [tutorProfile, setTutorProfile] = useState(null);
   const [isAvailable, setIsAvailable] = useState(true);
   const [headline, setHeadline] = useState("");
   const [about, setAbout] = useState("");
@@ -108,7 +106,6 @@ export default function PeerTutors({ user, userSubjects = [] }) {
   // Fetch My Requests & merge profiles client-side
   const fetchMyRequests = useCallback(async () => {
     if (!user) return;
-    setRequestsLoading(true);
     try {
       const { data: rows, error } = await supabase
         .from("match_requests")
@@ -139,8 +136,6 @@ export default function PeerTutors({ user, userSubjects = [] }) {
       }
     } catch (err) {
       console.error("Error fetching match requests:", err);
-    } finally {
-      setRequestsLoading(false);
     }
   }, [user]);
 
@@ -155,7 +150,6 @@ export default function PeerTutors({ user, userSubjects = [] }) {
         .maybeSingle();
 
       if (data) {
-        setTutorProfile(data);
         setIsAvailable(data.is_available ?? true);
         setHeadline(data.headline || "");
         setAbout(data.about || "");

@@ -11,3 +11,7 @@
 ## 2025-10-18 - Community Audit & Leaderboard Experience Major Win
 **Learning:** The single-source-of-truth RPC `get_leaderboard` calculates server-enforced XP, study hours, and streak rankings securely without allowing client-side rating manipulation. Ensuring minimum 44px touch targets on podium cards and list items guarantees accessible mobile interaction across all density viewports.
 **Action:** Audit all seven layers of Community. Confirm zero client-side write access for XP/leaderboards and verify RLS policies across all tables (`profiles`, `friendships`, `study_groups`, `activity_events`, `community_reports`). Enhance touch targets and ARIA labels across leaderboard podium and table components.
+
+## 2025-10-19 - Group Lifecycle Extraction & Community Resiliency Audit
+**Learning:** Monolithic files like `community.jsx` previously mixed container routing with complex multi-tab modal states (group details, member role management, join request decisions, settings forms, danger zones). Decoupling these into dedicated sub-components (`GroupDetail.jsx`, `MemberList.jsx`) under `src/features/community/components/groups/` maintains a clean, maintainable architecture aligned with target structure guidelines.
+**Action:** Audit all seven layers of Community. Extract group detail lifecycle views into modular components, clean up dead variables across community files, and verify resilience states with loading skeletons and empty feedback.

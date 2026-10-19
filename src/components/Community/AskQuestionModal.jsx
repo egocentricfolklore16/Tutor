@@ -3,7 +3,7 @@ import { Send, Loader2, AlertCircle, Eye, Edit3, X } from "lucide-react";
 import supabase from "../../lib/supabase";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
-export default function AskQuestionModal({ user, userSubjects = [], onClose, onSuccess }) {
+export default function AskQuestionModal({ userSubjects = [], onClose, onSuccess }) {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [subject, setSubject] = useState(userSubjects[0] || "General Study");

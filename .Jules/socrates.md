@@ -51,3 +51,9 @@
 **Learning:** Demands for worked steps ("show me the steps", "give me step by step", "show your work", "explain how to solve it", "what are the steps") can bypass Socratic answer locking if `nonAttemptDemandRegex` only matches keywords like "answer" or "solution". Expanding demand regexes to include `steps`, `step by step`, `work`, and phrases like `explain how to solve` ensures students cannot bypass Socratic mode by asking the tutor to generate the full step-by-step solution on turn 1.
 
 **Action:** Include step and work demand variations in `nonAttemptDemandRegex` while continuing to allow genuine student reasoning containing keywords like `because`, `tried`, or `think`.
+
+## 2026-10-11 - Matching Interrogative Answer Demands in Turn Counting
+
+**Learning:** Interrogative phrasing of answer demands (such as "what is the answer", "what is the solution", "whats the answer", "what's the answer?") previously bypassed `nonAttemptDemandRegex` because `(?:is|are\s*)?` required any trailing whitespace to be bound inside the optional `is|are` group, preventing `"what is the answer"` from matching. Unbinding whitespace (`(?:is|are)?\s*`) allows interrogative answer demands to match properly and filter out as zero genuine attempts while allowing genuine topic questions (e.g., "what is photosynthesis?") to pass through.
+
+**Action:** Ensure regex groups for optional verbs (`is|are`) leave whitespace separation (`\s*`) outside the verb group so matching applies consistently whether the verb is present or omitted.

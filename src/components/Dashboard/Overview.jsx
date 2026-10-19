@@ -13,7 +13,7 @@ import AchievementsCard from "./AchievementsCard";
 import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
-import { useGamification } from "../../features/gamification";
+import { useGamification, DailyGoalRing, QuestList } from "../../features/gamification";
 import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
 import FeedbackDialog from "../common/FeedbackDialog";
@@ -57,9 +57,10 @@ function Overview() {
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useProfile();
   const { streak } = useGamification();
-  const { currentStreak, loading: streakLoading, error: streakError } = streak;
+  const { currentStreak, loading: streakLoading, error: streakError, refreshStreak } = streak;
   const [userName, setUserName] = useState("");
   const [_userId, setUserId] = useState(null);
+  const [todayMinutes, setTodayMinutes] = useState(0);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
@@ -67,14 +68,27 @@ function Overview() {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
+  const targetMinutes = profile?.daily_goal_minutes || 30;
+
   useEffect(() => {
-    const getUser = async () => {
+    const getUserAndMinutes = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const { data: tracking } = await supabase
+          .from("daily_session_tracking")
+          .select("total_duration_seconds")
+          .eq("user_id", user.id)
+          .eq("activity_date", todayStr)
+          .maybeSingle();
+
+        if (tracking?.total_duration_seconds) {
+          setTodayMinutes(Math.round(tracking.total_duration_seconds / 60));
+        }
       }
     };
-    getUser();
+    getUserAndMinutes();
   }, []);
 
   useEffect(() => {
@@ -146,6 +160,17 @@ function Overview() {
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <DashboardStatsBar />
           </div>
+
+          {/* Daily Goal & Quests Suite */}
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12 grid gap-5 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <DailyGoalRing currentMinutes={todayMinutes} targetMinutes={targetMinutes} />
+            </div>
+            <div className="lg:col-span-8">
+              <QuestList />
+            </div>
+          </div>
+
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <QuickShortcuts />
           </div>
@@ -167,7 +192,7 @@ function Overview() {
           </div>
 
           <div className="min-w-0 2xl:col-span-12">
-            <StudyStreak currentStreak={currentStreak} loading={streakLoading} error={streakError} />
+            <StudyStreak currentStreak={currentStreak} loading={streakLoading} error={streakError} onRetry={refreshStreak} />
           </div>
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <AISuggestions />

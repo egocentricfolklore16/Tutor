@@ -9,3 +9,7 @@
 ## 2026-10-18 - Contiguous Active Streak Date Backfilling for Weekday Rows
 **Learning:** When displaying 7-day weekday activity rows in streak dropdowns, sparse DB activity tables (`streak_days`, `daily_session_tracking`) may lack explicit rows for past days of an active streak. Backfilling contiguous dates backwards from `lastCompletedDate` / `lastActiveDate` for `currentStreak` days ensures active streaks correctly render completed fire icons across all days in the week.
 **Action:** Always derive contiguous active streak dates relative to the user's 3am local-time cutoff when computing 7-day streak visual states.
+
+## 2026-10-19 - Daily Quests & Daily Goal Progress Suite Integration
+**Learning:** Pairing `DailyGoalRing` with `QuestList` on the Dashboard Overview provides students with immediate visual targets (daily study minutes ring + 3 daily quests + 1 weekly challenge) while displaying honest preview states when the backend daily quest engine is pending.
+**Action:** Always interface quest and goal UI components with `gamificationService` typed methods and feature flags so frontend rendering stays honest and seamless before backend RPCs ship.

@@ -1,6 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { calculateXpLevel } from "../src/features/gamification/utils/levelCurve.js";
+import { GAMIFICATION_CONFIG } from "../src/features/gamification/config.js";
+import { gamificationService } from "../src/features/gamification/services/gamificationService.js";
 
 test("calculateXpLevel computes levels, thresholds, and progress accurately", () => {
   // 0 XP -> Level 1
@@ -23,4 +25,26 @@ test("calculateXpLevel computes levels, thresholds, and progress accurately", ()
   const invalid = calculateXpLevel(-50);
   assert.equal(invalid.level, 1);
   assert.equal(invalid.xpInCurrentLevel, 0);
+});
+
+test("GAMIFICATION_CONFIG defines economy defaults and feature flags", () => {
+  assert.equal(GAMIFICATION_CONFIG.xpSources.focusSession25Min, 20);
+  assert.equal(GAMIFICATION_CONFIG.dailyXpCap, 500);
+  assert.equal(GAMIFICATION_CONFIG.gemsEarned.dailyGoalReached, 5);
+  assert.equal(GAMIFICATION_CONFIG.gemsSpent.streakFreeze, 50);
+  assert.equal(GAMIFICATION_CONFIG.streak.cutoffHour, 3);
+  assert.equal(typeof GAMIFICATION_CONFIG.features.dailyQuests, "boolean");
+});
+
+test("gamificationService.getQuests returns honest unavailable state when backend is pending", async () => {
+  const result = await gamificationService.getQuests();
+  assert.equal(result.available, false);
+  assert.deepEqual(result.data, []);
+  assert.ok(typeof result.message === "string");
+});
+
+test("gamificationService.getGamificationState requires a valid userId", async () => {
+  const res = await gamificationService.getGamificationState(null);
+  assert.equal(res.data, null);
+  assert.ok(res.error instanceof Error);
 });

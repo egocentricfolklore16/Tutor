@@ -124,7 +124,7 @@ function DashboardHeader({ toggleSidebar }) {
       if (error) {
         await supabase.auth.signOut({ scope: "local" });
       }
-    } catch (err) {
+    } catch (_err) {
       await supabase.auth.signOut({ scope: "local" });
     }
     navigate("/login");

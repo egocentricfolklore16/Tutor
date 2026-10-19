@@ -1,7 +1,29 @@
 import React from "react";
+import { AlertCircle, RefreshCw } from "lucide-react";
 
-function StudyStreak({ streak, currentStreak: directStreak, loading, error }) {
+function StudyStreak({ streak, currentStreak: directStreak, loading, error, onRetry }) {
   const currentStreak = directStreak ?? streak?.display_current_streak ?? null;
+
+  if (error) {
+    return (
+      <div className="rounded-lg border border-rose-200 bg-rose-50 p-5 shadow-sm dark:border-rose-900/40 dark:bg-rose-950/20">
+        <div className="flex flex-col items-center justify-center text-center">
+          <AlertCircle className="h-8 w-8 text-rose-600 dark:text-rose-400" />
+          <p className="mt-2 text-sm font-extrabold text-rose-900 dark:text-rose-200">Unable to load streak</p>
+          <p className="mt-1 text-xs text-rose-700 dark:text-rose-300">Check your connection and try again.</p>
+          {onRetry && (
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-3 inline-flex items-center gap-1.5 rounded-xl bg-rose-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-rose-700"
+            >
+              <RefreshCw className="h-3.5 w-3.5" /> Retry
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   if (loading || currentStreak === null) {
     return (

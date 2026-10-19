@@ -7,6 +7,7 @@ import {
   generateRecurrencePreview,
   suggestNextFreeSlot,
   getPlannerDefaults,
+  getStudySessionDefaults,
 } from '../src/lib/plannerUtils.js';
 import { plannerActivitySchema } from '../src/lib/plannerSchema.js';
 
@@ -74,6 +75,36 @@ test('getPlannerDefaults falls back safely for Flexible, null, undefined, or unk
   assert.ok(nullDefault.startTime.includes(':'));
   assert.ok(undefinedDefault.startTime.includes(':'));
   assert.ok(unknownDefault.startTime.includes(':'));
+});
+
+test('getStudySessionDefaults extracts subject and focus time from profile', () => {
+  const profile = {
+    settings_subject: 'Computer science',
+    preferred_time: 'Evening',
+  };
+  const defaults = getStudySessionDefaults(profile);
+  assert.equal(defaults.subject, 'Computer science');
+  assert.equal(defaults.time, '19:00');
+  assert.ok(defaults.date.match(/^\d{4}-\d{2}-\d{2}$/));
+});
+
+test('getStudySessionDefaults falls back to first element in subjects array if settings_subject is missing', () => {
+  const profile = {
+    subjects: ['Languages', 'Math'],
+    preferred_time: 'Morning',
+  };
+  const defaults = getStudySessionDefaults(profile);
+  assert.equal(defaults.subject, 'Languages');
+  assert.equal(defaults.time, '09:00');
+});
+
+test('getStudySessionDefaults falls back safely when profile is null, empty, or undefined', () => {
+  const nullDefaults = getStudySessionDefaults(null);
+  const emptyDefaults = getStudySessionDefaults({});
+  assert.equal(nullDefaults.subject, '');
+  assert.ok(nullDefaults.time.includes(':'));
+  assert.equal(emptyDefaults.subject, '');
+  assert.ok(emptyDefaults.time.includes(':'));
 });
 
 test('plannerActivitySchema validates valid payload and rejects invalid duration', () => {

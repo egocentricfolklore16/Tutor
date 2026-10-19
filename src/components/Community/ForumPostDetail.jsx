@@ -73,7 +73,7 @@ export default function ForumPostDetail() {
       // 1. Increment view count
       try {
         await supabase.rpc("increment_post_views", { p_post_id: postId });
-      } catch (e) {
+      } catch {
         // ignore view error
       }
 

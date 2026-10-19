@@ -54,9 +54,7 @@ export default function VirtualStudyRoom() {
   // Chat state (broadcast)
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
-  const [typingUsers, setTypingUsers] = useState({});
   const broadcastChannelRef = useRef(null);
-  const presenceChannelRef = useRef(null);
 
   // Share resource modal / Friend invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);

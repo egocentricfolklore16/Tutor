@@ -37,7 +37,6 @@ function AvatarItem({ prof }) {
 
 export default function GroupStudySessions({
   groupId,
-  groupConversationId,
   currentUserId,
   onJoinSession,
 }) {

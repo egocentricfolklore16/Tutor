@@ -26,6 +26,8 @@ export { default as UserSearch } from "./components/friends/UserSearch";
 
 export { default as GroupCard } from "./components/groups/GroupCard";
 export { default as CreateGroupModal } from "./components/groups/CreateGroupModal";
+export { default as GroupDetail } from "./components/groups/GroupDetail";
+export { default as MemberList } from "./components/groups/MemberList";
 
 export { EmptyState } from "./components/shared/EmptyState";
 export { ErrorState } from "./components/shared/ErrorState";

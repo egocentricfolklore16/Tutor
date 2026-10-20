@@ -134,3 +134,46 @@ test("stale streak displays as zero", () => {
   assert.equal(getDisplayStreak({ current_streak: 5, last_active_date: "2026-09-02" }, new Date("2026-09-02T12:00:00Z"), "UTC"), 5);
   assert.equal(getDisplayStreak({ current_streak: 5, last_active_date: "2026-09-01" }, new Date("2026-09-02T12:00:00Z"), "UTC"), 5);
 });
+
+test("getDisplayStreak preserves active streak display when freeze tokens protect a 1-day gap", () => {
+  // Last active date 2026-08-31, today 2026-09-02 (2 days since activity, 1 missed day)
+  // With 1 freeze token available (freeze_tokens_available), streak should display as current_streak (10)
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 10, last_active_date: "2026-08-31", freeze_tokens_available: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    10
+  );
+
+  // Same scenario with alternate property name freeze_tokens
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 10, last_active_date: "2026-08-31", freeze_tokens: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    10
+  );
+
+  // Without freeze tokens, 1-day gap (2 days since activity) returns 0
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 10, last_active_date: "2026-08-31", freeze_tokens_available: 0 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    0
+  );
+
+  // 2-day gap (3 days since activity) returns 0 even with 1 freeze token
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 10, last_active_date: "2026-08-30", freeze_tokens_available: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    0
+  );
+});

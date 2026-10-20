@@ -124,6 +124,13 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "tell me the steps",
     "explain how to solve it",
     "what are the steps",
+    "what is the answer",
+    "what is the answer?",
+    "whats the answer",
+    "what's the answer",
+    "what is the solution",
+    "what is the right answer",
+    "what is the final answer",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -132,6 +139,21 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
       { role: "user", content: demand },
     ];
     assert.strictEqual(countGenuineAttempts(demandHistory), 0, `Demand '${demand}' must be filtered as 0 genuine attempts`);
+  }
+
+  const genuineSubjectQuestions = [
+    "what is photosynthesis?",
+    "what is gravity?",
+    "what is friction?",
+    "what is momentum?",
+  ];
+  for (const question of genuineSubjectQuestions) {
+    const questionHistory = [
+      { role: "user", content: "Let's study science." },
+      { role: "assistant", content: "What topic should we explore?" },
+      { role: "user", content: question },
+    ];
+    assert.strictEqual(countGenuineAttempts(questionHistory), 1, `Subject question '${question}' should count as a genuine attempt/question`);
   }
 
   const genuineQuestionsWithTell = [

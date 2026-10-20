@@ -100,6 +100,7 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("javascript:alert(1)"), "#");
   assert.equal(sanitizeUrl("  javascript:alert(1)  "), "#");
   assert.equal(sanitizeUrl("JAVASCRIPT:alert('xss')"), "#");
+  assert.equal(sanitizeUrl("javascript:document.cookie"), "#");
   assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
   assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
 

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { BookOpen, Download, ExternalLink, FileText, FileUp, Link2, Loader2, Youtube } from "lucide-react";
 import supabase from "../../lib/supabase";
 import ResponsiveSheet from "./ResponsiveSheet";
+import { sanitizeUrl } from "../../lib/communityChat";
 
 const STORAGE_BUCKET = "resources";
 
@@ -166,7 +167,7 @@ function ResourcePreviewModal({ resource, onClose }) {
               </p>
             )}
             {fullResource.url && (
-              <a href={fullResource.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">
+              <a href={sanitizeUrl(fullResource.url)} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">
                 <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" /> Open original
               </a>
             )}
@@ -183,7 +184,7 @@ function ResourcePreviewModal({ resource, onClose }) {
               {fullResource.extraction_status && <><dt className="font-semibold text-slate-500 dark:text-slate-400">Status</dt><dd className="capitalize text-slate-800 dark:text-slate-200">{fullResource.extraction_status}</dd></>}
             </dl>
             {(fileHref || fullResource.url) && (
-              <a href={fileHref || fullResource.url} download={fileHref ? fullResource.title : undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">
+              <a href={fileHref || sanitizeUrl(fullResource.url)} download={fileHref ? fullResource.title : undefined} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white hover:bg-emerald-700">
                 {fileHref ? <Download className="h-3.5 w-3.5" aria-hidden="true" /> : <ExternalLink className="h-3.5 w-3.5" aria-hidden="true" />}
                 {fileHref ? "Download file" : "Open original"}
               </a>

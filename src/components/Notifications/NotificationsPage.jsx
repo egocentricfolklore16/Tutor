@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from "react";
-import { ArrowLeft, BellRing, CheckCheck, Loader2 } from "lucide-react";
+import React from "react";
+import { ArrowLeft, BellRing } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import NotificationCenter from "./NotificationCenter";
 import ErrorBoundary from "../common/ErrorBoundary";
 

@@ -6,7 +6,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
-const GlobalAITutorFab = ({ session }) => {
+const GlobalAITutorFab = ({ session: _session }) => {
   const {
     mode,
     setMode,

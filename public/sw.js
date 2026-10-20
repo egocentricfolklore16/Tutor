@@ -16,7 +16,7 @@ self.addEventListener('install', (event) => {
   self.skipWaiting();
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS).catch((_err) => {
+      return cache.addAll(STATIC_ASSETS).catch(() => {
         // Ignored
       });
     })
@@ -108,11 +108,11 @@ self.addEventListener('push', (event) => {
         tag: data.tag || payload.tag,
         icon: data.icon || payload.icon,
       };
-    } catch (_e) {
+    } catch {
       try {
         const text = event.data.text();
         if (text) payload.body = text;
-      } catch (_err) {
+      } catch {
         // Fallback
       }
     }
@@ -147,7 +147,7 @@ self.addEventListener('notificationclick', (event) => {
     } else {
       targetUrl = parsed.pathname + parsed.search + parsed.hash;
     }
-  } catch (_err) {
+  } catch {
     targetUrl = '/community/chat';
   }
 

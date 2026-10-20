@@ -5,7 +5,7 @@ import supabase from "../lib/supabase";
 
 const AITutorContext = createContext(null);
 
-export function mapPathToScreen(pathname) {
+function mapPathToScreen(pathname) {
   if (!pathname || pathname === "/" || pathname.startsWith("/Dashboard")) return "dashboard";
   if (pathname.startsWith("/Study")) return "study_session";
   if (pathname.startsWith("/Planner")) return "calendar";
@@ -341,7 +341,7 @@ export function AITutorProvider({ children, session }) {
           refreshSessionMaterials(activeSessionId);
         }
       }
-    } catch (err) {
+    } catch {
       // Ignore failures silently without showing error toast/message
     } finally {
       setIsTyping(false);

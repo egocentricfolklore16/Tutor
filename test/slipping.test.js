@@ -1,6 +1,6 @@
 import { test, describe } from 'node:test';
 import assert from 'node:assert/strict';
-import { isSlipping, getOverdueDuration, getSessionStartDate } from '../src/lib/plannerUtils.js';
+import { isSlipping, getOverdueDuration } from '../src/lib/plannerUtils.js';
 
 describe('isSlipping pure helper', () => {
   test('returns false for session exactly 59 min overdue', () => {

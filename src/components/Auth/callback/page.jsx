@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import supabase from "../../../lib/supabase.js";
 
@@ -15,7 +15,7 @@ export default function AuthCallback() {
   const [resendStatusMessage, setResendStatusMessage] = useState("");
   const [resendErrorMessage, setResendErrorMessage] = useState("");
 
-  const redirectAfterAuth = async (session) => {
+  const redirectAfterAuth = useCallback(async (session) => {
     if (!session?.user) return;
 
     const { data: profile } = await supabase
@@ -25,7 +25,7 @@ export default function AuthCallback() {
       .maybeSingle();
 
     navigate(profile?.onboarding_completed ? "/Dashboard" : "/onboarding", { replace: true });
-  };
+  }, [navigate]);
 
   useEffect(() => {
     let mounted = true;
@@ -98,7 +98,7 @@ export default function AuthCallback() {
           setError("This link has expired or was already used.");
           setStatus("error");
         }
-      } catch (err) {
+      } catch {
         if (!mounted) return;
         setError("This link has expired or was already used.");
         setStatus("error");
@@ -125,7 +125,7 @@ export default function AuthCallback() {
       mounted = false;
       subscription?.unsubscribe();
     };
-  }, [navigate]);
+  }, [navigate, redirectAfterAuth]);
 
   const handleResendConfirmation = async (e) => {
     e?.preventDefault?.();

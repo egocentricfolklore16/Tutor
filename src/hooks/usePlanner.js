@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import supabase from '../lib/supabase';
-import { calculateEndTimeString, calculateMinutesBetween, getUserTimezone } from '../lib/plannerUtils';
+import { calculateEndTimeString, calculateMinutesBetween } from '../lib/plannerUtils';
 
 export function generateRecurringOccurrences(rule, rangeFrom, rangeTo) {
   const occurrences = [];

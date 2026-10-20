@@ -76,7 +76,7 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
   return (
     <div className="space-y-6 pb-20 sm:pb-8">
       {/* Header Controls Banner */}
-      <div className="flex flex-col gap-4 rounded-3xl border border-slate-200 bg-white p-5 shadow-surface dark:border-slate-800 dark:bg-[#14171c]">
+      <div className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <div className="inline-flex items-center gap-1.5 rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 dark:bg-amber-950 dark:text-amber-300 mb-1">
@@ -89,7 +89,7 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
 
           <div className="flex items-center gap-2">
             {period === "weekly" && (
-              <span className="rounded-2xl border border-amber-300 bg-amber-50 px-3 py-1 text-xs font-bold text-amber-900 dark:border-amber-900/40 dark:bg-amber-950/40 dark:text-amber-300">
+              <span className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-900 dark:bg-amber-950/80 dark:text-amber-300">
                 Resets in {getWeeklyResetCountdown()}
               </span>
             )}
@@ -97,7 +97,7 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
             <button
               type="button"
               onClick={refetch}
-              className="rounded-2xl border border-slate-200 p-2 text-slate-600 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-300 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
+              className="rounded-2xl p-2 min-h-[44px] min-w-[44px] flex items-center justify-center text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800 transition focus-visible:outline-none focus-visible:shadow-focus"
               title="Refresh Leaderboard"
               aria-label="Refresh Leaderboard"
             >
@@ -108,13 +108,13 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
 
         {/* Search Field */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search learners by name or @username..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2 pl-10 pr-4 text-xs font-semibold text-slate-900 outline-none shadow-inset-field focus:shadow-focus dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+            className="w-full rounded-2xl bg-slate-50 py-2.5 pl-10 pr-4 text-xs font-semibold text-slate-900 outline-none shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white"
           />
         </div>
 
@@ -127,7 +127,7 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
             <select
               value={selectedGroupId || ""}
               onChange={(e) => setSelectedGroupId(e.target.value)}
-              className="rounded-2xl border border-slate-200 bg-white py-1.5 px-3 text-xs font-bold text-slate-900 outline-none shadow-inset-field dark:border-slate-700 dark:bg-[#14171c] dark:text-white col-span-1 md:col-span-3"
+              className="rounded-2xl bg-slate-50 py-2 px-3 text-xs font-bold text-slate-900 outline-none shadow-inset-field dark:bg-[#18211f] dark:text-white col-span-1 md:col-span-3 min-h-[44px]"
             >
               {userGroups.map((g) => (
                 <option key={g.id} value={g.id}>

@@ -163,7 +163,7 @@ function Library({ session }) {
   const [selectedFile, setSelectedFile] = useState(null);
   const [linkTitle, setLinkTitle] = useState("");
   const [linkUrl, setLinkUrl] = useState("");
-  const [linkKind, setLinkKind] = useState("link");
+  const [linkKind] = useState("link");
 
   const [retakingQuizMap, setRetakingQuizMap] = useState({});
   const [quizSavingId, setQuizSavingId] = useState(null);
@@ -172,7 +172,7 @@ function Library({ session }) {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const fetchLibraryData = async () => {
+  const fetchLibraryData = useCallback(async () => {
     const userId = session?.user?.id;
     if (!userId) return;
 
@@ -268,11 +268,11 @@ function Library({ session }) {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [session?.user?.id]);
 
   useEffect(() => {
     fetchLibraryData();
-  }, [session?.user?.id]);
+  }, [session?.user?.id, fetchLibraryData]);
 
   useEffect(() => {
     try {

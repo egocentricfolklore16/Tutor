@@ -17,7 +17,6 @@ import PageContainer from "../common/PageContainer";
 export default function AchievementsPage() {
   const navigate = useNavigate();
 
-  const [_currentUserId, setCurrentUserId] = useState(null);
   const [achievements, setAchievements] = useState([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [selectedBadge, setSelectedBadge] = useState(null);
@@ -39,7 +38,7 @@ export default function AchievementsPage() {
       // Trigger sync first
       try {
         await supabase.rpc("sync_my_achievements");
-      } catch (_e) {
+      } catch {
         // sync error ignore
       }
 

@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { Play, Calendar, Trash2, Clock, AlertTriangle, RefreshCw, Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import useSlippingSessions from "../../hooks/useSlippingSessions";
-import { getOverdueDuration, getSessionStartDate, formatTimeSlot, getNextHalfHour } from "../../lib/plannerUtils";
+import { getOverdueDuration, getSessionStartDate, formatTimeSlot } from "../../lib/plannerUtils";
 import supabase from "../../lib/supabase";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 

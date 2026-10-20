@@ -19,11 +19,10 @@ import { formatRelativeTime } from "../../lib/communityChat";
 import supabase from "../../lib/supabase";
 import ErrorBoundary from "../common/ErrorBoundary";
 
-function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMode }) {
+function NotificationCenterInner({ onClose, onOpenChat, _onOpenSession, inlineMode }) {
   const titleId = useId();
   const navigate = useNavigate();
   const {
-    userId,
     notifications,
     actorProfiles,
     loading,
@@ -127,7 +126,7 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
 
     setActionLoading((prev) => ({ ...prev, [notification.id]: true }));
     try {
-      const { data, error } = await supabase.rpc("respond_match_request", {
+      const { error } = await supabase.rpc("respond_match_request", {
         p_request_id: requestId,
         p_accept: accept,
       });
@@ -172,19 +171,6 @@ function NotificationCenterInner({ onClose, onOpenChat, onOpenSession, inlineMod
       console.error("Error starting direct conversation:", err);
     } finally {
       setActionLoading((prev) => ({ ...prev, [notification.id]: false }));
-    }
-  };
-
-  // Handle Open Session Button
-  const handleOpenSession = async (notification) => {
-    const sessionId = notification.payload?.session_id || notification.payload?.group_study_session_id;
-    await markAsRead(notification.id);
-    onClose?.();
-
-    if (onOpenSession) {
-      onOpenSession(sessionId);
-    } else {
-      navigate("/community", { state: { openSessionId: sessionId } });
     }
   };
 

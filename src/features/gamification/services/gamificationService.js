@@ -52,4 +52,34 @@ export const gamificationService = {
       message: "Daily quests backend service pending.",
     };
   },
+
+  /**
+   * Purchases a streak freeze token via RPC/service or returns honest status.
+   */
+  async purchaseStreakFreeze(userId) {
+    if (!userId) return { success: false, error: "User ID required" };
+    try {
+      // Direct spend via awardUserRewards negative delta or RPC spend_gems
+      const res = await awardUserRewards(userId, { gems: -50 });
+      if (res.error) throw res.error;
+      // Also update freeze_tokens on users_streaks
+      const { data: currentStreak } = await supabase.from("users_streaks").select("freeze_tokens").eq("user_id", userId).maybeSingle();
+      const newTokens = (currentStreak?.freeze_tokens ?? 0) + 1;
+      await supabase.from("users_streaks").update({ freeze_tokens: newTokens }).eq("user_id", userId);
+      return { success: true, error: null };
+    } catch (err) {
+      return { success: false, error: err.message || "Failed to purchase Streak Freeze." };
+    }
+  },
+
+  /**
+   * Fetches transaction ledger or returns honest unavailable state.
+   */
+  async getTransactions(_userId) {
+    return {
+      data: [],
+      available: false,
+      message: "Gem transaction ledger pending backend implementation (Item G-02).",
+    };
+  },
 };

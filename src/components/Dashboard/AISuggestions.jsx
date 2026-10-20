@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { memo } from 'react';
 import { CalendarDays, Plus, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
@@ -65,4 +65,6 @@ function AISuggestions() {
   );
 }
 
-export default AISuggestions;
+// BOLT OPTIMIZATION: Memoize AISuggestions to prevent unnecessary re-renders when parent
+// components (like Overview.jsx) re-render frequently (e.g. Overview's TypingText animation state ticks every 75ms).
+export default memo(AISuggestions);

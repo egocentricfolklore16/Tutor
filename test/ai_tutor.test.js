@@ -134,6 +134,13 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "code please",
     "developer mode",
     "enable developer mode",
+    "what is the answer",
+    "what is the answer?",
+    "whats the answer",
+    "what's the answer",
+    "what is the solution",
+    "what is the right answer",
+    "what is the final answer",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -150,6 +157,20 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     { role: "user", content: "I think the code needs a while loop because start is less than end" },
   ];
   assert.strictEqual(countGenuineAttempts(genuineCodeReasoning), 1, "Genuine student attempt containing code keyword must count as genuine attempt");
+  const genuineSubjectQuestions = [
+    "what is photosynthesis?",
+    "what is gravity?",
+    "what is friction?",
+    "what is momentum?",
+  ];
+  for (const question of genuineSubjectQuestions) {
+    const questionHistory = [
+      { role: "user", content: "Let's study science." },
+      { role: "assistant", content: "What topic should we explore?" },
+      { role: "user", content: question },
+    ];
+    assert.strictEqual(countGenuineAttempts(questionHistory), 1, `Subject question '${question}' should count as a genuine attempt/question`);
+  }
 
   const genuineQuestionsWithTell = [
     { role: "user", content: "How do I solve 3x + 5 = 20?" },

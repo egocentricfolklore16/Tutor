@@ -252,6 +252,93 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
+test("processVerifiedPayment trims whitespace from reference", async () => {
+  const mockClient = createMockSupabaseClient();
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "  ref_padded_1001  ",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_padded_1001");
+});
+
+test("processVerifiedPayment throws clean error when paystackData is null or invalid", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  for (const invalidData of [null, undefined, "invalid", 123]) {
+    await assert.rejects(
+      async () => {
+        await processVerifiedPayment({
+          supabaseClient: mockClient,
+          reference: "ref_valid_1002",
+          paystackData: invalidData,
+        });
+      },
+      {
+        name: "Error",
+        message: "Missing or invalid Paystack payment data",
+      }
+    );
+  }
+});
+
+test("processVerifiedPayment does not overwrite existing success payment status with failed on out-of-order unlinked failure", async () => {
+  const existingPayment = {
+    id: "payment-uuid-unlinked-success",
+    user_id: "user-uuid-111",
+    reference: "ref_unlinked_out_of_order",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub: null });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_unlinked_out_of_order",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "failed",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment verification failed: status is failed",
+    }
+  );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_unlinked_out_of_order")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "success");
+});
+
 test("processVerifiedPayment returns alreadyProcessed for non-subscription payments when replayed", async () => {
   const existingPayment = {
     id: "payment-uuid-gems-1002",

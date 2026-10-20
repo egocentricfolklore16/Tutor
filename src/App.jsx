@@ -24,6 +24,7 @@ import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
 import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import AchievementsPage from "./components/Community/AchievementsPage.jsx";
+import Shop from "./components/Shop/Shop.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -204,6 +205,8 @@ function App() {
                 <Route path="community/*" element={<Community />} />
                 <Route path="achievements" element={<AchievementsPage />} />
                 <Route path="notifications" element={<NotificationsPage />} />
+                <Route path="Shop" element={<Shop />} />
+                <Route path="shop" element={<Shop />} />
                 <Route path="FAQ" element={<FAQ />} />
                 <Route path="Settings" element={<Settings />} />
                 <Route path="*" element={<NotFound />} />

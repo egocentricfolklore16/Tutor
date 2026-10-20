@@ -15,3 +15,7 @@
 ## 2025-10-19 - Group Lifecycle Extraction & Community Resiliency Audit
 **Learning:** Monolithic files like `community.jsx` previously mixed container routing with complex multi-tab modal states (group details, member role management, join request decisions, settings forms, danger zones). Decoupling these into dedicated sub-components (`GroupDetail.jsx`, `MemberList.jsx`) under `src/features/community/components/groups/` maintains a clean, maintainable architecture aligned with target structure guidelines.
 **Action:** Audit all seven layers of Community. Extract group detail lifecycle views into modular components, clean up dead variables across community files, and verify resilience states with loading skeletons and empty feedback.
+
+## 2025-10-20 - Community Leaderboard Podium Elevation & Accessibility Audit
+**Learning:** Podium cards on the study leaderboard require clear visual hierarchy and distinct podium styling (1st, 2nd, 3rd) along with accessible touch targets (min-h-[44px]), keyboard navigation, ARIA labels, and sticky "Your Rank" status cards for users placed outside the top ranks.
+**Action:** Rebuild LeaderboardPodium, LeaderboardTable, YourRankCard, and LeaderboardTab with design tokens, level tags, rank badges, keyboard interactions, and responsive dark/light mode themes.

@@ -26,7 +26,7 @@ function FeedbackDialog({ open, onClose, onLogout }) {
       console.error(`Error parsing JSON from localStorage key '${KEY}':`, err);
       try {
         localStorage.removeItem(KEY);
-      } catch (e) {
+      } catch {
         // ignore
       }
     }

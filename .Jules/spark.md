@@ -13,3 +13,7 @@
 ## 2026-10-19 - Daily Quests & Daily Goal Progress Suite Integration
 **Learning:** Pairing `DailyGoalRing` with `QuestList` on the Dashboard Overview provides students with immediate visual targets (daily study minutes ring + 3 daily quests + 1 weekly challenge) while displaying honest preview states when the backend daily quest engine is pending.
 **Action:** Always interface quest and goal UI components with `gamificationService` typed methods and feature flags so frontend rendering stays honest and seamless before backend RPCs ship.
+
+## 2026-10-20 - Gem Rewards & Cosmetics Shop System
+**Learning:** Providing a dedicated Gem Shop page (`src/components/Shop/Shop.jsx`) gives students clear gem sinks (Streak Freezes, Streak Repairs, Avatar Frames, Timer Skins) with immediate feedback and honest availability indicators when cosmetic items await server backing.
+**Action:** Wire all "Visit Shop" triggers across header dropdowns and wallet cards directly to `/Shop` so students can view and manage their gem balance and purchases at any time.

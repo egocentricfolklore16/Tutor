@@ -252,6 +252,90 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
+test("processVerifiedPayment trims leading and trailing whitespace from payment reference", async () => {
+  const mockClient = createMockSupabaseClient();
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "  ref_untrimmed_1001  ",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_untrimmed_1001");
+});
+
+test("processVerifiedPayment rejects missing or non-object paystackData payload", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  for (const invalidData of [null, undefined, "invalid", 12345]) {
+    await assert.rejects(
+      async () => {
+        await processVerifiedPayment({
+          supabaseClient: mockClient,
+          reference: "ref_invalid_payload_1002",
+          paystackData: invalidData,
+        });
+      },
+      {
+        name: "Error",
+        message: "Missing or invalid Paystack data payload",
+      }
+    );
+  }
+});
+
+test("processVerifiedPayment safely sanitizes numeric or whitespace-only metadata fields", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  // Test numeric planId and userId conversion
+  const resultNumeric = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_numeric_meta_1003",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: 12345,
+      },
+    },
+  });
+
+  assert.strictEqual(resultNumeric.payment.user_id, "12345");
+
+  // Test whitespace-only userId rejection
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_spaces_meta_1004",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro",
+            userId: "   ",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Missing userId in Paystack metadata",
+    }
+  );
+});
+
 test("processVerifiedPayment returns alreadyProcessed for non-subscription payments when replayed", async () => {
   const existingPayment = {
     id: "payment-uuid-gems-1002",

@@ -76,6 +76,11 @@ export async function processVerifiedPayment({
   if (!reference || typeof reference !== "string" || !reference.trim()) {
     throw new Error("Missing or invalid payment reference");
   }
+  const cleanReference = reference.trim();
+
+  if (!paystackData || typeof paystackData !== "object") {
+    throw new Error("Missing or invalid Paystack data payload");
+  }
 
   let metadata: any = paystackData?.metadata || {};
   if (typeof metadata === "string") {
@@ -101,12 +106,25 @@ export async function processVerifiedPayment({
     customerMetadata = {};
   }
 
-  const planId = metadata.planId || metadata.plan_id;
-  const userId =
-    metadata.userId ||
-    metadata.user_id ||
-    customerMetadata.userId ||
+  const rawPlanId = metadata.planId ?? metadata.plan_id;
+  const planId =
+    typeof rawPlanId === "string"
+      ? rawPlanId.trim()
+      : typeof rawPlanId === "number"
+      ? String(rawPlanId)
+      : "";
+
+  const rawUserId =
+    metadata.userId ??
+    metadata.user_id ??
+    customerMetadata.userId ??
     customerMetadata.user_id;
+  const userId =
+    typeof rawUserId === "string"
+      ? rawUserId.trim()
+      : typeof rawUserId === "number"
+      ? String(rawUserId)
+      : "";
 
   if (!planId) {
     throw new Error("Missing planId in Paystack metadata");
@@ -153,7 +171,7 @@ export async function processVerifiedPayment({
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
-    .eq("reference", reference)
+    .eq("reference", cleanReference)
     .maybeSingle();
 
   if (existingPayment) {
@@ -191,7 +209,7 @@ export async function processVerifiedPayment({
     await supabaseClient.from("payments").upsert(
       {
         user_id: userId,
-        reference: reference,
+        reference: cleanReference,
         amount: receivedAmountKobo,
         currency: receivedCurrency,
         status: "failed",
@@ -224,7 +242,7 @@ export async function processVerifiedPayment({
     .upsert(
       {
         user_id: userId,
-        reference: reference,
+        reference: cleanReference,
         amount: receivedAmountKobo,
         currency: receivedCurrency,
         status: paystackData.status,

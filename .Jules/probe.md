@@ -31,3 +31,7 @@
 ## 2026-10-20 - Streak Week State Derivation & Cutoff Boundary Isolation
 **Learning:** React hook streak logic in `useStreak.js` computed 7-day Sunday-Saturday visual states (`completed`, `frozen`, `today-pending`, `future`, `missed`) inside an unexported `fetchStreakData` pipeline, making week rendering edge cases untestable without full React environment mounts. Extracting the pure `computeWeekDays` helper function allows direct unit testing of week status transitions, `activeOrCompleted` fallback strings, year-end 3am local cutoff rollovers, and multi-timezone travel boundaries without side effects.
 **Action:** When testing React hooks that manage complex date/time state transformations, extract pure calculation logic as exported helpers in the hook module so unit tests can execute deterministic assertions against time boundaries and state maps.
+
+## 2026-10-21 - Weekly Reset Countdown Clock Injection & Leaderboard Metric Formatting
+**Learning:** `getWeeklyResetCountdown` in `rankUtils.js` directly instantiated `new Date()`, which prevented deterministic testing of Monday 00:00 UTC leaderboard reset countdowns across month and year boundaries. Accepting an optional `nowInput` parameter with defensive date validation allows time-boundary unit testing without altering production behavior.
+**Action:** When testing date/time countdown functions, accept an optional `now` date parameter defaulting to `new Date()` and defensively validate its timestamp before calculating UTC offsets.

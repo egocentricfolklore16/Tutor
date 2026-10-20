@@ -24,8 +24,8 @@ export function formatMetricValue(value, metric = "xp") {
 /**
  * Calculate countdown string for weekly reset (resets Monday 00:00 UTC)
  */
-export function getWeeklyResetCountdown() {
-  const now = new Date();
+export function getWeeklyResetCountdown(nowInput = new Date()) {
+  const now = nowInput instanceof Date && !Number.isNaN(nowInput.getTime()) ? nowInput : new Date();
   const day = now.getUTCDay();
   const daysUntilMon = ((8 - day) % 7) || 7;
   const nextMon = new Date(

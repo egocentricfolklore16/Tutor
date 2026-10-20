@@ -17,6 +17,7 @@ import { useGamification, DailyGoalRing, QuestList } from "../../features/gamifi
 import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
 import FeedbackDialog from "../common/FeedbackDialog";
+import { getDailyGoalMinutes } from "../../lib/weeklyHours";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -68,7 +69,7 @@ function Overview() {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
-  const targetMinutes = profile?.daily_goal_minutes || 30;
+  const targetMinutes = getDailyGoalMinutes(profile);
 
   useEffect(() => {
     const getUserAndMinutes = async () => {

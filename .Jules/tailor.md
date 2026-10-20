@@ -7,8 +7,8 @@
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions & empty state greeting | Used |
-| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
-| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
+| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard Daily Goal Ring, Dashboard AI suggestions, Planner, Settings | Used |
+| `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Dashboard Daily Goal Ring, Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor prompt, Root Document Accessibility Classes (`high-contrast`, `accessibility-large-text`) | Used |
@@ -71,3 +71,7 @@
 ## 2026-11-18 - Pre-filling Study Session Defaults from Onboarding Subjects & Focus Time
 **Learning:** When creating a new study session on the Study page (`/Study`), the subject and start time fields defaulted to empty string `""`, ignoring what the student indicated during onboarding ("What would you like to study?" and "When do you focus best?").
 **Action:** Create `getStudySessionDefaults` in `src/lib/plannerUtils.js` with unit tests in `test/plannerUtils.test.js`, consume `useProfile()` in `StudyHome.jsx`, and pre-fill the "New Session" creation modal with the student's priority subject and preferred focus start time ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening).
+
+## 2026-11-22 - Deriving Dashboard Daily Goal Ring Targets from Onboarding Study Rhythm
+**Learning:** Students provided `weekly_hours` (e.g. 14 hours) and `study_days` (e.g. 7 days) during onboarding step 2, but the Dashboard's `DailyGoalRing` used `profile?.daily_goal_minutes || 30`, falling back to 30 minutes for every onboarding user since `daily_goal_minutes` is not collected during onboarding.
+**Action:** Create `getDailyGoalMinutes(profile)` in `src/lib/weeklyHours.js` with tests in `test/weeklyHours.test.js` to derive daily goal target minutes from `(weekly_hours * 60) / study_days.length`, and connect it in `Overview.jsx` so student onboarding answers directly shape their daily goal ring progress targets.

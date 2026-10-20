@@ -97,6 +97,12 @@ export function useLeaderboard({
     }
   }, [cacheKey, fetchLeaderboard]);
 
+  // BOLT OPTIMIZATION: Hold fresh fetchLeaderboard reference in a ref so Realtime subscription
+  // timer callbacks can trigger refetches without tearing down and re-subscribing the WebSocket
+  // channel every time filter options (e.g. switching between Weekly/All-time) change.
+  const fetchLeaderboardRef = useRef(fetchLeaderboard);
+  fetchLeaderboardRef.current = fetchLeaderboard;
+
   // Realtime subscription setup
   useEffect(() => {
     let channel = null;
@@ -108,7 +114,7 @@ export function useLeaderboard({
       }
       debounceTimerRef.current = setTimeout(() => {
         if (isMounted) {
-          fetchLeaderboard(true);
+          fetchLeaderboardRef.current(true);
         }
       }, 1500); // 1.5s debounce
     };
@@ -142,7 +148,7 @@ export function useLeaderboard({
         supabase.removeChannel(channel);
       }
     };
-  }, [fetchLeaderboard]);
+  }, []);
 
   return {
     entries: leaderboardData?.entries || [],

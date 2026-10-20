@@ -77,6 +77,12 @@ export async function processVerifiedPayment({
     throw new Error("Missing or invalid payment reference");
   }
 
+  const cleanReference = reference.trim();
+
+  if (!paystackData || typeof paystackData !== "object") {
+    throw new Error("Missing or invalid Paystack payment data");
+  }
+
   let metadata: any = paystackData?.metadata || {};
   if (typeof metadata === "string") {
     try {
@@ -153,7 +159,7 @@ export async function processVerifiedPayment({
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
-    .eq("reference", reference)
+    .eq("reference", cleanReference)
     .maybeSingle();
 
   if (existingPayment) {
@@ -187,19 +193,21 @@ export async function processVerifiedPayment({
     receivedCurrency !== expectedCurrency ||
     receivedAmountKobo !== expectedAmountKobo
   ) {
-    // Record payment failure/audit row idempotently if reference is present
-    await supabaseClient.from("payments").upsert(
-      {
-        user_id: userId,
-        reference: reference,
-        amount: receivedAmountKobo,
-        currency: receivedCurrency,
-        status: "failed",
-        purpose: `subscription:${planId}`,
-        verified_at: new Date().toISOString(),
-      },
-      { onConflict: "reference" }
-    );
+    // Prevent overwriting an already successful payment status with failed state on out-of-order payloads
+    if (!existingPayment || existingPayment.status !== "success") {
+      await supabaseClient.from("payments").upsert(
+        {
+          user_id: userId,
+          reference: cleanReference,
+          amount: receivedAmountKobo,
+          currency: receivedCurrency,
+          status: "failed",
+          purpose: `subscription:${planId}`,
+          verified_at: new Date().toISOString(),
+        },
+        { onConflict: "reference" }
+      );
+    }
 
     if (paystackData.status !== "success") {
       throw new Error(`Payment verification failed: status is ${paystackData.status}`);
@@ -224,7 +232,7 @@ export async function processVerifiedPayment({
     .upsert(
       {
         user_id: userId,
-        reference: reference,
+        reference: cleanReference,
         amount: receivedAmountKobo,
         currency: receivedCurrency,
         status: paystackData.status,

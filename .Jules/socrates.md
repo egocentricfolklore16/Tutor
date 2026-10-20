@@ -51,3 +51,9 @@
 **Learning:** Demands for worked steps ("show me the steps", "give me step by step", "show your work", "explain how to solve it", "what are the steps") can bypass Socratic answer locking if `nonAttemptDemandRegex` only matches keywords like "answer" or "solution". Expanding demand regexes to include `steps`, `step by step`, `work`, and phrases like `explain how to solve` ensures students cannot bypass Socratic mode by asking the tutor to generate the full step-by-step solution on turn 1.
 
 **Action:** Include step and work demand variations in `nonAttemptDemandRegex` while continuing to allow genuine student reasoning containing keywords like `because`, `tried`, or `think`.
+
+## 2026-10-11 - Filtering Code Demands, Bare Answer Commands, and Developer Mode Jailbreaks in Turn Counting
+
+**Learning:** Programming/Computer Science code demands ("give me the code", "show me the code", "what is the code"), bare answer demands ("just answer", "just answer me"), and developer mode jailbreak patterns ("developer mode", "enable developer mode") bypass Socratic answer locking if `nonAttemptDemandRegex` and `promptInjectionRegex` do not include `code`, `developer mode`, and proper whitespace matching in `what is ...` queries. Additionally, `(?:is|are)?\s*` must include trailing whitespace so queries like `what is the answer/code` correctly match as non-attempts.
+
+**Action:** Ensure `code`, `developer mode`, bare `just answer` commands, and flexible whitespace handling in `what is` patterns are included in `countGenuineAttempts` regexes to prevent premature Socratic unlocks.

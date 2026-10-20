@@ -124,6 +124,16 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "tell me the steps",
     "explain how to solve it",
     "what are the steps",
+    "give me the code",
+    "show me the code",
+    "what is the code",
+    "what is the answer",
+    "what is the solution",
+    "just answer",
+    "just answer me",
+    "code please",
+    "developer mode",
+    "enable developer mode",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -133,6 +143,13 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     ];
     assert.strictEqual(countGenuineAttempts(demandHistory), 0, `Demand '${demand}' must be filtered as 0 genuine attempts`);
   }
+
+  const genuineCodeReasoning = [
+    { role: "user", content: "How do I write binary search in Python?" },
+    { role: "assistant", content: "What condition controls the search loop?" },
+    { role: "user", content: "I think the code needs a while loop because start is less than end" },
+  ];
+  assert.strictEqual(countGenuineAttempts(genuineCodeReasoning), 1, "Genuine student attempt containing code keyword must count as genuine attempt");
 
   const genuineQuestionsWithTell = [
     { role: "user", content: "How do I solve 3x + 5 = 20?" },

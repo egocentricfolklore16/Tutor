@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import supabase from "../lib/supabase.js";
 import { getUserTimeZone } from "../lib/streaks";
 import { getAccessibilityClasses } from "../lib/accessibility.js";
@@ -30,19 +30,19 @@ export function ProfileProvider({ user, children }) {
     root.classList.toggle("accessibility-large-text", classes.includes("accessibility-large-text"));
   }, [profile]);
 
-  const touchLastSeenThrottled = async () => {
+  const touchLastSeenThrottled = useCallback(async () => {
     if (!user?.id) return;
     const now = Date.now();
     if (now - lastTouchTimeRef.current < 5 * 60 * 1000) return;
     lastTouchTimeRef.current = now;
     try {
       await supabase.rpc("touch_last_seen");
-    } catch (err) {
+    } catch {
       // Fail silently
     }
-  };
+  }, [user?.id]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user?.id) {
       setProfile(null);
       setIsLoading(false);
@@ -70,7 +70,7 @@ export function ProfileProvider({ user, children }) {
     
     setDarkMode(Boolean(nextProfile?.dark_mode));
     setIsLoading(false);
-  };
+  }, [user?.id, touchLastSeenThrottled]);
 
   useEffect(() => {
     let active = true;
@@ -80,7 +80,7 @@ export function ProfileProvider({ user, children }) {
     return () => {
       active = false;
     };
-  }, [user?.id]);
+  }, [user?.id, loadProfile]);
 
   useEffect(() => {
     if (!user?.id) return undefined;
@@ -130,7 +130,7 @@ export function ProfileProvider({ user, children }) {
       supabase.removeChannel(channel);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
     };
-  }, [user?.id]);
+  }, [user?.id, loadProfile, touchLastSeenThrottled]);
 
   const toggleDarkMode = async (enabled) => {
     const nextValue = Boolean(enabled);

@@ -15,3 +15,7 @@
 ## 2026-10-17 - Full Codebase Audit & Gap Tracking Verification
 **Learning:** Verified all 160 frontend source files under `src/` against backend SQL schemas and Edge Functions. Confirmed that no new backend gap regressions were introduced across recent PR merges.
 **Action:** Maintain running ledger index entries in `docs/backend-gaps/INDEX.md` and keep previous reports immutable for historical diff auditing.
+
+## 2026-10-18 - Ledger Granularity & Feature Sub-directory Auditing
+**Learning:** Re-auditing revealed 22 modular sub-components and service files in `src/features/` that had been grouped under parent modules in previous coverage ledgers. Auditing every individual `.jsx` and `.ts` file guarantees complete coverage tracking across component subtrees.
+**Action:** Always enumerate nested directories programmatically when building the coverage ledger to prevent file omission.

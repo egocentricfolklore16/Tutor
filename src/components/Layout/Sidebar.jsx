@@ -179,7 +179,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       if (error) {
         await supabase.auth.signOut({ scope: "local" });
       }
-    } catch (err) {
+    } catch {
       await supabase.auth.signOut({ scope: "local" });
     }
   };

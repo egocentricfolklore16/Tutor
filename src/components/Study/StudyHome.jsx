@@ -74,7 +74,7 @@ const formatSessionDate = (date, time) => {
       minute: "2-digit",
     }).format(stamp);
     return formatted.replace(", ", ", ").replace(/, (?=\d{1,2}:\d{2})/, " · ");
-  } catch (e) {
+  } catch {
     return "Date not set";
   }
 };

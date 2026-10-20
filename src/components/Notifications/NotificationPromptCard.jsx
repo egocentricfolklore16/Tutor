@@ -40,7 +40,7 @@ export default function NotificationPromptCard({ userId, onDismiss }) {
       console.error(`Error reading from localStorage key '${DISMISSAL_KEY}':`, e);
       try {
         localStorage.removeItem(DISMISSAL_KEY);
-      } catch (err) {
+      } catch {
         // ignore
       }
     }

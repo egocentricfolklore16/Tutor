@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getUserSubjectsFormatted, getSubjectOptions, ONBOARDING_SUBJECTS } from "../src/lib/userSubjects.js";
+import { getUserSubjectsList, getUserSubjectsFormatted, getSubjectOptions, ONBOARDING_SUBJECTS } from "../src/lib/userSubjects.js";
+
+test("getUserSubjectsList extracts array of clean subject strings from profile", () => {
+  const profile = { subjects: ["Math", " Science ", "Computer science"] };
+  assert.deepEqual(getUserSubjectsList(profile), ["Math", "Science", "Computer science"]);
+});
+
+test("getUserSubjectsList falls back to settings_subject or subject string", () => {
+  assert.deepEqual(getUserSubjectsList({ subjects: [], settings_subject: "Physics" }), ["Physics"]);
+  assert.deepEqual(getUserSubjectsList({ subjects: null, subject: "Chemistry" }), ["Chemistry"]);
+});
+
+test("getUserSubjectsList returns empty array for null, undefined, or empty profile", () => {
+  assert.deepEqual(getUserSubjectsList(null), []);
+  assert.deepEqual(getUserSubjectsList(undefined), []);
+  assert.deepEqual(getUserSubjectsList({}), []);
+  assert.deepEqual(getUserSubjectsList({ subjects: ["   "] }), []);
+});
 
 test("getUserSubjectsFormatted formats profile subjects array correctly", () => {
   const profile = { subjects: ["Math", "Science", "Computer science"] };

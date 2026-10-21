@@ -144,7 +144,7 @@ export function useStreak() {
       // Fetch user_streaks record
       const { data: streakRow, error: streakErr } = await supabase
         .from("users_streaks")
-        .select("current_streak, longest_streak, freeze_tokens, freeze_tokens_available, last_completed_date, last_active_date")
+        .select("current_streak, longest_streak, freeze_tokens_available, last_active_date")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -154,19 +154,17 @@ export function useStreak() {
 
       const curStreak = streakRow?.current_streak ?? 0;
       const longStreak = streakRow?.longest_streak ?? 0;
-      const freezes = streakRow?.freeze_tokens ?? streakRow?.freeze_tokens_available ?? 0;
-      const lastCompleted = streakRow?.last_completed_date || null;
+      const freezes = streakRow?.freeze_tokens_available ?? 0;
       const lastActive = streakRow?.last_active_date || null;
-      const activeOrCompleted = lastCompleted || lastActive;
 
       // Stale streak resolution check
-      const displayStreak = resolveStaleDisplayStreak(curStreak, activeOrCompleted, todayCutoffStr, freezes);
+      const displayStreak = resolveStaleDisplayStreak(curStreak, lastActive, todayCutoffStr, freezes);
 
       setCurrentStreak(displayStreak);
       setLongestStreak(longStreak);
       setFreezeTokens(freezes);
-      setLastCompletedDate(lastCompleted || lastActive);
-      setLastActiveDate(lastActive || lastCompleted);
+      setLastCompletedDate(lastActive);
+      setLastActiveDate(lastActive);
 
       // Fetch week activity from streak_days and daily_session_tracking
       const baseWeek = getCurrentWeekDays(todayCutoffStr, userTz);
@@ -200,14 +198,14 @@ export function useStreak() {
         }
       });
 
-      // If last_completed_date/last_active_date is in range, mark it completed as well
-      if (activeOrCompleted && statusByDate[activeOrCompleted] !== "frozen") {
-        statusByDate[activeOrCompleted] = "completed";
+      // If last_active_date is in range, mark it completed as well
+      if (lastActive && statusByDate[lastActive] !== "frozen") {
+        statusByDate[lastActive] = "completed";
       }
 
-      // Backfill active streak dates contiguous from activeOrCompleted backwards for displayStreak days
-      if (displayStreak > 0 && activeOrCompleted) {
-        const anchorParts = activeOrCompleted.split("-").map(Number);
+      // Backfill active streak dates contiguous from lastActive backwards for displayStreak days
+      if (displayStreak > 0 && lastActive) {
+        const anchorParts = lastActive.split("-").map(Number);
         const anchorDate = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
         for (let i = 0; i < displayStreak; i++) {
           const d = new Date(anchorDate);
@@ -222,10 +220,10 @@ export function useStreak() {
         }
       }
 
-      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;
+      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || lastActive === todayCutoffStr;
       setTodayCompleted(Boolean(isTodayCompleted));
 
-      const computedWeekDays = computeWeekDays(baseWeek, statusByDate, todayCutoffStr, activeOrCompleted);
+      const computedWeekDays = computeWeekDays(baseWeek, statusByDate, todayCutoffStr, lastActive);
 
       setWeekDays(computedWeekDays);
       setError(null);

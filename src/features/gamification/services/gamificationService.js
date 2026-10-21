@@ -14,7 +14,7 @@ export const gamificationService = {
     try {
       const [{ data: profile, error: profileErr }, { data: streak, error: streakErr }] = await Promise.all([
         supabase.from("profiles").select("xp_points, gems, timezone").eq("user_id", userId).maybeSingle(),
-        supabase.from("users_streaks").select("current_streak, longest_streak, freeze_tokens, freeze_tokens_available").eq("user_id", userId).maybeSingle(),
+        supabase.from("users_streaks").select("current_streak, longest_streak, freeze_tokens_available").eq("user_id", userId).maybeSingle(),
       ]);
 
       if (profileErr) throw profileErr;
@@ -26,7 +26,7 @@ export const gamificationService = {
           gems: profile?.gems ?? 0,
           streak: streak?.current_streak ?? 0,
           longestStreak: streak?.longest_streak ?? 0,
-          freezeTokens: streak?.freeze_tokens ?? streak?.freeze_tokens_available ?? 0,
+          freezeTokens: streak?.freeze_tokens_available ?? 0,
         },
         error: null,
       };
@@ -62,10 +62,12 @@ export const gamificationService = {
       // Direct spend via awardUserRewards negative delta or RPC spend_gems
       const res = await awardUserRewards(userId, { gems: -50 });
       if (res.error) throw res.error;
-      // Also update freeze_tokens on users_streaks
-      const { data: currentStreak } = await supabase.from("users_streaks").select("freeze_tokens").eq("user_id", userId).maybeSingle();
-      const newTokens = (currentStreak?.freeze_tokens ?? 0) + 1;
-      await supabase.from("users_streaks").update({ freeze_tokens: newTokens }).eq("user_id", userId);
+      // Also update freeze_tokens_available on users_streaks
+      const { data: currentStreak, error: selectErr } = await supabase.from("users_streaks").select("freeze_tokens_available").eq("user_id", userId).maybeSingle();
+      if (selectErr && selectErr.code !== "PGRST116") throw selectErr;
+      const newTokens = (currentStreak?.freeze_tokens_available ?? 0) + 1;
+      const { error: updateErr } = await supabase.from("users_streaks").update({ freeze_tokens_available: newTokens }).eq("user_id", userId);
+      if (updateErr) throw updateErr;
       return { success: true, error: null };
     } catch (err) {
       return { success: false, error: err.message || "Failed to purchase Streak Freeze." };

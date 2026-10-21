@@ -19,3 +19,7 @@
 ## 2026-10-18 - Ledger Granularity & Feature Sub-directory Auditing
 **Learning:** Re-auditing revealed 22 modular sub-components and service files in `src/features/` that had been grouped under parent modules in previous coverage ledgers. Auditing every individual `.jsx` and `.ts` file guarantees complete coverage tracking across component subtrees.
 **Action:** Always enumerate nested directories programmatically when building the coverage ledger to prevent file omission.
+
+## 2026-10-21 - Dynamic Source File Ledger Expansion Verification
+**Learning:** Auditing the codebase using `find src -type f` identified 185 total files, accounting for newly added components like `src/components/Shop/Shop.jsx`, `src/features/gamification/components/QuestList.jsx`, `src/features/community/components/groups/GroupDetail.jsx`, and `src/features/community/components/groups/MemberList.jsx`.
+**Action:** Always execute programmatic file listing in `src/` to update Appendix A with 100% file coverage accuracy.

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Download, FileText, Loader2, Mic, Sparkles, Trash2, X } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import invokeAiTutor from "../../../lib/aiTutor";
+import { syncAndCheckAchievements } from "../../../lib/achievementSync.js";
 
 const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
   const navigate = useNavigate();
@@ -145,6 +146,10 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
         timestamp: new Date().toISOString(),
       });
     }
+
+    // Trigger achievement sync after note creation
+    syncAndCheckAchievements({ quiet: false });
+
     return data;
   };
 

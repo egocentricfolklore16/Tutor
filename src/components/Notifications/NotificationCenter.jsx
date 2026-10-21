@@ -18,6 +18,7 @@ import { useInAppNotifications } from "../../hooks/useInAppNotifications";
 import { formatRelativeTime } from "../../lib/communityChat";
 import supabase from "../../lib/supabase";
 import ErrorBoundary from "../common/ErrorBoundary";
+import AchievementIcon from "../common/AchievementIcon";
 
 function NotificationCenterInner({ onClose, onOpenChat, _onOpenSession, inlineMode }) {
   const titleId = useId();
@@ -245,7 +246,7 @@ function NotificationCenterInner({ onClose, onOpenChat, _onOpenSession, inlineMo
                   {/* Actor Avatar or System Icon */}
                   {item.type === "achievement_unlocked" ? (
                     <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300">
-                      <Award className="h-5 w-5" />
+                      <AchievementIcon icon={item.payload?.icon} className="h-5 w-5" textClassName="text-base font-bold" />
                     </div>
                   ) : actor?.user_img ? (
                     <img
@@ -507,10 +508,11 @@ function NotificationCenterInner({ onClose, onOpenChat, _onOpenSession, inlineMo
 
                     {item.type === "achievement_unlocked" && (
                       <div className="mt-1">
-                        <p className="text-xs font-bold text-amber-900 dark:text-amber-200">
-                          {item.payload?.icon || "🏆"} {item.payload?.title || "New Badge"}
+                        <p className="text-xs font-bold text-amber-900 dark:text-amber-200 flex items-center gap-1.5">
+                          <AchievementIcon icon={item.payload?.icon} className="h-4 w-4 text-amber-600 dark:text-amber-400" textClassName="text-sm font-bold" />
+                          <span>{item.payload?.title || "New Badge"}</span>
                         </p>
-                        <p className="text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
+                        <p className="mt-0.5 text-[11px] text-amber-700 dark:text-amber-300 font-semibold">
                           +{item.payload?.xp_reward || 0} XP
                         </p>
                       </div>

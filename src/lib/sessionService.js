@@ -1,5 +1,6 @@
 import supabase from "./supabase.js";
 import { getUserTimeZone } from "./streaks.js";
+import { syncAndCheckAchievements } from "./achievementSync.js";
 
 /**
  * Single source of truth for study session lifecycle operations:
@@ -195,6 +196,9 @@ export const completeSession = async ({ id, userId, durationSeconds = 0, timelin
         })
       );
     }
+
+    // Trigger achievement sync after session completion
+    syncAndCheckAchievements({ quiet: false });
 
     return { data: result, error: null };
   } catch (err) {

@@ -25,6 +25,7 @@ import SplashScreen from "./components/common/SplashScreen.jsx";
 import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 import Shop from "./components/Shop/Shop.jsx";
+import { syncAndCheckAchievements } from "./lib/achievementSync.js";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -86,6 +87,9 @@ function App() {
         setSession(currentSession);
 
         if (currentSession?.user) {
+          // Sync achievements once when app loads for signed-in user
+          syncAndCheckAchievements({ quiet: false });
+
           setOnboardingLoading(true);
           let completedLocally = false;
           try {

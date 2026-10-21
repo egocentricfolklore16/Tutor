@@ -5,16 +5,17 @@ import {
   ArrowLeft,
   CheckCircle2,
   Lock,
-  Zap,
   Sparkles,
   Loader2,
   AlertCircle,
-  X,
+  RefreshCw,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import PageContainer from "../common/PageContainer";
+import AchievementIcon from "../common/AchievementIcon";
+import { syncAndCheckAchievements } from "../../lib/achievementSync.js";
 
-export default function AchievementsPage() {
+export default function AchievementsPage({ targetUserId }) {
   const navigate = useNavigate();
 
   const [achievements, setAchievements] = useState([]);
@@ -29,22 +30,25 @@ export default function AchievementsPage() {
     setErrorMsg(null);
 
     try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+      let userId = targetUserId;
+      if (!userId) {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) throw new Error("Unauthenticated");
+        userId = user.id;
 
-      if (!user) throw new Error("Unauthenticated");
-
-      // Trigger sync first
-      try {
-        await supabase.rpc("sync_my_achievements");
-      } catch {
-        // sync error ignore
+        // Trigger sync for own achievements
+        try {
+          await syncAndCheckAchievements({ quiet: false });
+        } catch (syncErr) {
+          console.warn("syncAndCheckAchievements warning:", syncErr);
+        }
       }
 
-      // Fetch achievements
+      // Fetch achievements using p_user
       const { data, error } = await supabase.rpc("get_achievements", {
-        p_user_id: user.id,
+        p_user: userId,
       });
 
       if (error) throw error;
@@ -55,7 +59,7 @@ export default function AchievementsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [targetUserId]);
 
   useEffect(() => {
     loadAchievements();
@@ -63,15 +67,17 @@ export default function AchievementsPage() {
 
   const earnedCount = achievements.filter((a) => a.earned).length;
 
+  // Derive unique categories dynamically from server data while providing friendly labels
+  const rawCategories = Array.from(
+    new Set(achievements.map((b) => b.category).filter(Boolean))
+  );
+
   const categories = [
     { id: "all", label: "All Badges" },
-    { id: "study", label: "Study" },
-    { id: "streak", label: "Streak" },
-    { id: "level", label: "Level" },
-    { id: "social", label: "Social" },
-    { id: "help", label: "Help Forum" },
-    { id: "rooms", label: "Virtual Rooms" },
-    { id: "tutoring", label: "Tutoring" },
+    ...rawCategories.map((cat) => ({
+      id: cat,
+      label: cat.charAt(0).toUpperCase() + cat.slice(1).replace(/_/g, " "),
+    })),
   ];
 
   const filteredBadges = achievements.filter((b) => {
@@ -85,7 +91,7 @@ export default function AchievementsPage() {
       <button
         type="button"
         onClick={() => navigate(-1)}
-        className="mb-4 inline-flex items-center gap-1.5 rounded-2xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700"
+        className="mb-4 inline-flex items-center gap-1.5 rounded-2xl bg-slate-100 px-3.5 py-2 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:hover:bg-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
       >
         <ArrowLeft className="h-4 w-4" /> Back
       </button>
@@ -109,7 +115,7 @@ export default function AchievementsPage() {
             <Sparkles className="h-8 w-8 text-amber-500" />
             <div>
               <span className="text-2xl font-black text-amber-900 dark:text-amber-200 block">
-                {earnedCount} of {achievements.length || 24}
+                {earnedCount} of {achievements.length} unlocked
               </span>
               <span className="text-xs font-bold text-slate-600 dark:text-slate-400">
                 Badges Earned
@@ -119,22 +125,24 @@ export default function AchievementsPage() {
         </div>
 
         {/* Category Tabs Bar */}
-        <div className="mt-6 flex w-full gap-1 overflow-x-auto no-scrollbar rounded-2xl bg-slate-100 p-1 dark:bg-[#18211f]">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              type="button"
-              onClick={() => setActiveCategory(cat.id)}
-              className={`rounded-xl px-3.5 py-2 text-xs font-bold transition shrink-0 ${
-                activeCategory === cat.id
-                  ? "bg-emerald-600 text-white shadow-xs"
-                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
-              }`}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
+        {categories.length > 1 && (
+          <div className="mt-6 flex w-full gap-1 overflow-x-auto no-scrollbar rounded-2xl bg-slate-100 p-1 dark:bg-[#18211f]">
+            {categories.map((cat) => (
+              <button
+                key={cat.id}
+                type="button"
+                onClick={() => setActiveCategory(cat.id)}
+                className={`rounded-xl px-3.5 py-2 text-xs font-bold transition shrink-0 ${
+                  activeCategory === cat.id
+                    ? "bg-emerald-600 text-white shadow-xs"
+                    : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                }`}
+              >
+                {cat.label}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* Main Badges Grid */}
@@ -147,6 +155,17 @@ export default function AchievementsPage() {
         <div className="mt-6 flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-rose-200 bg-rose-50 p-8 text-center dark:border-rose-900/40 dark:bg-rose-950/20">
           <AlertCircle className="h-8 w-8 text-rose-600" />
           <p className="mt-2 text-xs font-bold text-rose-800 dark:text-rose-200">{errorMsg}</p>
+          <button
+            type="button"
+            onClick={loadAchievements}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-2xl bg-rose-600 px-4 py-2 text-xs font-bold text-white hover:bg-rose-700"
+          >
+            <RefreshCw className="h-3.5 w-3.5" /> Retry
+          </button>
+        </div>
+      ) : filteredBadges.length === 0 ? (
+        <div className="mt-6 flex min-h-[200px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-[#14171c]">
+          <p className="text-xs font-semibold text-slate-500">No achievements found in this category.</p>
         </div>
       ) : (
         <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -168,7 +187,11 @@ export default function AchievementsPage() {
               >
                 <div>
                   <div className="flex items-start justify-between">
-                    <span className="text-3xl">{badge.icon || "🏆"}</span>
+                    <AchievementIcon
+                      icon={badge.icon}
+                      className="h-7 w-7 text-amber-600 dark:text-amber-400"
+                      textClassName="text-3xl"
+                    />
                     {isEarned ? (
                       <CheckCircle2 className="h-4 w-4 text-emerald-600" />
                     ) : (
@@ -223,7 +246,13 @@ export default function AchievementsPage() {
             className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c] text-center"
             onClick={(e) => e.stopPropagation()}
           >
-            <span className="text-6xl">{selectedBadge.icon || "🏆"}</span>
+            <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-950/50">
+              <AchievementIcon
+                icon={selectedBadge.icon}
+                className="h-10 w-10 text-amber-600 dark:text-amber-400"
+                textClassName="text-5xl"
+              />
+            </div>
 
             <h3 className="mt-3 text-lg font-black text-slate-900 dark:text-white">
               {selectedBadge.title}
@@ -244,7 +273,7 @@ export default function AchievementsPage() {
             <button
               type="button"
               onClick={() => setSelectedBadge(null)}
-              className="mt-5 w-full rounded-2xl bg-slate-900 py-2.5 text-xs font-bold text-white dark:bg-slate-800"
+              className="mt-5 w-full rounded-2xl bg-slate-900 py-2.5 text-xs font-bold text-white dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700"
             >
               Close
             </button>

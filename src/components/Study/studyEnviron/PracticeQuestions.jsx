@@ -20,6 +20,7 @@ import { createPortal } from "react-dom";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 import { gamificationService } from "../../../features/gamification";
+import { syncAndCheckAchievements } from "../../../lib/achievementSync.js";
 
 function cleanQuizString(value) {
   if (typeof value !== "string") return "";
@@ -649,6 +650,9 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
       setResult({ quiz: activeQuiz, answers: { ...answers }, score, total: activeQuiz.questions.length });
       setActiveQuizId(null);
       setQuizInProgress(null);
+
+      // Trigger achievement sync after quiz attempt saved
+      syncAndCheckAchievements({ quiet: false });
       if (onTimelineEvent) {
         onTimelineEvent({
           id: crypto.randomUUID(),

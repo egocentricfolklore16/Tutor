@@ -131,6 +131,11 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "what is the solution",
     "what is the right answer",
     "what is the final answer",
+    "give me the code",
+    "show me the code",
+    "write the code",
+    "what is the code",
+    "just give me the code",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -141,11 +146,40 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     assert.strictEqual(countGenuineAttempts(demandHistory), 0, `Demand '${demand}' must be filtered as 0 genuine attempts`);
   }
 
+  const confusionAndNonAttempts = [
+    "i am confused",
+    "i'm confused",
+    "im confused",
+    "i'm not sure",
+    "i am not sure",
+    "im not sure",
+    "i have no idea",
+    "i have no clue",
+    "i don't get it",
+    "i dont get it",
+  ];
+  for (const nonAttemptText of confusionAndNonAttempts) {
+    const nonAttemptHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: nonAttemptText },
+    ];
+    assert.strictEqual(countGenuineAttempts(nonAttemptHistory), 0, `Non-attempt phrase '${nonAttemptText}' must be filtered as 0 genuine attempts`);
+  }
+
+  const confusionWithReasoning = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "I am confused because 3x and 5 aren't like terms" },
+  ];
+  assert.strictEqual(countGenuineAttempts(confusionWithReasoning), 1, "Confusion statement with reasoning ('because') must count as genuine attempt");
+
   const genuineSubjectQuestions = [
     "what is photosynthesis?",
     "what is gravity?",
     "what is friction?",
     "what is momentum?",
+    "what is genetic code?",
   ];
   for (const question of genuineSubjectQuestions) {
     const questionHistory = [

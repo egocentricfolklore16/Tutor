@@ -57,3 +57,9 @@
 **Learning:** Interrogative phrasing of answer demands (such as "what is the answer", "what is the solution", "whats the answer", "what's the answer?") previously bypassed `nonAttemptDemandRegex` because `(?:is|are\s*)?` required any trailing whitespace to be bound inside the optional `is|are` group, preventing `"what is the answer"` from matching. Unbinding whitespace (`(?:is|are)?\s*`) allows interrogative answer demands to match properly and filter out as zero genuine attempts while allowing genuine topic questions (e.g., "what is photosynthesis?") to pass through.
 
 **Action:** Ensure regex groups for optional verbs (`is|are`) leave whitespace separation (`\s*`) outside the verb group so matching applies consistently whether the verb is present or omitted.
+
+## 2026-10-12 - Filtering Confusion Declarations and Code Demands in Turn Counting
+
+**Learning:** Declarations of confusion or being stuck ("i am confused", "i'm not sure", "i have no idea", "i don't get it") and zero-effort code requests ("give me the code", "show me the code", "write the code", "what is the code") previously bypassed `countGenuineAttempts` because `confused`, `not sure`, `no idea`, and `code` were missing from non-attempt exact and demand regexes. Including confusion/uncertainty declarations without reasoning keywords (`because`, `think`) and code target nouns (`code`, `script`) ensures zero-effort programming and study turns do not unlock answers prematurely.
+
+**Action:** Maintain regex coverage for confusion declarations and subject-specific output targets (like code/script) in `countGenuineAttempts` while preserving genuine student reasoning statements and general topic questions.

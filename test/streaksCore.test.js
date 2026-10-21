@@ -147,14 +147,14 @@ test("getDisplayStreak preserves active streak display when freeze tokens protec
     10
   );
 
-  // Same scenario with alternate property name freeze_tokens
+  // Null or missing last_active_date returns 0
   assert.equal(
     getDisplayStreak(
-      { current_streak: 10, last_active_date: "2026-08-31", freeze_tokens: 1 },
+      { current_streak: 10, last_active_date: null, freeze_tokens_available: 1 },
       new Date("2026-09-02T12:00:00Z"),
       "UTC"
     ),
-    10
+    0
   );
 
   // Without freeze tokens, 1-day gap (2 days since activity) returns 0

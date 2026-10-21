@@ -36,7 +36,7 @@ export function getDisplayStreak(streak, today, timeZone = "UTC", cutoffHour = 3
   const lastDate = new Date(`${streak.last_active_date}T00:00:00Z`);
   const currentDate = new Date(`${activityDate}T00:00:00Z`);
   const daysSinceActivity = Math.round((currentDate - lastDate) / 86400000);
-  const freezeTokens = streak.freeze_tokens_available ?? streak.freeze_tokens ?? 0;
+  const freezeTokens = streak.freeze_tokens_available ?? 0;
   if (daysSinceActivity > 2) return 0;
   if (daysSinceActivity === 2 && freezeTokens <= 0) return 0;
   return streak.current_streak || 0;

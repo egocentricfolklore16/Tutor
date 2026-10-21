@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getLocalCutoffDate, getCurrentWeekDays, computeWeekDays } from "../src/hooks/useStreak.js";
+import { getLocalCutoffDate, getCurrentWeekDays, computeWeekDays, resolveStaleDisplayStreak } from "../src/hooks/useStreak.js";
 
 test("getLocalCutoffDate respects 3am cutoff and timezone", () => {
   // Mock Date: 2025-05-10T02:00:00Z -> Before 3am UTC, belongs to 2025-05-09
@@ -181,6 +181,24 @@ test("computeWeekDays backfills contiguous active streak days as completed", () 
   // Wed Oct 21 -> today-pending
   assert.equal(computed[3].dateStr, "2026-10-21");
   assert.equal(computed[3].state, "today-pending");
+});
+
+test("resolveStaleDisplayStreak evaluates stale streaks correctly across multi-day gaps and freeze tokens", () => {
+  // Scenario 1: Same day or 1-day gap (diffDays = 0 or 1) -> preserves active streak
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-10", 0), 5);
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-11", 0), 5);
+
+  // Scenario 2: 1-day gap (diffDays = 2, missed May 11) with 1 freeze token -> preserves active streak
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-12", 1), 5);
+
+  // Scenario 3: 1-day gap (diffDays = 2, missed May 11) with 0 freeze tokens -> resets display streak to 0
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-12", 0), 0);
+
+  // Scenario 4: 2-day gap (diffDays = 3, missed May 11 and May 12) with 1 freeze token -> MUST reset display streak to 0
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-13", 1), 0);
+
+  // Scenario 5: 2-day gap (diffDays = 3, missed May 11 and May 12) with 0 freeze tokens -> resets display streak to 0
+  assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-13", 0), 0);
 });
 
 test("getCurrentWeekDays handles Sunday start, Saturday end, and month transitions", () => {

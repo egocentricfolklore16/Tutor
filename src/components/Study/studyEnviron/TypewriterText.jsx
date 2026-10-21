@@ -5,7 +5,6 @@ import rehypeKatex from "rehype-katex";
 import "katex/dist/katex.min.css";
 import { sanitizePartialMarkdown } from "../../../lib/sanitizePartialMarkdown.js";
 
-export { sanitizePartialMarkdown };
 
 const TypewriterText = ({
   text = "",

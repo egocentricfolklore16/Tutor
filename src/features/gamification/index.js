@@ -7,4 +7,5 @@ export { LevelProgress } from "./components/LevelProgress.jsx";
 export { GemWallet } from "./components/GemWallet.jsx";
 export { DailyGoalRing } from "./components/DailyGoalRing.jsx";
 export { QuestList } from "./components/QuestList.jsx";
+export { BadgeGrid } from "./components/BadgeGrid.jsx";
 export { default as XpToast } from "./components/XpToast.jsx";

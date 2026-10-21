@@ -17,3 +17,7 @@
 ## 2026-10-20 - Gem Rewards & Cosmetics Shop System
 **Learning:** Providing a dedicated Gem Shop page (`src/components/Shop/Shop.jsx`) gives students clear gem sinks (Streak Freezes, Streak Repairs, Avatar Frames, Timer Skins) with immediate feedback and honest availability indicators when cosmetic items await server backing.
 **Action:** Wire all "Visit Shop" triggers across header dropdowns and wallet cards directly to `/Shop` so students can view and manage their gem balance and purchases at any time.
+
+## 2026-10-21 - Achievement Badges Suite Integration
+**Learning:** Modularizing achievement badges into a reusable `BadgeGrid.jsx` component supporting compact and full modes allows dashboard summary cards (`AchievementsCard.jsx`) and dedicated pages (`AchievementsPage.jsx`) to share a uniform badge structure, touch-accessible interactive cards, and modal detail views.
+**Action:** Always fetch badge data via `gamificationService.getBadges(userId)` so badge progress, XP rewards, and unlocked states render consistently across all dashboard and community views.

@@ -17,3 +17,7 @@
 ## 2025-05-14 - Pre-parsing Date Timestamps in Memoized Sort Hooks
 **Learning:** Calling date parsing helpers inside JavaScript `.sort()` comparators without pre-parsing invokes regex/string split/`Date` object allocations $O(N \log N)$ times per render. In hooks driving high-frequency Dashboard components (e.g. `useSlippingSessions`), wrapping the filter/sort pipeline in `useMemo` and pre-mapping candidate items to include numeric `startTime` timestamps beforehand reduces date parsing from $O(N \log N)$ per render down to $O(N)$ per session/timer update.
 **Action:** When sorting collection state by computed Date values in React custom hooks, use `useMemo` and pre-map items to extract numeric `getTime()` timestamps in an $O(N)$ pass before running `.sort()`.
+
+## 2025-05-15 - React.memo on Dashboard Widgets During High-Frequency Typing Timers
+**Learning:** High-frequency parent state timers (like a 75ms `TypingText` animation interval in `Overview.jsx`) trigger parent re-renders 13x per second, forcing un-memoized static sibling components (`DashboardStatsBar`, `QuickShortcuts`, `CommunitySpotlight`) to re-render repeatedly. Wrapping static dashboard widgets in `React.memo` eliminates ~20–40 unnecessary re-renders per greeting load.
+**Action:** Wrap presentational/isolated dashboard widget components in `React.memo` when rendered alongside high-frequency parent state timers or animated state.

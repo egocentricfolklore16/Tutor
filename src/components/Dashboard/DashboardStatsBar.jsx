@@ -1,6 +1,8 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState, memo } from "react";
 import supabase from "../../lib/supabase";
 
+// Optimization: Wrapped with React.memo to prevent unnecessary re-renders when parent
+// components (such as Overview.jsx) trigger high-frequency state updates (e.g. typing animation timers).
 function DashboardStatsBar() {
   const [stats, setStats] = useState({ sessions: 0, hours: 0, gaps: 0 });
 
@@ -30,4 +32,4 @@ function DashboardStatsBar() {
   return <section className="rounded-2xl bg-white dark:bg-slate-900 mt-5 p-2 shadow-sm border border-transparent dark:border-slate-800" aria-label="Study statistics"><div className="grid grid-cols-3">{items.map(({ value, label }, index) => <div key={label} className={`relative flex min-h-20 min-w-0 items-center justify-center px-1 py-3 text-center md:py-5 ${index > 0 ? "border-l border-gray-100 dark:border-slate-800" : ""}`}><div className="min-w-0"><p className="truncate text-xl font-bold text-gray-900 dark:text-slate-100 sm:text-2xl">{value}</p><p className="truncate text-[10px] leading-4 text-gray-500 dark:text-slate-400 sm:text-sm">{label}</p></div></div>)}</div></section>;
 }
 
-export default DashboardStatsBar;
+export default memo(DashboardStatsBar);

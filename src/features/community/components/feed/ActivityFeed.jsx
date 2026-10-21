@@ -7,12 +7,13 @@ import { SkeletonList } from "../shared/SkeletonList";
 import { ErrorState } from "../shared/ErrorState";
 import { EmptyState } from "../shared/EmptyState";
 
-export function ActivityFeed({ onUserClick }) {
+export function ActivityFeed({ onUserClick, currentUserId }) {
   const [activeFilter, setActiveFilter] = useState("all");
 
-  const { items, loading, loadingMore, hasMore, error, loadMore, refetch } = useActivityFeed({
+  const { items, loading, loadingMore, hasMore, error, loadMore, toggleCheer, refetch } = useActivityFeed({
     filter: activeFilter,
     limit: 15,
+    currentUserId,
   });
 
   return (
@@ -35,7 +36,11 @@ export function ActivityFeed({ onUserClick }) {
         <div className="space-y-3" role="list">
           {items.map((item) => (
             <div key={item.id} role="listitem">
-              <ActivityItem item={item} onUserClick={onUserClick} />
+              <ActivityItem
+                item={item}
+                onUserClick={onUserClick}
+                onCheer={(activityId) => toggleCheer(activityId)}
+              />
             </div>
           ))}
 

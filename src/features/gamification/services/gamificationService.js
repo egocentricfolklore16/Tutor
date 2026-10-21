@@ -36,6 +36,59 @@ export const gamificationService = {
   },
 
   /**
+   * Triggers claimCompletedQuests, emits toasts for awarded quests,
+   * triggers profile refetch from server, and notifies components to update quest list.
+   */
+  async checkAndClaimQuests(refreshProfileFn) {
+    try {
+      const { data, error } = await this.claimCompletedQuests();
+      if (error) {
+        console.error("Error in checkAndClaimQuests:", error);
+        return { data: null, error };
+      }
+
+      if (data?.awarded && Array.isArray(data.awarded) && data.awarded.length > 0) {
+        let totalXp = 0;
+        let totalGems = 0;
+
+        for (const item of data.awarded) {
+          totalXp += item.xp || 0;
+          totalGems += item.gems || 0;
+          const msg = `Quest complete: ${item.title} +${item.xp} XP +${item.gems} gems`;
+
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("hyper-tutor-quest-completed-toast", {
+                detail: { message: msg, quest: item },
+              })
+            );
+          }
+        }
+
+        // Refetch profile from server
+        if (typeof refreshProfileFn === "function") {
+          await refreshProfileFn();
+        } else if (typeof window !== "undefined") {
+          window.dispatchEvent(
+            new CustomEvent("hyper-tutor-rewards-updated", {
+              detail: { xp: totalXp, gems: totalGems },
+            })
+          );
+        }
+      }
+
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("hyper-tutor-quests-updated"));
+      }
+
+      return { data, error: null };
+    } catch (err) {
+      console.error("Unexpected error in checkAndClaimQuests:", err);
+      return { data: null, error: err };
+    }
+  },
+
+  /**
    * Awards rewards to user.
    */
   async awardRewards(userId, { xp = 0, gems = 0 }) {
@@ -43,14 +96,84 @@ export const gamificationService = {
   },
 
   /**
-   * Quests service stub showing honest 'unavailable' state until backend exists.
+   * Fetches active user daily and weekly quests from RPC get_my_quests().
+   */
+  async getMyQuests() {
+    try {
+      const { data, error } = await supabase.rpc("get_my_quests");
+      if (error) {
+        console.error("Error fetching my quests:", error);
+        return { data: null, error };
+      }
+      return { data, error: null };
+    } catch (err) {
+      console.error("Unexpected error in getMyQuests:", err);
+      return { data: null, error: err };
+    }
+  },
+
+  /**
+   * Backward-compatible alias for getMyQuests.
    */
   async getQuests() {
-    return {
-      data: [],
-      available: false,
-      message: "Daily quests backend service pending.",
-    };
+    return this.getMyQuests();
+  },
+
+  /**
+   * Claims all eligible completed quests via RPC claim_completed_quests().
+   */
+  async claimCompletedQuests() {
+    try {
+      const { data, error } = await supabase.rpc("claim_completed_quests");
+      if (error) {
+        console.error("Error claiming completed quests:", error);
+        return { data: null, error };
+      }
+      return { data, error: null };
+    } catch (err) {
+      console.error("Unexpected error in claimCompletedQuests:", err);
+      return { data: null, error: err };
+    }
+  },
+
+  /**
+   * Claims a specific quest by key via RPC claim_quest(p_key).
+   */
+  async claimQuest(key) {
+    if (!key) return { data: null, error: new Error("Quest key is required") };
+    try {
+      const { data, error } = await supabase.rpc("claim_quest", { p_key: key });
+      if (error) {
+        console.error(`Error claiming quest ${key}:`, error);
+        return { data: null, error };
+      }
+      return { data, error: null };
+    } catch (err) {
+      console.error(`Unexpected error in claimQuest(${key}):`, err);
+      return { data: null, error: err };
+    }
+  },
+
+  /**
+   * Records a flashcard review by inserting into flashcard_reviews table.
+   */
+  async recordFlashcardReview(flashcardId) {
+    if (!flashcardId) return { error: new Error("Flashcard ID is required") };
+    try {
+      const { data, error } = await supabase
+        .from("flashcard_reviews")
+        .insert({ flashcard_id: flashcardId })
+        .select();
+
+      if (error) {
+        console.error("Error recording flashcard review:", error);
+        return { error };
+      }
+      return { data, error: null };
+    } catch (err) {
+      console.error("Unexpected error recording flashcard review:", err);
+      return { error: err };
+    }
   },
 
   /**

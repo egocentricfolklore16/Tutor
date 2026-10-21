@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   Eye,
   EyeOff,
@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
+import { gamificationService } from "../../../features/gamification";
 
 const normalizeCardValue = (value, key, depth = 0) => {
   if (value === null || value === undefined || depth > 3) return "";
@@ -68,6 +69,7 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const [isAnswerVisible, setIsAnswerVisible] = useState(false);
   const [isReviewComplete, setIsReviewComplete] = useState(false);
+  const reviewedCardIdsRef = useRef(new Set());
 
   useEffect(() => {
     let isCurrent = true;
@@ -120,6 +122,21 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [cards.length, isLoading, isReviewComplete]);
+
+  // Flashcard review tracking for quests
+  useEffect(() => {
+    if (isAnswerVisible && activeCard?.id) {
+      if (!reviewedCardIdsRef.current.has(activeCard.id)) {
+        reviewedCardIdsRef.current.add(activeCard.id);
+        gamificationService.recordFlashcardReview(activeCard.id).then(({ error: reviewErr }) => {
+          if (reviewErr) {
+            console.error("Flashcard review tracking error:", reviewErr);
+          }
+          gamificationService.checkAndClaimQuests();
+        });
+      }
+    }
+  }, [isAnswerVisible, activeCard?.id]);
 
   const saveCard = async (event) => {
     event.preventDefault();

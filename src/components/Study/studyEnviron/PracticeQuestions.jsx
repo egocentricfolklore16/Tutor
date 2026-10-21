@@ -19,6 +19,7 @@ import {
 import { createPortal } from "react-dom";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
+import { gamificationService } from "../../../features/gamification";
 
 function cleanQuizString(value) {
   if (typeof value !== "string") return "";
@@ -662,6 +663,9 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
         score,
         total: activeQuiz.questions.length,
       });
+
+      // Trigger quest auto-claim check
+      gamificationService.checkAndClaimQuests();
     } catch (err) {
       setError(`Unable to save your quiz result: ${err.message}`);
     } finally {

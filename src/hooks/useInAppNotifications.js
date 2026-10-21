@@ -20,24 +20,24 @@ export function useInAppNotifications() {
     };
   }, []);
 
-  // 2. Fetch actor profiles for notifications
+  // 2. Fetch actor profiles for notifications via get_public_profile
   const fetchActorProfiles = useCallback(async (actorIds) => {
     if (!actorIds || actorIds.length === 0) return;
     try {
-      const { data, error } = await supabase
-        .from("community_profiles")
-        .select("*")
-        .in("user_id", actorIds);
-
-      if (error) {
-        console.error("Error fetching notification actor profiles:", error);
-        return;
-      }
+      const profsList = await Promise.all(
+        actorIds.map(async (uid) => {
+          const { data, error } = await supabase.rpc("get_public_profile", {
+            p_user_id: uid,
+          });
+          if (error) return null;
+          return { user_id: uid, ...data };
+        })
+      );
 
       setActorProfiles((prev) => {
         const next = { ...prev };
-        (data || []).forEach((prof) => {
-          next[prof.user_id] = prof;
+        profsList.forEach((prof) => {
+          if (prof) next[prof.user_id] = prof;
         });
         return next;
       });

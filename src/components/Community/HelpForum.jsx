@@ -78,17 +78,22 @@ export default function HelpForum({ user, userSubjects = [] }) {
       const items = postRows || [];
       setPosts(items);
 
-      // Collect author_ids and merge community_profiles
+      // Collect author_ids and fetch public profiles
       const authorIds = Array.from(new Set(items.map((p) => p.author_id).filter(Boolean)));
       if (authorIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .in("user_id", authorIds);
+        const profsList = await Promise.all(
+          authorIds.map(async (uid) => {
+            const { data, error } = await supabase.rpc("get_public_profile", {
+              p_user_id: uid,
+            });
+            if (error) return null;
+            return { user_id: uid, ...data };
+          })
+        );
 
         const aMap = {};
-        (profs || []).forEach((p) => {
-          aMap[p.user_id] = p;
+        profsList.forEach((p) => {
+          if (p) aMap[p.user_id] = p;
         });
         setAuthorsMap(aMap);
       } else {

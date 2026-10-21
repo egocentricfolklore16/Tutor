@@ -65,14 +65,19 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
         );
 
         if (peerUserIds.length > 0) {
-          const { data: profs } = await supabase
-            .from("community_profiles")
-            .select("*")
-            .in("user_id", peerUserIds);
+          const profsList = await Promise.all(
+            peerUserIds.map(async (uid) => {
+              const { data, error } = await supabase.rpc("get_public_profile", {
+                p_user_id: uid,
+              });
+              if (error) return null;
+              return { user_id: uid, ...data };
+            })
+          );
 
           const profMap = {};
-          (profs || []).forEach((p) => {
-            profMap[p.user_id] = p;
+          profsList.forEach((p) => {
+            if (p) profMap[p.user_id] = p;
           });
 
           (allParts || []).forEach((p) => {
@@ -90,14 +95,20 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
 
       let groupMap = {};
       if (groupIds.length > 0) {
-        const { data: grps } = await supabase
-          .from("study_groups")
-          .select("*")
-          .in("id", groupIds);
+        try {
+          const { data: grps, error: grpErr } = await supabase
+            .from("study_groups")
+            .select("*")
+            .in("id", groupIds);
 
-        (grps || []).forEach((g) => {
-          groupMap[g.id] = g;
-        });
+          if (!grpErr && grps) {
+            grps.forEach((g) => {
+              groupMap[g.id] = g;
+            });
+          }
+        } catch {
+          // ignore if study_groups table missing in live DB
+        }
       }
 
       // 5. Fetch recent messages in a single batched query with upper limit to eliminate N+1 queries safely
@@ -135,14 +146,18 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
 
       let resourceTitleMap = {};
       if (resourceIds.length > 0) {
-        const { data: resRows } = await supabase
-          .from("session_resources")
-          .select("id, title, file_name")
-          .in("id", resourceIds);
+        try {
+          const { data: resRows } = await supabase
+            .from("resources")
+            .select("id, title")
+            .in("id", resourceIds);
 
-        (resRows || []).forEach((r) => {
-          resourceTitleMap[r.id] = r.title || r.file_name;
-        });
+          (resRows || []).forEach((r) => {
+            resourceTitleMap[r.id] = r.title;
+          });
+        } catch {
+          // ignore if resource query fails
+        }
       }
 
       // Build final conversation objects synchronously in memory

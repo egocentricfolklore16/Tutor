@@ -1,19 +1,15 @@
-import React, { useState } from "react";
+import React from "react";
 import { Clock, Flame, Crown, Shield, Award, Heart } from "lucide-react";
 import Avatar from "../../../../components/common/Avatar";
 
-export function ActivityItem({ item, onUserClick }) {
-  const [cheered, setCheered] = useState(false);
-  const [cheerCount, setCheerCount] = useState(item.payload?.cheers || 0);
+export function ActivityItem({ item, onUserClick, onCheer }) {
+  const isCheered = Boolean(item.is_cheered);
+  const cheerCount = Number(item.cheer_count || 0);
 
   const handleCheer = (e) => {
     e.stopPropagation();
-    if (cheered) {
-      setCheered(false);
-      setCheerCount((prev) => Math.max(0, prev - 1));
-    } else {
-      setCheered(true);
-      setCheerCount((prev) => prev + 1);
+    if (onCheer) {
+      onCheer(item.id);
     }
   };
 
@@ -111,14 +107,14 @@ export function ActivityItem({ item, onUserClick }) {
       <button
         type="button"
         onClick={handleCheer}
-        className={`flex items-center gap-1 rounded-2xl border px-3 py-1.5 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
-          cheered
+        className={`inline-flex min-h-[44px] min-w-[44px] items-center justify-center gap-1.5 rounded-2xl border px-3 py-2 text-xs font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${
+          isCheered
             ? "border-rose-300 bg-rose-50 text-rose-600 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-400"
             : "border-slate-200 text-slate-500 hover:bg-slate-50 dark:border-slate-800 dark:text-slate-400 dark:hover:bg-slate-800"
         }`}
-        aria-label="Cheer activity"
+        aria-label={`Cheer activity (${cheerCount} cheers)`}
       >
-        <Heart className={`h-3.5 w-3.5 ${cheered ? "fill-rose-500 text-rose-500" : ""}`} />
+        <Heart className={`h-4 w-4 transition-transform duration-200 ${isCheered ? "scale-110 fill-rose-500 text-rose-500" : ""}`} />
         <span>{cheerCount > 0 ? cheerCount : "Cheer"}</span>
       </button>
     </div>

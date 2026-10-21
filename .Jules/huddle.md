@@ -19,3 +19,7 @@
 ## 2025-10-20 - Community Leaderboard Podium Elevation & Accessibility Audit
 **Learning:** Podium cards on the study leaderboard require clear visual hierarchy and distinct podium styling (1st, 2nd, 3rd) along with accessible touch targets (min-h-[44px]), keyboard navigation, ARIA labels, and sticky "Your Rank" status cards for users placed outside the top ranks.
 **Action:** Rebuild LeaderboardPodium, LeaderboardTable, YourRankCard, and LeaderboardTab with design tokens, level tags, rank badges, keyboard interactions, and responsive dark/light mode themes.
+
+## 2025-10-21 - Persistent Social Cheers & Structural Encapsulation
+**Learning:** Ephemeral client-only state for activity feed reactions meant social cheers reset on page reload and failed to propagate across user sessions. Encapsulating all group management mutations in `groupsService.js` and creating a database-backed `activity_cheers` table with unique user constraints and $O(1)$ batch query fetching enables persistent, scalable social engagement in the activity feed.
+**Action:** Audit all seven layers of Community. Encapsulate direct PostgREST calls inside `groupsService.js`, add `activity_cheers` database migration with RLS, update `feedService` and `useActivityFeed` for batch cheer fetching and optimistic toggling with error rollback, and ship interactive social cheers on the Activity Feed as the Major Win.

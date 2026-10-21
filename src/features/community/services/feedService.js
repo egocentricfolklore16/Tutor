@@ -7,6 +7,7 @@ export async function fetchActivityFeed({
   filter = "all",
   cursor = null,
   limit = 20,
+  currentUserId = null,
 }) {
   let query = supabase
     .from("activity_events")
@@ -45,20 +46,85 @@ export async function fetchActivityFeed({
     profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
   }
 
-  const items = events.map((event) => ({
-    ...event,
-    actor_profile: profileMap.get(event.actor_id) || {
-      user_id: event.actor_id,
-      username: "learner",
-      full_name: "Learner",
-      user_img: null,
-      level: 1,
-    },
-  }));
+  // Batch fetch activity cheers in $O(1)$ query
+  const eventIds = events.map((e) => e.id);
+  const cheerCountsMap = new Map();
+  const userCheeredSet = new Set();
+
+  if (eventIds.length > 0) {
+    try {
+      const { data: cheersData } = await supabase
+        .from("activity_cheers")
+        .select("activity_id, user_id")
+        .in("activity_id", eventIds);
+
+      (cheersData || []).forEach((c) => {
+        const prev = cheerCountsMap.get(c.activity_id) || 0;
+        cheerCountsMap.set(c.activity_id, prev + 1);
+        if (currentUserId && c.user_id === currentUserId) {
+          userCheeredSet.add(c.activity_id);
+        }
+      });
+    } catch {
+      // Graceful fallback if cheers table is missing or query fails
+    }
+  }
+
+  const items = events.map((event) => {
+    const backendCount = cheerCountsMap.get(event.id);
+    const initialCount = backendCount !== undefined ? backendCount : (event.payload?.cheers || 0);
+
+    return {
+      ...event,
+      cheer_count: initialCount,
+      is_cheered: userCheeredSet.has(event.id),
+      actor_profile: profileMap.get(event.actor_id) || {
+        user_id: event.actor_id,
+        username: "learner",
+        full_name: "Learner",
+        user_img: null,
+        level: 1,
+      },
+    };
+  });
 
   const nextCursor = hasMore && events.length > 0 ? events[events.length - 1].created_at : null;
 
   return { items, nextCursor, hasMore };
+}
+
+/**
+ * Toggle persistent cheer on an activity event
+ */
+export async function toggleActivityCheer(activityId, currentUserId) {
+  if (!activityId || !currentUserId) return { cheered: false };
+
+  const { data: existing } = await supabase
+    .from("activity_cheers")
+    .select("id")
+    .eq("activity_id", activityId)
+    .eq("user_id", currentUserId)
+    .maybeSingle();
+
+  if (existing) {
+    const { error } = await supabase
+      .from("activity_cheers")
+      .delete()
+      .eq("id", existing.id);
+
+    if (error) throw error;
+    return { cheered: false };
+  } else {
+    const { error } = await supabase
+      .from("activity_cheers")
+      .insert({
+        activity_id: activityId,
+        user_id: currentUserId,
+      });
+
+    if (error) throw error;
+    return { cheered: true };
+  }
 }
 
 /**

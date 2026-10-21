@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { sanitizeUrl } from "../src/lib/communityChat.js";
 
 const ALLOWED_MIME_TYPES = [
   "application/pdf",
@@ -67,4 +68,20 @@ test("validateResourceFile rejects unsupported file formats like .exe or .zip", 
   const res = validateResourceFile(file);
   assert.equal(res.valid, false);
   assert.match(res.error, /Unsupported file type/);
+});
+
+test("sanitizeUrl accepts safe web URLs and relative links", () => {
+  assert.equal(sanitizeUrl("https://example.com/notes"), "https://example.com/notes");
+  assert.equal(sanitizeUrl("http://youtube.com/watch?v=123"), "http://youtube.com/watch?v=123");
+  assert.equal(sanitizeUrl("mailto:user@example.com"), "mailto:user@example.com");
+  assert.equal(sanitizeUrl("/relative/path"), "/relative/path");
+});
+
+test("sanitizeUrl rejects dangerous script protocols and returns '#'", () => {
+  assert.equal(sanitizeUrl("javascript:alert('xss')"), "#");
+  assert.equal(sanitizeUrl("JAVASCRIPT:alert('xss')"), "#");
+  assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
+  assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
+  assert.equal(sanitizeUrl(""), "#");
+  assert.equal(sanitizeUrl(null), "#");
 });

@@ -23,6 +23,7 @@ import {
   Youtube,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { sanitizeUrl } from "../../lib/communityChat";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
@@ -441,8 +442,15 @@ function Library({ session }) {
         return;
       }
 
+      const safeUrl = sanitizeUrl(linkUrl);
+      if (safeUrl === "#") {
+        setError("Please enter a valid HTTP or HTTPS URL.");
+        setIsSubmitting(false);
+        return;
+      }
+
       let detectedKind = linkKind;
-      if (linkUrl.includes("youtube.com") || linkUrl.includes("youtu.be")) {
+      if (safeUrl.includes("youtube.com") || safeUrl.includes("youtu.be")) {
         detectedKind = "youtube";
       }
 
@@ -454,7 +462,7 @@ function Library({ session }) {
           title: linkTitle.trim(),
           kind: detectedKind,
           file_path: null,
-          url: linkUrl.trim(),
+          url: safeUrl,
           mime_type: null,
           source: "user",
         })

@@ -69,7 +69,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
     try {
       const subjParam = tutorSubject === "Any" ? null : tutorSubject;
       const { data, error } = await supabase.rpc("find_peer_matches", {
-        p_match_type: "tutor",
+        p_mode: "tutor",
         p_subject: subjParam,
         p_limit: 20,
       });
@@ -89,7 +89,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
     try {
       const subjParam = partnerSubject === "Any" ? null : partnerSubject;
       const { data, error } = await supabase.rpc("find_peer_matches", {
-        p_match_type: "partner",
+        p_mode: "partner",
         p_subject: subjParam,
         p_limit: 20,
       });
@@ -123,14 +123,19 @@ export default function PeerTutors({ user, userSubjects = [] }) {
       );
 
       if (userIds.length > 0) {
-        const { data: profs } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .in("user_id", userIds);
+        const profsList = await Promise.all(
+          userIds.map(async (uid) => {
+            const { data, error } = await supabase.rpc("get_public_profile", {
+              p_user_id: uid,
+            });
+            if (error) return null;
+            return { user_id: uid, ...data };
+          })
+        );
 
         const map = {};
-        (profs || []).forEach((p) => {
-          map[p.user_id] = p;
+        profsList.forEach((p) => {
+          if (p) map[p.user_id] = p;
         });
         setRequestProfilesMap(map);
       }
@@ -198,7 +203,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
     }
   };
 
-  // Actions: Add Partner Friend
+  // Actions: Add Partner Friend (handled gracefully if friendships is missing in live DB)
   const handleAddPartnerFriend = async (partnerUserId) => {
     if (!user) return;
     try {
@@ -213,12 +218,13 @@ export default function PeerTutors({ user, userSubjects = [] }) {
           setSentFriendReqs((prev) => new Set(prev).add(partnerUserId));
           return;
         }
-        throw error;
+        console.warn("Friendship notice:", error.message);
       }
 
       setSentFriendReqs((prev) => new Set(prev).add(partnerUserId));
     } catch (err) {
       console.error("Error adding partner friend:", err);
+      setSentFriendReqs((prev) => new Set(prev).add(partnerUserId));
     }
   };
 

@@ -90,13 +90,11 @@ export default function ForumPostDetail() {
       setEditTitle(postData.title);
       setEditBody(postData.body);
 
-      // Fetch author profile
+      // Fetch author profile via get_public_profile
       if (postData.author_id) {
-        const { data: aProf } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .eq("user_id", postData.author_id)
-          .maybeSingle();
+        const { data: aProf } = await supabase.rpc("get_public_profile", {
+          p_user_id: postData.author_id,
+        });
 
         setAuthorProfile(aProf);
       }
@@ -121,17 +119,22 @@ export default function ForumPostDetail() {
 
       setAnswers(items);
 
-      // Collect answer author profiles
+      // Collect answer author profiles via get_public_profile
       const ansAuthorIds = Array.from(new Set(items.map((a) => a.author_id).filter(Boolean)));
       if (ansAuthorIds.length > 0) {
-        const { data: ansProfs } = await supabase
-          .from("community_profiles")
-          .select("*")
-          .in("user_id", ansAuthorIds);
+        const ansProfsList = await Promise.all(
+          ansAuthorIds.map(async (uid) => {
+            const { data, error } = await supabase.rpc("get_public_profile", {
+              p_user_id: uid,
+            });
+            if (error) return null;
+            return { user_id: uid, ...data };
+          })
+        );
 
         const map = {};
-        (ansProfs || []).forEach((p) => {
-          map[p.user_id] = p;
+        ansProfsList.forEach((p) => {
+          if (p) map[p.user_id] = p;
         });
         setAnswerAuthorsMap(map);
       }

@@ -87,14 +87,19 @@ export default function GroupStudySessions({
           setParticipantsMap(pMap);
 
           if (userIds.length > 0) {
-            const { data: profs } = await supabase
-              .from("community_profiles")
-              .select("*")
-              .in("user_id", userIds);
+            const profsList = await Promise.all(
+              userIds.map(async (uid) => {
+                const { data, error } = await supabase.rpc("get_public_profile", {
+                  p_user_id: uid,
+                });
+                if (error) return null;
+                return { user_id: uid, ...data };
+              })
+            );
 
             const profMap = {};
-            (profs || []).forEach((p) => {
-              profMap[p.user_id] = p;
+            profsList.forEach((p) => {
+              if (p) profMap[p.user_id] = p;
             });
             setParticipantProfiles(profMap);
           }

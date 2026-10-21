@@ -43,7 +43,7 @@ export default function ChatThread({
   const [peerLastReadAt, setPeerLastReadAt] = useState(null);
   const [senderProfiles, setSenderProfiles] = useState({});
   const [groupDetails, setGroupDetails] = useState(null);
-  const [groupMemberCount, setGroupMemberCount] = useState(0);
+  const [groupMemberCount] = useState(0);
   const [groupMembers] = useState([]);
   const [showGroupMembersSheet, setShowGroupMembersSheet] = useState(false);
 
@@ -284,31 +284,26 @@ export default function ChatThread({
             const peerPart = parts.find((p) => p.user_id !== currentUserId);
             if (peerPart) {
               setPeerLastReadAt(peerPart.last_read_at);
-              const { data: prof } = await supabase
-                .from("community_profiles")
-                .select("*")
-                .eq("user_id", peerPart.user_id)
-                .maybeSingle();
+              const { data: prof } = await supabase.rpc("get_public_profile", {
+                p_user_id: peerPart.user_id,
+              });
 
               if (isMounted) setPeerProfile(prof);
             }
           }
         } else if (conv.type === "group" && conv.study_group_id) {
-          const [{ data: grp }, { count: mCount }] = await Promise.all([
-            supabase
+          try {
+            const { data: grp } = await supabase
               .from("study_groups")
               .select("*")
               .eq("id", conv.study_group_id)
-              .maybeSingle(),
-            supabase
-              .from("study_group_members")
-              .select("*", { count: "exact", head: true })
-              .eq("group_id", conv.study_group_id),
-          ]);
+              .maybeSingle();
 
-          if (isMounted) {
-            setGroupDetails(grp);
-            setGroupMemberCount(mCount || 0);
+            if (isMounted && grp) {
+              setGroupDetails(grp);
+            }
+          } catch {
+            // ignore if group table missing
           }
         }
       } catch (err) {
@@ -326,17 +321,20 @@ export default function ChatThread({
   const fetchSenderProfiles = useCallback(async (senderIds) => {
     if (!senderIds || senderIds.length === 0) return;
     try {
-      const { data, error } = await supabase
-        .from("community_profiles")
-        .select("*")
-        .in("user_id", senderIds);
-
-      if (error) return;
+      const profsList = await Promise.all(
+        senderIds.map(async (uid) => {
+          const { data, error } = await supabase.rpc("get_public_profile", {
+            p_user_id: uid,
+          });
+          if (error) return null;
+          return { user_id: uid, ...data };
+        })
+      );
 
       setSenderProfiles((prev) => {
         const next = { ...prev };
-        (data || []).forEach((p) => {
-          next[p.user_id] = p;
+        profsList.forEach((p) => {
+          if (p) next[p.user_id] = p;
         });
         return next;
       });

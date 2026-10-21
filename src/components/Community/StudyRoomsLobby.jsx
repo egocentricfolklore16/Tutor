@@ -69,16 +69,22 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
     }
   }, [selectedSubject]);
 
-  // Fetch my groups for create room group assignment
+  // Fetch my groups for create room group assignment (handled gracefully if study_groups is missing in live DB)
   useEffect(() => {
     if (!user) return;
     async function loadMyGroups() {
-      const { data } = await supabase
-        .from("study_group_members")
-        .select("group_id, group:study_groups(id, name)")
-        .eq("user_id", user.id);
-      if (data) {
-        setMyGroups(data.map((d) => d.group).filter(Boolean));
+      try {
+        const { data, error } = await supabase
+          .from("study_group_members")
+          .select("group_id, group:study_groups(id, name)")
+          .eq("user_id", user.id);
+        if (!error && data) {
+          setMyGroups(data.map((d) => d.group).filter(Boolean));
+        } else {
+          setMyGroups([]);
+        }
+      } catch {
+        setMyGroups([]);
       }
     }
     loadMyGroups();

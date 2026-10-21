@@ -28,13 +28,16 @@ export default function FriendPicker({ isOpen, onClose, currentUserId, onSelectF
         );
 
         if (otherUserIds.length > 0) {
-          const { data: profs, error: profErr } = await supabase
-            .from("community_profiles")
-            .select("*")
-            .in("user_id", otherUserIds);
-
-          if (profErr) throw profErr;
-          if (mounted) setFriends(profs || []);
+          const profsList = await Promise.all(
+            otherUserIds.map(async (uid) => {
+              const { data, error: pErr } = await supabase.rpc("get_public_profile", {
+                p_user_id: uid,
+              });
+              if (pErr) return null;
+              return { user_id: uid, ...data };
+            })
+          );
+          if (mounted) setFriends(profsList.filter(Boolean));
         } else {
           if (mounted) setFriends([]);
         }

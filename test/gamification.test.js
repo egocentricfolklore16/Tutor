@@ -36,11 +36,13 @@ test("GAMIFICATION_CONFIG defines economy defaults and feature flags", () => {
   assert.equal(typeof GAMIFICATION_CONFIG.features.dailyQuests, "boolean");
 });
 
-test("gamificationService.getQuests returns honest unavailable state when backend is pending", async () => {
-  const result = await gamificationService.getQuests();
-  assert.equal(result.available, false);
-  assert.deepEqual(result.data, []);
-  assert.ok(typeof result.message === "string");
+test("gamificationService quest methods validate required parameters and handle errors", async () => {
+  const noKey = await gamificationService.claimQuest(null);
+  assert.equal(noKey.data, null);
+  assert.ok(noKey.error instanceof Error);
+
+  const noCardId = await gamificationService.recordFlashcardReview(null);
+  assert.ok(noCardId.error instanceof Error);
 });
 
 test("gamificationService.getGamificationState requires a valid userId", async () => {

@@ -2,6 +2,7 @@ import { createContext, useContext, useEffect, useState, useRef, useCallback } f
 import supabase from "../lib/supabase.js";
 import { getUserTimeZone } from "../lib/streaks";
 import { getAccessibilityClasses } from "../lib/accessibility.js";
+import { gamificationService } from "../features/gamification/services/gamificationService.js";
 
 const ProfileContext = createContext(null);
 
@@ -123,12 +124,18 @@ export function ProfileProvider({ user, children }) {
 
     channel.subscribe();
 
+    const handleSessionCompleted = () => {
+      gamificationService.checkAndClaimQuests(loadProfile);
+    };
+
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+    window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+      window.removeEventListener("hyper-tutor-session-completed", handleSessionCompleted);
     };
   }, [user?.id, loadProfile, touchLastSeenThrottled]);
 

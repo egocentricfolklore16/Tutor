@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ArrowRight,
@@ -23,6 +23,7 @@ import {
   Youtube,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { gamificationService } from "../../features/gamification";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
@@ -169,6 +170,7 @@ function Library({ session }) {
   const [quizSavingId, setQuizSavingId] = useState(null);
 
   const [flippedCards, setFlippedCards] = useState({});
+  const reviewedCardIdsRef = useRef(new Set());
 
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -525,8 +527,25 @@ function Library({ session }) {
         })
       );
       setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: false }));
+      // Auto-claim quests after quiz attempt saved
+      gamificationService.checkAndClaimQuests();
     }
     setQuizSavingId(null);
+  };
+
+  const handleFlipFlashcard = (card) => {
+    const isWillBeFlipped = !flippedCards[card.id];
+    setFlippedCards((prev) => ({ ...prev, [card.id]: isWillBeFlipped }));
+
+    if (isWillBeFlipped && card.id && !reviewedCardIdsRef.current.has(card.id)) {
+      reviewedCardIdsRef.current.add(card.id);
+      gamificationService.recordFlashcardReview(card.id).then(({ error: reviewErr }) => {
+        if (reviewErr) {
+          console.error("Library flashcard review insert error:", reviewErr);
+        }
+        gamificationService.checkAndClaimQuests();
+      });
+    }
   };
 
   const handleDeleteNote = async (id) => {
@@ -969,7 +988,7 @@ function Library({ session }) {
                           <>
                             <button
                               type="button"
-                              onClick={() => setFlippedCards((prev) => ({ ...prev, [card.id]: !prev[card.id] }))}
+                              onClick={() => handleFlipFlashcard(card)}
                               className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:shadow-focus dark:text-amber-300 dark:hover:bg-amber-950/40 sm:text-xs"
                               title={isFlipped ? "Show question" : "Show answer"}
                               aria-label={isFlipped ? "Show question" : "Show answer"}

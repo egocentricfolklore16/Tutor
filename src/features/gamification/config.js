@@ -38,7 +38,7 @@ export const GAMIFICATION_CONFIG = {
     maxFreezesHeld: 2,
   },
   features: {
-    dailyQuests: false, // honest state until backend exists
+    dailyQuests: true,
     rewardsShop: false, // honest state until backend exists
   },
 };

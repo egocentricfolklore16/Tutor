@@ -29,7 +29,7 @@ export function useGamification() {
     ]);
   }, [refreshProfile, refreshStreak]);
 
-  // Toast listener for reward events
+  // Toast listener for reward and quest events
   useEffect(() => {
     const handleRewardsUpdated = (event) => {
       const { xp = 0, gems: addedGems = 0 } = event.detail || {};
@@ -43,9 +43,22 @@ export function useGamification() {
       }
     };
 
+    const handleQuestToast = (event) => {
+      const { message } = event.detail || {};
+      if (message) {
+        setToast({
+          message,
+          id: Date.now(),
+        });
+        setTimeout(() => setToast(null), 4000);
+      }
+    };
+
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+    window.addEventListener("hyper-tutor-quest-completed-toast", handleQuestToast);
     return () => {
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+      window.removeEventListener("hyper-tutor-quest-completed-toast", handleQuestToast);
     };
   }, []);
 

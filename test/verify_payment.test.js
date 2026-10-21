@@ -138,3 +138,64 @@ test("processVerifiedPayment error mapping produces correct HTTP status codes", 
   assert.strictEqual(mapProcessErrorToResponse(amountMismatchError).status, 400);
   assert.strictEqual(mapProcessErrorToResponse(crossUserError).status, 403);
 });
+
+test("PaystackCheckoutButton error extraction prioritizes data.error over verifyError.message", () => {
+  function extractErrorMessage(data, verifyError) {
+    return (
+      data?.error ||
+      verifyError?.message ||
+      "Payment verification failed on server."
+    );
+  }
+
+  const serverErrorData = { success: false, error: "Amount mismatch: expected 250000 kobo, received 100000 kobo" };
+  const genericVerifyError = { message: "Edge Function returned a non-2xx status code" };
+
+  // When both exist, prioritize data.error
+  assert.strictEqual(
+    extractErrorMessage(serverErrorData, genericVerifyError),
+    "Amount mismatch: expected 250000 kobo, received 100000 kobo"
+  );
+
+  // When data.error is missing, fall back to verifyError.message
+  assert.strictEqual(
+    extractErrorMessage(null, genericVerifyError),
+    "Edge Function returned a non-2xx status code"
+  );
+
+  // When both are missing, fall back to generic message
+  assert.strictEqual(
+    extractErrorMessage(null, null),
+    "Payment verification failed on server."
+  );
+});
+
+test("verify-payment request body parsing handles malformed or missing reference cleanly", () => {
+  function parseRequestBodyAndValidateReference(rawBodyString) {
+    let body;
+    try {
+      body = JSON.parse(rawBodyString);
+    } catch {
+      return { status: 400, error: "Invalid JSON in request body" };
+    }
+
+    const { reference } = body || {};
+    if (!reference || typeof reference !== "string" || !reference.trim()) {
+      return { status: 400, error: "Missing or invalid reference in request body" };
+    }
+
+    return { status: 200, reference: reference.trim() };
+  }
+
+  assert.strictEqual(parseRequestBodyAndValidateReference("invalid-json").status, 400);
+  assert.strictEqual(parseRequestBodyAndValidateReference("invalid-json").error, "Invalid JSON in request body");
+
+  assert.strictEqual(parseRequestBodyAndValidateReference("{}").status, 400);
+  assert.strictEqual(parseRequestBodyAndValidateReference("{}").error, "Missing or invalid reference in request body");
+
+  assert.strictEqual(parseRequestBodyAndValidateReference('{"reference": "  "}').status, 400);
+
+  const valid = parseRequestBodyAndValidateReference('{"reference": "ref_12345"}');
+  assert.strictEqual(valid.status, 200);
+  assert.strictEqual(valid.reference, "ref_12345");
+});

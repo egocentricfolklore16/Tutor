@@ -79,10 +79,11 @@ export default function UserProfilePage() {
         if (isMounted) setTutorProfile(tutorData || null);
 
         // 3. Fetch achievements
-        const { data: achData } = await supabase.rpc("get_achievements", {
-          p_user_id: userId,
+        const { data: achData, error: achErr } = await supabase.rpc("get_achievements", {
+          p_user: userId,
         });
 
+        if (achErr) console.error("Error fetching user achievements:", achErr);
         if (isMounted) setAchievements(achData || []);
 
         // 4. Check friendship status if logged in and not self
@@ -311,7 +312,7 @@ export default function UserProfilePage() {
 
           <button
             type="button"
-            onClick={() => navigate("/community/achievements")}
+            onClick={() => navigate("/achievements")}
             className="text-xs font-bold text-emerald-600 hover:underline dark:text-emerald-400"
           >
             See all

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useLocation, useParams, Routes, Route } from "react-router-dom";
 import {
   Users,
@@ -22,6 +22,7 @@ import {
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import { getUserSubjectsList } from "../../lib/userSubjects.js";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";
@@ -340,7 +341,7 @@ const Community = () => {
   const acceptedFriends = friendships.filter((f) => f.status === "accepted");
   const pendingIncoming = friendships.filter((f) => f.status === "pending" && f.addressee_id === user?.id);
 
-  const userSubjects = Array.isArray(profile?.subjects) ? profile.subjects : [];
+  const userSubjects = useMemo(() => getUserSubjectsList(profile), [profile]);
 
   return (
     <Routes>
@@ -460,6 +461,7 @@ const Community = () => {
                     onClose={() => setShowCreateGroup(false)}
                     onCreateGroup={handleCreateGroup}
                     loading={createGroupLoading}
+                    userSubjects={userSubjects}
                   />
 
                   {/* My Groups Section */}

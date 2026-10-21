@@ -6,7 +6,7 @@
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
-| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions & empty state greeting | Used |
+| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions, Study Group creation (`CreateGroupModal`) | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, Settings | Used |
@@ -71,3 +71,7 @@
 ## 2026-11-18 - Pre-filling Study Session Defaults from Onboarding Subjects & Focus Time
 **Learning:** When creating a new study session on the Study page (`/Study`), the subject and start time fields defaulted to empty string `""`, ignoring what the student indicated during onboarding ("What would you like to study?" and "When do you focus best?").
 **Action:** Create `getStudySessionDefaults` in `src/lib/plannerUtils.js` with unit tests in `test/plannerUtils.test.js`, consume `useProfile()` in `StudyHome.jsx`, and pre-fill the "New Session" creation modal with the student's priority subject and preferred focus start time ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening).
+
+## 2026-11-22 - Pre-filling Study Group Subject Defaults from Onboarding Subjects
+**Learning:** When creating a new study group in Community (`CreateGroupModal`), the subject field defaulted to empty string `""`, ignoring the student's onboarding subjects (`profiles.subjects`) and forcing manual text entry.
+**Action:** Create `getUserSubjectsList` in `src/lib/userSubjects.js` with unit tests in `test/userSubjects.test.js`, update `community.jsx` to pass `userSubjects` to `CreateGroupModal`, pre-fill the group subject field with the student's priority subject when opening, and render interactive subject recommendation chips for instant selection.

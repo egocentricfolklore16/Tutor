@@ -1,11 +1,21 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { X, Loader2 } from "lucide-react";
 
-export default function CreateGroupModal({ isOpen, onClose, onCreateGroup, loading }) {
+export default function CreateGroupModal({ isOpen, onClose, onCreateGroup, loading, userSubjects = [] }) {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
   const [privacy, setPrivacy] = useState("public");
+
+  useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setDescription("");
+      setSubject(Array.isArray(userSubjects) && userSubjects.length > 0 ? userSubjects[0] : "");
+      setPrivacy("public");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
 
   if (!isOpen) return null;
 
@@ -71,6 +81,25 @@ export default function CreateGroupModal({ isOpen, onClose, onCreateGroup, loadi
               placeholder="e.g. Mathematics"
               className="w-full rounded-xl bg-slate-50 px-3.5 py-2.5 text-sm text-slate-900 shadow-inset-field focus:shadow-focus dark:bg-[#18211f] dark:text-white outline-none"
             />
+            {Array.isArray(userSubjects) && userSubjects.length > 0 && (
+              <div className="mt-1.5 flex flex-wrap items-center gap-1.5">
+                <span className="text-[11px] text-slate-500 dark:text-slate-400">Your subjects:</span>
+                {userSubjects.map((sub) => (
+                  <button
+                    key={sub}
+                    type="button"
+                    onClick={() => setSubject(sub)}
+                    className={`rounded-lg px-2 py-0.5 text-[11px] font-semibold transition ${
+                      subject === sub
+                        ? "bg-emerald-600 text-white"
+                        : "bg-slate-100 text-slate-700 hover:bg-slate-200 dark:bg-[#18211f] dark:text-slate-300 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    {sub}
+                  </button>
+                ))}
+              </div>
+            )}
           </div>
 
           <div>

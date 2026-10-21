@@ -41,9 +41,9 @@ export function getSubjectOptions(studentLevel) {
   return Array.from(new Set(baseOptions));
 }
 
-export function getUserSubjectsFormatted(profile) {
+export function getUserSubjectsList(profile) {
   if (!profile || typeof profile !== "object") {
-    return "your priority subjects";
+    return [];
   }
 
   let list = [];
@@ -55,9 +55,13 @@ export function getUserSubjectsFormatted(profile) {
     list = [profile.subject.trim()];
   }
 
-  const cleanList = list
+  return list
     .filter((s) => s && typeof s === "string" && s.trim().length > 0)
     .map((s) => s.trim());
+}
+
+export function getUserSubjectsFormatted(profile) {
+  const cleanList = getUserSubjectsList(profile);
 
   if (cleanList.length === 0) {
     return "your priority subjects";

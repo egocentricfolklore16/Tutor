@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
@@ -34,12 +34,17 @@ function App() {
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
 
+  const sessionRef = useRef(session);
+  useEffect(() => {
+    sessionRef.current = session;
+  }, [session]);
+
   useEffect(() => {
     let mounted = true;
 
     // Safety watchdog timer: force loading flags to false after 5 seconds if auth promises hang
     const watchdogTimer = setTimeout(() => {
-      if (mounted && (loading || onboardingLoading)) {
+      if (mounted) {
         console.error("Auth bootstrap or onboarding check timed out after 5000ms. Forcing loading resolution.");
         setLoading(false);
         setOnboardingLoading(false);
@@ -47,7 +52,7 @@ function App() {
     }, 5000);
 
     const handleOnboardingCompleted = (event) => {
-      if (event.detail?.userId && session?.user?.id === event.detail.userId) {
+      if (event.detail?.userId && sessionRef.current?.user?.id === event.detail.userId) {
         setNeedsOnboarding(false);
       }
     };

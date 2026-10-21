@@ -35,3 +35,7 @@
 ## 2026-10-22 - Freeze Token Protection in Streak Display Calculations
 **Learning:** `getDisplayStreak` in `src/lib/streaksCore.js` evaluated `daysSinceActivity > 1` as a stale streak returning 0 without checking freeze token availability. On the day following a missed day (`daysSinceActivity === 2`), users with available freeze tokens (`freeze_tokens_available` or `freeze_tokens` > 0) still had active streaks, but UI components using `getDisplayStreak` rendered `0d`.
 **Action:** When calculating display streak counts, check freeze token availability (`freeze_tokens_available` or `freeze_tokens`) so 1-day gaps (`daysSinceActivity === 2`) preserve active streak numbers while gaps exceeding freeze coverage (`daysSinceActivity > 2` or 0 freeze tokens) return 0.
+
+## 2026-10-24 - Stale Streak Resolution for Multi-Day Gaps with Freeze Tokens
+**Learning:** `useStreak.js` checked `diffDays > 1 && freezes === 0` to identify stale streaks. When `diffDays` was 3 (2 missed days) and `freezes` was 1, `freezes === 0` evaluated to false, preventing stale streak reset to 0 even though 1 freeze token cannot protect a 2-day gap. Updating the condition to `diffDays > 2 || (diffDays === 2 && freezes === 0)` (and exporting `resolveStaleDisplayStreak`) aligns `useStreak.js` with `getDisplayStreak` in `streaksCore.js`.
+**Action:** When testing stale streak resolution, verify multi-day gap boundaries (`diffDays > 2`) explicitly with non-zero freeze token balances to ensure display streaks reset to 0 when gaps exceed freeze token protection.

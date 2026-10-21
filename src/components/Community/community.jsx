@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { useNavigate, useLocation, useParams, Routes, Route } from "react-router-dom";
 import {
   Users,
@@ -22,6 +22,7 @@ import {
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
+import { getUserSubjectsList } from "../../lib/userSubjects.js";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";
@@ -41,6 +42,11 @@ import AchievementsPage from "./AchievementsPage";
 
 import { useFriends } from "../../features/community/hooks/useFriends";
 import { useGroups } from "../../features/community/hooks/useGroups";
+import {
+  createGroup,
+  updateGroupDetails,
+  deleteGroup,
+} from "../../features/community/services/groupsService";
 import FriendList from "../../features/community/components/friends/FriendList";
 import PendingRequests from "../../features/community/components/friends/PendingRequests";
 import UserSearch from "../../features/community/components/friends/UserSearch";
@@ -193,34 +199,13 @@ const Community = () => {
     if (!user) return;
     setCreateGroupLoading(true);
     try {
-      const { data: newGrp, error } = await supabase
-        .from("study_groups")
-        .insert({
-          name,
-          description,
-          subject,
-          privacy,
-          owner_id: user.id,
-          created_by: user.id,
-        })
-        .select()
-        .single();
-
-      if (error) throw error;
-
-      if (newGrp) {
-        await supabase.from("study_group_members").insert({
-          group_id: newGrp.id,
-          user_id: user.id,
-          role: "owner",
-        });
-
-        await supabase.from("conversations").insert({
-          type: "group",
-          study_group_id: newGrp.id,
-          created_by: user.id,
-        });
-      }
+      await createGroup({
+        userId: user.id,
+        name,
+        description,
+        subject,
+        privacy,
+      });
 
       setShowCreateGroup(false);
       showToast("Group created successfully!");
@@ -288,15 +273,7 @@ const Community = () => {
     if (!selectedGroupId || !name.trim()) return;
 
     try {
-      await supabase
-        .from("study_groups")
-        .update({
-          name: name.trim(),
-          description: description.trim(),
-          privacy,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("id", selectedGroupId);
+      await updateGroupDetails(selectedGroupId, { name, description, privacy });
 
       showToast("Group settings saved.");
       refetchOverview();
@@ -311,7 +288,7 @@ const Community = () => {
   const handleDeleteGroup = async (confirmName) => {
     if (!selectedGroupId || confirmName !== groupOverview?.group?.name) return;
     try {
-      await supabase.from("study_groups").delete().eq("id", selectedGroupId);
+      await deleteGroup(selectedGroupId);
       showToast("Group deleted.");
       setSelectedGroupId(null);
       refetchExplore();
@@ -340,7 +317,7 @@ const Community = () => {
   const acceptedFriends = friendships.filter((f) => f.status === "accepted");
   const pendingIncoming = friendships.filter((f) => f.status === "pending" && f.addressee_id === user?.id);
 
-  const userSubjects = Array.isArray(profile?.subjects) ? profile.subjects : [];
+  const userSubjects = useMemo(() => getUserSubjectsList(profile), [profile]);
 
   return (
     <Routes>
@@ -432,7 +409,10 @@ const Community = () => {
             <div className="mt-6">
               {/* ACTIVITY FEED TAB */}
               {activeTab === "feed" && (
-                <ActivityFeed onUserClick={(userId) => navigate(`/community/u/${userId}`)} />
+                <ActivityFeed
+                  currentUserId={user?.id}
+                  onUserClick={(userId) => navigate(`/community/u/${userId}`)}
+                />
               )}
 
               {/* GROUPS TAB */}
@@ -460,6 +440,7 @@ const Community = () => {
                     onClose={() => setShowCreateGroup(false)}
                     onCreateGroup={handleCreateGroup}
                     loading={createGroupLoading}
+                    userSubjects={userSubjects}
                   />
 
                   {/* My Groups Section */}

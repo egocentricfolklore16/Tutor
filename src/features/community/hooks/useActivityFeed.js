@@ -1,10 +1,11 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchActivityFeed,
+  toggleActivityCheer,
   subscribeToActivityEvents,
 } from "../services/feedService";
 
-export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
+export function useActivityFeed({ filter = "all", limit = 20, currentUserId = null } = {}) {
   const [items, setItems] = useState([]);
   const [nextCursor, setNextCursor] = useState(null);
   const [hasMore, setHasMore] = useState(false);
@@ -19,7 +20,7 @@ export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetchActivityFeed({ filter, limit });
+      const res = await fetchActivityFeed({ filter, limit, currentUserId });
       setItems(res.items);
       setNextCursor(res.nextCursor);
       setHasMore(res.hasMore);
@@ -28,7 +29,7 @@ export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
     } finally {
       setLoading(false);
     }
-  }, [filter, limit]);
+  }, [filter, limit, currentUserId]);
 
   useEffect(() => {
     loadInitialFeed();
@@ -42,6 +43,7 @@ export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
         filter: filterRef.current,
         cursor: nextCursor,
         limit,
+        currentUserId,
       });
       setItems((prev) => {
         const existingIds = new Set(prev.map((i) => i.id));
@@ -85,6 +87,55 @@ export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
     };
   }, []);
 
+  const toggleCheer = useCallback(
+    async (activityId) => {
+      if (!activityId || !currentUserId) return;
+
+      // Optimistic state update
+      setItems((prev) =>
+        prev.map((item) => {
+          if (item.id !== activityId) return item;
+          const wasCheered = Boolean(item.is_cheered);
+          const currentCount = Number(item.cheer_count || 0);
+          return {
+            ...item,
+            is_cheered: !wasCheered,
+            cheer_count: wasCheered ? Math.max(0, currentCount - 1) : currentCount + 1,
+          };
+        })
+      );
+
+      try {
+        const res = await toggleActivityCheer(activityId, currentUserId);
+        setItems((prev) =>
+          prev.map((item) => {
+            if (item.id !== activityId) return item;
+            return {
+              ...item,
+              is_cheered: res.cheered,
+            };
+          })
+        );
+      } catch (err) {
+        console.error("Error toggling activity cheer:", err);
+        // Rollback optimistic update
+        setItems((prev) =>
+          prev.map((item) => {
+            if (item.id !== activityId) return item;
+            const wasCheered = Boolean(item.is_cheered);
+            const currentCount = Number(item.cheer_count || 0);
+            return {
+              ...item,
+              is_cheered: !wasCheered,
+              cheer_count: wasCheered ? Math.max(0, currentCount - 1) : currentCount + 1,
+            };
+          })
+        );
+      }
+    },
+    [currentUserId]
+  );
+
   return {
     items,
     loading,
@@ -92,6 +143,7 @@ export function useActivityFeed({ filter = "all", limit = 20 } = {}) {
     hasMore,
     error,
     loadMore,
+    toggleCheer,
     refetch: loadInitialFeed,
   };
 }

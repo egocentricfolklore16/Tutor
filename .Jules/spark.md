@@ -17,3 +17,7 @@
 ## 2026-10-20 - Gem Rewards & Cosmetics Shop System
 **Learning:** Providing a dedicated Gem Shop page (`src/components/Shop/Shop.jsx`) gives students clear gem sinks (Streak Freezes, Streak Repairs, Avatar Frames, Timer Skins) with immediate feedback and honest availability indicators when cosmetic items await server backing.
 **Action:** Wire all "Visit Shop" triggers across header dropdowns and wallet cards directly to `/Shop` so students can view and manage their gem balance and purchases at any time.
+
+## 2026-10-22 - Level & XP Milestones Roadmap Suite
+**Learning:** Incorporating a dedicated Level & XP Milestones Roadmap Card (`LevelProgressCard`) on the Progress page provides students with a tangible view of unlocked perks and upcoming milestone targets (such as custom timer themes, AI Quiz generation, and 2x Gem Multipliers), transforming XP points into meaningful goals.
+**Action:** Always pair Level/XP progress bars with milestone perks so students understand the tangible value of leveling up.

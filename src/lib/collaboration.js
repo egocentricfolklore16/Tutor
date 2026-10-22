@@ -26,3 +26,38 @@ export function getCollaborationInfo(interest) {
     description: "Tailored social learning features will adapt to your collaboration preference when Phase 2 launches.",
   };
 }
+
+export const COMMUNITY_SPOTLIGHT_DESCRIPTIONS = {
+  "Keep me focused": {
+    title: "Focus rooms ready",
+    description: "Join quiet virtual study rooms with distraction-free accountability partners.",
+  },
+  "Find study groups": {
+    title: "Find your study group",
+    description: "Discover small groups matched by subject and level to study together.",
+  },
+  "Peer support": {
+    title: "Ask & support peers",
+    description: "Connect with peer tutors and study Q&A forums to tackle tough topics.",
+  },
+  "Just me for now": {
+    title: "Explore quietly",
+    description: "Discover optional study groups, forums, and rooms whenever you're ready.",
+  },
+};
+
+export function getCommunitySpotlight(interest) {
+  if (interest && COMMUNITY_SPOTLIGHT_DESCRIPTIONS[interest]) {
+    return COMMUNITY_SPOTLIGHT_DESCRIPTIONS[interest];
+  }
+  const normalized = typeof interest === "string" ? interest.toLowerCase().trim() : "";
+  for (const key of Object.keys(COMMUNITY_SPOTLIGHT_DESCRIPTIONS)) {
+    if (key.toLowerCase() === normalized) {
+      return COMMUNITY_SPOTLIGHT_DESCRIPTIONS[key];
+    }
+  }
+  return {
+    title: "Learn together",
+    description: "Find study partners, share a breakthrough, and keep your momentum moving.",
+  };
+}

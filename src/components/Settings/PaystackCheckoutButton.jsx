@@ -102,8 +102,8 @@ export default function PaystackCheckoutButton({
 
           if (verifyError || !data?.success) {
             const message =
-              verifyError?.message ||
               data?.error ||
+              verifyError?.message ||
               "Payment verification failed on server.";
             setError(message);
             setLoading(false);

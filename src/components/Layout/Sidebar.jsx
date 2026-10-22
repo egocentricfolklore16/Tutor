@@ -167,12 +167,6 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
     toggleSidebar();
   };
 
-  const handleMenuItemClick = () => {
-    if (window.innerWidth < 768 && isOpen) {
-      toggleSidebar();
-    }
-  };
-
   const confirmLogout = async () => {
     try {
       const { error } = await supabase.auth.signOut();
@@ -230,41 +224,11 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
 
   return (
     <>
-      {/* Fixed Toggle Button for Small Screens */}
-      <button
-        type="button"
-        onClick={toggleSidebar2}
-        aria-label="Open navigation menu"
-        title="Open navigation menu"
-        className={`fixed top-4 left-4 z-[1001] cursor-pointer shadow-surface hover:shadow-surface-hover transition-all duration-300 md:hidden bg-white dark:bg-[#14171c] rounded-full p-2 focus:outline-none focus:shadow-focus ${
-          isOpen ? "hidden" : ""
-        }`}
-      >
-        <svg
-          stroke="currentColor"
-          fill="currentColor"
-          strokeWidth="0"
-          viewBox="0 0 16 16"
-          height="1.5em"
-          width="1.5em"
-          xmlns="http://www.w3.org/2000/svg"
-        >
-          <path
-            fillRule="evenodd"
-            d="M14 2H2a1 1 0 00-1 1v10a1 1 0 001 1h12a1 1 0 001-1V3a1 1 0 00-1-1zM2 1a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V3a2 2 0 00-2-2H2z"
-            clipRule="evenodd"
-          />
-          <path fillRule="evenodd" d="M4 14V2h1v12H4z" clipRule="evenodd" />
-        </svg>
-      </button>
-
       {/* Sidebar */}
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col shadow-surface bg-white dark:bg-[#14171c] font-['Lexend'] text-black dark:text-white transition-all duration-300 ease-out dark-sidebar ${
-          isOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
-        } md:translate-x-0 md:opacity-100 md:pointer-events-auto`}
+        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col shadow-surface bg-white dark:bg-[#14171c] font-['Lexend'] text-black dark:text-white transition-all duration-300 ease-out dark-sidebar`}
       >
         {/* Logo Section */}
         <div className="flex items-center justify-between p-4">
@@ -323,7 +287,6 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
                   flex items-center h-8 px-3 rounded-lg cursor-pointer 
                   transition-all duration-300 text-xs whitespace-nowrap overflow-hidden
                 `}
-                  onClick={() => handleMenuItemClick(item.name)}
                 >
                   <span className="pr-3">{item.icon}</span>
                   {isOpen && <span>{item.name}</span>}

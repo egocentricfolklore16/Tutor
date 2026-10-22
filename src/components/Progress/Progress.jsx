@@ -6,7 +6,7 @@ import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
-import { useGamification, LevelProgressCard } from "../../features/gamification";
+import { useGamification, LevelRoadmap } from "../../features/gamification";
 
 const dateKey = (value) => {
   const date = new Date(value);
@@ -14,7 +14,7 @@ const dateKey = (value) => {
 };
 
 function Progress() {
-  const { xp } = useGamification();
+  const { xp, refreshAll } = useGamification();
   const [sessions, setSessions] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
   const [status, setStatus] = useState("loading");
@@ -101,7 +101,13 @@ function Progress() {
         </div>
 
         <div className="mt-6">
-          <LevelProgressCard totalXp={xp.total} />
+          <LevelRoadmap
+            level={xp.level}
+            totalXp={xp.total}
+            xpInLevel={xp.xpInCurrentLevel}
+            xpForLevel={xp.xpForNextLevel}
+            onRetry={refreshAll}
+          />
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">

@@ -65,5 +65,32 @@ test("LEVEL_MILESTONES: contains expected non-empty array of milestone definitio
     assert.ok(typeof m.level === "number");
     assert.ok(typeof m.title === "string" && m.title.length > 0);
     assert.ok(typeof m.perk === "string" && m.perk.length > 0);
+    assert.ok(typeof m.desc === "string" && m.desc.length > 0);
+    assert.ok(typeof m.icon === "string" && m.icon.length > 0);
   });
+});
+
+test("calculateXpLevel: L4 requires 250 XP (50 x (level + 1)) per level curve formula", () => {
+  // L1: 0 - 99 (100) -> L2: 100 - 249 (150) -> L3: 250 - 449 (200) -> L4: 450 - 699 (250)
+  const lvl4Start = calculateXpLevel(450);
+  assert.strictEqual(lvl4Start.level, 4);
+  assert.strictEqual(lvl4Start.xpInCurrentLevel, 0);
+  assert.strictEqual(lvl4Start.xpForNextLevel, 250); // 50 * (4 + 1)
+  assert.strictEqual(lvl4Start.xpToNextLevel, 250);
+
+  const lvl4Mid = calculateXpLevel(550);
+  assert.strictEqual(lvl4Mid.level, 4);
+  assert.strictEqual(lvl4Mid.xpInCurrentLevel, 100);
+  assert.strictEqual(lvl4Mid.xpForNextLevel, 250);
+  assert.strictEqual(lvl4Mid.xpToNextLevel, 150);
+});
+
+test("brand-new user (level 1, 0 XP) returns expected level state", () => {
+  const brandNewUser = calculateXpLevel(0);
+  assert.strictEqual(brandNewUser.level, 1);
+  assert.strictEqual(brandNewUser.xpPoints, 0);
+  assert.strictEqual(brandNewUser.xpInCurrentLevel, 0);
+  assert.strictEqual(brandNewUser.xpForNextLevel, 100);
+  assert.strictEqual(brandNewUser.xpToNextLevel, 100);
+  assert.strictEqual(brandNewUser.xpProgressPercent, 0);
 });

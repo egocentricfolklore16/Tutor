@@ -50,3 +50,156 @@ test("gamificationService.getGamificationState requires a valid userId", async (
   assert.equal(res.data, null);
   assert.ok(res.error instanceof Error);
 });
+
+test("gamificationService.getGamificationState merges profile and streak data and falls back safely", async () => {
+  const originalFrom = (await import("../src/lib/supabase.js")).default.from;
+  const supabase = (await import("../src/lib/supabase.js")).default;
+
+  supabase.from = (table) => {
+    if (table === "profiles") {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: { xp_points: 350, gems: 45, timezone: "UTC" },
+                error: null,
+              }),
+          }),
+        }),
+      };
+    }
+    if (table === "users_streaks") {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: null,
+                error: { code: "PGRST116", message: "No rows found" },
+              }),
+          }),
+        }),
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await gamificationService.getGamificationState("user_123");
+    assert.equal(res.error, null);
+    assert.equal(res.data.xp, 350);
+    assert.equal(res.data.gems, 45);
+    assert.equal(res.data.streak, 0, "Missing streak row falls back safely to 0");
+    assert.equal(res.data.freezeTokens, 0);
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
+test("gamificationService.checkAndClaimQuests triggers claimCompletedQuests, emits toast and update events", async () => {
+  const originalRpc = (await import("../src/lib/supabase.js")).default.rpc;
+  const supabase = (await import("../src/lib/supabase.js")).default;
+  const originalWindow = globalThis.window;
+
+  const dispatched = [];
+  globalThis.window = {
+    dispatchEvent: (evt) => dispatched.push(evt),
+    CustomEvent: class CustomEvent {
+      constructor(type, eventInitDict) {
+        this.type = type;
+        this.detail = eventInitDict?.detail;
+      }
+    },
+  };
+
+  supabase.rpc = (fn) => {
+    if (fn === "claim_completed_quests") {
+      return Promise.resolve({
+        data: {
+          awarded: [
+            { id: "q1", title: "Daily Review", xp: 30, gems: 5 },
+          ],
+        },
+        error: null,
+      });
+    }
+    return originalRpc(fn);
+  };
+
+  let refreshCalled = false;
+  const refreshProfileFn = () => {
+    refreshCalled = true;
+    return Promise.resolve();
+  };
+
+  try {
+    const res = await gamificationService.checkAndClaimQuests(refreshProfileFn);
+    assert.equal(res.error, null);
+    assert.ok(refreshCalled, "refreshProfileFn callback must be invoked when provided");
+
+    assert.equal(dispatched.length, 2);
+    assert.equal(dispatched[0].type, "hyper-tutor-quest-completed-toast");
+    assert.ok(dispatched[0].detail.message.includes("Daily Review"));
+    assert.equal(dispatched[1].type, "hyper-tutor-quests-updated");
+  } finally {
+    supabase.rpc = originalRpc;
+    if (originalWindow) globalThis.window = originalWindow;
+    else delete globalThis.window;
+  }
+});
+
+test("gamificationService.purchaseStreakFreeze validates userId, deducts gems, and updates streak tokens", async () => {
+  const noIdRes = await gamificationService.purchaseStreakFreeze(null);
+  assert.equal(noIdRes.success, false);
+  assert.equal(noIdRes.error, "User ID required");
+
+  const originalRpc = (await import("../src/lib/supabase.js")).default.rpc;
+  const originalFrom = (await import("../src/lib/supabase.js")).default.from;
+  const supabase = (await import("../src/lib/supabase.js")).default;
+
+  let gemsAwarded = null;
+  let updatedTokens = null;
+
+  supabase.rpc = (fn, params) => {
+    if (fn === "award_user_rewards") {
+      gemsAwarded = params.gems_amount;
+      return Promise.resolve({ data: [{ xp_points: 100, gems: 10 }], error: null });
+    }
+    return originalRpc(fn, params);
+  };
+
+  supabase.from = (table) => {
+    if (table === "users_streaks") {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: { freeze_tokens_available: 1 },
+                error: null,
+              }),
+          }),
+        }),
+        update: (payload) => {
+          updatedTokens = payload.freeze_tokens_available;
+          return {
+            eq: () => Promise.resolve({ error: null }),
+          };
+        },
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await gamificationService.purchaseStreakFreeze("user_freeze_buyer");
+    assert.equal(res.success, true);
+    assert.equal(res.error, null);
+    assert.equal(gemsAwarded, -50, "Purchasing freeze token must deduct 50 gems");
+    assert.equal(updatedTokens, 2, "Freeze token count must increment from 1 to 2");
+  } finally {
+    supabase.rpc = originalRpc;
+    supabase.from = originalFrom;
+  }
+});

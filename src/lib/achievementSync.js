@@ -67,18 +67,20 @@ export async function syncAndCheckAchievements({ quiet = false } = {}) {
 
         if (!quiet) {
           const toastMessage = `Achievement unlocked: ${ach.title} +${ach.xp_reward || 0} XP`;
-          window.dispatchEvent(
-            new CustomEvent("hyper-tutor-quest-completed-toast", {
-              detail: { message: toastMessage },
-            })
-          );
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(
+              new CustomEvent("hyper-tutor-quest-completed-toast", {
+                detail: { message: toastMessage },
+              })
+            );
+          }
         }
       }
     }
 
     saveToastedSet(toastedSet);
 
-    if (newlyUnlocked > 0) {
+    if (newlyUnlocked > 0 && typeof window !== "undefined") {
       // Trigger profile refetch from server to update XP/level display without local arithmetic
       window.dispatchEvent(
         new CustomEvent("hyper-tutor-rewards-updated", {

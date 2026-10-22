@@ -1,99 +1,82 @@
-import { ArrowRight, Brain, Loader2 } from "lucide-react";
-import { useEffect, useState } from "react";
+import React from "react";
+import { BookOpen, ArrowRight, CheckCircle2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import supabase from "../../lib/supabase";
-import LoadingCompanion from "../common/LoadingCompanion";
+import { useProfile } from "../../app/ProfileContext";
 
-function WeakAreaCard() {
+export default function WeakAreaCard() {
   const navigate = useNavigate();
-  const [weakArea, setWeakArea] = useState(null);
-  const [status, setStatus] = useState("loading");
+  const { profile } = useProfile();
 
-  useEffect(() => {
-    let active = true;
+  const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
 
-    const loadWeakArea = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) {
-        if (active) setStatus("empty");
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("study_session_logs")
-        .select("id, session_id, concept, question, created_at")
-        .eq("user_id", user.id)
-        .eq("is_correct", false)
-        .order("created_at", { ascending: false })
-        .limit(100);
-
-      if (error) {
-        console.error("Weak-area fetch error:", error);
-        if (active) setStatus("empty");
-        return;
-      }
-
-      const areas = new Map();
-      (data || []).forEach((log) => {
-        const concept = String(log.concept || "").trim();
-        if (!concept || !log.question) return;
-
-        const current = areas.get(concept) || {
-          concept,
-          originalQuestion: log.question,
-          timesFailedOrHesitated: 0,
-          lastAttemptedAt: log.created_at,
-          sessionId: log.session_id,
-        };
-        current.timesFailedOrHesitated += 1;
-        areas.set(concept, current);
-      });
-
-      const latest = [...areas.values()].sort(
-        (left, right) => new Date(right.lastAttemptedAt) - new Date(left.lastAttemptedAt),
-      )[0] || null;
-
-      if (active) {
-        setWeakArea(latest);
-        setStatus(latest ? "ready" : "empty");
-      }
-    };
-
-    loadWeakArea();
-    return () => { active = false; };
-  }, []);
-
-  if (status === "loading") return <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900" aria-busy="true"><LoadingCompanion message="Checking your focus areas..." /></section>;
-
-  if (!weakArea) {
+  if (knowledgeGaps.length === 0) {
     return (
-      <section className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 p-6" aria-labelledby="still-shaky-title">
-        <div className="flex items-center gap-2 text-slate-500 dark:text-slate-400">
-          <Brain className="h-5 w-5" />
-          <h2 id="still-shaky-title" className="text-xl font-bold text-slate-900 dark:text-slate-100">Still shaky on this</h2>
+      <section
+        className="relative overflow-hidden rounded-3xl border border-slate-200/80 bg-white p-5 shadow-sm dark:border-slate-800/80 dark:bg-[#18211f]"
+        aria-labelledby="weak-areas-title"
+      >
+        <div className="flex items-center gap-2 border-b border-slate-100 pb-3 dark:border-slate-800">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700 dark:bg-sky-950/80 dark:text-sky-300">
+            <BookOpen className="h-4 w-4" />
+          </span>
+          <h2 id="weak-areas-title" className="text-base font-bold text-slate-900 dark:text-white">
+            Concepts to Revisit
+          </h2>
         </div>
-        <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">No concepts need extra attention yet.</p>
+
+        <div className="py-6 text-center">
+          <CheckCircle2 className="mx-auto h-8 w-8 text-emerald-500" />
+          <p className="mt-2 text-xs font-bold text-slate-800 dark:text-slate-200">All clear!</p>
+          <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400">
+            No knowledge gaps recorded in your profile.
+          </p>
+        </div>
       </section>
     );
   }
 
   return (
-    <section className="rounded-lg border-2 border-red-200 dark:border-red-900/50 bg-red-50 dark:bg-red-950/40 p-5 shadow-sm lg:p-6" aria-labelledby="still-shaky-title">
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <p className="mb-2 flex items-center gap-2 text-xs font-bold uppercase tracking-[0.18em] text-red-700 dark:text-red-400"><Brain className="h-4 w-4" /> Focus check-in</p>
-          <h2 id="still-shaky-title" className="text-2xl font-bold text-slate-950 dark:text-slate-100">Still shaky on this</h2>
-          <p className="mt-1 text-sm font-semibold text-red-800 dark:text-red-300">{weakArea.concept}</p>
+    <section
+      className="relative overflow-hidden rounded-3xl border border-amber-200/80 bg-gradient-to-br from-amber-50/60 via-white to-orange-50/40 p-5 shadow-sm dark:border-amber-600/30 dark:bg-gradient-to-br dark:from-[#1d2222] dark:via-[#18211f] dark:to-[#1d2222]"
+      aria-labelledby="weak-areas-title"
+    >
+      <div className="flex items-center justify-between gap-2 border-b border-amber-100 pb-3 dark:border-slate-800">
+        <div className="flex items-center gap-2">
+          <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300">
+            <BookOpen className="h-4 w-4" />
+          </span>
+          <div>
+            <h2 id="weak-areas-title" className="text-base font-bold text-slate-900 dark:text-white">
+              Concepts to Revisit
+            </h2>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {knowledgeGaps.length} topic{knowledgeGaps.length === 1 ? "" : "s"} identified for review
+            </p>
+          </div>
         </div>
-        <span className="rounded-full bg-white dark:bg-slate-900 px-3 py-1 text-xs font-semibold text-red-700 dark:text-red-400 border border-transparent dark:border-red-900/40">{weakArea.timesFailedOrHesitated} missed</span>
       </div>
-      <blockquote className="mt-5 border-l-4 border-red-300 dark:border-red-700 bg-white dark:bg-slate-900 p-4 text-base font-medium leading-7 text-slate-800 dark:text-slate-200 rounded-r-lg">“{weakArea.originalQuestion}”</blockquote>
-      <p className="mt-3 text-xs text-red-800 dark:text-red-300">Last attempted {new Date(weakArea.lastAttemptedAt).toLocaleDateString()}</p>
-      <button onClick={() => navigate(`/Study/${weakArea.sessionId}`)} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 dark:bg-red-700 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 dark:hover:bg-red-600">
-        Try Again <ArrowRight className="h-4 w-4" />
-      </button>
+
+      <div className="mt-3 space-y-2">
+        {knowledgeGaps.slice(0, 3).map((gap, index) => {
+          const topicName = typeof gap === "string" ? gap : gap?.topic || "Concept Review";
+          return (
+            <div
+              key={`${topicName}-${index}`}
+              className="flex items-center justify-between rounded-xl border border-amber-100 bg-white/80 px-3 py-2 text-xs dark:border-amber-900/40 dark:bg-slate-900/60"
+            >
+              <span className="truncate font-bold text-slate-800 dark:text-slate-200">{topicName}</span>
+              <button
+                type="button"
+                onClick={() => navigate("/Study")}
+                className="ml-2 inline-flex shrink-0 items-center gap-1 font-semibold text-amber-700 hover:underline dark:text-amber-300"
+              >
+                <span>Review</span>
+                <ArrowRight className="h-3 w-3" />
+              </button>
+            </div>
+          );
+        })}
+      </div>
     </section>
   );
 }
-
-export default WeakAreaCard;

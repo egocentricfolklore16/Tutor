@@ -1,218 +1,145 @@
-import React, { useEffect, useState } from "react";
-import Leaderboard from "./Leaderboard";
-import RecentActivity from "./RecentActivity";
-import PerformanceDashboard from "./AnalyticsDashboard";
-import StudyStreak from "./StudyStreak";
-import AISuggestions from "./AISuggestions";
+import React, { useState } from "react";
+import DashboardHero from "./DashboardHero";
 import KeepsSlipping from "./KeepsSlipping";
-import StudyCompanion from "../Study/studyEnviron/StudyCompanion";
-import DashboardStatsBar from "./DashboardStatsBar";
-import QuickShortcuts from "./QuickShortcuts";
-import CommunitySpotlight from "./CommunitySpotlight";
-import AchievementsCard from "./AchievementsCard";
-import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useProfile } from "../../app/ProfileContext";
-import { useGamification, DailyGoalRing, QuestList } from "../../features/gamification";
+import TodayPanel from "./TodayPanel";
+import WeeklyProgressChart from "./WeeklyProgressChart";
+import TimeBySubjectCard from "./TimeBySubjectCard";
+import WeakAreaCard from "./WeakAreaCard";
+import SocialSection from "./SocialSection";
+import RewardsSection from "./RewardsSection";
+import AISuggestions from "./AISuggestions";
+import StudyStreak from "./StudyStreak";
 import PageContainer from "../common/PageContainer";
-import supabase from "../../lib/supabase";
 import FeedbackDialog from "../common/FeedbackDialog";
-
-// Typing Animation Component
-const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
-  const [displayText, setDisplayText] = useState("");
-  const [isTyping, setIsTyping] = useState(true);
-
-  useEffect(() => {
-    if (!text) return;
-
-    let index = 0;
-    setDisplayText("");
-    setIsTyping(true);
-
-    const typingInterval = setInterval(() => {
-      if (index < text.length) {
-        setDisplayText(text.slice(0, index + 1));
-        index++;
-      } else {
-        setIsTyping(false);
-        clearInterval(typingInterval);
-      }
-    }, typingSpeed);
-
-    return () => clearInterval(typingInterval);
-  }, [text, typingSpeed]);
-
-  return (
-    <span>
-      {displayText}
-      {showCursor && isTyping && (
-        <span className="inline-block w-0.5 h-6 bg-green-600 ml-1 animate-pulse" />
-      )}
-    </span>
-  );
-};
+import { MessageSquare, Sparkles } from "lucide-react";
+import { useGamification } from "../../features/gamification";
 
 function Overview() {
-  const navigate = useNavigate();
-  const { profile, isLoading: isProfileLoading } = useProfile();
   const { streak } = useGamification();
   const { currentStreak, loading: streakLoading, error: streakError, refreshStreak } = streak;
-  const [userName, setUserName] = useState("");
-  const [_userId, setUserId] = useState(null);
-  const [todayMinutes, setTodayMinutes] = useState(0);
-  const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
-  const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
-  const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
-
-  const targetMinutes = profile?.daily_goal_minutes || 30;
-
-  useEffect(() => {
-    const getUserAndMinutes = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (user) {
-        setUserId(user.id);
-        const todayStr = new Date().toISOString().slice(0, 10);
-        const { data: tracking } = await supabase
-          .from("daily_session_tracking")
-          .select("total_duration_seconds")
-          .eq("user_id", user.id)
-          .eq("activity_date", todayStr)
-          .maybeSingle();
-
-        if (tracking?.total_duration_seconds) {
-          setTodayMinutes(Math.round(tracking.total_duration_seconds / 60));
-        }
-      }
-    };
-    getUserAndMinutes();
-  }, []);
-
-  useEffect(() => {
-    if (!isProfileLoading && userName) {
-      const rawUser = userName || "Guest";
-      const user = rawUser.split("?")[0];
-      const hour = new Date().getHours();
-      const timeOfDay = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-
-      setGreeting({
-        heading: `${timeOfDay}, ${user}`,
-        paragraph: knowledgeGaps.length
-          ? `You have ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"} to revisit before your next session.`
-          : "Pick up where you left off with a focused tutoring session.",
-      });
-    }
-  }, [isProfileLoading, userName, knowledgeGaps.length]);
-
-  useEffect(() => {
-    if (!isProfileLoading && profile) {
-      setUserName(profile.full_name || "Learner");
-    }
-  }, [isProfileLoading, profile]);
-
-  const streakDisplayLabel = streakLoading || currentStreak === null || streakError ? "–d Streak" : `${currentStreak}d Streak`;
 
   return (
     <PageContainer maxWidth="max-w-7xl">
-      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2 2xl:grid-cols-12">
-          <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"><Flame className="h-3.5 w-3.5" />{streakDisplayLabel}</span>
-            </div>
+      <div className="space-y-6 animate-fadeIn motion-reduce:animate-none">
+        {/* HERO SECTION */}
+        <section aria-label="Dashboard Hero">
+          <DashboardHero />
+        </section>
 
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
-                <h1 id="dashboard-greeting-title" className="min-w-0 truncate text-2xl font-bold text-slate-950 dark:text-white md:text-3xl"><span className="block truncate"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></span></h1>
-              </div>
-              <button type="button" onClick={() => navigate("/Study")} className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 sm:w-auto"><Bot className="h-4 w-4" />Ask AI &amp; Study</button>
-            </div>
+        {/* OVERDUE SESSIONS BANNER (If any overdue/slipping sessions exist) */}
+        <section aria-label="Keeps Slipping Alert">
+          <KeepsSlipping />
+        </section>
 
-            <p className="mt-2 truncate pl-14 text-sm text-slate-600 dark:text-slate-400">{greeting.paragraph}</p>
-            {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500 dark:text-slate-400">Focus: <span className="font-semibold text-slate-700 dark:text-slate-300">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
+        {/* TODAY SECTION (Countdown to next session, Deadlines, Daily Quests) */}
+        <section aria-label="Today Schedule and Quests">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              Today&apos;s Focus
+            </h2>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Schedule &amp; Quests
+            </span>
+          </div>
+          <TodayPanel />
+        </section>
 
-           <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
-  <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-    <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500 dark:bg-amber-500" />
-    <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-500" />
-    <strong className="truncate text-slate-800 dark:text-amber-400">
-      {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
-    </strong>
-    <span className="hidden truncate text-slate-500 dark:text-amber-500/70 sm:inline">
-      {knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}
-    </span>
-  </div>
-  <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-amber-400 dark:hover:text-amber-300 sm:ml-auto">
-    Review now <ArrowRight className="h-4 w-4" />
-  </button>
-</div>
-          </section>
-
-          {/* Keeps Slipping section placed directly below greeting banner */}
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <KeepsSlipping />
+        {/* PROGRESS SECTION (7-Day Chart + Time by Subject + Weak Areas) */}
+        <section aria-label="Learning Progress">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              Study Analytics
+            </h2>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Real Backend Data
+            </span>
           </div>
 
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <DashboardStatsBar />
-          </div>
-
-          {/* Daily Goal & Quests Suite */}
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12 grid gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <DailyGoalRing currentMinutes={todayMinutes} targetMinutes={targetMinutes} />
+          <div className="grid grid-cols-1 gap-5 lg:grid-cols-12">
+            <div className="lg:col-span-7 flex flex-col">
+              <WeeklyProgressChart />
             </div>
-            <div className="lg:col-span-8">
-              <QuestList />
+            <div className="lg:col-span-5 flex flex-col gap-5">
+              <TimeBySubjectCard />
+              <WeakAreaCard />
             </div>
           </div>
+        </section>
 
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <QuickShortcuts />
+        {/* REWARDS SECTION (Achievements + Level Roadmap) */}
+        <section aria-label="Level Roadmap and Achievements">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              Rewards &amp; Level Roadmap
+            </h2>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Gamification Progress
+            </span>
           </div>
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-8">
-            <PerformanceDashboard />
-          </div>
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-4">
-            <StudyCompanion topic={profile?.current_topic || "your studies"} />
-          </div>
+          <RewardsSection />
+        </section>
 
-          <div className="min-w-0 2xl:col-span-4">
-            <CommunitySpotlight />
+        {/* SOCIAL SECTION (Leaderboard + Community) */}
+        <section aria-label="Social Rankings and Community">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              Community &amp; Rankings
+            </h2>
+            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
+              Global Leaderboard
+            </span>
           </div>
-          <div className="min-w-0 2xl:col-span-4">
-            <AchievementsCard />
-          </div>
-          <div className="min-w-0 2xl:col-span-4">
-            <Leaderboard />
-          </div>
+          <SocialSection />
+        </section>
 
-          <div className="min-w-0 2xl:col-span-12">
-            <StudyStreak currentStreak={currentStreak} loading={streakLoading} error={streakError} onRetry={refreshStreak} />
+        {/* STREAK CELEBRATION CARD */}
+        <section aria-label="Study Streak Celebration">
+          <StudyStreak
+            currentStreak={currentStreak}
+            loading={streakLoading}
+            error={streakError}
+            onRetry={refreshStreak}
+          />
+        </section>
+
+        {/* AI SUGGESTIONS SECTION */}
+        <section aria-label="AI Recommendations">
+          <div className="mb-3 flex items-center gap-2">
+            <Sparkles className="h-5 w-5 text-amber-500" />
+            <h2 className="text-xl font-black text-slate-900 dark:text-white sm:text-2xl">
+              AI Tutor Recommendations
+            </h2>
           </div>
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <AISuggestions />
-          </div>
+          <AISuggestions />
+        </section>
       </div>
-      {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
-        <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
-        <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
-        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
-          <button
-            type="button"
-            onClick={() => setFeedbackOpen(true)}
-            className="flex items-center gap-2 cursor-pointer text-left focus:outline-none"
-          >
-            <span>Give us feedback!</span>
-            <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          </button>
-          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950 dark:bg-slate-700 dark:hover:bg-slate-600">×</button>
+
+      {/* Floating Feedback Dialog */}
+      {feedbackVisible && (
+        <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
+          <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
+            <button
+              type="button"
+              onClick={() => setFeedbackOpen(true)}
+              className="flex items-center gap-2 cursor-pointer text-left focus:outline-none"
+            >
+              <span>Give us feedback!</span>
+              <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+            </button>
+            <button
+              type="button"
+              title="Close feedback"
+              aria-label="Close feedback"
+              onClick={() => setFeedbackVisible(false)}
+              className="ml-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white transition hover:bg-slate-950 dark:bg-slate-700 dark:hover:bg-slate-600"
+            >
+              ×
+            </button>
+          </div>
         </div>
-      </div>}
+      )}
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </PageContainer>
   );

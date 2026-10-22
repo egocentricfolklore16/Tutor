@@ -12,13 +12,17 @@
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor prompt, Root Document Accessibility Classes (`high-contrast`, `accessibility-large-text`) | Used |
-| `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
+| `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings, Dashboard Community Spotlight | Used |
 
 ## Journal
 
 ## 2025-05-20 - Connecting Orphaned Collaboration Interest Field
 **Learning:** `collaboration_interest` was collected in Onboarding step 3 ("How would you like to learn with others?") and stored in `profiles.collaboration_interest`, but was never referenced in any UI component, Settings form, or AI context.
 **Action:** Connect `collaboration_interest` to `Community.jsx` to render a personalized Phase 2 community preview badge and add a preference control in `Settings.jsx` so changes propagate instantly via `ProfileContext`.
+
+## 2026-11-26 - Connecting Collaboration Interest to Dashboard Community Spotlight
+**Learning:** `collaboration_interest` was saved to `profiles.collaboration_interest` and rendered as a badge on the Community Hub header, but the Dashboard Overview `CommunitySpotlight` card always rendered generic static text ("Learn together - Find study partners, share a breakthrough...").
+**Action:** Create `getCommunitySpotlight` helper in `src/lib/collaboration.js` with tests in `test/collaboration_interest.test.js`, and connect it to `CommunitySpotlight.jsx` via `useProfile()` so the Dashboard card dynamically tailors its title and callout copy based on the student's collaboration preference ("Focus rooms ready", "Find your study group", "Ask & support peers", "Explore quietly").
 
 ## 2026-09-30 - Connecting Primary Goal to AI Tutor Prompt & Settings
 **Learning:** `primary_goal` was collected in Onboarding step 1 ("What is your primary goal?"), stored in `profiles.primary_goal`, and displayed in the Dashboard header, but was not passed to the AI Tutor system prompt or editable in Settings.

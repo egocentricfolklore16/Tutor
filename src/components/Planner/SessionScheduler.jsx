@@ -34,6 +34,12 @@ const SessionScheduler = ({
       }
     }
 
+    const durationNum = Number(newSession.duration);
+    if (!Number.isFinite(durationNum) || durationNum < 5 || durationNum > 720) {
+      setValidationError("Duration must be between 5 and 720 minutes.");
+      return;
+    }
+
     handleCreateSession();
   };
 

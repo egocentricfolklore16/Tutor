@@ -179,6 +179,22 @@ function PlannerActivityModal({
       return;
     }
 
+    if (form.date && form.startTime && !isDeadline) {
+      const selectedDateTime = new Date(`${form.date}T${form.startTime}:00`);
+      if (selectedDateTime < new Date()) {
+        setValidationError("Cannot schedule an activity in the past.");
+        return;
+      }
+    }
+
+    if (!isDeadline) {
+      const durationNum = Number(form.duration);
+      if (!Number.isFinite(durationNum) || durationNum < 5 || durationNum > 720) {
+        setValidationError("Duration must be between 5 and 720 minutes.");
+        return;
+      }
+    }
+
     if (isTimeBlock) {
       if (!form.startTime) {
         setValidationError("Please select a start time.");

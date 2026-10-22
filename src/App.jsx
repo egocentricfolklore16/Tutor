@@ -26,6 +26,7 @@ import NotificationsPage from "./components/Notifications/NotificationsPage.jsx"
 import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 import Shop from "./components/Shop/Shop.jsx";
 import { syncAndCheckAchievements } from "./lib/achievementSync.js";
+import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
 // Routing will be handled inside the BrowserRouter below
 
@@ -194,6 +195,7 @@ function App() {
         </div>
       ) : (
         <BrowserRouter>
+          <ScrollToTop />
           {session ? (
             <Routes>
               <Route path="/auth/callback" element={<AuthCallback />} />

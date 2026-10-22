@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 import Sidebar from "../components/Layout/Sidebar";
 import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
@@ -17,9 +17,22 @@ function GlobalStudyCompanion() {
 
 function Layout({ session, needsOnboarding }) {
   const [isOpen, setIsOpen] = useState(true);
+  const [isDesktop, setIsDesktop] = useState(() => {
+    if (typeof window === "undefined") return true;
+    return window.matchMedia("(min-width: 768px)").matches;
+  });
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const media = window.matchMedia("(min-width: 768px)");
+    const listener = (e) => setIsDesktop(e.matches);
+    media.addEventListener("change", listener);
+    return () => media.removeEventListener("change", listener);
+  }, []);
+
   const location = useLocation();
   const isStudyEnvironment = location.pathname.startsWith("/Study/");
-  const isSidebarExpanded = !isStudyEnvironment && !isOpen;
+  const isSidebarExpanded = isDesktop && !isStudyEnvironment && !isOpen;
   const toggleSidebar = () => {
     setIsOpen((prev) => !prev);
   };
@@ -58,17 +71,17 @@ function Layout({ session, needsOnboarding }) {
     <ProfileProvider user={user}>
       <AITutorProvider session={session}>
         <div className="mainapp">
-        <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />
+        {isDesktop && <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />}
 
         <div
           className={`pagecontent ${
             isSidebarExpanded ? "ml-0 md:ml-60" : "ml-0 md:ml-16"
           } transition-all duration-200 ease-in-out`}
           style={{
-            "--app-sidebar-width": isSidebarExpanded ? "15rem" : "4rem",
+            "--app-sidebar-width": isDesktop ? (isSidebarExpanded ? "15rem" : "4rem") : "0rem",
           }}
         >
-          <DashboardHeader title={pageTitle} toggleSidebar={toggleSidebar} />
+          <DashboardHeader title={pageTitle} toggleSidebar={isDesktop ? toggleSidebar : undefined} />
 
           {/* Post-install notification opt-in prompt for standalone launch / installed users */}
           {user?.id && isStandalone && !isStudyEnvironment && (

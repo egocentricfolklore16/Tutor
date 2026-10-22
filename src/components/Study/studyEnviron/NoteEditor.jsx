@@ -4,6 +4,7 @@ import { Download, FileText, Loader2, Mic, Sparkles, Trash2, X } from "lucide-re
 import supabase from "../../../lib/supabase";
 import invokeAiTutor from "../../../lib/aiTutor";
 import { syncAndCheckAchievements } from "../../../lib/achievementSync.js";
+import Modal from "../../common/ResponsiveSheet";
 
 const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
   const navigate = useNavigate();
@@ -302,105 +303,93 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
         </div>
       </div>
 
-      {showResourceOptions && (
-        <div className="fixed inset-0 z-[250] flex items-center justify-center bg-slate-950/50 p-4" role="presentation">
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="note-resource-options-title"
-            className="w-full max-w-lg rounded-2xl border border-slate-200 bg-white p-5 shadow-2xl dark:border-slate-700 dark:bg-slate-900"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 id="note-resource-options-title" className="text-lg font-bold text-slate-900 dark:text-slate-100">Create AI notes</h2>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Choose whether the tutor should use this session&apos;s uploaded resources.</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowResourceOptions(false)}
-                aria-label="Close resource options"
-                className="rounded-lg p-2 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"
-              >
-                <X className="h-4 w-4" />
-              </button>
+      <Modal
+        isOpen={showResourceOptions}
+        onClose={() => setShowResourceOptions(false)}
+        title="Create AI notes"
+        maxWidth="max-w-lg"
+        footer={
+          <div className="flex justify-end gap-2">
+            <button
+              type="button"
+              onClick={() => setShowResourceOptions(false)}
+              className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
+            >
+              Cancel
+            </button>
+            <button
+              type="button"
+              onClick={generateAiNote}
+              disabled={isGenerating || isLoadingResources || (useResources && resources.length > 0 && selectedResourceIds.length === 0)}
+              className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" /> Create notes
+            </button>
+          </div>
+        }
+      >
+        <div>
+          <p className="-mt-2 mb-4 text-sm text-slate-500 dark:text-slate-400">
+            Choose whether the tutor should use this session&apos;s uploaded resources.
+          </p>
+
+          <fieldset className="space-y-3">
+            <legend className="sr-only">Use uploaded resources</legend>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+              <input
+                type="radio"
+                name="note-resource-mode"
+                checked={useResources}
+                onChange={() => setUseResources(true)}
+                className="mt-1 accent-violet-700"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Use uploaded resources</span>
+                <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Choose specific files or include all readable files.</span>
+              </span>
+            </label>
+            <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
+              <input
+                type="radio"
+                name="note-resource-mode"
+                checked={!useResources}
+                onChange={() => setUseResources(false)}
+                className="mt-1 accent-violet-700"
+              />
+              <span>
+                <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Do not use uploaded resources</span>
+                <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Create notes from the session topic and existing notes only.</span>
+              </span>
+            </label>
+          </fieldset>
+
+          {useResources && (
+            <div className="mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
+              {isLoadingResources ? (
+                <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
+                  <Loader2 className="h-4 w-4 animate-spin" /> Checking uploaded resources...
+                </p>
+              ) : resources.length === 0 ? (
+                <p className="text-sm text-slate-500 dark:text-slate-400">No uploaded resources in this session.</p>
+              ) : resources.map((resource) => (
+                <label key={resource.id} className="flex cursor-pointer items-center gap-3 py-1 text-sm text-slate-700 dark:text-slate-200">
+                  <input
+                    type="checkbox"
+                    checked={selectedResourceIds.includes(String(resource.id))}
+                    onChange={(event) => setSelectedResourceIds((current) => (
+                      event.target.checked
+                        ? [...current, String(resource.id)]
+                        : current.filter((id) => id !== String(resource.id))
+                    ))}
+                    className="h-4 w-4 accent-violet-700"
+                  />
+                  <span className="min-w-0 truncate">{resource.title || "Untitled resource"}</span>
+                </label>
+              ))}
             </div>
-
-            <fieldset className="mt-5 space-y-3">
-              <legend className="sr-only">Use uploaded resources</legend>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                <input
-                  type="radio"
-                  name="note-resource-mode"
-                  checked={useResources}
-                  onChange={() => setUseResources(true)}
-                  className="mt-1 accent-violet-700"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Use uploaded resources</span>
-                  <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Choose specific files or include all readable files.</span>
-                </span>
-              </label>
-              <label className="flex cursor-pointer items-start gap-3 rounded-xl border border-slate-200 p-3 dark:border-slate-700">
-                <input
-                  type="radio"
-                  name="note-resource-mode"
-                  checked={!useResources}
-                  onChange={() => setUseResources(false)}
-                  className="mt-1 accent-violet-700"
-                />
-                <span>
-                  <span className="block text-sm font-semibold text-slate-900 dark:text-slate-100">Do not use uploaded resources</span>
-                  <span className="mt-0.5 block text-xs text-slate-500 dark:text-slate-400">Create notes from the session topic and existing notes only.</span>
-                </span>
-              </label>
-            </fieldset>
-
-            {useResources && (
-              <div className="mt-4 max-h-52 space-y-2 overflow-y-auto rounded-xl bg-slate-50 p-3 dark:bg-slate-800/60">
-                {isLoadingResources ? (
-                  <p className="flex items-center gap-2 text-sm text-slate-500 dark:text-slate-400">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Checking uploaded resources...
-                  </p>
-                ) : resources.length === 0 ? (
-                  <p className="text-sm text-slate-500 dark:text-slate-400">No uploaded resources in this session.</p>
-                ) : resources.map((resource) => (
-                  <label key={resource.id} className="flex cursor-pointer items-center gap-3 py-1 text-sm text-slate-700 dark:text-slate-200">
-                    <input
-                      type="checkbox"
-                      checked={selectedResourceIds.includes(String(resource.id))}
-                      onChange={(event) => setSelectedResourceIds((current) => (
-                        event.target.checked
-                          ? [...current, String(resource.id)]
-                          : current.filter((id) => id !== String(resource.id))
-                      ))}
-                      className="h-4 w-4 accent-violet-700"
-                    />
-                    <span className="min-w-0 truncate">{resource.title || "Untitled resource"}</span>
-                  </label>
-                ))}
-              </div>
-            )}
-
-            <div className="mt-5 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowResourceOptions(false)}
-                className="rounded-xl px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-              >
-                Cancel
-              </button>
-              <button
-                type="button"
-                onClick={generateAiNote}
-                disabled={isGenerating || isLoadingResources || (useResources && resources.length > 0 && selectedResourceIds.length === 0)}
-                className="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"
-              >
-                <Sparkles className="h-4 w-4" /> Create notes
-              </button>
-            </div>
-          </section>
+          )}
         </div>
-      )}
+      </Modal>
 
       {isLoading ? (
         <p className="py-8 text-center text-sm text-slate-500">Loading notes...</p>

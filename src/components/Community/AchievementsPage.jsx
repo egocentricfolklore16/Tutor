@@ -14,6 +14,7 @@ import supabase from "../../lib/supabase";
 import PageContainer from "../common/PageContainer";
 import AchievementIcon from "../common/AchievementIcon";
 import { syncAndCheckAchievements } from "../../lib/achievementSync.js";
+import Modal from "../common/ResponsiveSheet";
 
 export default function AchievementsPage({ targetUserId }) {
   const navigate = useNavigate();
@@ -237,15 +238,15 @@ export default function AchievementsPage({ targetUserId }) {
       )}
 
       {/* Badge Detail Modal */}
-      {selectedBadge && (
-        <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs"
-          onClick={() => setSelectedBadge(null)}
-        >
-          <div
-            className="w-full max-w-sm rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl dark:border-slate-800 dark:bg-[#14171c] text-center"
-            onClick={(e) => e.stopPropagation()}
-          >
+      <Modal
+        isOpen={Boolean(selectedBadge)}
+        onClose={() => setSelectedBadge(null)}
+        title={selectedBadge?.title || "Badge Detail"}
+        maxWidth="max-w-sm"
+        closeOnOverlayClick={true}
+      >
+        {selectedBadge && (
+          <div className="text-center">
             <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-amber-100 dark:bg-amber-950/50">
               <AchievementIcon
                 icon={selectedBadge.icon}
@@ -254,11 +255,7 @@ export default function AchievementsPage({ targetUserId }) {
               />
             </div>
 
-            <h3 className="mt-3 text-lg font-black text-slate-900 dark:text-white">
-              {selectedBadge.title}
-            </h3>
-
-            <p className="mt-1 text-xs text-slate-600 dark:text-slate-300">
+            <p className="mt-3 text-xs text-slate-600 dark:text-slate-300">
               {selectedBadge.description}
             </p>
 
@@ -278,8 +275,8 @@ export default function AchievementsPage({ targetUserId }) {
               Close
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
     </PageContainer>
   );
 }

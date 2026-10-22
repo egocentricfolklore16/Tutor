@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { ExternalLink, Download, Loader2, RefreshCw, AlertCircle, X } from "lucide-react";
+import { ExternalLink, Download, Loader2, RefreshCw, AlertCircle } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { getResourceSignedUrl, sanitizeUrl } from "../../lib/communityChat";
+import Modal from "../common/ResponsiveSheet";
 
 function formatFileSize(bytes) {
   if (!bytes || isNaN(bytes) || Number(bytes) <= 0) return null;
@@ -205,26 +206,21 @@ export default function ResourceCard({ resourceId, isOwn = false, isOptimistic =
         />
 
         {/* Fullscreen Lightbox Modal */}
-        {isFullscreenImage && (
-          <div
-            className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/90 p-4 backdrop-blur-sm"
-            onClick={() => setIsFullscreenImage(false)}
-          >
-            <button
-              type="button"
-              aria-label="Close picture"
-              onClick={() => setIsFullscreenImage(false)}
-              className="absolute top-4 right-4 z-10 rounded-full bg-black/60 p-2 text-white hover:bg-black/80 transition"
-            >
-              <X className="h-5 w-5" />
-            </button>
+        <Modal
+          isOpen={isFullscreenImage}
+          onClose={() => setIsFullscreenImage(false)}
+          title={displayTitle}
+          maxWidth="max-w-4xl"
+          closeOnOverlayClick={true}
+        >
+          <div className="flex items-center justify-center p-2">
             <img
               src={imageUrl}
               alt={displayTitle}
-              className="max-h-[90vh] max-w-[90vw] rounded-xl object-contain"
+              className="max-h-[80vh] max-w-full rounded-xl object-contain"
             />
           </div>
-        )}
+        </Modal>
       </div>
     );
   }

@@ -1,13 +1,27 @@
+/*
+ * REGRESSION PREVENTION / WHY THIS COMPONENT USES A REACT PORTAL:
+ * CSS `position: fixed` elements are positioned relative to the viewport EXCEPT when an ancestor element
+ * has CSS properties that establish a new containing block (such as `transform`, `perspective`, `filter`,
+ * `backdrop-filter`, `contain`, `will-change`, or animations like scale/translate).
+ * Rendering modals inline inside nested card components causes fixed dialogs to center inside the card
+ * instead of the screen viewport, forcing users to scroll down the page to find them.
+ *
+ * Therefore, ALL dialogs/modals/sheets MUST be rendered through `createPortal(..., document.body)`
+ * using this shared `<Modal />` / `<ResponsiveSheet />` component.
+ */
+
 import React, { useEffect, useId, useRef } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { Z_INDEX } from "../../constants/zIndex";
 
 // Global counter for active open modals to safely lock document.body scroll across stacked modals
 let activeModalCount = 0;
+let previousBodyOverflow = "";
 
 /**
- * Centered Modal component ( re-exported as Modal and ResponsiveSheet )
- * Enforces centered positioning, scroll-locking, focus management, and accessible structure.
+ * Shared Viewport-Centered Modal component (re-exported as Modal and ResponsiveSheet)
+ * Enforces true viewport centering, body scroll-locking, focus management, and accessible structure.
  */
 export function ResponsiveSheet({
   isOpen,
@@ -19,6 +33,7 @@ export function ResponsiveSheet({
   maxWidth = "max-w-lg",
   closeOnOverlayClick = true,
   disableEscapeKey = false,
+  isSheet = false, // When true on small screens under 640px, aligns to bottom as sheet. Default false (viewport centered).
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
@@ -30,14 +45,17 @@ export function ResponsiveSheet({
     // Save previous active element for focus restoration upon modal close
     previousFocusedElementRef.current = document.activeElement;
 
+    if (activeModalCount === 0) {
+      previousBodyOverflow = document.body.style.overflow;
+      document.body.style.overflow = "hidden";
+    }
     activeModalCount += 1;
-    document.body.style.overflow = "hidden";
 
     // Focus first focusable element or panel itself
     const timer = setTimeout(() => {
       if (panelRef.current) {
         const focusable = panelRef.current.querySelectorAll(
-          'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
         );
         if (focusable.length > 0) {
           focusable[0].focus();
@@ -81,10 +99,13 @@ export function ResponsiveSheet({
 
       activeModalCount = Math.max(0, activeModalCount - 1);
       if (activeModalCount === 0) {
-        document.body.style.overflow = "";
+        document.body.style.overflow = previousBodyOverflow || "";
       }
 
-      if (previousFocusedElementRef.current && typeof previousFocusedElementRef.current.focus === "function") {
+      if (
+        previousFocusedElementRef.current &&
+        typeof previousFocusedElementRef.current.focus === "function"
+      ) {
         previousFocusedElementRef.current.focus();
       }
     };
@@ -98,16 +119,26 @@ export function ResponsiveSheet({
     }
   };
 
+  const containerAlignmentClass = isSheet
+    ? "items-end sm:items-center"
+    : "items-center";
+
+  const panelRoundedClass = isSheet
+    ? "rounded-t-3xl sm:rounded-2xl"
+    : "rounded-2xl";
+
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-150 motion-reduce:animate-none"
+      className={`fixed inset-0 flex justify-center p-2 sm:p-4 bg-slate-950/60 backdrop-blur-sm animate-in fade-in duration-150 motion-reduce:animate-none ${containerAlignmentClass}`}
+      style={{ zIndex: Z_INDEX.MODAL_BACKDROP }}
       onMouseDown={handleOverlayMouseDown}
       role="presentation"
     >
       <div
         ref={panelRef}
         tabIndex={-1}
-        className={`relative flex w-full ${maxWidth} max-h-[90dvh] sm:max-h-[85dvh] flex flex-col rounded-2xl bg-white shadow-2xl transition-all dark:bg-[#14171c] dark:text-slate-100 animate-in zoom-in-95 duration-150 motion-reduce:animate-none outline-none ${className}`}
+        style={{ zIndex: Z_INDEX.MODAL_PANEL }}
+        className={`relative flex w-full ${maxWidth} max-h-[calc(100dvh-2rem)] flex-col ${panelRoundedClass} bg-white shadow-2xl transition-all dark:bg-[#14171c] dark:text-slate-100 animate-in zoom-in-95 duration-150 motion-reduce:animate-none outline-none ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}
@@ -132,7 +163,7 @@ export function ResponsiveSheet({
         </div>
 
         {/* Scrollable Body */}
-        <div className="flex-1 min-h-0 overflow-y-auto p-5">
+        <div className="flex-1 min-h-0 overflow-y-auto p-5 pb-safe">
           {children}
         </div>
 

@@ -1,14 +1,4 @@
-## 2025-05-10 - IDOR in Supabase Edge Functions with Service Role Clients
-**Vulnerability:** Edge Functions receiving standard user Auth JWT tokens used Supabase service role clients to query or mutate user data using request parameters (like `requestBody.userId`) without verifying that the parameter matched `user.id`.
-**Learning:** Authenticated user tokens confirm identity (`user.id`), but using `adminClient` (service role) bypasses Row Level Security (RLS). Any parameter passed in the request body that specifies a target user ID must be validated against `user.id` or restricted to `user.id`.
-**Prevention:** Always assert `if (requestBody.userId && requestBody.userId !== user.id) return 403 Forbidden` before invoking `adminClient` operations on behalf of an authenticated caller.
-
-## 2025-05-22 - Missing Authentication Guard on Edge Functions with Service Role Client
-**Vulnerability:** The `ai-tutor-chat` Edge Function allowed unauthenticated requests, falling back to anonymous defaults instead of rejecting missing or invalid JWT tokens with HTTP 401 Unauthorized.
-**Learning:** Edge Functions initialized with `SUPABASE_SERVICE_ROLE_KEY` bypass Row Level Security. Failing to strictly enforce JWT verification allows unauthenticated callers to trigger LLM API calls and write to internal tables like `ai_error_log`.
-**Prevention:** Always check for `Authorization` header and validate JWT via `supabase.auth.getUser(token)` returning `HTTP 401` immediately if missing or invalid.
-
-## 2025-05-28 - Unauthenticated Background Cron Edge Functions Operating with Service Role
-**Vulnerability:** Background job / cron Edge Functions (like `planner-reminders`) that execute with `SUPABASE_SERVICE_ROLE_KEY` lacked authentication headers or secret validation, allowing anonymous HTTP callers to trigger background tasks and database mutations.
-**Learning:** Cron and internal worker Edge Functions bypass RLS by using service role keys. Without validating `x-cron-secret` or `Authorization` Bearer tokens, external callers can spam the endpoint, cause database contention, or mutate data.
-**Prevention:** Always authenticate background/cron Edge Functions by validating `x-cron-secret` or `Authorization: Bearer <secret>` using timing-safe string comparison before executing service role operations.
+## 2025-10-01 - Edge Function Authorization and Metadata User ID Verification
+**Vulnerability:** Edge Functions that execute elevated operations via `SUPABASE_SERVICE_ROLE_KEY` (such as payment or subscription fulfillment) did not check the `Authorization` header or verify that the calling user matched the transaction's target `user_id`.
+**Learning:** Service role client invocations bypass Row Level Security (RLS). Any Edge Function performing write actions with service role credentials must explicitly validate the caller's JWT with `supabaseUserClient.auth.getUser()` and verify that `user.id` matches the domain object/metadata ownership before processing.
+**Prevention:** Always extract `Authorization` header, validate `auth.getUser()`, and assert `user.id === targetUserId` in Edge Functions using service role keys.

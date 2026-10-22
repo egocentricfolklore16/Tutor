@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { BookOpen, CalendarCheck, Clock3, Library, Target } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toDate } from "../../lib/dates";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import AchievementsCard from "../Dashboard/AchievementsCard";
@@ -8,8 +9,8 @@ import Leaderboard from "../Dashboard/Leaderboard";
 import { useGamification, LevelRoadmap } from "../../features/gamification";
 
 const dateKey = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  const date = toDate(value);
+  return date ? date.toISOString().slice(0, 10) : "";
 };
 
 function Progress() {
@@ -62,7 +63,10 @@ function Progress() {
     const now = new Date();
     const today = new Date(now);
     today.setHours(23, 59, 59, 999);
-    const pastSessions = sessions.filter((item) => new Date(item.Date) <= today);
+    const pastSessions = sessions.filter((item) => {
+      const d = toDate(item.Date);
+      return d && d <= today;
+    });
     const plannedHours = sessions.reduce((total, item) => total + (Number.parseFloat(item.Duration) || 0), 0);
     const completedHours = pastSessions.reduce((total, item) => total + (Number.parseFloat(item.Duration) || 0), 0);
     const studyDays = new Set(pastSessions.map((item) => dateKey(item.Date)).filter(Boolean)).size;

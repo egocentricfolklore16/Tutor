@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { MessageSquare, Search, Users, Loader2, Plus, UserPlus } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toTime } from "../../lib/dates";
 import { formatRelativeTime, calculateUnreadCount } from "../../lib/communityChat";
 import FriendPicker from "./FriendPicker";
 
@@ -198,7 +199,7 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
 
       // Sort by latest message time
       convList.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        (a, b) => toTime(b.updatedAt) - toTime(a.updatedAt)
       );
 
       setConversations(convList);

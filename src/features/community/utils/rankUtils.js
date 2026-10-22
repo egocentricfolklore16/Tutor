@@ -24,6 +24,8 @@ export function formatMetricValue(value, metric = "xp") {
 /**
  * Calculate countdown string for weekly reset (resets Monday 00:00 UTC)
  */
+import { toTime } from "../../../lib/dates.js";
+
 export function getWeeklyResetCountdown() {
   const now = new Date();
   const day = now.getUTCDay();
@@ -38,7 +40,7 @@ export function getWeeklyResetCountdown() {
       0
     )
   );
-  const diffMs = Math.max(0, nextMon.getTime() - now.getTime());
+  const diffMs = Math.max(0, toTime(nextMon) - toTime(now));
   const hours = Math.floor(diffMs / (1000 * 60 * 60));
   const d = Math.floor(hours / 24);
   const h = hours % 24;

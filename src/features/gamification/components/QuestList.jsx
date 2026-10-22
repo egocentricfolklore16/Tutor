@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { AlertCircle, CheckCircle2, Clock, Loader2, RotateCcw, Sparkles, Target, Trophy } from "lucide-react";
+import { toDate, toTime } from "../../../lib/dates";
 import { gamificationService } from "../services/gamificationService.js";
 import { useProfile } from "../../../app/ProfileContext.jsx";
 
@@ -14,11 +15,11 @@ function GemIcon({ className = "h-3.5 w-3.5 text-cyan-500" }) {
 
 function formatResetTime(isoString) {
   if (!isoString) return "Resets 3:00 AM";
-  const date = new Date(isoString);
-  if (isNaN(date.getTime())) return "Resets 3:00 AM";
+  const date = toDate(isoString);
+  if (!date) return "Resets 3:00 AM";
 
   const now = new Date();
-  const diffMs = date.getTime() - now.getTime();
+  const diffMs = toTime(date) - toTime(now);
   const localTimeString = date.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
 
   if (diffMs <= 0) return `Resets ${localTimeString}`;

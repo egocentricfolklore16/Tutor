@@ -1,3 +1,5 @@
+import { toDate, toTime } from './dates.js';
+
 const LOCAL_STORAGE_KEY = 'hyper_tutor_planner_defaults';
 
 /**
@@ -263,12 +265,12 @@ export function suggestNextFreeSlot(startAtDate, durationMinutes, conflicts = []
   let attempts = 0;
 
   while (attempts < maxAttempts) {
-    const candStart = candidate.getTime();
+    const candStart = toTime(candidate);
     const candEnd = candStart + durationMinutes * 60000;
 
     const hasConflict = conflicts.some((c) => {
-      const cStart = new Date(c.start_at).getTime();
-      const cEnd = new Date(c.end_at).getTime();
+      const cStart = toTime(c.start_at);
+      const cEnd = toTime(c.end_at);
       return candStart < cEnd && candEnd > cStart;
     });
 
@@ -282,7 +284,7 @@ export function suggestNextFreeSlot(startAtDate, durationMinutes, conflicts = []
     }
 
     // Shift candidate by 30 minutes
-    candidate = new Date(candidate.getTime() + 30 * 60000);
+    candidate = new Date(toTime(candidate) + 30 * 60000);
     attempts++;
   }
 
@@ -300,7 +302,7 @@ export function getSessionStartMs(session) {
   }
 
   const d = getSessionStartDate(session);
-  return d ? d.getTime() : 0;
+  return toTime(d);
 }
 
 /**
@@ -309,8 +311,8 @@ export function getSessionStartMs(session) {
 export function getSessionStartDate(session) {
   if (!session) return null;
 
-  if (session.date instanceof Date && !isNaN(session.date.getTime())) {
-    return session.date;
+  if (session.date instanceof Date) {
+    return toDate(session.date);
   }
 
   const dateStr = session.Date || (typeof session.date === 'string' ? session.date : null);
@@ -323,18 +325,18 @@ export function getSessionStartDate(session) {
       const timeParts = String(timeStr).split(':').map(Number);
       const hours = !isNaN(timeParts[0]) ? timeParts[0] : 0;
       const minutes = !isNaN(timeParts[1]) ? timeParts[1] : 0;
-      return new Date(year, month - 1, day, hours, minutes, 0, 0);
+      return toDate(new Date(year, month - 1, day, hours, minutes, 0, 0));
     }
   }
 
   if (session.scheduled_start) {
-    const d = new Date(session.scheduled_start);
-    if (!isNaN(d.getTime())) return d;
+    const d = toDate(session.scheduled_start);
+    if (d) return d;
   }
 
   if (session.date) {
-    const d = new Date(session.date);
-    if (!isNaN(d.getTime())) return d;
+    const d = toDate(session.date);
+    if (d) return d;
   }
 
   return null;
@@ -367,7 +369,7 @@ export function isSlipping(session, now = new Date()) {
   const startMs = getSessionStartMs(session);
   if (!startMs) return false;
 
-  const nowMs = typeof now === 'number' ? now : now.getTime();
+  const nowMs = typeof now === 'number' ? now : toTime(now);
   const diffMs = nowMs - startMs;
   // More than 60 minutes overdue (> 3,600,000 ms)
   return diffMs > 60 * 60 * 1000;
@@ -382,7 +384,7 @@ export function getOverdueDuration(session, now = new Date()) {
     return { hours: 0, minutes: 0, totalMinutes: 0, display: '0m overdue' };
   }
 
-  const nowMs = typeof now === 'number' ? now : now.getTime();
+  const nowMs = typeof now === 'number' ? now : toTime(now);
   const diffMs = Math.max(0, nowMs - startMs);
   const totalMinutes = Math.floor(diffMs / 60000);
   const hours = Math.floor(totalMinutes / 60);

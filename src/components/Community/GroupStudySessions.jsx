@@ -11,6 +11,7 @@ import {
   Loader2,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toDate, toTime } from "../../lib/dates";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
 function AvatarItem({ prof }) {
@@ -298,7 +299,7 @@ export default function GroupStudySessions({
 
             const goingUsers = parts.filter((p) => p.status === "going");
 
-            const startTime = new Date(sess.scheduled_start).getTime();
+            const startTime = toTime(sess.scheduled_start);
             const now = Date.now();
             const tenMinutesBefore = startTime - 10 * 60 * 1000;
 
@@ -322,12 +323,12 @@ export default function GroupStudySessions({
                     <p className="text-xs text-slate-500 flex items-center gap-2 mt-1">
                       <span className="flex items-center gap-1">
                         <Calendar className="h-3.5 w-3.5" />
-                        {new Date(sess.scheduled_start).toLocaleString(undefined, {
+                        {toDate(sess.scheduled_start)?.toLocaleString(undefined, {
                           month: "short",
                           day: "numeric",
                           hour: "numeric",
                           minute: "2-digit",
-                        })}
+                        }) ?? "Scheduled"}
                       </span>
                       <span>·</span>
                       <span className="flex items-center gap-1">

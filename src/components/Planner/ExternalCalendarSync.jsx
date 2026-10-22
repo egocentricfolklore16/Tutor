@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { AlertCircle, CheckCircle, ExternalLink, Loader2 } from "lucide-react";
 import supabase from "../../lib/supabase.js";
+import { toDate, toTime } from "../../lib/dates.js";
 
 function toGoogleEvent(studySession) {
-  const start = new Date(studySession.date);
+  const start = toDate(studySession.date) || new Date();
   const [hours, minutes] = (studySession?.startTime || "09:00").split(":").map(Number);
   start.setHours(hours || 9, minutes || 0, 0, 0);
-  const end = new Date(start.getTime() + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
+  const end = new Date(toTime(start) + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   return {
     summary: studySession.title || studySession.subject || "Hyper Tutor Study Session",
     description: `Planned In Hyper Tutor${studySession.subject ? `\nSubject: ${studySession.subject}` : ""}`,
@@ -43,7 +44,10 @@ function ExternalCalendarSync({ sessions = [] }) {
       setMessage("Reconnect With Google And Allow Calendar Events Access Before Syncing.");
       return;
     }
-    const upcomingSessions = sessions.filter((item) => item.date && new Date(item.date) >= new Date()).slice(0, 50);
+    const upcomingSessions = sessions.filter((item) => {
+      const d = toDate(item.date);
+      return d && d >= new Date();
+    }).slice(0, 50);
     if (!upcomingSessions.length) {
       setStatus("error");
       setMessage("Create A Future Study Session Before Syncing.");

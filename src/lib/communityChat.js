@@ -1,3 +1,5 @@
+import { toDate, toTime } from "./dates.js";
+
 /**
  * Community Chat & Notifications Helper Utilities
  */
@@ -9,11 +11,11 @@
 export function formatRelativeTime(dateInput) {
   if (!dateInput) return "just now";
 
-  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
-  if (Number.isNaN(date.getTime())) return "just now";
+  const date = toDate(dateInput);
+  if (!date) return "just now";
 
   const now = new Date();
-  const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
+  const diffInSeconds = Math.floor((toTime(now) - toTime(date)) / 1000);
 
   if (diffInSeconds < 30) return "just now";
   if (diffInSeconds < 60) return `${diffInSeconds}s ago`;
@@ -39,13 +41,13 @@ export function formatRelativeTime(dateInput) {
  */
 export function formatDateSectionLabel(dateInput, now = new Date()) {
   if (!dateInput) return "Today";
-  const date = dateInput instanceof Date ? dateInput : new Date(dateInput);
-  if (Number.isNaN(date.getTime())) return "Today";
+  const date = toDate(dateInput);
+  if (!date) return "Today";
 
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
 
-  const diffInDays = Math.round((today.getTime() - target.getTime()) / (1000 * 60 * 60 * 24));
+  const diffInDays = Math.round((toTime(today) - toTime(target)) / (1000 * 60 * 60 * 24));
 
   if (diffInDays === 0) return "Today";
   if (diffInDays === 1) return "Yesterday";
@@ -83,7 +85,7 @@ export function groupMessagesByDateAndSender(messages = []) {
 
   for (let i = 0; i < messages.length; i++) {
     const msg = messages[i];
-    const time = msg && msg.created_at ? new Date(msg.created_at).getTime() : 0;
+    const time = msg && msg.created_at ? toTime(msg.created_at) : 0;
     if (time < prevTime) {
       isSorted = false;
     }
@@ -149,13 +151,12 @@ export function calculateUnreadCount(messages = [], lastReadAt = null, currentUs
     return messages.filter((m) => m.sender_id !== currentUserId).length;
   }
 
-  const lastReadTime = new Date(lastReadAt).getTime();
-  if (Number.isNaN(lastReadTime)) return 0;
+  const lastReadTime = toTime(lastReadAt);
 
   return messages.filter(
     (m) =>
       m.sender_id !== currentUserId &&
-      new Date(m.created_at).getTime() > lastReadTime
+      toTime(m.created_at) > lastReadTime
   ).length;
 }
 

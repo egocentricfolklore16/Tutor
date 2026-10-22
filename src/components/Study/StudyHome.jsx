@@ -19,6 +19,7 @@ import {
   X,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toDate, toTime } from "../../lib/dates";
 import { useProfile } from "../../app/ProfileContext";
 import { deleteSession } from "../../lib/sessionService";
 import { useGamification } from "../../features/gamification";
@@ -34,14 +35,14 @@ const DURATION_PRESETS = [25, 45, 60, 90];
 const pad = (value) => String(value).padStart(2, "0");
 
 const localDateString = (input = new Date()) => {
-  const date = input instanceof Date ? input : new Date(input);
-  if (!date || Number.isNaN(date.getTime())) return "";
+  const date = toDate(input);
+  if (!date) return "";
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
 };
 
 const localDateTime = (date, time) => {
   if (!date) return new Date(NaN);
-  if (date instanceof Date) return date;
+  if (date instanceof Date) return toDate(date) ?? new Date(NaN);
   const cleanDate = String(date).split("T")[0];
   const timeStr = String(time || "00:00").slice(0, 5);
   return new Date(`${cleanDate}T${timeStr}:00`);
@@ -63,8 +64,8 @@ const formatDuration = (minutes) => {
 
 const formatSessionDate = (date, time) => {
   if (!date) return "Date not set";
-  const stamp = localDateTime(date, time);
-  if (!stamp || Number.isNaN(stamp.getTime())) return "Date not set";
+  const stamp = toDate(localDateTime(date, time));
+  if (!stamp) return "Date not set";
   try {
     const formatted = new Intl.DateTimeFormat("en-US", {
       weekday: "short",
@@ -80,10 +81,10 @@ const formatSessionDate = (date, time) => {
 };
 
 const formatRelative = (date, time) => {
-  const stamp = localDateTime(date, time);
-  if (!stamp || Number.isNaN(stamp.getTime())) return "Scheduled";
+  const stamp = toDate(localDateTime(date, time));
+  if (!stamp) return "Scheduled";
   const now = new Date();
-  const diffMs = stamp.getTime() - now.getTime();
+  const diffMs = toTime(stamp) - toTime(now);
   const minutes = Math.ceil(diffMs / 60000);
 
   if (minutes < 0) return "Overdue";
@@ -100,8 +101,8 @@ const formatRelative = (date, time) => {
 
 const isActuallyRunning = (session, now = Date.now()) => {
   if (normalizeStatus(session?.session_status) !== "active" || !session?.last_active_at) return false;
-  const heartbeat = new Date(session.last_active_at).getTime();
-  return Number.isFinite(heartbeat) && now - heartbeat < 90000;
+  const heartbeat = toTime(session.last_active_at);
+  return heartbeat > 0 && now - heartbeat < 90000;
 };
 
 const localWeekStart = (date = new Date()) => {
@@ -112,8 +113,8 @@ const localWeekStart = (date = new Date()) => {
 
 const historyDateLabel = (value) => {
   if (!value) return "Date unavailable";
-  const date = new Date(value);
-  if (!date || Number.isNaN(date.getTime())) return "Date unavailable";
+  const date = toDate(value);
+  if (!date) return "Date unavailable";
   const today = localDateString();
   const yesterday = new Date();
   yesterday.setDate(yesterday.getDate() - 1);
@@ -250,14 +251,14 @@ function StudyHome() {
     if (!form.subject.trim() || !form.topic.trim() || !form.status || !form.date || !form.time) return false;
     const hours = Number(form.hours);
     if (!Number.isFinite(hours) || hours <= 0 || hours > 100) return false;
-    const start = localDateTime(form.date, form.time);
-    if (!start || Number.isNaN(start.getTime()) || start <= new Date()) return false;
+    const start = toDate(localDateTime(form.date, form.time));
+    if (!start || start <= new Date()) return false;
     const end = new Date(start.getTime() + hours * 3600000);
 
     return !(sessions ?? []).some((other) => {
       if (!other || String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
-      const otherStart = localDateTime(other.Date ?? other.date, other.Start ?? other.start_time ?? other.time);
-      if (!otherStart || Number.isNaN(otherStart.getTime())) return false;
+      const otherStart = toDate(localDateTime(other.Date ?? other.date, other.Start ?? other.start_time ?? other.time));
+      if (!otherStart) return false;
       const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
       return start < otherEnd && end > otherStart;
     });
@@ -265,8 +266,8 @@ function StudyHome() {
 
   const validationMessage = useMemo(() => {
     if (form.date && form.time) {
-      const start = localDateTime(form.date, form.time);
-      if (start && !Number.isNaN(start.getTime()) && start <= new Date()) {
+      const start = toDate(localDateTime(form.date, form.time));
+      if (start && start <= new Date()) {
         return "Choose a future date and time.";
       }
     }
@@ -275,13 +276,13 @@ function StudyHome() {
       return "Duration must be greater than 0 and no more than 100 hours.";
     }
     if (form.date && form.time && hours > 0 && hours <= 100) {
-      const start = localDateTime(form.date, form.time);
-      if (start && !Number.isNaN(start.getTime())) {
+      const start = toDate(localDateTime(form.date, form.time));
+      if (start) {
         const end = new Date(start.getTime() + hours * 3600000);
         const overlap = (sessions ?? []).some((other) => {
           if (!other || String(other.id) === String(editingId) || normalizeStatus(other.session_status) === "completed") return false;
-          const otherStart = localDateTime(other.Date ?? other.date, other.Start ?? other.start_time ?? other.time);
-          if (!otherStart || Number.isNaN(otherStart.getTime())) return false;
+          const otherStart = toDate(localDateTime(other.Date ?? other.date, other.Start ?? other.start_time ?? other.time));
+          if (!otherStart) return false;
           const otherEnd = new Date(otherStart.getTime() + sessionDurationHours(other) * 3600000);
           return start < otherEnd && end > otherStart;
         });
@@ -429,8 +430,8 @@ function StudyHome() {
 
       const itemDate = item.Date ?? item.date;
       const itemStart = item.Start ?? item.start_time ?? item.time;
-      const start = localDateTime(itemDate, itemStart);
-      if (start && !Number.isNaN(start.getTime()) && start < new Date(clockNow)) {
+      const start = toDate(localDateTime(itemDate, itemStart));
+      if (start && start < new Date(clockNow)) {
         overdue.push(item);
       } else if (itemDate === today) {
         todayItems.push(item);
@@ -442,8 +443,8 @@ function StudyHome() {
     const byStart = (left, right) => {
       const leftStart = localDateTime(left?.Date ?? left?.date, left?.Start ?? left?.start_time ?? left?.time);
       const rightStart = localDateTime(right?.Date ?? right?.date, right?.Start ?? right?.start_time ?? right?.time);
-      const leftTime = leftStart && !Number.isNaN(leftStart.getTime()) ? leftStart.getTime() : 0;
-      const rightTime = rightStart && !Number.isNaN(rightStart.getTime()) ? rightStart.getTime() : 0;
+      const leftTime = toTime(leftStart);
+      const rightTime = toTime(rightStart);
       return leftTime - rightTime;
     };
 
@@ -472,9 +473,9 @@ function StudyHome() {
     const query = (historySearch || "").trim().toLowerCase();
     return (history ?? []).filter((item) => {
       if (!item) return false;
-      const completed = item.completed_at ? new Date(item.completed_at) : null;
+      const completed = toDate(item.completed_at);
       if (subjectFilter !== "all" && item.subject?.toLowerCase() !== subjectFilter.toLowerCase()) return false;
-      if (rangeStart && (!completed || Number.isNaN(completed.getTime()) || completed < rangeStart)) return false;
+      if (rangeStart && (!completed || completed < rangeStart)) return false;
       if (query && !`${item.subject || ""} ${item.topic || ""}`.toLowerCase().includes(query)) return false;
       return true;
     });
@@ -511,8 +512,8 @@ function StudyHome() {
     const weekStart = localWeekStart(new Date(clockNow));
     const weekHistory = (history ?? []).filter((item) => {
       if (!item?.completed_at) return false;
-      const d = new Date(item.completed_at);
-      return !Number.isNaN(d.getTime()) && d >= weekStart;
+      const d = toDate(item.completed_at);
+      return d && d >= weekStart;
     });
     const xpThisWeek = weekHistory.reduce((total, item) => total + (Number(item?.xp_earned) || 0), 0);
     const sessionsThisWeek = weekHistory.length;
@@ -547,8 +548,8 @@ function StudyHome() {
     const itemSubject = item.Subject ?? item.subject;
     const itemStatus = item.Status ?? item.status;
 
-    const startDateTime = localDateTime(itemDate, itemStart);
-    const overdue = !running && !paused && startDateTime && !Number.isNaN(startDateTime.getTime()) && startDateTime < new Date(clockNow);
+    const startDateTime = toDate(localDateTime(itemDate, itemStart));
+    const overdue = !running && !paused && startDateTime && startDateTime < new Date(clockNow);
 
     const plannedSeconds = sessionDurationHours(item) * 3600;
     const elapsed = Math.min(sessionElapsedSeconds(item), plannedSeconds || sessionElapsedSeconds(item));
@@ -941,8 +942,8 @@ function StudyHome() {
                           </h4>
                           <p className="truncate text-sm text-slate-500 dark:text-slate-400">
                             {titleCase(item.subject)} ·{" "}
-                            {item.completed_at && !Number.isNaN(new Date(item.completed_at).getTime())
-                              ? new Date(item.completed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
+                            {item.completed_at && toDate(item.completed_at)
+                              ? toDate(item.completed_at).toLocaleTimeString([], { hour: "numeric", minute: "2-digit" })
                               : "Time unavailable"}
                           </p>
                         </div>

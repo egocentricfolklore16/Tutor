@@ -1,3 +1,5 @@
+import { toDate, toTime } from "./dates.js";
+
 export const defaultNotificationPreferences = {
   browserPush: true,
   inApp: true,
@@ -56,27 +58,27 @@ export function resolveSessionDateTime(session) {
   if (session.type === "deadline" || session.due_date || session.deadline) {
     const rawDueDate = session.due_date || session.deadline || session.date;
     if (!rawDueDate) return null;
-    const baseDate = new Date(`${rawDueDate}T09:00:00`);
-    return Number.isNaN(baseDate.getTime()) ? null : baseDate;
+    const baseDate = toDate(`${rawDueDate}T09:00:00`);
+    return baseDate;
   }
 
   const rawDate = session.Date ?? session.date ?? session.scheduled_start;
   let baseDate;
 
   if (rawDate instanceof Date) {
-    baseDate = new Date(rawDate);
+    baseDate = toDate(rawDate);
   } else if (typeof rawDate === "string") {
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
       const [year, month, day] = rawDate.split("-").map(Number);
-      baseDate = new Date(year, month - 1, day);
+      baseDate = toDate(new Date(year, month - 1, day));
     } else {
-      baseDate = new Date(rawDate);
+      baseDate = toDate(rawDate);
     }
   } else if (rawDate) {
-    baseDate = new Date(rawDate);
+    baseDate = toDate(rawDate);
   }
 
-  if (Number.isNaN(baseDate?.getTime?.())) {
+  if (!baseDate) {
     return null;
   }
 
@@ -232,9 +234,9 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
   if (!scheduledAt) return null;
 
   const reminderMins = Number(session.reminder ?? session.reminder_minutes ?? 15);
-  const reminderTime = new Date(scheduledAt.getTime() - reminderMins * 60 * 1000);
-  const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
-  const delayMs = reminderTime.getTime() - currentTime;
+  const reminderTime = new Date(toTime(scheduledAt) - reminderMins * 60 * 1000);
+  const currentTime = typeof now === "number" ? now : toTime(now);
+  const delayMs = toTime(reminderTime) - currentTime;
 
   if (delayMs <= 0) return null;
 
@@ -284,7 +286,7 @@ export function scheduleGroupSessionReminders(groupSessions, preferences = null,
   const prefs = normalizeNotificationPreferences(preferences || getNotificationPreferences());
   if (!prefs.group_reminders_enabled) return [];
 
-  const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
+  const currentTime = typeof now === "number" ? now : toTime(now);
   const firedMap = getFiredGroupReminders();
   const scheduledTimers = [];
 
@@ -297,8 +299,8 @@ export function scheduleGroupSessionReminders(groupSessions, preferences = null,
   (groupSessions || []).forEach((sess) => {
     if (!sess || sess.user_rsvp === "declined") return;
 
-    const startMs = new Date(sess.scheduled_start).getTime();
-    if (isNaN(startMs)) return;
+    const startMs = toTime(sess.scheduled_start);
+    if (!startMs) return;
 
     const durationMins = sess.duration_minutes || 60;
     const expiresAt = startMs + durationMins * 60 * 1000;

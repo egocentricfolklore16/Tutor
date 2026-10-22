@@ -19,6 +19,7 @@ import {
   Bell,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toTime } from "../../lib/dates";
 import ResourcePicker from "./ResourcePicker";
 import ResourceCard from "./ResourceCard";
 import {
@@ -108,7 +109,7 @@ export default function ChatThread({
         .maybeSingle();
 
       if (data) {
-        const active = !data.muted_until || new Date(data.muted_until).getTime() > Date.now();
+        const active = !data.muted_until || toTime(data.muted_until) > Date.now();
         setIsMuted(active);
       } else {
         setIsMuted(false);
@@ -1018,7 +1019,7 @@ export default function ChatThread({
                                       >
                                         <RefreshCw className="h-3 w-3" /> Retry
                                       </button>
-                                    ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && new Date(peerLastReadAt).getTime() >= new Date(msg.created_at).getTime() ? (
+                                    ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && toTime(peerLastReadAt) >= toTime(msg.created_at) ? (
                                       <span className="inline-flex items-center text-emerald-200 font-normal ml-0.5">
                                         <CheckCheck className="h-3 w-3" />
                                       </span>

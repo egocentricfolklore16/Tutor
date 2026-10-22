@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import supabase from "../lib/supabase";
+import { toDate, toTime } from "../lib/dates";
 import { scheduleGroupSessionReminders, getNotificationPreferences } from "../lib/notifications";
 
 /**
@@ -39,9 +40,9 @@ export function useCombinedSessions() {
 
       const normalizedPersonal = (personalData || []).map((item) => {
         const startIso = item.Date && item.Start ? `${item.Date}T${item.Start.slice(0, 5)}:00` : null;
-        const startDateObj = startIso ? new Date(startIso) : new Date();
-        const isValidDate = !isNaN(startDateObj.getTime());
-        const startMs = isValidDate ? startDateObj.getTime() : Date.now();
+        const startDateObj = startIso ? toDate(startIso) : new Date();
+        const isValidDate = Boolean(startDateObj);
+        const startMs = isValidDate ? toTime(startDateObj) : Date.now();
         return {
           ...item,
           id: item.id,
@@ -110,12 +111,12 @@ export function useCombinedSessions() {
               const userRsvp = userParticipant ? userParticipant.status : "not_responded";
               const goingCount = parts.filter((p) => p.status === "going").length;
 
-              const startDateObj = new Date(item.scheduled_start);
-              const startMs = !isNaN(startDateObj.getTime()) ? startDateObj.getTime() : 0;
-              const dateStr = !isNaN(startDateObj.getTime())
+              const startDateObj = toDate(item.scheduled_start);
+              const startMs = toTime(startDateObj);
+              const dateStr = startDateObj
                 ? startDateObj.toISOString().slice(0, 10)
                 : "";
-              const timeStr = !isNaN(startDateObj.getTime())
+              const timeStr = startDateObj
                 ? startDateObj.toTimeString().slice(0, 5)
                 : "";
 

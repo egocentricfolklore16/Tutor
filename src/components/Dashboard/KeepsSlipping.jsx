@@ -4,11 +4,12 @@ import { useNavigate } from "react-router-dom";
 import useSlippingSessions from "../../hooks/useSlippingSessions";
 import { getOverdueDuration, getSessionStartDate, formatTimeSlot } from "../../lib/plannerUtils";
 import supabase from "../../lib/supabase";
+import { toDate } from "../../lib/dates";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
 function formatOriginalScheduledTime(session) {
-  const startDate = getSessionStartDate(session);
-  if (!startDate || isNaN(startDate.getTime())) return "Original time unavailable";
+  const startDate = toDate(getSessionStartDate(session));
+  if (!startDate) return "Original time unavailable";
 
   const now = new Date();
   const isToday = startDate.toDateString() === now.toDateString();
@@ -81,9 +82,9 @@ function KeepsSlipping() {
 
     const [year, month, day] = rescheduleDate.split("-").map(Number);
     const [hours, minutes] = rescheduleTime.split(":").map(Number);
-    const selectedStart = new Date(year, month - 1, day, hours, minutes, 0, 0);
+    const selectedStart = toDate(new Date(year, month - 1, day, hours, minutes, 0, 0));
 
-    if (isNaN(selectedStart.getTime()) || selectedStart <= new Date()) {
+    if (!selectedStart || selectedStart <= new Date()) {
       setRescheduleError("Rescheduled time must be in the future.");
       return;
     }

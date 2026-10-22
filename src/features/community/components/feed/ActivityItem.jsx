@@ -1,5 +1,6 @@
 import React from "react";
 import { Clock, Flame, Crown, Shield, Award, Heart } from "lucide-react";
+import { toTime } from "../../../../lib/dates";
 import Avatar from "../../../../components/common/Avatar";
 
 export function ActivityItem({ item, onUserClick, onCheer }) {
@@ -55,7 +56,7 @@ export function ActivityItem({ item, onUserClick, onCheer }) {
 
   const timeAgo = (dateStr) => {
     if (!dateStr) return "recently";
-    const diff = (Date.now() - new Date(dateStr).getTime()) / 1000;
+    const diff = (Date.now() - toTime(dateStr)) / 1000;
     if (diff < 60) return "just now";
     if (diff < 3600) return `${Math.floor(diff / 60)}m ago`;
     if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;

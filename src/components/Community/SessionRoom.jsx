@@ -11,6 +11,7 @@ import {
   Radio,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toTime } from "../../lib/dates";
 import ChatThread from "./ChatThread";
 
 export default function SessionRoom({
@@ -134,7 +135,7 @@ export default function SessionRoom({
     if (!session?.scheduled_start) return;
 
     const calculateTimer = () => {
-      const startTime = new Date(session.scheduled_start).getTime();
+      const startTime = toTime(session.scheduled_start);
       const durationMs = (session.duration_minutes || 60) * 60 * 1000;
       const endTime = startTime + durationMs;
       const now = Date.now();

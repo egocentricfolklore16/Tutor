@@ -1,5 +1,6 @@
-import React, { useEffect, useRef } from "react";
-import { X, CheckCircle2, Lock, Zap, Shield, BookOpen, Award, Crown, Gift, ArrowRight } from "lucide-react";
+import React from "react";
+import { CheckCircle2, Lock, Zap, Shield, BookOpen, Award, Crown, Gift, ArrowRight } from "lucide-react";
+import Modal from "../../../components/common/ResponsiveSheet";
 
 const ICON_MAP = {
   zap: Zap,
@@ -12,7 +13,7 @@ const ICON_MAP = {
 };
 
 /**
- * Mobile bottom sheet (<480px) and Desktop popover dialog for inspecting node details.
+ * Viewport-centered Modal for inspecting roadmap node details on desktop and mobile.
  */
 export function NodeDetailSheet({
   node,
@@ -22,18 +23,6 @@ export function NodeDetailSheet({
   totalXp = 0,
   onClose,
 }) {
-  const dialogRef = useRef(null);
-
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [onClose]);
-
   if (!node) return null;
 
   const { level, isMilestone, milestoneTitle, milestoneDesc, milestoneIcon, xpRequired, zone, isTeaser, teaserText } = node;
@@ -49,33 +38,11 @@ export function NodeDetailSheet({
     : Math.max(0, xpRequired - totalXp);
 
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-end justify-center bg-slate-900/60 backdrop-blur-xs sm:items-center p-0 sm:p-4 animate-fade-in"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div
-        ref={dialogRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="node-detail-title"
-        className="relative w-full max-w-md rounded-t-3xl sm:rounded-2xl bg-white p-6 shadow-2xl dark:bg-[#18211f] border border-amber-200/80 dark:border-amber-900/40 animate-slide-up sm:animate-scale-up"
-      >
-        {/* Handle bar for mobile drag feeling */}
-        <div className="mx-auto -mt-2 mb-4 h-1.5 w-12 rounded-full bg-slate-200 dark:bg-slate-700 sm:hidden" />
-
-        {/* Close Button */}
-        <button
-          type="button"
-          onClick={onClose}
-          aria-label="Close details"
-          className="absolute top-4 right-4 rounded-full p-1.5 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200 transition"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
-        {/* Header Badge */}
+    <Modal
+      isOpen={Boolean(node)}
+      onClose={onClose}
+      isSheet={true}
+      title={
         <div className="flex items-center gap-2">
           <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-black uppercase tracking-wider ${zone?.badgeBg || "bg-amber-100 text-amber-800"}`}>
             {zone?.name || "Level Roadmap"}
@@ -84,9 +51,21 @@ export function NodeDetailSheet({
             Level {level}
           </span>
         </div>
-
+      }
+      maxWidth="max-w-md"
+      footer={
+        <button
+          type="button"
+          onClick={onClose}
+          className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-black text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md transition"
+        >
+          Got it <ArrowRight className="h-4 w-4" />
+        </button>
+      }
+    >
+      <div>
         {/* Title */}
-        <div className="mt-3 flex items-start gap-3">
+        <div className="flex items-start gap-3">
           <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl shadow-md ${
             isDone
               ? "bg-emerald-500 text-white"
@@ -97,7 +76,7 @@ export function NodeDetailSheet({
             <IconComponent className="h-6 w-6" />
           </div>
           <div>
-            <h3 id="node-detail-title" className="text-xl font-black text-slate-900 dark:text-white">
+            <h3 className="text-xl font-black text-slate-900 dark:text-white">
               {isTeaser ? "Keep Climbing!" : milestoneTitle || `Level ${level} Explorer`}
             </h3>
             <p className="mt-1 text-xs font-semibold text-slate-500 dark:text-slate-400">
@@ -146,19 +125,8 @@ export function NodeDetailSheet({
             </div>
           )}
         </div>
-
-        {/* Action Button */}
-        <div className="mt-6 flex justify-end">
-          <button
-            type="button"
-            onClick={onClose}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 px-5 py-2.5 text-sm font-black text-white hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 shadow-md transition"
-          >
-            Got it <ArrowRight className="h-4 w-4" />
-          </button>
-        </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

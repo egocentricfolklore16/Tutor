@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { Search, Users, X, Loader2, MessageSquare, UserCheck } from "lucide-react";
+import { Search, Users, Loader2, MessageSquare } from "lucide-react";
 import supabase from "../../lib/supabase";
+import Modal from "../common/ResponsiveSheet";
 
 export default function FriendPicker({ isOpen, onClose, currentUserId, onSelectFriend }) {
   const [friends, setFriends] = useState([]);
@@ -83,25 +84,21 @@ export default function FriendPicker({ isOpen, onClose, currentUserId, onSelectF
   );
 
   return (
-    <div className="fixed inset-0 z-[150] flex items-center justify-center bg-slate-950/50 p-0 sm:p-4 backdrop-blur-xs">
-      <div className="flex h-full w-full flex-col bg-white dark:bg-[#14171c] sm:h-auto sm:max-h-[85vh] sm:max-w-md sm:rounded-3xl border border-slate-200 dark:border-slate-800 shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
-          <div className="flex items-center gap-2">
-            <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white">New Chat</h2>
-          </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="rounded-full p-2 text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800"
-          >
-            <X className="h-5 w-5" />
-          </button>
+    <Modal
+      isOpen={isOpen}
+      onClose={onClose}
+      title={
+        <div className="flex items-center gap-2">
+          <Users className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+          <span>New Chat</span>
         </div>
-
+      }
+      maxWidth="max-w-md"
+      closeOnOverlayClick={true}
+    >
+      <div>
         {/* Search Input */}
-        <div className="p-4 border-b border-slate-100 dark:border-slate-800">
+        <div className="-mt-1 mb-4">
           <div className="relative">
             <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
             <input
@@ -115,7 +112,7 @@ export default function FriendPicker({ isOpen, onClose, currentUserId, onSelectF
         </div>
 
         {/* Friends List */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-2">
+        <div className="space-y-2">
           {loading ? (
             <div className="flex min-h-[200px] flex-col items-center justify-center">
               <Loader2 className="h-7 w-7 animate-spin text-emerald-600" />
@@ -173,6 +170,6 @@ export default function FriendPicker({ isOpen, onClose, currentUserId, onSelectF
           )}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

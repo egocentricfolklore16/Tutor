@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { Bell, CalendarDays, Clock3, Repeat, Save, X } from 'lucide-react';
+import { Bell, CalendarDays, Clock3, Repeat, Save } from 'lucide-react';
 import { getPermissionState } from '../../lib/push';
+import Modal from '../common/ResponsiveSheet';
 
 const SessionScheduler = ({
   showCreateModal,
@@ -44,17 +45,17 @@ const SessionScheduler = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4 backdrop-blur-xs">
-      <div className="w-full max-w-xl max-h-[90vh] overflow-y-auto rounded-3xl border border-slate-200 bg-white p-6 shadow-2xl">
-        <div className="mb-5 flex items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div>
-            <h2 className="text-xl font-black text-slate-900">Schedule Study Session</h2>
-            <p className="text-xs text-slate-500">Plan a focused learning block for your schedule.</p>
-          </div>
-          <button type="button" onClick={() => setShowCreateModal(false)} className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700">
-            <X size={18} />
-          </button>
-        </div>
+    <Modal
+      isOpen={showCreateModal}
+      onClose={() => setShowCreateModal(false)}
+      title="Schedule Study Session"
+      maxWidth="max-w-xl"
+      closeOnOverlayClick={false}
+    >
+      <div>
+        <p className="-mt-2 mb-4 text-xs text-slate-500">
+          Plan a focused learning block for your schedule.
+        </p>
 
         {validationError && (
           <div className="mb-4 rounded-xl border border-red-200 bg-red-50 p-3 text-xs font-semibold text-red-700">
@@ -63,13 +64,13 @@ const SessionScheduler = ({
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4 text-sm">
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
             Subject
             <select
               value={newSession.subject}
               onChange={(e) => setNewSession({ ...newSession, subject: e.target.value })}
               required
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="">Select subject</option>
               {subjects.map((sub) => (
@@ -78,7 +79,7 @@ const SessionScheduler = ({
             </select>
           </label>
 
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
             Title / Topic
             <input
               type="text"
@@ -86,36 +87,36 @@ const SessionScheduler = ({
               onChange={(e) => setNewSession({ ...newSession, title: e.target.value })}
               required
               placeholder="e.g. Chapter 4 Integration"
-              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             />
           </label>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-slate-700">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
               <span className="flex items-center gap-1.5 mb-1.5"><CalendarDays size={14} /> Date</span>
               <input
                 type="date"
                 value={dateValue}
                 onChange={(e) => setNewSession({ ...newSession, date: e.target.value })}
                 required
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </label>
 
-            <label className="block text-xs font-bold text-slate-700">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
               <span className="flex items-center gap-1.5 mb-1.5"><Clock3 size={14} /> Start time</span>
               <input
                 type="time"
                 value={newSession.startTime}
                 onChange={(e) => setNewSession({ ...newSession, startTime: e.target.value })}
                 required
-                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </label>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
-            <label className="block text-xs font-bold text-slate-700">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
               Duration (mins)
               <input
                 type="number"
@@ -124,16 +125,16 @@ const SessionScheduler = ({
                 value={newSession.duration}
                 onChange={(e) => setNewSession({ ...newSession, duration: e.target.value })}
                 required
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               />
             </label>
 
-            <label className="block text-xs font-bold text-slate-700">
+            <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
               Priority / Status
               <select
                 value={newSession.status}
                 onChange={(e) => setNewSession({ ...newSession, status: e.target.value })}
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
               >
                 <option value="important">Important</option>
                 <option value="very important">Very Important</option>
@@ -142,12 +143,12 @@ const SessionScheduler = ({
             </label>
           </div>
 
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
             <span className="flex items-center gap-1.5 mb-1.5"><Repeat size={14} /> Recurring</span>
             <select
               value={newSession.recurring}
               onChange={(e) => setNewSession({ ...newSession, recurring: e.target.value })}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value="none">None (One-time)</option>
               <option value="daily">Daily</option>
@@ -156,12 +157,12 @@ const SessionScheduler = ({
             </select>
           </label>
 
-          <label className="block text-xs font-bold text-slate-700">
+          <label className="block text-xs font-bold text-slate-700 dark:text-slate-200">
             <span className="flex items-center gap-1.5 mb-1.5"><Bell size={14} /> Reminder</span>
             <select
               value={newSession.reminder}
               onChange={(e) => setNewSession({ ...newSession, reminder: Number(e.target.value) })}
-              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100"
+              className="w-full rounded-xl border border-slate-200 bg-white px-3 py-2.5 text-slate-900 outline-none transition focus:border-emerald-500 focus:ring-4 focus:ring-emerald-100 dark:border-slate-700 dark:bg-slate-800 dark:text-white"
             >
               <option value={0}>At time of event</option>
               <option value={15}>15 minutes before</option>
@@ -171,16 +172,16 @@ const SessionScheduler = ({
           </label>
 
           {permission !== "granted" && (
-            <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800">
+            <p className="rounded-xl bg-amber-50 p-3 text-xs text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
               Browser push notifications are disabled. You will receive in-app alerts when signed in.
             </p>
           )}
 
-          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4">
+          <div className="mt-6 flex items-center justify-end gap-3 border-t border-slate-100 pt-4 dark:border-slate-800">
             <button
               type="button"
               onClick={() => setShowCreateModal(false)}
-              className="rounded-xl px-4 py-2.5 font-bold text-slate-600 hover:bg-slate-100"
+              className="rounded-xl px-4 py-2.5 font-bold text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               Cancel
             </button>
@@ -195,7 +196,7 @@ const SessionScheduler = ({
           </div>
         </form>
       </div>
-    </div>
+    </Modal>
   );
 };
 

@@ -1,5 +1,6 @@
 import React from "react";
-import { Award, Flame, Sparkles, Trophy, X, Zap } from "lucide-react";
+import { Award, Flame, Sparkles, Trophy } from "lucide-react";
+import Modal from "../../../components/common/ResponsiveSheet";
 
 export function CelebrationLayer({ celebration, onClose }) {
   if (!celebration) return null;
@@ -7,22 +8,14 @@ export function CelebrationLayer({ celebration, onClose }) {
   const { type, level, streak, title, message } = celebration;
 
   return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-live="polite"
-      className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-md animate-fade-in"
+    <Modal
+      isOpen={Boolean(celebration)}
+      onClose={onClose}
+      title=""
+      maxWidth="max-w-sm"
+      closeOnOverlayClick={true}
     >
-      <div className="motion-dialog relative w-full max-w-sm overflow-hidden rounded-3xl bg-white p-6 text-center shadow-2xl dark:bg-[#18211f]">
-        <button
-          type="button"
-          onClick={onClose}
-          className="absolute right-4 top-4 rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-600 dark:hover:bg-slate-800 dark:hover:text-slate-200"
-          title="Close celebration"
-        >
-          <X className="h-5 w-5" />
-        </button>
-
+      <div className="text-center">
         <div className="mx-auto mb-4 flex h-20 w-20 items-center justify-center rounded-full bg-gradient-to-tr from-amber-400 via-orange-400 to-amber-200 shadow-lg shadow-amber-500/30 animate-bounce">
           {type === "level-up" ? (
             <Trophy className="h-10 w-10 text-white" />
@@ -55,7 +48,7 @@ export function CelebrationLayer({ celebration, onClose }) {
           </button>
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
 

@@ -14,13 +14,12 @@ import {
   Target,
   Trophy,
   XCircle,
-  X,
 } from "lucide-react";
-import { createPortal } from "react-dom";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 import { gamificationService } from "../../../features/gamification";
 import { syncAndCheckAchievements } from "../../../lib/achievementSync.js";
+import Modal from "../../common/ResponsiveSheet";
 
 function cleanQuizString(value) {
   if (typeof value !== "string") return "";
@@ -119,8 +118,6 @@ function QuizModal({
   onDone,
   result,
 }) {
-  const modalRef = useRef(null);
-  const closeButtonRef = useRef(null);
   const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
   const [ringAnimated, setRingAnimated] = useState(false);
 
@@ -143,19 +140,12 @@ function QuizModal({
       : <Star className="h-7 w-7 text-green-600 dark:text-green-400" aria-hidden="true" />;
   const headline = scorePercent < 50 ? "Study more!" : scorePercent < 80 ? "Good job!" : "Excellent!";
   const circumference = 2 * Math.PI * 48;
-  const handleClose = () => {
+
+  const handleCloseRequest = () => {
     if (!isResults && answeredCount > 0 && !window.confirm("Close this quiz? Your selected answers will be lost.")) {
       return;
     }
     onClose();
-  };
-  const interactionRef = useRef({});
-  interactionRef.current = {
-    quiz,
-    isResults,
-    focusedQuestionIndex,
-    handleClose,
-    onSelectAnswer,
   };
 
   useEffect(() => {
@@ -167,76 +157,7 @@ function QuizModal({
     return () => window.cancelAnimationFrame(frame);
   }, [result]);
 
-  useEffect(() => {
-    if (result) closeButtonRef.current?.focus();
-  }, [result]);
-
-  useEffect(() => {
-    if (!modalOpen) return undefined;
-
-    const previousOverflow = document.body.style.overflow;
-    const previousFocus = document.activeElement;
-    document.body.style.overflow = "hidden";
-    closeButtonRef.current?.focus();
-
-    const isTypingTarget = (target) => target instanceof HTMLElement && (
-      target.tagName === "INPUT" ||
-      target.tagName === "TEXTAREA" ||
-      target.tagName === "SELECT" ||
-      target.isContentEditable
-    );
-
-    const handleKeyDown = (event) => {
-      if (isTypingTarget(event.target)) return;
-
-      if (event.key === "Escape") {
-        event.preventDefault();
-        interactionRef.current.handleClose();
-        return;
-      }
-
-      const { quiz: currentQuiz, isResults: showingResults, focusedQuestionIndex: focusedIndex } = interactionRef.current;
-      if (!showingResults && currentQuiz && /^[a-d]$/i.test(event.key)) {
-        const question = currentQuiz.questions[focusedIndex];
-        const selectedIndex = event.key.toUpperCase().charCodeAt(0) - 65;
-        if (question && selectedIndex < question.options.length) {
-          event.preventDefault();
-          interactionRef.current.onSelectAnswer(question.id, selectedIndex);
-          const option = modalRef.current?.querySelector(
-            `[data-question-id="${CSS.escape(question.id)}"] [data-option-index="${selectedIndex}"]`
-          );
-          option?.focus();
-        }
-        return;
-      }
-
-      if (event.key === "Tab" && modalRef.current) {
-        const focusable = [...modalRef.current.querySelectorAll(
-          'button:not([disabled]), [tabindex="0"], [role="radio"][tabindex="0"]'
-        )].filter((element) => !element.hasAttribute("hidden"));
-        if (!focusable.length) return;
-
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-        if (event.shiftKey && document.activeElement === first) {
-          event.preventDefault();
-          last.focus();
-        } else if (!event.shiftKey && document.activeElement === last) {
-          event.preventDefault();
-          first.focus();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => {
-      document.removeEventListener("keydown", handleKeyDown);
-      document.body.style.overflow = previousOverflow;
-      if (previousFocus instanceof HTMLElement) previousFocus.focus();
-    };
-  }, [modalOpen]);
-
-  if ((!quiz && !result) || typeof document === "undefined") return null;
+  if (!modalOpen) return null;
 
   const activeQuiz = result?.quiz || quiz;
   const activeAnswers = result?.answers || answers;
@@ -247,236 +168,202 @@ function QuizModal({
 
   const handleFocusQuestion = (index) => setFocusedQuestionIndex(index);
 
-  return createPortal((
-    <div className="fixed inset-0 z-[300] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-sm dark:bg-black/70">
-      <section
-        ref={modalRef}
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="quiz-modal-title"
-        className="motion-dialog flex max-h-[90dvh] min-h-0 w-full max-w-2xl flex-col overflow-hidden rounded-3xl border border-slate-200 bg-white text-slate-900 shadow-2xl dark:border-slate-700 dark:bg-[#18211f] dark:text-slate-100"
-      >
-        <header className="relative shrink-0 border-b border-slate-200 px-5 py-4 dark:border-slate-700 sm:px-7">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex min-w-0 items-center gap-3">
-              <span className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl ${isResults ? "bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300" : `${accentSurface} ${accentText}`}`}>
-                {isResults ? <Trophy className="h-5 w-5" aria-hidden="true" /> : <ClipboardList className="h-5 w-5" aria-hidden="true" />}
-              </span>
-              <div className="min-w-0">
-                <h2 id="quiz-modal-title" className="text-lg font-bold sm:text-xl">
-                  {isResults ? "Quiz Results" : "Quiz"}
-                </h2>
-                {!isResults && (
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    {answeredCount} of {quiz.questions.length} answered
-                  </p>
-                )}
-              </div>
-            </div>
-            <button
-              ref={closeButtonRef}
-              type="button"
-              onClick={handleClose}
-              aria-label="Close quiz"
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-xl px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100 hover:text-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100 dark:focus-visible:ring-slate-400"
-            >
-              <span>Close</span>
-              <X className="h-4 w-4" aria-hidden="true" />
-            </button>
-          </div>
-          {!isResults && (
-            <div
-              className="absolute inset-x-0 bottom-0 h-1 bg-slate-100 dark:bg-slate-800"
-              role="progressbar"
-              aria-label="Quiz answers completed"
-              aria-valuemin={0}
-              aria-valuemax={quiz.questions.length}
-              aria-valuenow={answeredCount}
-            >
+  return (
+    <Modal
+      isOpen={modalOpen}
+      onClose={handleCloseRequest}
+      title={isResults ? "Quiz Results" : "Quiz"}
+      maxWidth="max-w-2xl"
+      closeOnOverlayClick={false}
+      footer={
+        !isResults ? (
+          <button
+            type="button"
+            disabled={remaining > 0 || saving}
+            onClick={onSubmit}
+            className={`flex min-h-12 w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-500 ${
+              remaining > 0
+                ? ""
+                : `${accentButton} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
+            }`}
+          >
+            {saving
+              ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Saving results...</>
+              : remaining > 0
+                ? <><Target className="h-4 w-4" aria-hidden="true" /> {remaining} more to go</>
+                : "Submit Quiz"}
+          </button>
+        ) : null
+      }
+    >
+      <div>
+        {!isResults && (
+          <div className="-mt-3 mb-4 flex items-center justify-between border-b border-slate-100 pb-3 dark:border-slate-800">
+            <span className="text-xs text-slate-500 dark:text-slate-400">
+              {answeredCount} of {quiz.questions.length} answered
+            </span>
+            <div className="h-1.5 w-32 overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
               <div
-                className={`h-full transition-[width] duration-300 ${theme?.quizAccentFill || "bg-green-600 dark:bg-green-500"}`}
+                className={`h-full transition-all duration-300 ${theme?.quizAccentFill || "bg-green-600 dark:bg-green-500"}`}
                 style={{ width: `${(answeredCount / quiz.questions.length) * 100}%` }}
               />
             </div>
-          )}
-        </header>
+          </div>
+        )}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-7 sm:py-6">
-          {isResults ? (
-            <div className="space-y-7">
-              <section className="flex flex-col items-center text-center">
-                <div className="relative mb-4 flex h-32 w-32 items-center justify-center">
-                  <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
-                    <circle cx="60" cy="60" r="48" fill="none" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="9" />
-                    <circle
-                      cx="60"
-                      cy="60"
-                      r="48"
-                      fill="none"
-                      className={`${ringColor} transition-[stroke-dashoffset] duration-1000 ease-out`}
-                      stroke="currentColor"
-                      strokeWidth="9"
-                      strokeLinecap="round"
-                      strokeDasharray={circumference}
-                      strokeDashoffset={ringAnimated ? circumference * (1 - scorePercent / 100) : circumference}
-                    />
-                  </svg>
-                  <span className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
-                    {scorePercent}%
+        {isResults ? (
+          <div className="space-y-7">
+            <section className="flex flex-col items-center text-center">
+              <div className="relative mb-4 flex h-32 w-32 items-center justify-center">
+                <svg className="absolute inset-0 h-full w-full -rotate-90" viewBox="0 0 120 120" aria-hidden="true">
+                  <circle cx="60" cy="60" r="48" fill="none" className="stroke-slate-200 dark:stroke-slate-700" strokeWidth="9" />
+                  <circle
+                    cx="60"
+                    cy="60"
+                    r="48"
+                    fill="none"
+                    className={`${ringColor} transition-[stroke-dashoffset] duration-1000 ease-out`}
+                    stroke="currentColor"
+                    strokeWidth="9"
+                    strokeLinecap="round"
+                    strokeDasharray={circumference}
+                    strokeDashoffset={ringAnimated ? circumference * (1 - scorePercent / 100) : circumference}
+                  />
+                </svg>
+                <span className="text-3xl font-black tracking-tight text-slate-900 dark:text-slate-100">
+                  {scorePercent}%
+                </span>
+              </div>
+              <div className="mb-2">{scoreIcon}</div>
+              <h3 className="text-2xl font-extrabold tracking-tight">{headline}</h3>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {result.score} correct out of {result.total} questions
+              </p>
+              <div className="mt-5 grid w-full grid-cols-2 gap-3 sm:max-w-md">
+                <button
+                  type="button"
+                  onClick={onTryAgain}
+                  className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${accentButton}`}
+                >
+                  <RotateCcw className="h-4 w-4" aria-hidden="true" />
+                  Try Again
+                </button>
+                <button
+                  type="button"
+                  onClick={onDone}
+                  className="min-h-12 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-slate-400"
+                >
+                  Done
+                </button>
+              </div>
+            </section>
+
+            <section aria-labelledby="quiz-review-title">
+              <h3 id="quiz-review-title" className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                Review Answers
+              </h3>
+              <div className="space-y-3">
+                {activeQuiz.questions.map((question, index) => {
+                  const selectedIndex = activeAnswers[question.id];
+                  const isCorrect = selectedIndex === question.correctIndex;
+                  return (
+                    <article
+                      key={question.id}
+                      className={`rounded-2xl border p-4 ${
+                        isCorrect
+                          ? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
+                          : "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
+                      }`}
+                    >
+                      <div className="flex items-start gap-2.5">
+                        {isCorrect
+                          ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
+                          : <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-400" aria-hidden="true" />}
+                        <p className="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900 dark:text-slate-100">
+                          {index + 1}. {question.question}
+                        </p>
+                      </div>
+                      <div className="mt-2 pl-[1.875rem] text-sm leading-6">
+                        {isCorrect ? (
+                          <p className="font-semibold text-green-700 dark:text-green-400">
+                            You: {String.fromCharCode(65 + selectedIndex)}
+                          </p>
+                        ) : (
+                          <>
+                            <p className="font-semibold text-red-700 dark:text-red-400">
+                              You: {selectedIndex === undefined ? "Not answered" : String.fromCharCode(65 + selectedIndex)}
+                            </p>
+                            <p className="font-semibold text-green-700 dark:text-green-400">
+                              Correct: {String.fromCharCode(65 + question.correctIndex)}
+                            </p>
+                          </>
+                        )}
+                        {question.explanation && (
+                          <p className="mt-2 text-slate-600 dark:text-slate-400">{question.explanation}</p>
+                        )}
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            {quiz.questions.map((question, questionIndex) => (
+              <article
+                key={question.id}
+                data-question-id={question.id}
+                tabIndex={0}
+                onFocus={() => handleFocusQuestion(questionIndex)}
+                className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900/45 dark:focus-visible:ring-slate-500 sm:p-5"
+              >
+                <div className="flex items-start gap-3">
+                  <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${accentSurface} ${accentText}`}>
+                    {questionIndex + 1}
                   </span>
+                  <h3 className="min-w-0 break-words pt-0.5 text-base font-semibold leading-7 text-slate-900 dark:text-slate-100 sm:text-lg">
+                    {question.question}
+                  </h3>
                 </div>
-                <div className="mb-2">{scoreIcon}</div>
-                <h3 className="text-2xl font-extrabold tracking-tight">{headline}</h3>
-                <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                  {result.score} correct out of {result.total} questions
-                </p>
-                <div className="mt-5 grid w-full grid-cols-2 gap-3 sm:max-w-md">
-                  <button
-                    type="button"
-                    onClick={onTryAgain}
-                    className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-4 py-3 text-sm font-bold shadow-sm transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${accentButton}`}
-                  >
-                    <RotateCcw className="h-4 w-4" aria-hidden="true" />
-                    Try Again
-                  </button>
-                  <button
-                    type="button"
-                    onClick={onDone}
-                    className="min-h-12 rounded-2xl border border-slate-200 bg-slate-100 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 dark:focus-visible:ring-slate-400"
-                  >
-                    Done
-                  </button>
-                </div>
-              </section>
-
-              <section aria-labelledby="quiz-review-title">
-                <h3 id="quiz-review-title" className="mb-3 text-xs font-bold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                  Review Answers
-                </h3>
-                <div className="space-y-3">
-                  {activeQuiz.questions.map((question, index) => {
-                    const selectedIndex = activeAnswers[question.id];
-                    const isCorrect = selectedIndex === question.correctIndex;
+                <div className="mt-4 grid gap-2.5" role="radiogroup" aria-label={`Question ${questionIndex + 1} options`}>
+                  {question.options.map((option, optionIndex) => {
+                    const isSelected = answers[question.id] === optionIndex;
                     return (
-                      <article
-                        key={question.id}
-                        className={`rounded-2xl border p-4 ${
-                          isCorrect
-                            ? "border-green-200 bg-green-50 dark:border-green-900/70 dark:bg-green-950/30"
-                            : "border-red-200 bg-red-50 dark:border-red-900/70 dark:bg-red-950/30"
+                      <button
+                        key={`${question.id}-${optionIndex}`}
+                        data-option-index={optionIndex}
+                        type="button"
+                        role="radio"
+                        aria-checked={isSelected}
+                        tabIndex={isSelected || (answers[question.id] === undefined && optionIndex === 0) ? 0 : -1}
+                        onFocus={() => handleFocusQuestion(questionIndex)}
+                        onClick={() => onSelectAnswer(question.id, optionIndex)}
+                        className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-normal leading-6 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:px-4 ${
+                          isSelected
+                            ? `${accentSurface} ${accentBorder} ${accentText} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
+                            : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-slate-100 focus-visible:ring-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-400"
                         }`}
                       >
-                        <div className="flex items-start gap-2.5">
-                          {isCorrect
-                            ? <CheckCircle2 className="mt-0.5 h-5 w-5 shrink-0 text-green-700 dark:text-green-400" aria-hidden="true" />
-                            : <XCircle className="mt-0.5 h-5 w-5 shrink-0 text-red-700 dark:text-red-400" aria-hidden="true" />}
-                          <p className="min-w-0 break-words text-sm font-semibold leading-6 text-slate-900 dark:text-slate-100">
-                            {index + 1}. {question.question}
-                          </p>
-                        </div>
-                        <div className="mt-2 pl-[1.875rem] text-sm leading-6">
-                          {isCorrect ? (
-                            <p className="font-semibold text-green-700 dark:text-green-400">
-                              You: {String.fromCharCode(65 + selectedIndex)}
-                            </p>
-                          ) : (
-                            <>
-                              <p className="font-semibold text-red-700 dark:text-red-400">
-                                You: {selectedIndex === undefined ? "Not answered" : String.fromCharCode(65 + selectedIndex)}
-                              </p>
-                              <p className="font-semibold text-green-700 dark:text-green-400">
-                                Correct: {String.fromCharCode(65 + question.correctIndex)}
-                              </p>
-                            </>
-                          )}
-                          {question.explanation && (
-                            <p className="mt-2 text-slate-600 dark:text-slate-400">{question.explanation}</p>
-                          )}
-                        </div>
-                      </article>
+                        <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
+                          isSelected
+                            ? `${theme?.quizAccentFill || "bg-green-600 dark:bg-green-500"} border-transparent text-white`
+                            : "border-slate-400 bg-white text-slate-600 dark:border-slate-500 dark:bg-slate-900 dark:text-slate-300"
+                        }`}>
+                          {isSelected ? <Check className="h-4 w-4" aria-hidden="true" /> : String.fromCharCode(65 + optionIndex)}
+                        </span>
+                        <span className="min-w-0 break-words">{option}</span>
+                      </button>
                     );
                   })}
                 </div>
-              </section>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {quiz.questions.map((question, questionIndex) => (
-                <article
-                  key={question.id}
-                  data-question-id={question.id}
-                  tabIndex={0}
-                  onFocus={() => handleFocusQuestion(questionIndex)}
-                  className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900/45 dark:focus-visible:ring-slate-500 sm:p-5"
-                >
-                  <div className="flex items-start gap-3">
-                    <span className={`mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl text-sm font-bold ${accentSurface} ${accentText}`}>
-                      {questionIndex + 1}
-                    </span>
-                    <h3 className="min-w-0 break-words pt-0.5 text-base font-semibold leading-7 text-slate-900 dark:text-slate-100 sm:text-lg">
-                      {question.question}
-                    </h3>
-                  </div>
-                  <div className="mt-4 grid gap-2.5" role="radiogroup" aria-label={`Question ${questionIndex + 1} options`}>
-                    {question.options.map((option, optionIndex) => {
-                      const isSelected = answers[question.id] === optionIndex;
-                      return (
-                        <button
-                          key={`${question.id}-${optionIndex}`}
-                          data-option-index={optionIndex}
-                          type="button"
-                          role="radio"
-                          aria-checked={isSelected}
-                          tabIndex={isSelected || (answers[question.id] === undefined && optionIndex === 0) ? 0 : -1}
-                          onFocus={() => handleFocusQuestion(questionIndex)}
-                          onClick={() => onSelectAnswer(question.id, optionIndex)}
-                          className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-normal leading-6 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:px-4 ${
-                            isSelected
-                              ? `${accentSurface} ${accentBorder} ${accentText} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
-                              : "border-slate-200 bg-slate-50 text-slate-700 hover:border-slate-400 hover:bg-slate-100 focus-visible:ring-slate-500 dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:border-slate-500 dark:hover:bg-slate-800 dark:focus-visible:ring-slate-400"
-                          }`}
-                        >
-                          <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full border text-xs font-bold ${
-                            isSelected
-                              ? `${theme?.quizAccentFill || "bg-green-600 dark:bg-green-500"} border-transparent text-white`
-                              : "border-slate-400 bg-white text-slate-600 dark:border-slate-500 dark:bg-slate-900 dark:text-slate-300"
-                          }`}>
-                            {isSelected ? <Check className="h-4 w-4" aria-hidden="true" /> : String.fromCharCode(65 + optionIndex)}
-                          </span>
-                          <span className="min-w-0 break-words">{option}</span>
-                        </button>
-                      );
-                    })}
-                  </div>
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {!isResults && (
-          <footer className="shrink-0 border-t border-slate-200 bg-white/95 p-4 dark:border-slate-700 dark:bg-[#18211f]/95 sm:px-7">
-            <button
-              type="button"
-              disabled={remaining > 0 || saving}
-              onClick={onSubmit}
-              className={`flex min-h-14 w-full items-center justify-center gap-2 rounded-2xl px-5 py-3 text-sm font-bold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] disabled:cursor-not-allowed disabled:bg-slate-200 disabled:text-slate-500 disabled:shadow-none dark:disabled:bg-slate-800 dark:disabled:text-slate-500 ${
-                remaining > 0
-                  ? ""
-                  : `${accentButton} focus-visible:ring-slate-500 dark:focus-visible:ring-slate-400`
-              }`}
-            >
-              {saving
-                ? <><Loader2 className="h-4 w-4 animate-spin" aria-hidden="true" /> Saving results...</>
-                : remaining > 0
-                  ? <><Target className="h-4 w-4" aria-hidden="true" /> {remaining} more to go</>
-                  : "Submit Quiz"}
-            </button>
-          </footer>
+              </article>
+            ))}
+          </div>
         )}
-      </section>
-    </div>
-  ), document.body);
+      </div>
+    </Modal>
+  );
 }
 
 function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, requestedQuizId, onQuizOpened }) {

@@ -13,6 +13,7 @@ import { RoadmapNode } from "./RoadmapNode.jsx";
 import { RoadmapPath } from "./RoadmapPath.jsx";
 import { NodeDetailSheet } from "./NodeDetailSheet.jsx";
 import { useLevelProgress } from "../hooks/useLevelProgress.js";
+import Modal from "../../../components/common/ResponsiveSheet";
 
 /**
  * Rebuilt LevelRoadmap v2: Candy Crush-style level map powered ONLY by real Supabase data.
@@ -239,30 +240,36 @@ export function LevelRoadmap({
   return (
     <section className="relative rounded-3xl border border-amber-200/80 bg-linear-to-b from-amber-50/50 via-white to-orange-50/30 p-4 sm:p-6 shadow-xl dark:border-amber-900/30 dark:from-[#18211f] dark:via-[#14171c] dark:to-[#0f1216] transition-all">
       {/* Confetti / Level Up Modal Banner */}
-      {levelUpCelebration && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/70 backdrop-blur-xs animate-fade-in">
-          <div className="relative w-full max-w-sm rounded-3xl bg-linear-to-b from-amber-400 via-orange-500 to-amber-600 p-6 text-center text-white shadow-2xl animate-bounce-gentle">
-            <Sparkles className="mx-auto h-12 w-12 text-yellow-200 animate-spin" />
-            <h2 className="mt-2 text-3xl font-black tracking-tight">LEVEL UP!</h2>
-            <p className="mt-1 text-lg font-bold text-amber-100">
+      <Modal
+        isOpen={Boolean(levelUpCelebration)}
+        onClose={() => setLevelUpCelebration(null)}
+        title=""
+        maxWidth="max-w-sm"
+        closeOnOverlayClick={true}
+      >
+        {levelUpCelebration && (
+          <div className="text-center">
+            <Sparkles className="mx-auto h-12 w-12 text-amber-500 animate-spin" />
+            <h2 className="mt-2 text-3xl font-black tracking-tight text-slate-900 dark:text-white">LEVEL UP!</h2>
+            <p className="mt-1 text-lg font-bold text-amber-600 dark:text-amber-400">
               You reached Level {levelUpCelebration.newLevel}!
             </p>
             {levelUpCelebration.milestone && (
-              <div className="mt-4 rounded-2xl bg-white/20 p-3 backdrop-blur-md">
-                <p className="text-xs font-extrabold uppercase tracking-wider text-amber-100">New Perk Unlocked</p>
-                <p className="text-base font-black">{levelUpCelebration.milestone.title}</p>
+              <div className="mt-4 rounded-2xl bg-amber-50 dark:bg-amber-950/40 p-3">
+                <p className="text-xs font-extrabold uppercase tracking-wider text-amber-800 dark:text-amber-200">New Perk Unlocked</p>
+                <p className="text-base font-black text-slate-900 dark:text-white">{levelUpCelebration.milestone.title}</p>
               </div>
             )}
             <button
               type="button"
               onClick={() => setLevelUpCelebration(null)}
-              className="mt-6 w-full rounded-2xl bg-white py-3 text-sm font-black text-amber-900 shadow-lg hover:bg-amber-50 transition"
+              className="mt-6 w-full rounded-2xl bg-amber-500 py-3 text-sm font-black text-white shadow-lg hover:bg-amber-600 transition"
             >
               Awesome!
             </button>
           </div>
-        </div>
-      )}
+        )}
+      </Modal>
 
       {/* Header & Smart Stats Strip */}
       <div className="flex flex-col gap-4">
@@ -369,7 +376,7 @@ export function LevelRoadmap({
 
               {/* Nodes Stack */}
               <div className="flex flex-col items-center gap-8 py-2">
-                {zoneNodes.map((node, index) => {
+                {zoneNodes.map((node) => {
                   const xOffset = getNodeXOffset(node.level);
                   const isCurrent = node.level === level;
                   const isNextMilestone = node.level === nextMilestoneLevel;

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from 'react';
 import useCombinedSessions from './useCombinedSessions';
-import { isSlipping, getSessionStartDate } from '../lib/plannerUtils';
+import { isSlipping, getSessionStartMs } from '../lib/plannerUtils';
 
 /**
  * Custom hook to manage slipping sessions derived from the dashboard's combined session data source.
@@ -39,8 +39,8 @@ export function useSlippingSessions() {
     };
   }, [refreshSessions]);
 
-  // Filter slipping sessions using isSlipping and sort by most overdue first (earliest scheduled start time)
-  // Memoized with pre-parsed start times to avoid O(N log N) date parsing during sort comparisons
+  // BOLT OPTIMIZATION: Filter slipping sessions using isSlipping and sort by most overdue first (earliest start time).
+  // Uses getSessionStartMs to leverage O(1) fast-path on `scheduled_start_ms` and eliminate Date object allocations.
   const slipping = useMemo(() => {
     if (!sessions || sessions.length === 0) return [];
 
@@ -48,7 +48,7 @@ export function useSlippingSessions() {
       .filter((session) => isSlipping(session, now))
       .map((session) => ({
         session,
-        startTime: getSessionStartDate(session)?.getTime() || 0,
+        startTime: getSessionStartMs(session),
       }))
       .sort((a, b) => a.startTime - b.startTime)
       .map((item) => item.session);

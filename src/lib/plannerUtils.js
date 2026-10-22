@@ -290,6 +290,20 @@ export function suggestNextFreeSlot(startAtDate, durationMinutes, conflicts = []
 }
 
 /**
+ * BOLT OPTIMIZATION: Returns numeric start timestamp (ms since epoch) for a session.
+ * Fast-path checks `scheduled_start_ms` or computes from local date/time fields without redundant allocations.
+ */
+export function getSessionStartMs(session) {
+  if (!session) return 0;
+  if (typeof session.scheduled_start_ms === 'number' && !isNaN(session.scheduled_start_ms)) {
+    return session.scheduled_start_ms;
+  }
+
+  const d = getSessionStartDate(session);
+  return d ? d.getTime() : 0;
+}
+
+/**
  * Returns the Date instance representing the session's scheduled start time in local timezone.
  */
 export function getSessionStartDate(session) {
@@ -350,10 +364,11 @@ export function isSlipping(session, now = new Date()) {
     return false;
   }
 
-  const startDate = getSessionStartDate(session);
-  if (!startDate || isNaN(startDate.getTime())) return false;
+  const startMs = getSessionStartMs(session);
+  if (!startMs) return false;
 
-  const diffMs = now.getTime() - startDate.getTime();
+  const nowMs = typeof now === 'number' ? now : now.getTime();
+  const diffMs = nowMs - startMs;
   // More than 60 minutes overdue (> 3,600,000 ms)
   return diffMs > 60 * 60 * 1000;
 }
@@ -362,12 +377,13 @@ export function isSlipping(session, now = new Date()) {
  * Computes overdue duration object and display string ("Xh Ym overdue" or "Ym overdue").
  */
 export function getOverdueDuration(session, now = new Date()) {
-  const startDate = getSessionStartDate(session);
-  if (!startDate || isNaN(startDate.getTime())) {
+  const startMs = getSessionStartMs(session);
+  if (!startMs) {
     return { hours: 0, minutes: 0, totalMinutes: 0, display: '0m overdue' };
   }
 
-  const diffMs = Math.max(0, now.getTime() - startDate.getTime());
+  const nowMs = typeof now === 'number' ? now : now.getTime();
+  const diffMs = Math.max(0, nowMs - startMs);
   const totalMinutes = Math.floor(diffMs / 60000);
   const hours = Math.floor(totalMinutes / 60);
   const minutes = totalMinutes % 60;

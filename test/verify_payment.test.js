@@ -138,3 +138,34 @@ test("processVerifiedPayment error mapping produces correct HTTP status codes", 
   assert.strictEqual(mapProcessErrorToResponse(amountMismatchError).status, 400);
   assert.strictEqual(mapProcessErrorToResponse(crossUserError).status, 403);
 });
+
+test("PaystackCheckoutButton error resolution prioritizes data?.error over verifyError?.message", () => {
+  function resolveErrorMessage(verifyError, data) {
+    return (
+      data?.error ||
+      verifyError?.message ||
+      "Payment verification failed on server."
+    );
+  }
+
+  const verifyError = { message: "Edge Function returned a 400 status code" };
+  const dataWithError = { success: false, error: "Amount mismatch: expected 250000 kobo, received 100000 kobo" };
+
+  // Prioritize server-provided data.error
+  assert.strictEqual(
+    resolveErrorMessage(verifyError, dataWithError),
+    "Amount mismatch: expected 250000 kobo, received 100000 kobo"
+  );
+
+  // Fallback to verifyError.message when data.error is missing
+  assert.strictEqual(
+    resolveErrorMessage(verifyError, { success: false }),
+    "Edge Function returned a 400 status code"
+  );
+
+  // Fallback to default message when both are missing
+  assert.strictEqual(
+    resolveErrorMessage(null, null),
+    "Payment verification failed on server."
+  );
+});

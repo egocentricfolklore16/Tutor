@@ -26,6 +26,7 @@ import supabase from "../../lib/supabase";
 import { gamificationService } from "../../features/gamification";
 import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
+import { sanitizeUrl } from "../../lib/communityChat";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 import ResourcePreviewModal from "../common/ResourcePreviewModal";
 
@@ -596,7 +597,12 @@ function Library({ session }) {
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } else if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
+      const safeUrl = sanitizeUrl(resource.url);
+      if (safeUrl !== "#") {
+        window.open(safeUrl, "_blank", "noopener,noreferrer");
+      } else {
+        setError("Invalid or unsafe resource URL.");
+      }
     }
   };
 

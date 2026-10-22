@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { ExternalLink, Download, Loader2, RefreshCw, AlertCircle, X } from "lucide-react";
 import supabase from "../../lib/supabase";
-import { getResourceSignedUrl } from "../../lib/communityChat";
+import { getResourceSignedUrl, sanitizeUrl } from "../../lib/communityChat";
 
 function formatFileSize(bytes) {
   if (!bytes || isNaN(bytes) || Number(bytes) <= 0) return null;
@@ -175,10 +175,16 @@ export default function ResourceCard({ resourceId, isOwn = false, isOptimistic =
         if (signedUrl) {
           window.open(signedUrl, "_blank", "noopener,noreferrer");
         } else if (resource.url) {
-          window.open(resource.url, "_blank", "noopener,noreferrer");
+          const safeUrl = sanitizeUrl(resource.url);
+          if (safeUrl !== "#") {
+            window.open(safeUrl, "_blank", "noopener,noreferrer");
+          }
         }
       } else if (resource.url) {
-        window.open(resource.url, "_blank", "noopener,noreferrer");
+        const safeUrl = sanitizeUrl(resource.url);
+        if (safeUrl !== "#") {
+          window.open(safeUrl, "_blank", "noopener,noreferrer");
+        }
       }
     } catch (err) {
       console.error("Failed to open resource:", err);

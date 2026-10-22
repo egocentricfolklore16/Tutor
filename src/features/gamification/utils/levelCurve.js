@@ -31,11 +31,46 @@ export function calculateXpLevel(xpPoints = 0) {
 }
 
 export const LEVEL_MILESTONES = [
-  { level: 1, title: "Curious Learner", perk: "Access to standard study sessions & Lumo AI Assistant", xpRequired: 0 },
-  { level: 3, title: "Focus Apprentice", perk: "Unlock custom Pomodoro timer themes & streak freeze purchases", xpRequired: 250 },
-  { level: 5, title: "Knowledge Builder", perk: "Unlock AI Quiz generation & advanced flashcard review modes", xpRequired: 600 },
-  { level: 10, title: "Scholar Master", perk: "Unlock 2x Gem Multiplier & Streak Society membership perk", xpRequired: 2250 },
-  { level: 20, title: "Hyper Tutor Legend", perk: "Unlock exclusive profile frames & legendary avatar badges", xpRequired: 9250 },
+  {
+    level: 1,
+    title: "Curious Learner",
+    desc: "Access to standard study sessions & Lumo AI Assistant",
+    perk: "Access to standard study sessions & Lumo AI Assistant",
+    icon: "zap",
+    xpRequired: 0,
+  },
+  {
+    level: 3,
+    title: "Focus Apprentice",
+    desc: "Unlock custom Pomodoro timer themes & streak freeze purchases",
+    perk: "Unlock custom Pomodoro timer themes & streak freeze purchases",
+    icon: "shield",
+    xpRequired: 250,
+  },
+  {
+    level: 5,
+    title: "Knowledge Builder",
+    desc: "Unlock AI Quiz generation & advanced flashcard review modes",
+    perk: "Unlock AI Quiz generation & advanced flashcard review modes",
+    icon: "book",
+    xpRequired: 600,
+  },
+  {
+    level: 10,
+    title: "Scholar Master",
+    desc: "Unlock 2x Gem Multiplier & Streak Society membership perk",
+    perk: "Unlock 2x Gem Multiplier & Streak Society membership perk",
+    icon: "award",
+    xpRequired: 2250,
+  },
+  {
+    level: 20,
+    title: "Hyper Tutor Legend",
+    desc: "Unlock exclusive profile frames & legendary avatar badges",
+    perk: "Unlock exclusive profile frames & legendary avatar badges",
+    icon: "crown",
+    xpRequired: 9250,
+  },
 ];
 
 export function getNextLevelMilestone(currentLevel) {

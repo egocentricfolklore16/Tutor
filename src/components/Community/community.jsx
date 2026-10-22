@@ -597,6 +597,8 @@ const Community = () => {
                     currentUserId={user?.id}
                     onSendRequest={sendFriendRequest}
                     onCancelRequest={removeFriendship}
+                    onAcceptRequest={(reqId) => updateFriendshipStatus(reqId, "accepted")}
+                    onDeclineRequest={(reqId) => updateFriendshipStatus(reqId, "declined")}
                   />
 
                   {friendsLoading ? (

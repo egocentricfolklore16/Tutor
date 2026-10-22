@@ -5,7 +5,7 @@ import Avatar from "../../../../components/common/Avatar";
 export default function FriendList({ friends = [], currentUserId, onMessage, onRemoveFriend }) {
   if (friends.length === 0) {
     return (
-      <div className="py-6 text-center text-xs text-slate-500">
+      <div className="py-6 text-center text-xs font-semibold text-slate-500 dark:text-slate-400">
         No friends added yet. Search for classmates above!
       </div>
     );
@@ -44,9 +44,9 @@ export default function FriendList({ friends = [], currentUserId, onMessage, onR
               <button
                 type="button"
                 onClick={() => onMessage?.(otherId)}
-                className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-2xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500"
               >
-                <MessageSquare className="h-3.5 w-3.5" /> Message
+                <MessageSquare className="h-4 w-4" /> Message
               </button>
               {onRemoveFriend && (
                 <button
@@ -54,7 +54,7 @@ export default function FriendList({ friends = [], currentUserId, onMessage, onR
                   onClick={() => onRemoveFriend(f.id)}
                   title="Remove friend"
                   aria-label="Remove friend"
-                  className="rounded-xl p-1.5 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 transition"
+                  className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-2xl p-2 text-slate-400 hover:bg-rose-50 hover:text-rose-600 dark:hover:bg-rose-950/30 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                 >
                   <UserX className="h-4 w-4" />
                 </button>

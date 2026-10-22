@@ -57,3 +57,9 @@
 **Learning:** Interrogative phrasing of answer demands (such as "what is the answer", "what is the solution", "whats the answer", "what's the answer?") previously bypassed `nonAttemptDemandRegex` because `(?:is|are\s*)?` required any trailing whitespace to be bound inside the optional `is|are` group, preventing `"what is the answer"` from matching. Unbinding whitespace (`(?:is|are)?\s*`) allows interrogative answer demands to match properly and filter out as zero genuine attempts while allowing genuine topic questions (e.g., "what is photosynthesis?") to pass through.
 
 **Action:** Ensure regex groups for optional verbs (`is|are`) leave whitespace separation (`\s*`) outside the verb group so matching applies consistently whether the verb is present or omitted.
+
+## 2026-10-12 - Catching Compound Target Nouns in Non-Attempt Demand Turn Counting
+
+**Learning:** Students can combine target demand nouns ("give me the answer and solution", "show me the steps and answer", "give me the code and explanation") using conjunctions or punctuation to bypass single-noun demand regexes. Constructing `compoundTargetNouns` regexes with optional joined target nouns (`(?:answer|solution|result|steps?|work|code|explanation|summary)`) ensures multi-phrase demands do not count as genuine attempts and unlock answers prematurely.
+
+**Action:** When matching non-attempt demands, support compound target nouns joined by conjunctions (`and`, `&`, `+`, `,`) so compound answer/solution demands are filtered server-side.

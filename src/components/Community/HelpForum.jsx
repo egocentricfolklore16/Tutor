@@ -252,87 +252,96 @@ export default function HelpForum({ user, userSubjects = [] }) {
               <div
                 key={post.id}
                 onClick={() => navigate(`/community/help/${post.id}`)}
-                className="cursor-pointer rounded-3xl border border-slate-200 bg-white p-5 shadow-xs transition hover:border-emerald-500/60 dark:border-slate-800 dark:bg-[#14171c]"
+                className="relative overflow-hidden cursor-pointer rounded-2xl border border-violet-500/20 bg-violet-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-violet-500/10 dark:via-transparent dark:to-transparent dark:hover:border-violet-500/30"
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-center gap-2">
-                    <span className="rounded-xl bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                      {post.subject}
-                    </span>
-
-                    {hasAcceptedAnswer && (
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-600 px-2 py-0.5 text-[10px] font-bold text-white">
-                        <CheckCircle2 className="h-3 w-3" /> Answered
-                      </span>
-                    )}
-
-                    {isClosed && (
-                      <span className="inline-flex items-center gap-1 rounded-xl bg-slate-200 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
-                        <Lock className="h-3 w-3" /> Closed
-                      </span>
-                    )}
-                  </div>
-
-                  <span className="text-[11px] font-medium text-slate-400">
-                    {new Date(post.created_at).toLocaleDateString(undefined, {
-                      month: "short",
-                      day: "numeric",
-                    })}
-                  </span>
+                <div className="absolute -right-5 -top-8 text-white/20 dark:text-violet-400/20 pointer-events-none">
+                  <HelpCircle size={120} />
                 </div>
 
-                <h3 className="mt-2 text-base font-black text-slate-900 dark:text-white line-clamp-1">
-                  {post.title}
-                </h3>
+                <div className="relative">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <HelpCircle className="h-4 w-4 text-white/90 dark:text-violet-400" />
+                        <span className="inline-flex items-center gap-1 rounded-2xl bg-white/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white dark:bg-violet-950 dark:text-violet-300">
+                          {post.subject}
+                        </span>
+                      </div>
 
-                <p className="mt-1 text-xs text-slate-600 dark:text-slate-300 line-clamp-2 leading-relaxed">
-                  {post.body}
-                </p>
+                      {hasAcceptedAnswer && (
+                        <span className="inline-flex items-center gap-1 rounded-xl bg-emerald-500/30 text-white dark:bg-emerald-600 px-2 py-0.5 text-[10px] font-bold">
+                          <CheckCircle2 className="h-3 w-3" /> Answered
+                        </span>
+                      )}
 
-                {/* Tags */}
-                {Array.isArray(post.tags) && post.tags.length > 0 && (
-                  <div className="mt-3 flex flex-wrap gap-1.5">
-                    {post.tags.map((t) => (
-                      <span
-                        key={t}
-                        className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-                      >
-                        #{t}
+                      {isClosed && (
+                        <span className="inline-flex items-center gap-1 rounded-xl bg-white/20 text-white dark:bg-slate-800 dark:text-slate-300 px-2 py-0.5 text-[10px] font-bold">
+                          <Lock className="h-3 w-3" /> Closed
+                        </span>
+                      )}
+                    </div>
+
+                    <span className="text-[11px] font-medium text-white/80 dark:text-gray-400">
+                      {new Date(post.created_at).toLocaleDateString(undefined, {
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </span>
+                  </div>
+
+                  <h3 className="mt-2 text-base font-bold text-white dark:text-white line-clamp-1">
+                    {post.title}
+                  </h3>
+
+                  <p className="mt-1 text-xs text-violet-100 dark:text-gray-400 line-clamp-2 leading-relaxed">
+                    {post.body}
+                  </p>
+
+                  {/* Tags */}
+                  {Array.isArray(post.tags) && post.tags.length > 0 && (
+                    <div className="mt-3 flex flex-wrap gap-1.5">
+                      {post.tags.map((t) => (
+                        <span
+                          key={t}
+                          className="rounded-lg bg-white/20 px-2 py-0.5 text-[10px] font-semibold text-white/90 dark:bg-slate-800 dark:text-slate-300"
+                        >
+                          #{t}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  {/* Author & Footer stats */}
+                  <div className="mt-4 flex items-center justify-between border-t border-white/20 pt-3 dark:border-slate-800 text-xs">
+                    <div className="flex items-center gap-2">
+                      <Avatar
+                        src={author?.user_img}
+                        name={author?.full_name}
+                        username={author?.username}
+                        size="xs"
+                        userId={post.author_id}
+                      />
+                      <span className="font-bold text-white dark:text-slate-200 truncate max-w-[120px]">
+                        {author?.full_name || author?.username || "Learner"}
                       </span>
-                    ))}
-                  </div>
-                )}
+                    </div>
 
-                {/* Author & Footer stats */}
-                <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800 text-xs">
-                  <div className="flex items-center gap-2">
-                    <Avatar
-                      src={author?.user_img}
-                      name={author?.full_name}
-                      username={author?.username}
-                      size="xs"
-                      userId={post.author_id}
-                    />
-                    <span className="font-bold text-slate-800 dark:text-slate-200 truncate max-w-[120px]">
-                      {author?.full_name || author?.username || "Learner"}
-                    </span>
-                  </div>
+                    <div className="flex items-center gap-4 text-xs font-bold text-white/90 dark:text-violet-400">
+                      <span className="flex items-center gap-1">
+                        <ThumbsUp className="h-3.5 w-3.5" />
+                        {post.votes_count || 0}
+                      </span>
 
-                  <div className="flex items-center gap-4 text-xs font-bold text-slate-500">
-                    <span className="flex items-center gap-1">
-                      <ThumbsUp className="h-3.5 w-3.5" />
-                      {post.votes_count || 0}
-                    </span>
+                      <span className="flex items-center gap-1">
+                        <MessageSquare className="h-3.5 w-3.5" />
+                        {post.answers_count || 0}
+                      </span>
 
-                    <span className="flex items-center gap-1">
-                      <MessageSquare className="h-3.5 w-3.5" />
-                      {post.answers_count || 0}
-                    </span>
-
-                    <span className="flex items-center gap-1">
-                      <Eye className="h-3.5 w-3.5" />
-                      {post.views_count || 0}
-                    </span>
+                      <span className="flex items-center gap-1">
+                        <Eye className="h-3.5 w-3.5" />
+                        {post.views_count || 0}
+                      </span>
+                    </div>
                   </div>
                 </div>
               </div>

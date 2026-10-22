@@ -23,6 +23,7 @@ import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
 import { getUserSubjectsList } from "../../lib/userSubjects.js";
+import { communityCardTheme } from "../../lib/communityTheme";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";
@@ -339,29 +340,34 @@ const Community = () => {
             <ChooseUsernameCard />
 
             {/* Header Banner */}
-            <div className="relative overflow-hidden rounded-3xl bg-white p-6 shadow-surface dark:bg-[#14171c] sm:p-8">
+            <div className="relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-600 p-6 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-emerald-500/10 dark:via-transparent dark:to-transparent dark:hover:border-emerald-500/30 sm:p-8">
+              <div className="absolute -right-5 -top-8 text-white/20 dark:text-emerald-400/20 pointer-events-none">
+                <Users size={160} />
+              </div>
               <div className="relative flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
                 <div>
-                  <div className="inline-flex items-center gap-2 rounded-2xl bg-emerald-100 px-3 py-1.5 text-xs font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300">
-                    <Users className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-                    <span>Community Hub</span>
+                  <div className="flex items-center gap-1.5">
+                    <Users className="h-4 w-4 text-white/90 dark:text-emerald-400" />
+                    <p className="text-xs font-bold uppercase tracking-wide text-white/90 dark:text-emerald-400">
+                      Community Hub
+                    </p>
                   </div>
-                  <h1 className="mt-3 text-3xl font-black tracking-tight text-slate-900 dark:text-white sm:text-4xl">
+                  <h1 className="mt-3 text-3xl font-black tracking-tight text-white dark:text-white sm:text-4xl">
                     Learn Together, Grow Faster
                   </h1>
-                  <p className="mt-2 text-base text-slate-600 dark:text-slate-300 max-w-2xl">
+                  <p className="mt-2 text-base text-emerald-100 dark:text-gray-400 max-w-2xl leading-relaxed">
                     Connect with study partners, join virtual rooms, ask help questions, and compete on leaderboards.
                   </p>
                 </div>
 
                 {collaborationInfo && (
-                  <div className="flex shrink-0 items-center gap-3 rounded-2xl bg-emerald-50/90 p-4 text-xs dark:bg-emerald-950/40 dark:text-emerald-200 shadow-surface max-w-xs">
-                    <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                  <div className="flex shrink-0 items-center gap-3 rounded-2xl bg-white/10 border border-white/20 p-4 text-xs dark:bg-emerald-950/40 dark:border-emerald-500/20 text-white dark:text-emerald-200 shadow-surface max-w-xs backdrop-blur-xs">
+                    <Sparkles className="h-5 w-5 text-white dark:text-emerald-400 shrink-0" />
                     <div>
-                      <span className="font-bold text-emerald-900 dark:text-emerald-100 block">
+                      <span className="font-bold text-white dark:text-emerald-100 block">
                         {collaborationInfo.badge}
                       </span>
-                      <span className="text-slate-600 dark:text-slate-300 mt-0.5 block">
+                      <span className="text-emerald-100 dark:text-gray-300 mt-0.5 block">
                         {collaborationInfo.description}
                       </span>
                     </div>
@@ -370,7 +376,7 @@ const Community = () => {
               </div>
 
               {/* Navigation Sub-Tabs Segmented Bar */}
-              <div className="mt-8 flex w-full gap-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-slate-200/80 p-1.5 dark:bg-[#18211f]">
+              <div className="relative mt-8 flex w-full gap-1.5 overflow-x-auto no-scrollbar rounded-2xl bg-white/10 p-1.5 dark:bg-[#18211f]/80 border border-white/10 dark:border-white/5 backdrop-blur-xs">
                 {[
                   { id: "feed", label: "Activity Feed", icon: Sparkles, path: "/community/feed" },
                   { id: "groups", label: "Groups", icon: Shield, path: "/community/groups" },
@@ -394,7 +400,7 @@ const Community = () => {
                       className={`flex min-h-[44px] flex-1 min-w-[110px] items-center justify-center gap-2 rounded-2xl px-3.5 py-2 text-xs font-bold transition duration-200 ${
                         isActive
                           ? "bg-white text-slate-900 shadow-surface dark:bg-[#14171c] dark:text-white"
-                          : "text-slate-600 hover:bg-white/50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
+                          : "text-white/80 hover:bg-white/20 hover:text-white dark:text-slate-400 dark:hover:bg-white/5 dark:hover:text-white"
                       }`}
                     >
                       <Icon className={`h-4 w-4 ${isActive ? "text-emerald-600 dark:text-emerald-400" : ""}`} />
@@ -455,19 +461,29 @@ const Community = () => {
                             <div
                               key={grp.id}
                               onClick={() => setSelectedGroupId(grp.id)}
-                              className="cursor-pointer rounded-2xl bg-slate-50/70 p-4 shadow-surface hover:shadow-surface-hover transition dark:bg-[#18211f]"
+                              className="relative overflow-hidden cursor-pointer rounded-2xl border border-teal-500/20 bg-teal-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-teal-500/10 dark:via-transparent dark:to-transparent dark:hover:border-teal-500/30"
                             >
-                              <div className="flex items-start justify-between">
-                                <span className="inline-flex items-center gap-1 rounded-2xl bg-emerald-100 px-2.5 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-                                  {grp.subject}
-                                </span>
-                                {grp.privacy === "public" ? <Globe className="h-4 w-4 text-slate-400" /> : <Lock className="h-4 w-4 text-amber-500" />}
+                              <div className="absolute -right-5 -top-8 text-white/20 dark:text-teal-400/20 pointer-events-none">
+                                <Users size={120} />
                               </div>
-                              <h3 className="mt-2 text-base font-bold text-slate-900 dark:text-white">{grp.name}</h3>
-                              <p className="mt-1 text-xs text-slate-600 dark:text-slate-400 line-clamp-2">{grp.description || "No description provided."}</p>
-                              <div className="mt-3 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400">
-                                <span>{grp.member_count || 1} members</span>
-                                <ChevronRight className="h-4 w-4" />
+                              <div className="relative">
+                                <div className="flex items-start justify-between">
+                                  <div className="flex items-center gap-1.5">
+                                    <Users className="h-4 w-4 text-white/90 dark:text-teal-400" />
+                                    <span className="inline-flex items-center gap-1 rounded-2xl bg-white/20 px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white dark:bg-teal-950 dark:text-teal-300">
+                                      {grp.subject}
+                                    </span>
+                                  </div>
+                                  {grp.privacy === "public" ? <Globe className="h-4 w-4 text-white/80 dark:text-slate-400" /> : <Lock className="h-4 w-4 text-amber-300 dark:text-amber-500" />}
+                                </div>
+                                <h3 className="mt-2 text-base font-bold text-white dark:text-white">{grp.name}</h3>
+                                <p className="mt-1 text-xs text-teal-100 dark:text-gray-400 line-clamp-2 leading-relaxed">{grp.description || "No description provided."}</p>
+                                <div className="mt-4 flex items-center justify-between text-xs font-bold text-white dark:text-teal-400">
+                                  <span>{grp.member_count || 1} members</span>
+                                  <span className="inline-flex items-center gap-1 hover:underline">
+                                    Open Group <ChevronRight className="h-4 w-4" />
+                                  </span>
+                                </div>
                               </div>
                             </div>
                           );

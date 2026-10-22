@@ -427,9 +427,13 @@ export default function PeerTutors({ user, userSubjects = [] }) {
               {tutorMatches.map((m) => (
                 <div
                   key={m.user_id}
-                  className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-[#14171c]"
+                  className="relative overflow-hidden flex flex-col justify-between rounded-2xl border border-amber-500/20 bg-amber-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-amber-500/10 dark:via-transparent dark:to-transparent dark:hover:border-amber-500/30"
                 >
-                  <div>
+                  <div className="absolute -right-5 -top-8 text-white/20 dark:text-amber-400/20 pointer-events-none">
+                    <BookOpen size={120} />
+                  </div>
+
+                  <div className="relative">
                     <div className="flex items-start justify-between gap-3">
                       <div className="flex items-center gap-3">
                         <Avatar
@@ -441,10 +445,10 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                           userId={m.user_id}
                         />
                         <div>
-                          <h3 className="text-base font-black text-slate-900 dark:text-white">
+                          <h3 className="text-base font-bold text-white dark:text-white">
                             {m.full_name || m.username || "Tutor"}
                           </h3>
-                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-500">
+                          <div className="flex items-center gap-1.5 text-xs font-bold text-amber-200 dark:text-amber-400">
                             <Star className="h-3.5 w-3.5 fill-current" />
                             <span>
                               {m.rating_avg ? m.rating_avg.toFixed(1) : "5.0"} (
@@ -455,13 +459,13 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                       </div>
 
                       {m.match_percent && (
-                        <span className="rounded-2xl bg-emerald-100 px-2.5 py-1 text-[11px] font-black text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                        <span className="rounded-2xl bg-white/20 px-2.5 py-1 text-[11px] font-black text-white dark:bg-amber-950 dark:text-amber-300">
                           {m.match_percent}% Match
                         </span>
                       )}
                     </div>
 
-                    <p className="mt-3 text-xs font-medium text-slate-700 dark:text-slate-300 line-clamp-2">
+                    <p className="mt-3 text-xs text-amber-100 dark:text-gray-400 line-clamp-2 leading-relaxed">
                       {m.headline || "Available for peer study sessions."}
                     </p>
 
@@ -471,7 +475,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                         {m.subjects_offered.map((s) => (
                           <span
                             key={s}
-                            className="rounded-lg bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-800 dark:bg-emerald-950/60 dark:text-emerald-300"
+                            className="rounded-lg bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-amber-950/60 dark:text-amber-300"
                           >
                             {s}
                           </span>
@@ -485,7 +489,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                         {m.reasons.map((r, idx) => (
                           <span
                             key={idx}
-                            className="inline-block rounded-md bg-slate-100 px-2 py-0.5 text-[10px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-400 mr-1"
+                            className="inline-block rounded-md bg-white/10 px-2 py-0.5 text-[10px] font-semibold text-white/90 dark:bg-slate-800 dark:text-slate-400 mr-1"
                           >
                             {r}
                           </span>
@@ -494,17 +498,17 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                     )}
                   </div>
 
-                  <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="relative mt-4 flex items-center justify-between border-t border-white/20 pt-3 dark:border-slate-800">
                     <button
                       type="button"
                       onClick={() => navigate(`/community/u/${m.user_id}`)}
-                      className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                      className="text-xs font-bold text-white dark:text-amber-400 hover:underline transition"
                     >
                       View Profile
                     </button>
 
                     {m.open_request ? (
-                      <span className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                      <span className="rounded-2xl bg-white/20 px-3 py-1 text-xs font-bold text-white dark:bg-amber-950 dark:text-amber-300">
                         Request Sent
                       </span>
                     ) : (
@@ -514,7 +518,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                           setRequestTarget(m);
                           setReqSubject(m.subjects_offered?.[0] || userSubjects[0] || "General");
                         }}
-                        className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+                        className="inline-flex items-center gap-1.5 rounded-2xl bg-white px-3.5 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-50 dark:bg-amber-600 dark:text-white dark:hover:bg-amber-700 transition"
                       >
                         <Send className="h-3.5 w-3.5" /> Request Help
                       </button>
@@ -569,9 +573,13 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                 return (
                   <div
                     key={m.user_id}
-                    className="flex flex-col justify-between rounded-3xl border border-slate-200 bg-white p-5 shadow-xs dark:border-slate-800 dark:bg-[#14171c]"
+                    className="relative overflow-hidden flex flex-col justify-between rounded-2xl border border-amber-500/20 bg-amber-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-amber-500/10 dark:via-transparent dark:to-transparent dark:hover:border-amber-500/30"
                   >
-                    <div>
+                    <div className="absolute -right-5 -top-8 text-white/20 dark:text-amber-400/20 pointer-events-none">
+                      <Users size={120} />
+                    </div>
+
+                    <div className="relative">
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-center gap-3">
                           <Avatar
@@ -583,15 +591,15 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                             userId={m.user_id}
                           />
                           <div>
-                            <h3 className="text-base font-black text-slate-900 dark:text-white">
+                            <h3 className="text-base font-bold text-white dark:text-white">
                               {m.full_name || m.username || "Partner"}
                             </h3>
-                            <p className="text-xs text-slate-500">Level {m.level || 1}</p>
+                            <p className="text-xs text-amber-100 dark:text-gray-400">Level {m.level || 1}</p>
                           </div>
                         </div>
 
                         {m.match_percent && (
-                          <span className="rounded-2xl bg-teal-100 px-2.5 py-1 text-[11px] font-black text-teal-800 dark:bg-teal-950 dark:text-teal-300">
+                          <span className="rounded-2xl bg-white/20 px-2.5 py-1 text-[11px] font-black text-white dark:bg-amber-950 dark:text-amber-300">
                             {m.match_percent}% Shared
                           </span>
                         )}
@@ -603,7 +611,7 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                           {m.shared_subjects.map((s) => (
                             <span
                               key={s}
-                              className="rounded-lg bg-slate-100 px-2 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                              className="rounded-lg bg-white/20 px-2 py-0.5 text-[10px] font-bold text-white dark:bg-slate-800 dark:text-slate-300"
                             >
                               {s}
                             </span>
@@ -612,24 +620,24 @@ export default function PeerTutors({ user, userSubjects = [] }) {
                       )}
                     </div>
 
-                    <div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-3 dark:border-slate-800">
+                    <div className="relative mt-4 flex items-center justify-between border-t border-white/20 pt-3 dark:border-slate-800">
                       <button
                         type="button"
                         onClick={() => navigate(`/community/u/${m.user_id}`)}
-                        className="text-xs font-bold text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+                        className="text-xs font-bold text-white dark:text-amber-400 hover:underline transition"
                       >
                         View Profile
                       </button>
 
                       {isSent ? (
-                        <span className="rounded-2xl bg-amber-100 px-3 py-1 text-xs font-bold text-amber-800 dark:bg-amber-950 dark:text-amber-300">
+                        <span className="rounded-2xl bg-white/20 px-3 py-1 text-xs font-bold text-white dark:bg-amber-950 dark:text-amber-300">
                           Request Sent
                         </span>
                       ) : (
                         <button
                           type="button"
                           onClick={() => handleAddPartnerFriend(m.user_id)}
-                          className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white hover:bg-emerald-700"
+                          className="inline-flex items-center gap-1.5 rounded-2xl bg-white px-3.5 py-1.5 text-xs font-bold text-amber-950 hover:bg-amber-50 dark:bg-amber-600 dark:text-white dark:hover:bg-amber-700 transition"
                         >
                           <UserPlus className="h-3.5 w-3.5" /> Add Friend
                         </button>

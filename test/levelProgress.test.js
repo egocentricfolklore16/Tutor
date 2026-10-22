@@ -5,6 +5,11 @@ import {
   LEVEL_MILESTONES,
   getNextLevelMilestone,
 } from "../src/features/gamification/utils/levelCurve.js";
+import {
+  generateMapNodes,
+  getZoneForLevel,
+  getXpRequiredForLevel,
+} from "../src/features/gamification/utils/levelMilestones.js";
 
 test("calculateXpLevel: zero and initial XP starts at Level 1", () => {
   const lvl0 = calculateXpLevel(0);
@@ -93,4 +98,41 @@ test("brand-new user (level 1, 0 XP) returns expected level state", () => {
   assert.strictEqual(brandNewUser.xpForNextLevel, 100);
   assert.strictEqual(brandNewUser.xpToNextLevel, 100);
   assert.strictEqual(brandNewUser.xpProgressPercent, 0);
+});
+
+test("generateMapNodes: Level 1 user renders up to Level 5 and includes Level 20 teaser", () => {
+  const nodes = generateMapNodes(1);
+  assert.strictEqual(nodes[0].level, 1);
+  // Milestones beyond L1 are L3 and L5 (next two milestones).
+  // So max level rendered should be 5, plus 1 teaser node for L20.
+  const regularNodes = nodes.filter((n) => !n.isTeaser);
+  assert.strictEqual(regularNodes.length, 5);
+  assert.strictEqual(regularNodes[regularNodes.length - 1].level, 5);
+
+  const teaserNode = nodes.find((n) => n.isTeaser);
+  assert.ok(teaserNode);
+  assert.strictEqual(teaserNode.level, 20);
+});
+
+test("generateMapNodes: Level 12 user renders up to Level 20 without teaser", () => {
+  const nodes = generateMapNodes(12);
+  // Next milestone beyond L12 is L20. Max level rendered should be 20.
+  const maxNode = nodes[nodes.length - 1];
+  assert.strictEqual(maxNode.level, 20);
+  const teaserCount = nodes.filter((n) => n.isTeaser).length;
+  assert.strictEqual(teaserCount, 0);
+});
+
+test("getZoneForLevel: maps levels to correct zone names", () => {
+  assert.strictEqual(getZoneForLevel(1).name, "Starter Valley");
+  assert.strictEqual(getZoneForLevel(3).name, "Focus Grove");
+  assert.strictEqual(getZoneForLevel(7).name, "Knowledge Citadel");
+  assert.strictEqual(getZoneForLevel(15).name, "Scholar's Realm");
+  assert.strictEqual(getZoneForLevel(25).name, "Legend Peak");
+});
+
+test("getXpRequiredForLevel: calculates cumulative XP for start of level", () => {
+  assert.strictEqual(getXpRequiredForLevel(1), 0);
+  assert.strictEqual(getXpRequiredForLevel(2), 100);
+  assert.strictEqual(getXpRequiredForLevel(3), 250);
 });

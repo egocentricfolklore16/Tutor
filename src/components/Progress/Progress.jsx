@@ -6,7 +6,8 @@ import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
-import { useGamification, LevelRoadmap } from "../../features/gamification";
+import StudyTrendChart from "./StudyTrendChart";
+import { useGamification, LevelRoadmap, LEVEL_MILESTONES } from "../../features/gamification";
 
 const dateKey = (value) => {
   const date = toDate(value);
@@ -111,6 +112,7 @@ function Progress() {
             totalXp={xp.total}
             xpInLevel={xp.xpInCurrentLevel}
             xpForLevel={xp.xpForNextLevel}
+            milestones={LEVEL_MILESTONES}
             onRetry={refreshAll}
           />
         </div>

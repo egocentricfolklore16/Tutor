@@ -4,6 +4,7 @@ export { useGamification } from "./hooks/useGamification.js";
 export { useCelebrations } from "./hooks/useCelebrations.js";
 export { CelebrationLayer } from "./components/CelebrationLayer.jsx";
 export { LevelProgress } from "./components/LevelProgress.jsx";
+export { LevelProgressCard } from "./components/LevelProgressCard.jsx";
 export { GemWallet } from "./components/GemWallet.jsx";
 export { DailyGoalRing } from "./components/DailyGoalRing.jsx";
 export { QuestList } from "./components/QuestList.jsx";

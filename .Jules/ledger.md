@@ -31,3 +31,7 @@
 ## 2025-05-27 - Unlinked Subscription Payment Retry Idempotency
 **Learning:** If a payment attempt creates a `payments` row with `status: "success"` but fails or crashes before upserting into `subscriptions`, returning `alreadyProcessed: true` solely based on `existingPayment.status === "success"` leaves the user un-granted. Differentiating subscription payments (`purpose.startsWith("subscription:")`) to require `existingSub && existingSub.payment_id === existingPayment.id` allows retries to complete subscription grants while returning `alreadyProcessed: true` immediately for non-subscription or already linked subscription payments.
 **Action:** When performing step 2 idempotency checks in `processVerifiedPayment`, verify `existingSub && existingSub.payment_id === existingPayment.id` specifically for subscription payments while preserving immediate `alreadyProcessed: true` returns for non-subscription payments.
+
+## 2025-05-28 - Verification Request Body JSON and Reference Type Safety
+**Learning:** In Edge Functions like `verify-payment`, unhandled `req.json()` calls on malformed payload bodies result in uncaught exceptions returning HTTP 500 Internal Server Errors. Additionally, passing non-string or whitespace-only reference inputs can bypass client assertions or result in unnecessary external API calls.
+**Action:** Wrap `req.json()` in a try/catch returning HTTP 400 Bad Request, validate `typeof reference === "string"` and non-empty string content, and normalize `planId` and `userId` metadata values to trimmed string primitives.

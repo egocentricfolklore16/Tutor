@@ -32,7 +32,7 @@ serve(async (req) => {
   let userId: string | null = null;
 
   try {
-    const { message, conversationHistory = [], sessionId, strictnessOverride } = await req.json();
+    const { message, conversationHistory = [], sessionId } = await req.json();
 
     if (!message || typeof message !== "string") {
       // Even a bad request doesn't get a hard error — respond conversationally.
@@ -47,7 +47,7 @@ serve(async (req) => {
       return jsonResponse({ error: "Missing Authorization header" }, 401);
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
       return jsonResponse({ error: "Unauthorized: Invalid or expired session token" }, 401);
@@ -55,7 +55,7 @@ serve(async (req) => {
 
     userId = userData.user.id;
 
-    const strictness = await resolveStrictness(supabase, userId, strictnessOverride);
+    const strictness = await resolveStrictness(supabase, userId);
     const fullHistory = [...conversationHistory, { role: "user", content: message }];
     const attemptCount = countGenuineAttempts(fullHistory);
     const systemPrompt = buildSystemPrompt(strictness, attemptCount);
@@ -79,11 +79,7 @@ serve(async (req) => {
 async function resolveStrictness(
   supabase: ReturnType<typeof createClient>,
   userId: string | null,
-  override?: unknown,
 ): Promise<Strictness> {
-  if (override !== undefined && override !== null && override !== "") {
-    return normalizeStrictness(override);
-  }
   if (!userId) return "hints_then_answer"; // sensible default for logged-out/demo use
 
   try {

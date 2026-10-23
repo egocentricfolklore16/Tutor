@@ -39,3 +39,7 @@
 ## 2026-10-24 - Stale Streak Resolution for Multi-Day Gaps with Freeze Tokens
 **Learning:** `useStreak.js` checked `diffDays > 1 && freezes === 0` to identify stale streaks. When `diffDays` was 3 (2 missed days) and `freezes` was 1, `freezes === 0` evaluated to false, preventing stale streak reset to 0 even though 1 freeze token cannot protect a 2-day gap. Updating the condition to `diffDays > 2 || (diffDays === 2 && freezes === 0)` (and exporting `resolveStaleDisplayStreak`) aligns `useStreak.js` with `getDisplayStreak` in `streaksCore.js`.
 **Action:** When testing stale streak resolution, verify multi-day gap boundaries (`diffDays > 2`) explicitly with non-zero freeze token balances to ensure display streaks reset to 0 when gaps exceed freeze token protection.
+
+## 2026-10-26 - Non-DOM Environment Base64 Decoding Fallback in Push Notifications
+**Learning:** `urlBase64ToUint8Array` in `src/lib/push.js` invoked `window.atob(base64)` directly, causing runtime `ReferenceError` failures in Node test execution and non-window worker environments. Resolving `atob` via `typeof window !== "undefined" ? window.atob : globalThis.atob` ensures base64url decoding functions across both browser and server/test contexts.
+**Action:** When working with Web API helpers that process encoded strings or buffer keys, use environment-agnostic property resolution (`typeof window !== "undefined" ? window.atob : globalThis.atob`) so unit test runners can execute deterministic assertions without throwing DOM reference errors.

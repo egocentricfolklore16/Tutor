@@ -11,7 +11,8 @@ export function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (cleanStr.length % 4)) % 4);
   const base64 = (cleanStr + padding).replace(/-/g, "+").replace(/_/g, "/");
   try {
-    const rawData = window.atob(base64);
+    const atobFn = typeof window !== "undefined" ? window.atob : globalThis.atob;
+    const rawData = atobFn(base64);
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);

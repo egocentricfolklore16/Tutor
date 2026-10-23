@@ -23,7 +23,6 @@ import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
 import { getUserSubjectsList } from "../../lib/userSubjects.js";
-import { communityCardTheme } from "../../lib/communityTheme";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";

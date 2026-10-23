@@ -1,10 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ResponsiveSheet from "./ResponsiveSheet";
 
 function FeedbackDialog({ open, onClose, onLogout }) {
-  const [reason, setReason] = useState("Taking a break");
+  const isLogoutContext = Boolean(onLogout);
+  const [reason, setReason] = useState(isLogoutContext ? "Taking a break" : "General feedback");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSubmitted(false);
+      setMessage("");
+      setReason(isLogoutContext ? "Taking a break" : "General feedback");
+    }
+  }, [open, isLogoutContext]);
 
   const submitFeedback = (event) => {
     event.preventDefault();
@@ -38,7 +47,7 @@ function FeedbackDialog({ open, onClose, onLogout }) {
     <ResponsiveSheet
       isOpen={open}
       onClose={onClose}
-      title="Before you go"
+      title={isLogoutContext ? "Before you go" : "Give us feedback"}
       maxWidth="max-w-md"
       footer={
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 w-full">
@@ -64,11 +73,13 @@ function FeedbackDialog({ open, onClose, onLogout }) {
       <div className="w-full text-center">
         <img
           src="/logo4-removebg-preview.png"
-          alt="Lumo mascot looking sad"
+          alt="Lumo mascot"
           className="mx-auto mb-3 h-36 w-36 object-contain sm:h-44 sm:w-44"
         />
         <p className="text-xs leading-5 text-slate-500 dark:text-slate-400">
-          We would love to keep helping you learn. Please tell us what would make Hyper Tutor better before you leave.
+          {isLogoutContext
+            ? "We would love to keep helping you learn. Please tell us what would make Hyper Tutor better before you leave."
+            : "We'd love to hear how Hyper Tutor is working for you and what we can do better!"}
         </p>
       </div>
 
@@ -83,16 +94,27 @@ function FeedbackDialog({ open, onClose, onLogout }) {
       ) : (
         <form onSubmit={submitFeedback} className="mt-4 space-y-3">
           <label className="block text-xs font-bold text-slate-700 dark:text-slate-300">
-            What is the main reason you are leaving?
+            {isLogoutContext ? "What is the main reason you are leaving?" : "What topic is your feedback about?"}
             <select
               value={reason}
               onChange={(event) => setReason(event.target.value)}
               className="mt-1.5 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
             >
-              <option>Taking a break</option>
-              <option>Not finding what I need</option>
-              <option>Something is not working</option>
-              <option>Other</option>
+              {isLogoutContext ? (
+                <>
+                  <option>Taking a break</option>
+                  <option>Not finding what I need</option>
+                  <option>Something is not working</option>
+                  <option>Other</option>
+                </>
+              ) : (
+                <>
+                  <option>General feedback</option>
+                  <option>Feature request</option>
+                  <option>Something is not working</option>
+                  <option>Other</option>
+                </>
+              )}
             </select>
           </label>
 

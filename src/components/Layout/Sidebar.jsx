@@ -11,13 +11,15 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
   const location = useLocation();
 
   const getActiveFromPath = (pathname) => {
-    if (pathname.startsWith("/Study")) return "Study";
-    if (pathname.startsWith("/Planner")) return "Planner";
-    if (pathname.startsWith("/Progress")) return "Progress";
-    if (pathname.startsWith("/Library")) return "Library";
-    if (pathname.startsWith("/Community")) return "Community";
-    if (pathname.startsWith("/FAQ")) return "FAQ";
-    if (pathname.startsWith("/Settings")) return "Settings";
+    const path = (pathname || "").toLowerCase();
+    if (path.startsWith("/study")) return "Study";
+    if (path.startsWith("/planner")) return "Planner";
+    if (path.startsWith("/progress")) return "Progress";
+    if (path.startsWith("/library")) return "Library";
+    if (path.startsWith("/community") || path.startsWith("/achievements")) return "Community";
+    if (path.startsWith("/faq")) return "FAQ";
+    if (path.startsWith("/settings")) return "Settings";
+    if (path.startsWith("/shop")) return "Shop";
     return "Dashboard";
   };
 

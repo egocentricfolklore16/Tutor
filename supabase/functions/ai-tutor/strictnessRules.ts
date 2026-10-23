@@ -9,7 +9,7 @@ export function countGenuineAttempts(messages: any[]): number {
   const compoundTargetNouns = `${targetNoun}(?:\\s*(?:and|&|\\+|,)\\s*(?:the\\s*|a\\s*|your\\s*)?${targetNoun})*`;
 
   const nonAttemptDemandRegex = new RegExp(
-    `(?:give|tell|show|send|write|solve|explain)\\s*(?:me\\s*)?(?:the\\s*|a\\s*|your\\s*)?${compoundTargetNouns}|` +
+    `(?:give|tell|show|send|write|solve|explain|provide|get|need|want|require|would\\s*like)\\s*(?:me|you)?\\s*(?:to\\s*)?(?:give|tell|show|send|write|provide)?\\s*(?:me\\s*)?(?:the\\s*|a\\s*|your\\s*)?${compoundTargetNouns}|` +
       `(?:what|whats|what's)\\s*(?:is|are)?\\s*(?:the\\s*|a\\s*)?${compoundTargetNouns}|` +
       `(?:answer|solution|result|steps?)\\s*(?:please|pls)|` +
       `(?:can\\s+you\\s+|could\\s+you\\s+|would\\s+you\\s+|please\\s+)?(?:solve|do|write|calculate|figure\\s*(?:out)?|work\\s*(?:out)?)\\s*(?:it|this|the\\s*(?:problem|question|equation))?\\s*(?:for\\s*me|now|please)?|` +

@@ -63,3 +63,9 @@
 **Learning:** Students can combine target demand nouns ("give me the answer and solution", "show me the steps and answer", "give me the code and explanation") using conjunctions or punctuation to bypass single-noun demand regexes. Constructing `compoundTargetNouns` regexes with optional joined target nouns (`(?:answer|solution|result|steps?|work|code|explanation|summary)`) ensures multi-phrase demands do not count as genuine attempts and unlock answers prematurely.
 
 **Action:** When matching non-attempt demands, support compound target nouns joined by conjunctions (`and`, `&`, `+`, `,`) so compound answer/solution demands are filtered server-side.
+
+## 2026-10-13 - Catching Desire-Based Answer Demands in Turn Counting
+
+**Learning:** State or desire-based phrasing ("i need the answer", "i want the solution", "i need the steps", "i would like the answer") previously bypassed `nonAttemptDemandRegex` because demand verb groups only matched command verbs (`give`, `tell`, `show`, `solve`, etc.). Expanding `nonAttemptDemandRegex` to capture desire/need verbs (`need`, `want`, `require`, `would like`, `provide`, `get`) ensures zero-effort desire statements are filtered server-side without incrementing genuine attempt counts.
+
+**Action:** Support desire/need verb variations in `nonAttemptDemandRegex` so state/desire statements requesting answers, solutions, or steps do not bypass Socratic answer unlocking.

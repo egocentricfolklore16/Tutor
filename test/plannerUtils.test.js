@@ -65,6 +65,31 @@ test('getPlannerDefaults derives default startTime from preferredTime', () => {
   assert.equal(getPlannerDefaults('Evening').startTime, '19:00');
 });
 
+test('getPlannerDefaults derives default subject and start time from student profile', () => {
+  const profile = {
+    settings_subject: 'Computer science',
+    preferred_time: 'Evening',
+  };
+  const defaults = getPlannerDefaults(null, profile);
+  assert.equal(defaults.subject, 'Computer science');
+  assert.equal(defaults.startTime, '19:00');
+
+  // Passing profile object directly as first parameter
+  const defaults2 = getPlannerDefaults(profile);
+  assert.equal(defaults2.subject, 'Computer science');
+  assert.equal(defaults2.startTime, '19:00');
+});
+
+test('getPlannerDefaults falls back to subjects array when settings_subject is missing', () => {
+  const profile = {
+    subjects: ['Physics', 'Math'],
+    preferred_time: 'Morning',
+  };
+  const defaults = getPlannerDefaults(null, profile);
+  assert.equal(defaults.subject, 'Physics');
+  assert.equal(defaults.startTime, '09:00');
+});
+
 test('getPlannerDefaults falls back safely for Flexible, null, undefined, or unknown preferredTime', () => {
   const flexibleDefault = getPlannerDefaults('Flexible');
   const nullDefault = getPlannerDefaults(null);
@@ -75,6 +100,7 @@ test('getPlannerDefaults falls back safely for Flexible, null, undefined, or unk
   assert.ok(nullDefault.startTime.includes(':'));
   assert.ok(undefinedDefault.startTime.includes(':'));
   assert.ok(unknownDefault.startTime.includes(':'));
+  assert.equal(nullDefault.subject, '');
 });
 
 test('getStudySessionDefaults extracts subject and focus time from profile', () => {

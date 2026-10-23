@@ -63,12 +63,22 @@ export function calculateEndTimeString(startTimeStr, durationMinutes) {
 }
 
 /**
- * Reads form defaults from localStorage or returns fallback defaults
+ * Reads form defaults from localStorage or returns fallback defaults,
+ * extracting default subject and preferred start time from student profile.
  */
-export function getPlannerDefaults(preferredTime = null) {
+export function getPlannerDefaults(preferredTime = null, profile = null) {
   let defaultStartTime = getNextHalfHour();
-  if (preferredTime) {
-    const normalized = String(preferredTime).trim().toLowerCase();
+  let prefTimeInput = preferredTime;
+
+  if (preferredTime && typeof preferredTime === 'object') {
+    profile = preferredTime;
+    prefTimeInput = profile.preferred_time;
+  } else if (!prefTimeInput && profile && typeof profile === 'object') {
+    prefTimeInput = profile.preferred_time;
+  }
+
+  if (prefTimeInput) {
+    const normalized = String(prefTimeInput).trim().toLowerCase();
     if (normalized === 'morning') {
       defaultStartTime = '09:00';
     } else if (normalized === 'afternoon') {
@@ -78,12 +88,17 @@ export function getPlannerDefaults(preferredTime = null) {
     }
   }
 
+  const defaultSubject =
+    profile?.settings_subject ||
+    (Array.isArray(profile?.subjects) && profile.subjects.find((s) => typeof s === 'string' && s.trim().length > 0)) ||
+    '';
+
   const fallback = {
     date: new Date().toISOString().slice(0, 10),
     startTime: defaultStartTime,
     duration: 45,
     reminder: 15,
-    subject: '',
+    subject: defaultSubject,
     priority: 'normal',
     color: '#3B82F6',
   };
@@ -98,7 +113,7 @@ export function getPlannerDefaults(preferredTime = null) {
           startTime: parsed.startTime ?? fallback.startTime,
           duration: parsed.duration ?? fallback.duration,
           reminder: parsed.reminder ?? fallback.reminder,
-          subject: parsed.subject ?? fallback.subject,
+          subject: (parsed.subject && parsed.subject.trim()) ? parsed.subject : fallback.subject,
           priority: parsed.priority ?? fallback.priority,
           color: parsed.color ?? fallback.color,
         };

@@ -79,3 +79,7 @@
 ## 2026-11-22 - Pre-filling Study Group Subject Defaults from Onboarding Subjects
 **Learning:** When creating a new study group in Community (`CreateGroupModal`), the subject field defaulted to empty string `""`, ignoring the student's onboarding subjects (`profiles.subjects`) and forcing manual text entry.
 **Action:** Create `getUserSubjectsList` in `src/lib/userSubjects.js` with unit tests in `test/userSubjects.test.js`, update `community.jsx` to pass `userSubjects` to `CreateGroupModal`, pre-fill the group subject field with the student's priority subject when opening, and render interactive subject recommendation chips for instant selection.
+
+## 2026-11-30 - Pre-filling Planner Activity Modal Defaults from Onboarding Subjects
+**Learning:** When creating a new study session, deadline, time block, or recurring session in Study Planner (`PlannerActivityModal`), the Subject field defaulted to empty string `""`, ignoring the student's onboarding priority subject (`profiles.settings_subject` or `profiles.subjects[0]`) and forcing manual re-entry.
+**Action:** Update `getPlannerDefaults` in `src/lib/plannerUtils.js` to extract `defaultSubject` from `profile`, pass `profile` from `Planner.jsx` to `PlannerActivityModal.jsx`, and add unit tests in `test/plannerUtils.test.js` to ensure default subject pre-filling and safe fallback handling.

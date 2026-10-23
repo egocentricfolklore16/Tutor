@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  Copy,
   Sparkles,
 } from "lucide-react";
 import { getPermissionState } from "../../lib/push";
@@ -48,7 +47,6 @@ function PlannerActivityModal({
   onClose,
   onSubmit,
   onDelete = null,
-  onDuplicate = null,
   preferredTime = null,
 }) {
   const defaults = getPlannerDefaults(preferredTime);

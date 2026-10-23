@@ -118,7 +118,7 @@ function QuizModal({
   onDone,
   result,
 }) {
-  const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
+  const [, setFocusedQuestionIndex] = useState(0);
   const [ringAnimated, setRingAnimated] = useState(false);
 
   const isResults = Boolean(result);

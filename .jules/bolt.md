@@ -17,3 +17,7 @@
 ## 2025-05-14 - Pre-parsing Date Timestamps in Memoized Sort Hooks
 **Learning:** Calling date parsing helpers inside JavaScript `.sort()` comparators without pre-parsing invokes regex/string split/`Date` object allocations $O(N \log N)$ times per render. In hooks driving high-frequency Dashboard components (e.g. `useSlippingSessions`), wrapping the filter/sort pipeline in `useMemo` and pre-mapping candidate items to include numeric `startTime` timestamps beforehand reduces date parsing from $O(N \log N)$ per render down to $O(N)$ per session/timer update.
 **Action:** When sorting collection state by computed Date values in React custom hooks, use `useMemo` and pre-map items to extract numeric `getTime()` timestamps in an $O(N)$ pass before running `.sort()`.
+
+## 2025-05-15 - Module-Scoped Intl.DateTimeFormat vs Loop toLocaleDateString Calls
+**Learning:** Calling `date.toLocaleDateString("en-US", options)` inside loops instantiates or resolves `Intl.DateTimeFormat` options on every iteration ($O(N)$ expensive locale format calls). Reusing pre-instantiated module-scoped `Intl.DateTimeFormat` instances (`shortDateFormatter.format(date)`) avoids repeated options parsing and locale instantiation, significantly speeding up date array projections.
+**Action:** In loops or list projections that format dates into locale strings, instantiate `Intl.DateTimeFormat` at module or component scope and call `.format(date)` inside the loop.

@@ -23,6 +23,10 @@ export const getLocalDateKey = (value) => {
  * @param {number} [offsetDays=0] - Offset in range periods (e.g., 0 for current period, 1 for previous period)
  * @returns {Array<{ key: string, day: string, fullDate: string, hours: number, dateObj: Date }>}
  */
+// Module-scoped Intl.DateTimeFormat instances to avoid expensive repeated instantiation inside loop
+const shortDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric" });
+const fullDateFormatter = new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" });
+
 export const buildDailyPoints = (sessions = [], rangeDays = 30, referenceDate = new Date(), offsetDays = 0) => {
   const ref = new Date(referenceDate);
   ref.setHours(0, 0, 0, 0);
@@ -39,8 +43,9 @@ export const buildDailyPoints = (sessions = [], rangeDays = 30, referenceDate = 
     const d = new Date(ref);
     d.setDate(d.getDate() - i);
     const key = getLocalDateKey(d);
-    const dayLabel = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    const fullDateLabel = d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+    // OPTIMIZATION: Reuse pre-instantiated Intl formatters instead of calling d.toLocaleDateString() per iteration
+    const dayLabel = shortDateFormatter.format(d);
+    const fullDateLabel = fullDateFormatter.format(d);
 
     const point = {
       key,

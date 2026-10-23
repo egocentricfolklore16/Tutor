@@ -23,13 +23,11 @@ import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
 import { getCollaborationInfo } from "../../lib/collaboration";
 import { getUserSubjectsList } from "../../lib/userSubjects.js";
-import { communityCardTheme } from "../../lib/communityTheme";
 import PageContainer from "../common/PageContainer";
 
 import ChatInbox from "./ChatInbox";
 import ChatThread from "./ChatThread";
 import SessionRoom from "./SessionRoom";
-import RequestJoinModal from "./RequestJoinModal";
 
 import ChooseUsernameCard from "./ChooseUsernameCard";
 import UserProfilePage from "./UserProfilePage";
@@ -38,7 +36,6 @@ import VirtualStudyRoom from "./VirtualStudyRoom";
 import HelpForum from "./HelpForum";
 import ForumPostDetail from "./ForumPostDetail";
 import PeerTutors from "./PeerTutors";
-import LeaderboardTab from "./LeaderboardTab";
 import AchievementsPage from "./AchievementsPage";
 
 import { useFriends } from "../../features/community/hooks/useFriends";
@@ -54,6 +51,8 @@ import UserSearch from "../../features/community/components/friends/UserSearch";
 import GroupCard from "../../features/community/components/groups/GroupCard";
 import CreateGroupModal from "../../features/community/components/groups/CreateGroupModal";
 import GroupDetail from "../../features/community/components/groups/GroupDetail";
+import RequestJoinModal from "../../features/community/components/groups/RequestJoinModal";
+import LeaderboardTab from "../../features/community/components/leaderboard/LeaderboardTab";
 import { ActivityFeed } from "../../features/community/components/feed/ActivityFeed";
 
 const Community = () => {

@@ -10,7 +10,6 @@ import {
   ChevronDown,
   ChevronUp,
   Trash2,
-  Copy,
   Sparkles,
 } from "lucide-react";
 import { getPermissionState } from "../../lib/push";
@@ -48,10 +47,11 @@ function PlannerActivityModal({
   onClose,
   onSubmit,
   onDelete = null,
-  onDuplicate = null,
+  _onDuplicate = null,
   preferredTime = null,
+  profile = null,
 }) {
-  const defaults = getPlannerDefaults(preferredTime);
+  const defaults = getPlannerDefaults(preferredTime, profile);
   const titleInputRef = useRef(null);
 
   const [form, setForm] = useState(() => {

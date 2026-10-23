@@ -19,6 +19,7 @@ export { default as MetricTabs } from "./components/leaderboard/MetricTabs";
 export { default as LeaderboardPodium } from "./components/leaderboard/LeaderboardPodium";
 export { default as LeaderboardTable } from "./components/leaderboard/LeaderboardTable";
 export { default as YourRankCard } from "./components/leaderboard/YourRankCard";
+export { default as LeaderboardTab } from "./components/leaderboard/LeaderboardTab";
 
 export { default as FriendList } from "./components/friends/FriendList";
 export { default as PendingRequests } from "./components/friends/PendingRequests";
@@ -28,6 +29,7 @@ export { default as GroupCard } from "./components/groups/GroupCard";
 export { default as CreateGroupModal } from "./components/groups/CreateGroupModal";
 export { default as GroupDetail } from "./components/groups/GroupDetail";
 export { default as MemberList } from "./components/groups/MemberList";
+export { default as RequestJoinModal } from "./components/groups/RequestJoinModal";
 
 export { EmptyState } from "./components/shared/EmptyState";
 export { ErrorState } from "./components/shared/ErrorState";

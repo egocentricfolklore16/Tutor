@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Send, Loader2, Lock } from "lucide-react";
-import ResponsiveSheet from "../common/ResponsiveSheet";
+import ResponsiveSheet from "../../../../components/common/ResponsiveSheet";
 
 export default function RequestJoinModal({ isOpen, onClose, groupName, onSubmit, submitting }) {
   const [message, setMessage] = useState("");

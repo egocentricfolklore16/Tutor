@@ -1,4 +1,4 @@
-import React, { useId, useMemo, useState, useRef, useEffect, useCallback } from "react";
+import React, { useMemo, useState, useRef, useEffect, useCallback } from "react";
 import {
   AreaChart,
   Area,
@@ -43,7 +43,7 @@ function CustomDailyDot(props) {
 /**
  * Custom Tooltip Content with crosshairs & delta vs previous day computation
  */
-function CustomTooltipContent({ active, payload, label, coordinate, containerWidth, activeIndex }) {
+function CustomTooltipContent({ active, payload, label, coordinate, containerWidth }) {
   if (!active || !payload || !payload.length) return null;
 
   const dataPoint = payload[0]?.payload;
@@ -183,9 +183,7 @@ export function StudyTrendChart({
   loading = false,
   title = "30-day study trend",
   subtitle = "Planned hours across your recent schedule",
-  plannedHoursTotal = 0,
 }) {
-  const chartContainerId = useId();
   const [rangeDays, setRangeDays] = useState(30);
   const [show7DayAvg, setShow7DayAvg] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);

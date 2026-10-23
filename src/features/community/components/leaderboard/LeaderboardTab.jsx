@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
   Trophy,
@@ -6,17 +6,17 @@ import {
   Loader2,
   AlertCircle,
   Search,
-  Flag,
+  Users,
 } from "lucide-react";
-import { useLeaderboard } from "../../features/community/hooks/useLeaderboard";
-import ScopeTabs from "../../features/community/components/leaderboard/ScopeTabs";
-import PeriodTabs from "../../features/community/components/leaderboard/PeriodTabs";
-import MetricTabs from "../../features/community/components/leaderboard/MetricTabs";
-import LeaderboardPodium from "../../features/community/components/leaderboard/LeaderboardPodium";
-import LeaderboardTable from "../../features/community/components/leaderboard/LeaderboardTable";
-import YourRankCard from "../../features/community/components/leaderboard/YourRankCard";
-import { getWeeklyResetCountdown } from "../../features/community/utils/rankUtils";
-import { ReportDialog } from "../../features/community/components/shared/ReportDialog";
+import { useLeaderboard } from "../../hooks/useLeaderboard";
+import ScopeTabs from "./ScopeTabs";
+import PeriodTabs from "./PeriodTabs";
+import MetricTabs from "./MetricTabs";
+import LeaderboardPodium from "./LeaderboardPodium";
+import LeaderboardTable from "./LeaderboardTable";
+import YourRankCard from "./YourRankCard";
+import { getWeeklyResetCountdown } from "../../utils/rankUtils";
+import { ReportDialog } from "../shared/ReportDialog";
 
 export default function LeaderboardTab({ user, userGroups = [] }) {
   const navigate = useNavigate();
@@ -29,6 +29,15 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
   const [metric, setMetric] = useState("xp"); // 'xp' | 'hours' | 'streak'
   const [selectedGroupId, setSelectedGroupId] = useState(userGroups[0]?.id || null);
   const [searchQuery, setSearchQuery] = useState("");
+
+  // Auto-select first available study group when userGroups loads
+  useEffect(() => {
+    if (userGroups.length > 0) {
+      if (!selectedGroupId || !userGroups.some((g) => g?.id === selectedGroupId)) {
+        setSelectedGroupId(userGroups[0].id);
+      }
+    }
+  }, [userGroups, selectedGroupId]);
 
   // Report dialog state
   const [reportTarget, setReportTarget] = useState(null);
@@ -143,7 +152,24 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
       </div>
 
       {/* Main Board View */}
-      {loading ? (
+      {scope === "group" && userGroups.length === 0 ? (
+        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-emerald-200 bg-emerald-50/50 p-8 text-center dark:border-emerald-900/40 dark:bg-[#18211f]">
+          <Users className="h-10 w-10 text-emerald-600 dark:text-emerald-400" />
+          <h3 className="mt-3 text-base font-bold text-slate-900 dark:text-white">
+            You haven't joined any study groups yet
+          </h3>
+          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-md leading-relaxed">
+            Join or create a study group to compare weekly XP, study hours, and streaks with your group members.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate("/community/groups")}
+            className="mt-4 inline-flex min-h-[44px] items-center gap-2 rounded-2xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition focus-visible:outline-none focus-visible:shadow-focus"
+          >
+            <Users className="h-4 w-4" /> Browse Study Groups
+          </button>
+        </div>
+      ) : loading ? (
         <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-[#14171c]">
           <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
           <p className="mt-3 text-xs text-slate-500 dark:text-slate-400">Loading rankings...</p>

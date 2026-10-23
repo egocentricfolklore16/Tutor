@@ -48,12 +48,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { reference } = body || {};
 
-    if (!reference) {
+    if (!reference || typeof reference !== "string" || !reference.trim()) {
       return new Response(
-        JSON.stringify({ error: "Missing reference in request body" }),
+        JSON.stringify({ error: "Missing or invalid payment reference in request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }

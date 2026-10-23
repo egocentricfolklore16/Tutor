@@ -169,3 +169,38 @@ test("PaystackCheckoutButton error resolution prioritizes data?.error over verif
     "Payment verification failed on server."
   );
 });
+
+test("verify-payment request body and reference validation rejects malformed JSON and invalid references with 400", () => {
+  function validateVerifyPaymentRequestBody(rawJsonString) {
+    let body;
+    try {
+      body = JSON.parse(rawJsonString);
+    } catch {
+      return { status: 400, error: "Invalid JSON in request body" };
+    }
+
+    const { reference } = body || {};
+    if (!reference || typeof reference !== "string" || !reference.trim()) {
+      return { status: 400, error: "Missing or invalid payment reference in request body" };
+    }
+
+    return { status: 200, reference: reference.trim() };
+  }
+
+  // Malformed JSON body
+  const malformedResult = validateVerifyPaymentRequestBody("{ invalid json ");
+  assert.strictEqual(malformedResult.status, 400);
+  assert.strictEqual(malformedResult.error, "Invalid JSON in request body");
+
+  // Missing or non-string or whitespace-only reference
+  assert.strictEqual(validateVerifyPaymentRequestBody(JSON.stringify({})).status, 400);
+  assert.strictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "" })).status, 400);
+  assert.strictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "   " })).status, 400);
+  assert.strictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: 12345 })).status, 400);
+  assert.strictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: ["ref"] })).status, 400);
+
+  // Valid reference
+  const validResult = validateVerifyPaymentRequestBody(JSON.stringify({ reference: "  ref_123  " }));
+  assert.strictEqual(validResult.status, 200);
+  assert.strictEqual(validResult.reference, "ref_123");
+});

@@ -25,11 +25,10 @@ export function NodeDetailSheet({
 }) {
   if (!node) return null;
 
-  const { level, isMilestone, milestoneTitle, milestoneDesc, milestoneIcon, xpRequired, zone, isTeaser, teaserText } = node;
+  const { level, milestoneTitle, milestoneDesc, milestoneIcon, xpRequired, zone, isTeaser, teaserText } = node;
 
   const isDone = level < userLevel;
   const isCurrent = level === userLevel;
-  const isLocked = level > userLevel;
 
   const IconComponent = ICON_MAP[milestoneIcon] || Gift;
 

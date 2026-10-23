@@ -21,3 +21,7 @@
 ## 2026-10-22 - Level & XP Milestones Roadmap Suite
 **Learning:** Incorporating a dedicated Level & XP Milestones Roadmap Card (`LevelProgressCard`) on the Progress page provides students with a tangible view of unlocked perks and upcoming milestone targets (such as custom timer themes, AI Quiz generation, and 2x Gem Multipliers), transforming XP points into meaningful goals.
 **Action:** Always pair Level/XP progress bars with milestone perks so students understand the tangible value of leveling up.
+
+## 2026-10-23 - `last_completed_date` / `last_active_date` Synchronization for Stale Streak Evaluation
+**Learning:** Selecting only `last_active_date` without `last_completed_date` in `useStreak` caused stale-streak resolution to compute invalid date gaps when `record_study_activity` updated `last_completed_date` on `users_streaks`, causing active streaks to falsely drop to "0d". Selecting both columns and calculating `lastActive = streakRow?.last_completed_date || streakRow?.last_active_date || null` ensures stale-streak resolution correctly evaluates activity dates against local cutoff boundaries.
+**Action:** Always query both `last_completed_date` and `last_active_date` from `users_streaks` when deriving streak freshness.

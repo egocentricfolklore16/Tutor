@@ -92,12 +92,10 @@ export function getZoneForLevel(levelNumber) {
 export function getXpRequiredForLevel(targetLevel) {
   const safeTarget = Math.max(1, Number(targetLevel) || 1);
   let totalXp = 0;
-  let currentLevelBaseXp = 0;
   let xpForNext = 100;
 
   for (let lvl = 1; lvl < safeTarget; lvl++) {
     totalXp += xpForNext;
-    currentLevelBaseXp += xpForNext;
     xpForNext += 50;
   }
   return totalXp;

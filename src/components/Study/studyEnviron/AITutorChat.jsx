@@ -112,7 +112,16 @@ const AITutorChat = ({
     return () => el.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const prevMessagesLengthRef = useRef(messages.length);
   useEffect(() => {
+    if (messages.length > prevMessagesLengthRef.current) {
+      const lastMsg = messages[messages.length - 1];
+      if (lastMsg?.sender === "user") {
+        isPinnedRef.current = true;
+      }
+    }
+    prevMessagesLengthRef.current = messages.length;
+
     if (messages.length > 0 || isTyping) {
       if (isPinnedRef.current) {
         messagesEndRef.current?.scrollIntoView({
@@ -188,6 +197,7 @@ const AITutorChat = ({
         onMessageChange(formattedText);
       }
       setTimeout(() => {
+        isPinnedRef.current = true;
         if (onSendMessage) {
           onSendMessage(formattedText);
         }
@@ -671,6 +681,7 @@ const AITutorChat = ({
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
                       if (currentMessage.trim() && !isTyping && onSendMessage) {
+                        isPinnedRef.current = true;
                         onSendMessage();
                       }
                     }
@@ -681,7 +692,12 @@ const AITutorChat = ({
                 />
                 <button
                   type="button"
-                  onClick={() => onSendMessage && onSendMessage()}
+                  onClick={() => {
+                    if (currentMessage.trim() && !isTyping && onSendMessage) {
+                      isPinnedRef.current = true;
+                      onSendMessage();
+                    }
+                  }}
                   disabled={!currentMessage.trim() || isTyping}
                   aria-label="Send message"
                   title="Send message"

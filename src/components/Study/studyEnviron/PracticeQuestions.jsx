@@ -118,7 +118,6 @@ function QuizModal({
   onDone,
   result,
 }) {
-  const [focusedQuestionIndex, setFocusedQuestionIndex] = useState(0);
   const [ringAnimated, setRingAnimated] = useState(false);
 
   const isResults = Boolean(result);
@@ -165,8 +164,6 @@ function QuizModal({
   const accentSurface = theme?.quizAccentSurface || "bg-green-50 dark:bg-green-950/35";
   const accentBorder = theme?.quizAccentBorder || "border-green-500 dark:border-green-400";
   const accentText = theme?.quizAccentText || "text-green-700 dark:text-green-300";
-
-  const handleFocusQuestion = (index) => setFocusedQuestionIndex(index);
 
   return (
     <Modal
@@ -315,7 +312,6 @@ function QuizModal({
                 key={question.id}
                 data-question-id={question.id}
                 tabIndex={0}
-                onFocus={() => handleFocusQuestion(questionIndex)}
                 className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm outline-none focus-visible:ring-2 focus-visible:ring-slate-400 dark:border-slate-700 dark:bg-slate-900/45 dark:focus-visible:ring-slate-500 sm:p-5"
               >
                 <div className="flex items-start gap-3">
@@ -337,7 +333,6 @@ function QuizModal({
                         role="radio"
                         aria-checked={isSelected}
                         tabIndex={isSelected || (answers[question.id] === undefined && optionIndex === 0) ? 0 : -1}
-                        onFocus={() => handleFocusQuestion(questionIndex)}
                         onClick={() => onSelectAnswer(question.id, optionIndex)}
                         className={`flex min-h-14 w-full items-center gap-3 rounded-xl border p-3.5 text-left text-sm font-normal leading-6 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900 sm:px-4 ${
                           isSelected

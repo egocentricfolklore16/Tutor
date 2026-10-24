@@ -164,9 +164,26 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
         <div className="flex min-h-[300px] flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-[#14171c]">
           <Trophy className="h-10 w-10 text-slate-300 dark:text-slate-700" />
           <p className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
-            {searchQuery ? "No learners found matching search" : "No activity recorded yet for this period"}
+            {searchQuery
+              ? "No learners found matching search"
+              : scope === "group" && userGroups.length === 0
+              ? "You haven't joined any study groups yet"
+              : "No activity recorded yet for this period"}
           </p>
-          <p className="mt-1 text-xs text-slate-500">Complete a study session to get on the board!</p>
+          <p className="mt-1 text-xs text-slate-500 max-w-sm leading-relaxed">
+            {scope === "group" && userGroups.length === 0
+              ? "Explore public study groups or create one with your classmates to view group leaderboards!"
+              : "Complete a 15-minute study session to claim your place on the board and start climbing!"}
+          </p>
+          {scope === "group" && userGroups.length === 0 && (
+            <button
+              type="button"
+              onClick={() => navigate("/community/groups")}
+              className="mt-4 inline-flex items-center gap-2 rounded-2xl bg-emerald-600 px-4 py-2 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
+            >
+              Explore Study Groups
+            </button>
+          )}
         </div>
       ) : (
         <div className="space-y-6">

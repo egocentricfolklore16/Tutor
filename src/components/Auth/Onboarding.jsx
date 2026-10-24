@@ -275,11 +275,13 @@ export default function Onboarding({ session: _session }) {
   };
 
   const updateField = (key, value) => {
+    setGeneralError("");
     triggerOwlBlink();
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
   const toggleMultiple = (key, option) => {
+    setGeneralError("");
     triggerOwlBlink();
     setForm((prev) => {
       const currentArr = prev[key] || [];

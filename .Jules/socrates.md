@@ -63,3 +63,9 @@
 **Learning:** Students can combine target demand nouns ("give me the answer and solution", "show me the steps and answer", "give me the code and explanation") using conjunctions or punctuation to bypass single-noun demand regexes. Constructing `compoundTargetNouns` regexes with optional joined target nouns (`(?:answer|solution|result|steps?|work|code|explanation|summary)`) ensures multi-phrase demands do not count as genuine attempts and unlock answers prematurely.
 
 **Action:** When matching non-attempt demands, support compound target nouns joined by conjunctions (`and`, `&`, `+`, `,`) so compound answer/solution demands are filtered server-side.
+
+## 2026-10-13 - Catching Direct Answer Demands and Indefinite Article Variations in Turn Counting
+
+**Learning:** Direct answer demands using the verb "answer" (e.g., "can you answer this", "just answer this", "answer this for me") or indefinite article "an" (e.g., "give me an answer") previously bypassed `countGenuineAttempts` because `nonAttemptDemandRegex` missing `an` in article matchers and `answer` in verb lists. Including `an` in article groups (`(?:the\s*|a\s*|an\s*|your\s*)`), `answer` in verb lists, and `that` in target pronoun lists ensures zero-effort answer requests are filtered server-side.
+
+**Action:** Include `an` in article lists and `answer` in demand verb regexes so answer requests with indefinite articles or direct verb phrasing do not prematurely increment attempt counts.

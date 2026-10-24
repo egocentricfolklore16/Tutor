@@ -252,6 +252,30 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
+test("processVerifiedPayment converts numeric and whitespace-padded metadata IDs correctly", async () => {
+  const mockClient = createMockSupabaseClient({
+    plan: { id: "101", price_kobo: 250000, price_naira: 2500, billing_interval: "month" },
+  });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_numeric_meta_9003",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: 101,
+        userId: "  user-uuid-padded-444  ",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.user_id, "user-uuid-padded-444");
+  assert.strictEqual(result.subscription.plan_id, "101");
+});
+
 test("processVerifiedPayment trims whitespace from reference", async () => {
   const mockClient = createMockSupabaseClient();
   const result = await processVerifiedPayment({

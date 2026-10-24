@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+// Helper logic representing request body validation in verify-payment
+function validateVerifyPaymentRequestBody(rawBodyString) {
+  let body;
+  try {
+    body = JSON.parse(rawBodyString);
+  } catch {
+    return { status: 400, error: "Invalid JSON request body" };
+  }
+
+  const { reference } = body || {};
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    return { status: 400, error: "Missing or invalid reference in request body" };
+  }
+
+  return { status: 200, reference: reference.trim() };
+}
+
 // Helper logic representing payment authorization checks in verify-payment
 function verifyPaymentAuthorization(authHeader, user, paystackData) {
   if (!authHeader) {
@@ -35,13 +52,18 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
     customerMetadata = {};
   }
 
-  const metadataUserId =
+  const rawMetadataUserId =
     metadata.userId ||
     metadata.user_id ||
     customerMetadata.userId ||
     customerMetadata.user_id;
 
-  if (!metadataUserId || metadataUserId !== user.id) {
+  const metadataUserId =
+    rawMetadataUserId !== null && rawMetadataUserId !== undefined
+      ? String(rawMetadataUserId).trim()
+      : "";
+
+  if (!metadataUserId || metadataUserId !== user.id.trim()) {
     return { status: 403, error: "Forbidden: Payment user ID mismatch" };
   }
 
@@ -102,6 +124,43 @@ test("verifyPaymentAuthorization correctly parses stringified JSON metadata and 
   const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackCustomerStringified);
   assert.strictEqual(result2.status, 200);
   assert.strictEqual(result2.authorized, true);
+});
+
+test("validateVerifyPaymentRequestBody handles malformed JSON and invalid reference types", () => {
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody("not-valid-json"), {
+    status: 400,
+    error: "Invalid JSON request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({})), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: 12345 })), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "   " })), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "  ref_valid_123  " })), {
+    status: 200,
+    reference: "ref_valid_123",
+  });
+});
+
+test("verifyPaymentAuthorization normalizes numeric and whitespace-padded user IDs correctly", () => {
+  const numericMeta = { data: { metadata: { userId: 456 } } };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "456" }, numericMeta);
+  assert.strictEqual(result1.status, 200);
+
+  const paddedMeta = { data: { metadata: { userId: "  user_owner_456  " } } };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paddedMeta);
+  assert.strictEqual(result2.status, 200);
 });
 
 test("verifyPaymentAuthorization returns 403 if metadataUserId is missing or unparseable", () => {

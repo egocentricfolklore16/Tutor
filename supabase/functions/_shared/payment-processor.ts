@@ -107,12 +107,17 @@ export async function processVerifiedPayment({
     customerMetadata = {};
   }
 
-  const planId = metadata.planId || metadata.plan_id;
-  const userId =
+  const rawPlanId = metadata.planId || metadata.plan_id;
+  const rawUserId =
     metadata.userId ||
     metadata.user_id ||
     customerMetadata.userId ||
     customerMetadata.user_id;
+
+  const planId =
+    rawPlanId !== null && rawPlanId !== undefined ? String(rawPlanId).trim() : "";
+  const userId =
+    rawUserId !== null && rawUserId !== undefined ? String(rawUserId).trim() : "";
 
   if (!planId) {
     throw new Error("Missing planId in Paystack metadata");

@@ -59,24 +59,28 @@ Deno.serve(async (req) => {
 
     if (event === "charge.success" || event === "charge.failed") {
       const eventData = payload.data;
-      const reference = eventData.reference;
+      const reference = eventData?.reference;
 
-      const supabaseUrl = Deno.env.get("SUPABASE_URL");
-      const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+      if (eventData && reference && typeof reference === "string" && reference.trim()) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 
-      if (supabaseUrl && supabaseServiceRoleKey) {
-        const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
-        try {
-          await processVerifiedPayment({
-            supabaseClient,
-            reference,
-            paystackData: eventData,
-          });
-        } catch (procErr: any) {
-          // If event was charge.failed, processVerifiedPayment will record the failure row and throw.
-          // Catch and log so response to Paystack remains 200 OK.
-          console.warn(`Processed payment event ${event} with expected rejection:`, procErr.message);
+        if (supabaseUrl && supabaseServiceRoleKey) {
+          const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          try {
+            await processVerifiedPayment({
+              supabaseClient,
+              reference: reference.trim(),
+              paystackData: eventData,
+            });
+          } catch (procErr: any) {
+            // If event was charge.failed, processVerifiedPayment will record the failure row and throw.
+            // Catch and log so response to Paystack remains 200 OK.
+            console.warn(`Processed payment event ${event} with expected rejection:`, procErr.message);
+          }
         }
+      } else {
+        console.warn(`Paystack webhook event ${event} received without valid reference or data payload`);
       }
     }
 

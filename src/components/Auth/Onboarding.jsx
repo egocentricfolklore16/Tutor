@@ -178,17 +178,14 @@ export default function Onboarding({ session: _session }) {
     form.display_name.trim().split(" ")[0] || "there";
 
   const updateField = (key, value) => {
-    setInlineNotice("");
+    setGeneralError("");
+    triggerOwlBlink();
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
-  const toggleSingleSelect = (stepKey, option) => {
-    setInlineNotice("");
-    setForm((prev) => ({ ...prev, [stepKey]: option }));
-  };
-
-  const toggleMultiSelect = (stepKey, option) => {
-    setInlineNotice("");
+  const toggleMultiple = (key, option) => {
+    setGeneralError("");
+    triggerOwlBlink();
     setForm((prev) => {
       const currentList = prev[stepKey] || [];
       const exists = currentList.includes(option);

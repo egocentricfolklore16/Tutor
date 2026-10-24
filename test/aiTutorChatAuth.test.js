@@ -8,7 +8,7 @@ function verifyAiTutorChatAuth(authHeader, userResolver) {
     return { status: 401, error: "Missing Authorization header" };
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const user = userResolver(token);
   if (!user) {
     return { status: 401, error: "Unauthorized: Invalid or expired session token" };
@@ -29,13 +29,20 @@ test("verifyAiTutorChatAuth returns 401 if token is invalid or expired", () => {
   assert.strictEqual(result.error, "Unauthorized: Invalid or expired session token");
 });
 
-test("verifyAiTutorChatAuth returns 200 and userId if token is valid", () => {
-  const result = verifyAiTutorChatAuth("Bearer valid_token", (token) => {
-    if (token === "valid_token") return { id: "user_456" };
-    return null;
-  });
-  assert.strictEqual(result.status, 200);
-  assert.strictEqual(result.userId, "user_456");
+test("verifyAiTutorChatAuth returns 200 and userId if token is valid with varying case or extra whitespace", () => {
+  const resolver = (token) => (token === "valid_token" ? { id: "user_456" } : null);
+
+  const result1 = verifyAiTutorChatAuth("Bearer valid_token", resolver);
+  assert.strictEqual(result1.status, 200);
+  assert.strictEqual(result1.userId, "user_456");
+
+  const result2 = verifyAiTutorChatAuth("bearer   valid_token", resolver);
+  assert.strictEqual(result2.status, 200);
+  assert.strictEqual(result2.userId, "user_456");
+
+  const result3 = verifyAiTutorChatAuth("BEARER valid_token  ", resolver);
+  assert.strictEqual(result3.status, 200);
+  assert.strictEqual(result3.userId, "user_456");
 });
 
 test("normalizeStrictness normalizes UI display labels, DB enums, and fallback strings", () => {

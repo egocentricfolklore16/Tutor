@@ -9,7 +9,7 @@
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions, Study Group creation (`CreateGroupModal`) | Used |
 | `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
-| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, Settings | Used |
+| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, PlannerActivityModal start time, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
 | `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor prompt, Root Document Accessibility Classes (`high-contrast`, `accessibility-large-text`) | Used |
 | `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings, Dashboard Community Spotlight | Used |
@@ -79,3 +79,7 @@
 ## 2026-11-22 - Pre-filling Study Group Subject Defaults from Onboarding Subjects
 **Learning:** When creating a new study group in Community (`CreateGroupModal`), the subject field defaulted to empty string `""`, ignoring the student's onboarding subjects (`profiles.subjects`) and forcing manual text entry.
 **Action:** Create `getUserSubjectsList` in `src/lib/userSubjects.js` with unit tests in `test/userSubjects.test.js`, update `community.jsx` to pass `userSubjects` to `CreateGroupModal`, pre-fill the group subject field with the student's priority subject when opening, and render interactive subject recommendation chips for instant selection.
+
+## 2026-11-26 - Pre-filling Planner Activity Modal Start Time from Preferred Time
+**Learning:** `PlannerActivityModal.jsx` computes `defaults = getPlannerDefaults(preferredTime)` but hardcoded `startTime: getNextHalfHour()` in the state initializer for new activities instead of using `defaults.startTime`, overriding the student's onboarding focus preference ("Morning", "Afternoon", "Evening").
+**Action:** Update `PlannerActivityModal.jsx` state initializer to use `defaults.startTime`, so new study activities, time blocks, and recurring sessions automatically default to the student's preferred focus time slot.

@@ -17,6 +17,8 @@ import Progress from "./components/Progress/Progress.jsx";
 import NoteDetail from "./components/Study/NoteDetail.jsx";
 import Onboarding from "./components/Auth/Onboarding.jsx";
 import AuthCallback from "./components/Auth/callback/page.jsx";
+import AuthConfirm from "./components/Auth/AuthConfirm.jsx";
+import AuthConfirmed from "./components/Auth/AuthConfirmed.jsx";
 import Settings from "./components/Settings/Settings.jsx";
 import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
@@ -27,8 +29,6 @@ import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 import Shop from "./components/Shop/Shop.jsx";
 import { syncAndCheckAchievements } from "./lib/achievementSync.js";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
-
-// Routing will be handled inside the BrowserRouter below
 
 function App() {
   const [session, setSession] = useState(null);
@@ -140,7 +140,7 @@ function App() {
       if (event === "SIGNED_OUT") {
         setSession(null);
         setNeedsOnboarding(false);
-        const publicPaths = ["/login", "/signup", "/auth/callback", "/"];
+        const publicPaths = ["/login", "/signup", "/auth/callback", "/auth/confirm", "/auth/confirmed", "/"];
         const currentPath = window.location.pathname;
         if (!publicPaths.includes(currentPath)) {
           window.location.href = "/login";
@@ -199,6 +199,8 @@ function App() {
           {session ? (
             <Routes>
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/auth/confirmed" element={<AuthConfirmed />} />
               <Route path="/onboarding" element={<Onboarding session={session} />} />
               <Route path="/*" element={<Layout session={session} needsOnboarding={needsOnboarding} />}>
                 <Route index element={<Overview />} />
@@ -226,6 +228,8 @@ function App() {
           ) : (
             <Routes>
               <Route path="/auth/callback" element={<AuthCallback />} />
+              <Route path="/auth/confirm" element={<AuthConfirm />} />
+              <Route path="/auth/confirmed" element={<AuthConfirmed />} />
               <Route path="/onboarding" element={<Onboarding />} />
               <Route
                 path="/"

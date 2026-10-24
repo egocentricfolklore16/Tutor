@@ -71,10 +71,10 @@ const GlobalAITutorFab = ({ session: _session }) => {
         <div
           className={
             mode === "closed"
-              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[2000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[3000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
               : mode === "fullpage"
-              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[2000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
-              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[2000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
           }
         >
           <AITutorChat

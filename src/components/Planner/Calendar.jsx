@@ -4,82 +4,14 @@ import { useNavigate } from 'react-router-dom';
 import ResponsiveSheet from '../common/ResponsiveSheet';
 import { useProfile } from '../../app/ProfileContext';
 import { isPreferredStudyDay } from '../../lib/studyDays.js';
+import {
+  getLocalDateKey,
+  parseTime,
+  formatTimeDisplay,
+  getSessionDurationMinutes,
+} from '../../lib/plannerUtils.js';
 
 const GRID_BORDER_COLOR = 'border-white/[0.06]';
-
-export const getLocalDateKey = (v) => {
-  if (!v) return "";
-  if (v instanceof Date) {
-    if (isNaN(v.getTime())) return "";
-    const y = v.getFullYear();
-    const m = String(v.getMonth() + 1).padStart(2, "0");
-    const d = String(v.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-  const str = String(v).trim();
-  if (/^\d{4}-\d{2}-\d{2}/.test(str)) {
-    const parts = str.slice(0, 10).split("-");
-    return `${parts[0]}-${parts[1]}-${parts[2]}`;
-  }
-  const parsed = new Date(str);
-  if (!isNaN(parsed.getTime())) {
-    const y = parsed.getFullYear();
-    const m = String(parsed.getMonth() + 1).padStart(2, "0");
-    const d = String(parsed.getDate()).padStart(2, "0");
-    return `${y}-${m}-${d}`;
-  }
-  return "";
-};
-
-export const parseTime = (timeInput) => {
-  if (!timeInput) return { hour: 9, minute: 0 };
-  if (typeof timeInput === "string") {
-    const str = timeInput.trim();
-    const ampmMatch = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
-    if (ampmMatch) {
-      let h = parseInt(ampmMatch[1], 10);
-      const m = parseInt(ampmMatch[2], 10);
-      const period = ampmMatch[3].toUpperCase();
-      if (period === "PM" && h < 12) h += 12;
-      if (period === "AM" && h === 12) h = 0;
-      return { hour: h, minute: m };
-    }
-    const hhmmMatch = str.match(/^(\d{1,2}):(\d{2})/);
-    if (hhmmMatch) {
-      return { hour: parseInt(hhmmMatch[1], 10), minute: parseInt(hhmmMatch[2], 10) };
-    }
-    const d = new Date(str);
-    if (!isNaN(d.getTime())) {
-      return { hour: d.getHours(), minute: d.getMinutes() };
-    }
-  } else if (timeInput instanceof Date && !isNaN(timeInput.getTime())) {
-    return { hour: timeInput.getHours(), minute: timeInput.getMinutes() };
-  }
-  return { hour: 9, minute: 0 };
-};
-
-export const formatTimeDisplay = ({ hour, minute }) => {
-  const period = hour >= 12 ? "PM" : "AM";
-  const h12 = hour % 12 === 0 ? 12 : hour % 12;
-  const mStr = String(minute).padStart(2, "0");
-  return `${h12}:${mStr} ${period}`;
-};
-
-export const getSessionDurationMinutes = (session) => {
-  if (!session) return 60;
-  if (session.duration_minutes != null && !isNaN(Number(session.duration_minutes))) {
-    return Math.max(15, Number(session.duration_minutes));
-  }
-  if (session.duration != null && !isNaN(Number(session.duration))) {
-    const dur = Number(session.duration);
-    return Math.max(15, dur <= 12 ? Math.round(dur * 60) : Math.round(dur));
-  }
-  if (session.Duration != null && !isNaN(Number(session.Duration))) {
-    const dur = Number(session.Duration);
-    return Math.max(15, dur <= 12 ? Math.round(dur * 60) : Math.round(dur));
-  }
-  return 60;
-};
 
 const Calendar = ({
   currentDate,

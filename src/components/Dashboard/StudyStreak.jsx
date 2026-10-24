@@ -50,7 +50,7 @@ function StudyStreak({ streak, currentStreak: directStreak, loading, error, onRe
         />
         <div className="relative z-10 mr-[4%] text-center md:mr-[10%]">
           <img
-            src="/sreak.svg"
+            src="/streak.svg"
             alt=""
             aria-hidden="true"
             className="absolute left-1/2 top-1/2 z-0 h-64 w-64 -translate-x-1/2 -translate-y-1/2 object-contain opacity-20 md:h-80 md:w-80"

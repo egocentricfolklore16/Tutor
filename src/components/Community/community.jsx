@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate, useLocation, useParams, Routes, Route } from "react-router-dom";
 import {
   Users,
@@ -648,60 +649,17 @@ const Community = () => {
               )}
 
               {/* CHAT TAB */}
-              {activeTab === "chat" && (
-                <div
-                  className={
-                    isMaximized
-                      ? "fixed inset-0 z-[1500] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe overflow-hidden"
-                      : "w-full h-[calc(100dvh-16rem)] min-h-[500px] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c] min-w-0 flex flex-col"
-                  }
-                >
-                  <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden min-w-0">
-                    <div className="w-80 shrink-0 border-r border-slate-100 dark:border-slate-800 h-full overflow-hidden flex flex-col min-w-0">
-                      <ChatInbox
-                        currentUserId={user?.id}
-                        onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
-                        onFindFriends={() => setActiveTab("friends")}
-                        headerAction={renderMaximizeButton()}
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
-                      {activeConversationId ? (
-                        <ChatThread
-                          conversationId={activeConversationId}
-                          currentUserId={user?.id}
-                          onBack={() => navigate("/Community/chat")}
-                          headerAction={renderMaximizeButton()}
-                        />
-                      ) : (
-                        <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30 relative">
-                          <div className="absolute top-4 right-4 z-10">
-                            {renderMaximizeButton()}
-                          </div>
-                          <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
-                          <h3 className="mt-3 text-sm font-medium text-slate-800 dark:text-slate-200">
-                            Select a conversation or start a new chat
-                          </h3>
-                          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-                            Choose a chat from the left panel or start a new chat with a friend.
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-
-                  <div className="block md:hidden h-full w-full overflow-hidden min-w-0">
-                    {activeConversationId ? (
-                      <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
-                        <ChatThread
-                          conversationId={activeConversationId}
-                          currentUserId={user?.id}
-                          onBack={() => navigate("/Community/chat")}
-                          headerAction={renderMaximizeButton()}
-                        />
-                      </div>
-                    ) : (
-                      <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
+              {activeTab === "chat" && (() => {
+                const chatContent = (
+                  <div
+                    className={
+                      isMaximized
+                        ? "fixed inset-0 z-[3000] bg-white dark:bg-[#14171c] h-[100dvh] w-screen flex flex-col p-2 sm:p-4 pb-safe pt-safe overflow-hidden"
+                        : "w-full h-[calc(100dvh-16rem)] min-h-[500px] overflow-hidden rounded-2xl bg-white shadow-surface dark:bg-[#14171c] min-w-0 flex flex-col"
+                    }
+                  >
+                    <div className="hidden md:flex h-full w-full bg-white dark:bg-[#14171c] overflow-hidden min-w-0">
+                      <div className="w-80 shrink-0 border-r border-slate-100 dark:border-slate-800 h-full overflow-hidden flex flex-col min-w-0">
                         <ChatInbox
                           currentUserId={user?.id}
                           onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
@@ -709,10 +667,61 @@ const Community = () => {
                           headerAction={renderMaximizeButton()}
                         />
                       </div>
-                    )}
+                      <div className="flex-1 min-w-0 h-full flex flex-col overflow-hidden">
+                        {activeConversationId ? (
+                          <ChatThread
+                            conversationId={activeConversationId}
+                            currentUserId={user?.id}
+                            onBack={() => navigate("/Community/chat")}
+                            headerAction={renderMaximizeButton()}
+                          />
+                        ) : (
+                          <div className="flex h-full flex-col items-center justify-center p-8 text-center bg-slate-50/50 dark:bg-[#18211f]/30 relative">
+                            <div className="absolute top-4 right-4 z-10">
+                              {renderMaximizeButton()}
+                            </div>
+                            <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
+                            <h3 className="mt-3 text-sm font-medium text-slate-800 dark:text-slate-200">
+                              Select a conversation or start a new chat
+                            </h3>
+                            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                              Choose a chat from the left panel or start a new chat with a friend.
+                            </p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="block md:hidden h-full w-full overflow-hidden min-w-0">
+                      {activeConversationId ? (
+                        <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
+                          <ChatThread
+                            conversationId={activeConversationId}
+                            currentUserId={user?.id}
+                            onBack={() => navigate("/Community/chat")}
+                            headerAction={renderMaximizeButton()}
+                          />
+                        </div>
+                      ) : (
+                        <div className="h-full w-full min-w-0 flex flex-col overflow-hidden">
+                          <ChatInbox
+                            currentUserId={user?.id}
+                            onSelectConversation={(convId) => navigate(`/Community/chat/${convId}`)}
+                            onFindFriends={() => setActiveTab("friends")}
+                            headerAction={renderMaximizeButton()}
+                          />
+                        </div>
+                      )}
+                    </div>
                   </div>
-                </div>
-              )}
+                );
+
+                if (isMaximized) {
+                  return createPortal(chatContent, document.body);
+                }
+
+                return chatContent;
+              })()}
             </div>
 
             {/* Live Session Room Overlay */}

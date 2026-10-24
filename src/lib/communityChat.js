@@ -265,3 +265,88 @@ export function parseLinksInText(text) {
 
   return parts;
 }
+
+/**
+ * Toggles an emoji reaction for a message by a user.
+ * Reactions parameter format: Map or Object of { [emoji]: [userIds...] }
+ * Returns updated reactions object: { [emoji]: [userIds...] }
+ */
+export function toggleMessageReaction(reactions = {}, userId, emoji) {
+  if (!emoji || !userId) return reactions || {};
+  const currentReactions = { ...(reactions || {}) };
+  const existingUsers = Array.isArray(currentReactions[emoji]) ? [...currentReactions[emoji]] : [];
+
+  const userIndex = existingUsers.indexOf(userId);
+  if (userIndex >= 0) {
+    existingUsers.splice(userIndex, 1);
+  } else {
+    existingUsers.push(userId);
+  }
+
+  if (existingUsers.length > 0) {
+    currentReactions[emoji] = existingUsers;
+  } else {
+    delete currentReactions[emoji];
+  }
+
+  return currentReactions;
+}
+
+/**
+ * Filters a messages array by a keyword search string (case-insensitive search in content).
+ */
+export function filterMessagesBySearchQuery(messages = [], query = "") {
+  if (!Array.isArray(messages) || messages.length === 0) return [];
+  const trimmed = (query || "").trim().toLowerCase();
+  if (!trimmed) return messages;
+
+  return messages.filter((m) => {
+    if (!m) return false;
+    const textMatch = typeof m.content === "string" && m.content.toLowerCase().includes(trimmed);
+    const resourceMatch = typeof m.resourceTitle === "string" && m.resourceTitle.toLowerCase().includes(trimmed);
+    return textMatch || resourceMatch;
+  });
+}
+
+/**
+ * Resolves sender name and content snippet for a reply target message ID.
+ */
+export function formatReplyReference(messages = [], replyToId, profilesMap = {}) {
+  if (!replyToId || !Array.isArray(messages)) return null;
+  const targetMsg = messages.find((m) => m && m.id === replyToId);
+  if (!targetMsg) return null;
+
+  const senderProf = profilesMap[targetMsg.sender_id];
+  const senderName = senderProf?.full_name || senderProf?.username || "Member";
+  const snippet = targetMsg.content
+    ? targetMsg.content.length > 60
+      ? `${targetMsg.content.slice(0, 60)}...`
+      : targetMsg.content
+    : targetMsg.resource_id
+    ? "Shared attachment"
+    : "Message";
+
+  return {
+    id: targetMsg.id,
+    senderId: targetMsg.sender_id,
+    senderName,
+    snippet,
+  };
+}
+
+/**
+ * Toggles a message ID in a pinned messages array.
+ */
+export function togglePinnedMessage(pinnedIds = [], messageId) {
+  if (!messageId) return Array.isArray(pinnedIds) ? pinnedIds : [];
+  const currentList = Array.isArray(pinnedIds) ? [...pinnedIds] : [];
+  const idx = currentList.indexOf(messageId);
+
+  if (idx >= 0) {
+    currentList.splice(idx, 1);
+  } else {
+    currentList.push(messageId);
+  }
+
+  return currentList;
+}

@@ -200,6 +200,16 @@ function DashboardHeader({ toggleSidebar }) {
 
   const isSocietyUnlocked = (currentStreak ?? 0) >= 7;
 
+  const getNextStreakMilestoneInfo = (streakVal) => {
+    const val = Number(streakVal) || 0;
+    if (val < 7) return { target: 7, daysLeft: 7 - val, label: "7-day Streak Society" };
+    if (val < 30) return { target: 30, daysLeft: 30 - val, label: "30-day 2x Gem Multiplier" };
+    if (val < 100) return { target: 100, daysLeft: 100 - val, label: "100-day Centurion Badge" };
+    return { target: 365, daysLeft: Math.max(0, 365 - val), label: "365-day Legend" };
+  };
+
+  const nextMilestone = getNextStreakMilestoneInfo(currentStreak);
+
   return <>
     <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
       <div className="flex min-w-0 shrink items-center gap-2">
@@ -326,6 +336,14 @@ function DashboardHeader({ toggleSidebar }) {
                   <span>Longest Streak: <strong className="text-amber-700 dark:text-amber-300">{streakLoading || streakError || longestStreak === null ? "–" : `${longestStreak} days`}</strong></span>
                   <span>Freezes: <strong className="text-blue-600 dark:text-blue-300">{freezeTokens}</strong></span>
                 </div>
+
+                {!streakLoading && !streakError && currentStreak !== null && (
+                  <div className="relative mt-2 text-center text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-500/20 py-1.5 px-2.5 rounded-lg">
+                    {nextMilestone.daysLeft > 0
+                      ? `${nextMilestone.daysLeft} day${nextMilestone.daysLeft === 1 ? "" : "s"} away from ${nextMilestone.label}!`
+                      : `Achieved ${nextMilestone.label}! Keep it up!`}
+                  </div>
+                )}
               </div>
 
               {/* Friend Streaks Card */}

@@ -17,6 +17,11 @@ import {
   MoreVertical,
   BellOff,
   Bell,
+  Pin,
+  Reply,
+  Edit2,
+  Search,
+  PinOff,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { toTime } from "../../lib/dates";
@@ -29,6 +34,10 @@ import {
   clearChatDraft,
   parseLinksInText,
   sanitizeUrl,
+  toggleMessageReaction,
+  filterMessagesBySearchQuery,
+  formatReplyReference,
+  togglePinnedMessage,
 } from "../../lib/communityChat";
 
 const EMOJI_LIST = ["😀", "😂", "😍", "👍", "❤️", "🔥", "🎉", "📚", "💡", "👏", "💯", "🙏", "✨", "🙌", "🎓", "⭐"];
@@ -79,6 +88,23 @@ export default function ChatThread({
 
   // Active action menu for touch/mobile or hover
   const [activeMenuMsgId, setActiveMenuMsgId] = useState(null);
+
+  // Pinned Messages state
+  const [pinnedMsgIds, setPinnedMsgIds] = useState([]);
+  const [showPinnedDrawer, setShowPinnedDrawer] = useState(false);
+
+  // Reply & Quote state
+  const [replyingToMsgId, setReplyingToMsgId] = useState(null);
+
+  // Editing Message state
+  const [editingMsgId, setEditingMsgId] = useState(null);
+
+  // In-Chat Keyword Search state
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // Mobile Touch Action Sheet state
+  const [mobileActionMsg, setMobileActionMsg] = useState(null);
 
   // Avatar error fallback tracking
   const [imgErrors, setImgErrors] = useState({});
@@ -525,13 +551,126 @@ export default function ChatThread({
     };
   }, [conversationId, currentUserId, fetchSenderProfiles, updateLastReadAt]);
 
-  // Send message
+  // Toggle Emoji Reaction
+  const handleToggleReaction = async (msgId, emoji) => {
+    setMobileActionMsg(null);
+    setActiveMenuMsgId(null);
+
+    setMessages((prev) =>
+      prev.map((m) => {
+        if (m.id !== msgId) return m;
+        const updatedReactions = toggleMessageReaction(m.reactions || {}, currentUserId, emoji);
+        return { ...m, reactions: updatedReactions };
+      })
+    );
+
+    try {
+      // Optional Supabase DB sync for message_reactions table
+      await supabase.from("message_reactions").upsert(
+        {
+          message_id: msgId,
+          user_id: currentUserId,
+          emoji,
+        },
+        { onConflict: "message_id,user_id,emoji" }
+      );
+    } catch {
+      // Ignore database mismatch gracefully
+    }
+  };
+
+  // Toggle Pinned Message
+  const handleTogglePin = async (msgId) => {
+    setMobileActionMsg(null);
+    setActiveMenuMsgId(null);
+
+    const isPinned = pinnedMsgIds.includes(msgId);
+    const updatedPins = togglePinnedMessage(pinnedMsgIds, msgId);
+    setPinnedMsgIds(updatedPins);
+
+    showToast(isPinned ? "Message unpinned." : "Message pinned to chat.");
+
+    try {
+      if (isPinned) {
+        await supabase.from("pinned_messages").delete().eq("conversation_id", conversationId).eq("message_id", msgId);
+      } else {
+        await supabase.from("pinned_messages").insert({ conversation_id: conversationId, message_id: msgId, pinned_by: currentUserId });
+      }
+    } catch {
+      // Ignore if table missing
+    }
+  };
+
+  // Start Replying
+  const handleStartReply = (msg) => {
+    setEditingMsgId(null);
+    setReplyingToMsgId(msg.id);
+    setMobileActionMsg(null);
+    setActiveMenuMsgId(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  };
+
+  // Start Editing
+  const handleStartEdit = (msg) => {
+    if (msg.sender_id !== currentUserId) return;
+    setReplyingToMsgId(null);
+    setEditingMsgId(msg.id);
+    setInputContent(msg.content || "");
+    setMobileActionMsg(null);
+    setActiveMenuMsgId(null);
+    if (textareaRef.current) {
+      textareaRef.current.focus();
+      textareaRef.current.style.height = "auto";
+      textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 120)}px`;
+    }
+  };
+
+  // Cancel Edit or Reply
+  const handleCancelComposerAction = () => {
+    setEditingMsgId(null);
+    setReplyingToMsgId(null);
+    setInputContent("");
+    clearChatDraft(conversationId);
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+    }
+  };
+
+  // Send or Update Message
   const handleSendMessage = async (e) => {
     e?.preventDefault();
     const content = inputContent.trim();
     const resourceId = selectedResource?.id || null;
 
     if (!content && !resourceId) return;
+
+    if (editingMsgId) {
+      // Handle Edit Mode
+      const msgIdToUpdate = editingMsgId;
+      setEditingMsgId(null);
+      setInputContent("");
+      clearChatDraft(conversationId);
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === msgIdToUpdate ? { ...m, content, is_edited: true, updated_at: new Date().toISOString() } : m
+        )
+      );
+
+      try {
+        await supabase.from("messages").update({ content, is_edited: true }).eq("id", msgIdToUpdate);
+        showToast("Message updated.");
+      } catch (err) {
+        console.error("Error editing message:", err);
+      }
+      return;
+    }
+
+    // Handle New Message
+    const replyRefId = replyingToMsgId;
+    setReplyingToMsgId(null);
 
     const tempId = `opt-${Date.now()}`;
     const optimisticMessage = {
@@ -540,6 +679,7 @@ export default function ChatThread({
       sender_id: currentUserId,
       content,
       resource_id: resourceId,
+      reply_to_message_id: replyRefId,
       created_at: new Date().toISOString(),
       isOptimistic: true,
       failed: false,
@@ -561,6 +701,7 @@ export default function ChatThread({
           sender_id: currentUserId,
           content,
           resource_id: resourceId,
+          reply_to_message_id: replyRefId,
         })
         .select()
         .single();
@@ -664,7 +805,8 @@ export default function ChatThread({
     }
   };
 
-  const dateGroups = groupMessagesByDateAndSender(messages);
+  const displayedMessages = filterMessagesBySearchQuery(messages, searchQuery);
+  const dateGroups = groupMessagesByDateAndSender(displayedMessages);
 
   const titleName =
     conversation?.type === "direct"
@@ -682,6 +824,78 @@ export default function ChatThread({
           <button type="button" onClick={() => setToastMessage(null)} className="p-1 hover:bg-white/20 rounded">
             <X className="h-3.5 w-3.5" />
           </button>
+        </div>
+      )}
+
+      {/* Search Bar Overlay */}
+      {showSearch && (
+        <div className="shrink-0 border-b border-slate-100 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-[#18211f] flex items-center gap-2 z-20">
+          <Search className="h-4 w-4 text-slate-400 shrink-0" />
+          <input
+            type="text"
+            autoFocus
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Search messages in this chat..."
+            className="w-full text-xs bg-transparent border-none outline-none text-slate-900 dark:text-white"
+          />
+          {searchQuery && (
+            <button
+              type="button"
+              onClick={() => setSearchQuery("")}
+              className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+            >
+              <X className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Pinned Messages Banner Drawer */}
+      {showPinnedDrawer && pinnedMsgIds.length > 0 && (
+        <div className="shrink-0 border-b border-amber-200/60 bg-amber-50/90 px-3 py-2 dark:border-amber-950/60 dark:bg-amber-950/30 z-20">
+          <div className="flex items-center justify-between text-xs font-semibold text-amber-900 dark:text-amber-200 mb-1.5">
+            <span className="flex items-center gap-1.5">
+              <Pin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span>Pinned Study Notes & Messages</span>
+            </span>
+            <button type="button" onClick={() => setShowPinnedDrawer(false)} className="p-1 text-amber-700 hover:text-amber-950 dark:text-amber-300">
+              <X className="h-3.5 w-3.5" />
+            </button>
+          </div>
+          <div className="max-h-28 overflow-y-auto space-y-1">
+            {pinnedMsgIds.map((pId) => {
+              const pMsg = messages.find((m) => m.id === pId);
+              if (!pMsg) return null;
+              const pProf = senderProfiles[pMsg.sender_id];
+              return (
+                <div
+                  key={pId}
+                  onClick={() => {
+                    const el = document.getElementById(`msg-bubble-${pId}`);
+                    if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                  }}
+                  className="flex items-center justify-between rounded-lg bg-white/80 p-2 text-[11px] font-normal text-slate-800 shadow-xs cursor-pointer hover:bg-white dark:bg-slate-900/80 dark:text-slate-200"
+                >
+                  <span className="truncate pr-2">
+                    <strong className="font-semibold">{pProf?.full_name || pProf?.username || "Member"}:</strong>{" "}
+                    {pMsg.content || "Shared attachment"}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleTogglePin(pId);
+                    }}
+                    className="text-amber-600 dark:text-amber-400 hover:text-rose-600 p-1 shrink-0"
+                    title="Unpin"
+                  >
+                    <PinOff className="h-3 w-3" />
+                  </button>
+                </div>
+              );
+            })}
+          </div>
         </div>
       )}
 
@@ -755,6 +969,33 @@ export default function ChatThread({
         </div>
 
         <div className="flex items-center gap-1">
+          {/* Search Toggle Button */}
+          <button
+            type="button"
+            onClick={() => {
+              setShowSearch((prev) => !prev);
+              if (showSearch) setSearchQuery("");
+            }}
+            className="inline-flex min-h-[36px] min-w-[36px] items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800 transition"
+            title="Search conversation"
+            aria-label="Search conversation"
+          >
+            <Search className="h-4 w-4" />
+          </button>
+
+          {/* Pinned Messages Button */}
+          {pinnedMsgIds.length > 0 && (
+            <button
+              type="button"
+              onClick={() => setShowPinnedDrawer((prev) => !prev)}
+              className="inline-flex min-h-[36px] items-center gap-1 rounded-xl bg-amber-100 px-2.5 py-1 text-[11px] font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-200 hover:bg-amber-200 transition"
+              title="View pinned messages"
+            >
+              <Pin className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />
+              <span>{pinnedMsgIds.length} Pinned</span>
+            </button>
+          )}
+
           {conversation?.type === "group" && (
             <a
               href="/Planner"
@@ -897,136 +1138,240 @@ export default function ChatThread({
                       >
                         {cluster.messages.map((msg, mIdx) => {
                           const isLastInCluster = mIdx === cluster.messages.length - 1;
+                          const isPinned = pinnedMsgIds.includes(msg.id);
+                          const replyRef = formatReplyReference(messages, msg.reply_to_message_id, senderProfiles);
+                          const reactionsMap = msg.reactions || {};
+                          const reactionEntries = Object.entries(reactionsMap).filter(([, uids]) => Array.isArray(uids) && uids.length > 0);
 
                           return (
-                            <div key={msg.id} className="group relative flex items-center gap-1 max-w-full">
-                              {!msg.failed && (
-                                <div
-                                  className={`flex items-center shrink-0 ${
-                                    isOwnCluster ? "order-first" : "order-last"
-                                  }`}
-                                >
-                                  <div className="relative">
-                                    <button
-                                      type="button"
-                                      onClick={() =>
-                                        setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id))
-                                      }
-                                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition"
-                                      title="Options"
-                                    >
-                                      <MoreVertical className="h-3.5 w-3.5" />
-                                    </button>
-
-                                    {activeMenuMsgId === msg.id && (
-                                      <div
-                                        className={`absolute bottom-full mb-1 z-30 flex flex-col rounded-xl border border-slate-200 bg-white p-1 shadow-lg dark:border-slate-800 dark:bg-[#18211f] min-w-[100px] ${
-                                          isOwnCluster ? "right-0" : "left-0"
-                                        }`}
-                                      >
-                                        {msg.content && (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleCopyMessage(msg.content)}
-                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
-                                          >
-                                            <Copy className="h-3 w-3" /> Copy
-                                          </button>
-                                        )}
-                                        {isOwnCluster ? (
-                                          <button
-                                            type="button"
-                                            onClick={() => handleDeleteMessage(msg.id)}
-                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
-                                          >
-                                            <Trash2 className="h-3 w-3" /> Delete
-                                          </button>
-                                        ) : (
-                                          <button
-                                            type="button"
-                                            onClick={() => {
-                                              setActiveMenuMsgId(null);
-                                              setReportingMsgId(msg.id);
-                                            }}
-                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-normal text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
-                                          >
-                                            <Flag className="h-3 w-3" /> Report
-                                          </button>
-                                        )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              )}
-
-                              {/* Compact WhatsApp-style message bubble */}
-                              <div
-                                className={`rounded-lg px-2.5 py-1.5 text-[13px] leading-[1.35] font-normal transition duration-150 max-w-full break-words [overflow-wrap:anywhere] ${
-                                  isOwnCluster
-                                    ? "bg-emerald-600 text-white rounded-br-xs"
-                                    : "bg-white text-slate-800 border border-slate-200/80 dark:bg-[#14171c] dark:border-slate-800 dark:text-slate-100 rounded-bl-xs"
-                                } ${msg.failed ? "opacity-60 border-rose-500" : ""}`}
-                              >
-                                {msg.content && (
-                                  <p className="leading-[1.35] font-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
-                                    {parseLinksInText(msg.content).map((part, pIdx) =>
-                                      part.type === "link" ? (
-                                        <a
-                                          key={pIdx}
-                                          href={sanitizeUrl(part.value)}
-                                          target="_blank"
-                                          rel="noopener noreferrer"
-                                          className="underline font-normal hover:opacity-80"
-                                        >
-                                          {part.value}
-                                        </a>
-                                      ) : (
-                                        <React.Fragment key={pIdx}>{part.value}</React.Fragment>
-                                      )
-                                    )}
-                                  </p>
-                                )}
-
-                                {msg.resource_id && (
-                                  <ResourceCard
-                                    resourceId={msg.resource_id}
-                                    isOwn={isOwnCluster}
-                                    isOptimistic={msg.isOptimistic}
-                                    failed={msg.failed}
-                                    onRetry={() => handleRetrySend(msg)}
-                                  />
-                                )}
-
-                                {/* Timestamp & read ticks */}
-                                {(isLastInCluster || msg.failed) && (
+                            <div key={msg.id} id={`msg-bubble-${msg.id}`} className="group relative flex flex-col max-w-full">
+                              <div className="flex items-center gap-1 max-w-full">
+                                {!msg.failed && (
                                   <div
-                                    className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] font-normal ${
-                                      isOwnCluster ? "text-emerald-100" : "text-slate-400"
+                                    className={`flex items-center shrink-0 ${
+                                      isOwnCluster ? "order-first" : "order-last"
                                     }`}
                                   >
-                                    <span>
-                                      {new Date(msg.created_at).toLocaleTimeString([], {
-                                        hour: "numeric",
-                                        minute: "2-digit",
-                                      })}
-                                    </span>
-
-                                    {msg.failed ? (
+                                    <div className="relative">
                                       <button
                                         type="button"
-                                        onClick={() => handleRetrySend(msg)}
-                                        className="inline-flex items-center gap-0.5 text-rose-300 font-normal hover:underline"
+                                        onClick={() => {
+                                          if (window.innerWidth < 768) {
+                                            setMobileActionMsg(msg);
+                                          } else {
+                                            setActiveMenuMsgId((prev) => (prev === msg.id ? null : msg.id));
+                                          }
+                                        }}
+                                        className="p-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition min-h-[36px] min-w-[36px] flex items-center justify-center"
+                                        title="Message options"
+                                        aria-label="Message options"
                                       >
-                                        <RefreshCw className="h-3 w-3" /> Retry
+                                        <MoreVertical className="h-4 w-4" />
                                       </button>
-                                    ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && toTime(peerLastReadAt) >= toTime(msg.created_at) ? (
-                                      <span className="inline-flex items-center text-emerald-200 font-normal ml-0.5">
-                                        <CheckCheck className="h-3 w-3" />
-                                      </span>
-                                    ) : null}
+
+                                      {activeMenuMsgId === msg.id && (
+                                        <div
+                                          className={`absolute bottom-full mb-1 z-30 flex flex-col rounded-xl border border-slate-200 bg-white p-1.5 shadow-lg dark:border-slate-800 dark:bg-[#18211f] min-w-[130px] ${
+                                            isOwnCluster ? "right-0" : "left-0"
+                                          }`}
+                                        >
+                                          {/* Quick Emoji Bar */}
+                                          <div className="flex items-center justify-between gap-1 border-b border-slate-100 pb-1 mb-1 dark:border-slate-800">
+                                            {["👍", "❤️", "🔥", "💡", "🎓"].map((e) => (
+                                              <button
+                                                key={e}
+                                                type="button"
+                                                onClick={() => handleToggleReaction(msg.id, e)}
+                                                className="p-1 text-xs hover:bg-slate-100 dark:hover:bg-slate-800 rounded transition"
+                                              >
+                                                {e}
+                                              </button>
+                                            ))}
+                                          </div>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleStartReply(msg)}
+                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                          >
+                                            <Reply className="h-3 w-3" /> Reply
+                                          </button>
+
+                                          <button
+                                            type="button"
+                                            onClick={() => handleTogglePin(msg.id)}
+                                            className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-amber-700 hover:bg-amber-50 dark:text-amber-300 dark:hover:bg-amber-950/30"
+                                          >
+                                            <Pin className="h-3 w-3" /> {isPinned ? "Unpin" : "Pin Note"}
+                                          </button>
+
+                                          {msg.content && (
+                                            <button
+                                              type="button"
+                                              onClick={() => handleCopyMessage(msg.content)}
+                                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800"
+                                            >
+                                              <Copy className="h-3 w-3" /> Copy
+                                            </button>
+                                          )}
+
+                                          {isOwnCluster ? (
+                                            <>
+                                              {msg.content && (
+                                                <button
+                                                  type="button"
+                                                  onClick={() => handleStartEdit(msg)}
+                                                  className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-emerald-700 hover:bg-emerald-50 dark:text-emerald-300 dark:hover:bg-emerald-950/30"
+                                                >
+                                                  <Edit2 className="h-3 w-3" /> Edit
+                                                </button>
+                                              )}
+                                              <button
+                                                type="button"
+                                                onClick={() => handleDeleteMessage(msg.id)}
+                                                className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-rose-600 hover:bg-rose-50 dark:text-rose-400 dark:hover:bg-rose-950/30"
+                                              >
+                                                <Trash2 className="h-3 w-3" /> Delete
+                                              </button>
+                                            </>
+                                          ) : (
+                                            <button
+                                              type="button"
+                                              onClick={() => {
+                                                setActiveMenuMsgId(null);
+                                                setReportingMsgId(msg.id);
+                                              }}
+                                              className="flex items-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-normal text-amber-600 hover:bg-amber-50 dark:text-amber-400 dark:hover:bg-amber-950/30"
+                                            >
+                                              <Flag className="h-3 w-3" /> Report
+                                            </button>
+                                          )}
+                                        </div>
+                                      )}
+                                    </div>
                                   </div>
                                 )}
+
+                                {/* Compact WhatsApp-style message bubble */}
+                                <div
+                                  className={`rounded-lg px-2.5 py-1.5 text-[13px] leading-[1.35] font-normal transition duration-150 max-w-full break-words [overflow-wrap:anywhere] relative ${
+                                    isOwnCluster
+                                      ? "bg-emerald-600 text-white rounded-br-xs"
+                                      : "bg-white text-slate-800 border border-slate-200/80 dark:bg-[#14171c] dark:border-slate-800 dark:text-slate-100 rounded-bl-xs"
+                                  } ${msg.failed ? "opacity-60 border-rose-500" : ""}`}
+                                >
+                                  {/* Pinned Badge Indicator */}
+                                  {isPinned && (
+                                    <div className="flex items-center gap-1 text-[10px] font-semibold text-amber-300 dark:text-amber-400 mb-1">
+                                      <Pin className="h-3 w-3" />
+                                      <span>Pinned Note</span>
+                                    </div>
+                                  )}
+
+                                  {/* Quoted Reply Reference */}
+                                  {replyRef && (
+                                    <div
+                                      onClick={() => {
+                                        const el = document.getElementById(`msg-bubble-${replyRef.id}`);
+                                        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+                                      }}
+                                      className={`mb-1.5 rounded-md p-1.5 text-[11px] cursor-pointer border-l-2 ${
+                                        isOwnCluster
+                                          ? "bg-emerald-700/60 border-emerald-300 text-emerald-100"
+                                          : "bg-slate-100 border-emerald-600 text-slate-700 dark:bg-slate-800 dark:text-slate-300"
+                                      }`}
+                                    >
+                                      <span className="font-semibold block">{replyRef.senderName}</span>
+                                      <span className="truncate block opacity-90">{replyRef.snippet}</span>
+                                    </div>
+                                  )}
+
+                                  {msg.content && (
+                                    <p className="leading-[1.35] font-normal whitespace-pre-wrap break-words [overflow-wrap:anywhere]">
+                                      {parseLinksInText(msg.content).map((part, pIdx) =>
+                                        part.type === "link" ? (
+                                          <a
+                                            key={pIdx}
+                                            href={sanitizeUrl(part.value)}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="underline font-normal hover:opacity-80"
+                                          >
+                                            {part.value}
+                                          </a>
+                                        ) : (
+                                          <React.Fragment key={pIdx}>{part.value}</React.Fragment>
+                                        )
+                                      )}
+                                    </p>
+                                  )}
+
+                                  {msg.resource_id && (
+                                    <ResourceCard
+                                      resourceId={msg.resource_id}
+                                      isOwn={isOwnCluster}
+                                      isOptimistic={msg.isOptimistic}
+                                      failed={msg.failed}
+                                      onRetry={() => handleRetrySend(msg)}
+                                    />
+                                  )}
+
+                                  {/* Timestamp, edited badge & read ticks */}
+                                  {(isLastInCluster || msg.failed || msg.is_edited) && (
+                                    <div
+                                      className={`mt-0.5 flex items-center justify-end gap-1 text-[10px] font-normal ${
+                                        isOwnCluster ? "text-emerald-100" : "text-slate-400"
+                                      }`}
+                                    >
+                                      {msg.is_edited && <span className="italic opacity-80">(edited)</span>}
+                                      <span>
+                                        {new Date(msg.created_at).toLocaleTimeString([], {
+                                          hour: "numeric",
+                                          minute: "2-digit",
+                                        })}
+                                      </span>
+
+                                      {msg.failed ? (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleRetrySend(msg)}
+                                          className="inline-flex items-center gap-0.5 text-rose-300 font-normal hover:underline"
+                                        >
+                                          <RefreshCw className="h-3 w-3" /> Retry
+                                        </button>
+                                      ) : isOwnCluster && conversation?.type === "direct" && peerLastReadAt && toTime(peerLastReadAt) >= toTime(msg.created_at) ? (
+                                        <span className="inline-flex items-center text-emerald-200 font-normal ml-0.5">
+                                          <CheckCheck className="h-3 w-3" />
+                                        </span>
+                                      ) : null}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
+
+                              {/* Emoji Reaction Pills */}
+                              {reactionEntries.length > 0 && (
+                                <div className={`flex flex-wrap gap-1 mt-1 ${isOwnCluster ? "justify-end" : "justify-start"}`}>
+                                  {reactionEntries.map(([emoji, uids]) => {
+                                    const hasUserReacted = uids.includes(currentUserId);
+                                    return (
+                                      <button
+                                        key={emoji}
+                                        type="button"
+                                        onClick={() => handleToggleReaction(msg.id, emoji)}
+                                        className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold transition border ${
+                                          hasUserReacted
+                                            ? "bg-emerald-100 border-emerald-400 text-emerald-900 dark:bg-emerald-950 dark:border-emerald-600 dark:text-emerald-200"
+                                            : "bg-white border-slate-200 text-slate-700 hover:bg-slate-100 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                                        }`}
+                                      >
+                                        <span>{emoji}</span>
+                                        <span>{uids.length}</span>
+                                      </button>
+                                    );
+                                  })}
+                                </div>
+                              )}
                             </div>
                           );
                         })}
@@ -1061,6 +1406,35 @@ export default function ChatThread({
             <span>
               {newMessagesCount > 0 ? `${newMessagesCount} new` : "Latest"}
             </span>
+          </button>
+        </div>
+      )}
+
+      {/* Replying Preview Bar */}
+      {replyingToMsgId && (
+        <div className="shrink-0 flex items-center justify-between border-t border-emerald-100 bg-emerald-50/90 px-3 py-1.5 dark:border-emerald-900/40 dark:bg-emerald-950/40 z-10">
+          <div className="flex items-center gap-2 text-xs text-emerald-900 dark:text-emerald-200 truncate min-w-0">
+            <Reply className="h-4 w-4 shrink-0 text-emerald-600" />
+            <span className="truncate">
+              Replying to <strong>{formatReplyReference(messages, replyingToMsgId, senderProfiles)?.senderName}</strong>:{" "}
+              {formatReplyReference(messages, replyingToMsgId, senderProfiles)?.snippet}
+            </span>
+          </div>
+          <button type="button" onClick={handleCancelComposerAction} className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
+
+      {/* Editing Preview Bar */}
+      {editingMsgId && (
+        <div className="shrink-0 flex items-center justify-between border-t border-indigo-100 bg-indigo-50/90 px-3 py-1.5 dark:border-indigo-900/40 dark:bg-indigo-950/40 z-10">
+          <div className="flex items-center gap-2 text-xs text-indigo-900 dark:text-indigo-200 truncate min-w-0">
+            <Edit2 className="h-4 w-4 shrink-0 text-indigo-600" />
+            <span className="truncate">Editing message...</span>
+          </div>
+          <button type="button" onClick={handleCancelComposerAction} className="p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200">
+            <X className="h-4 w-4" />
           </button>
         </div>
       )}
@@ -1195,6 +1569,105 @@ export default function ChatThread({
         currentUserId={currentUserId}
         onSelectResource={(res) => setSelectedResource(res)}
       />
+
+      {/* Mobile Touch Action Sheet */}
+      {mobileActionMsg && (
+        <div
+          className="fixed inset-0 z-[250] flex items-end justify-center bg-slate-950/40 backdrop-blur-xs md:hidden"
+          onClick={() => setMobileActionMsg(null)}
+        >
+          <div
+            className="w-full rounded-t-2xl border-t border-slate-200 bg-white p-4 shadow-2xl dark:border-slate-800 dark:bg-[#14171c] space-y-3 animate-slide-up"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
+              <span className="text-xs font-bold text-slate-900 dark:text-white">Message Actions</span>
+              <button type="button" onClick={() => setMobileActionMsg(null)} className="p-1 text-slate-400">
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {/* Quick Reactions Bar */}
+            <div className="flex items-center justify-around py-1 bg-slate-50 dark:bg-slate-900 rounded-xl">
+              {["👍", "❤️", "🔥", "💡", "🎓", "🎉"].map((e) => (
+                <button
+                  key={e}
+                  type="button"
+                  onClick={() => handleToggleReaction(mobileActionMsg.id, e)}
+                  className="p-2 text-xl hover:scale-125 transition"
+                >
+                  {e}
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-2 gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleStartReply(mobileActionMsg)}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <Reply className="h-4 w-4" /> Reply
+              </button>
+
+              <button
+                type="button"
+                onClick={() => handleTogglePin(mobileActionMsg.id)}
+                className="flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-50 text-xs font-semibold text-amber-900 dark:bg-amber-950 dark:text-amber-200"
+              >
+                <Pin className="h-4 w-4" /> {pinnedMsgIds.includes(mobileActionMsg.id) ? "Unpin" : "Pin Note"}
+              </button>
+
+              {mobileActionMsg.content && (
+                <button
+                  type="button"
+                  onClick={() => handleCopyMessage(mobileActionMsg.content)}
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-slate-100 text-xs font-semibold text-slate-800 dark:bg-slate-800 dark:text-slate-200"
+                >
+                  <Copy className="h-4 w-4" /> Copy
+                </button>
+              )}
+
+              {mobileActionMsg.sender_id === currentUserId ? (
+                <>
+                  {mobileActionMsg.content && (
+                    <button
+                      type="button"
+                      onClick={() => handleStartEdit(mobileActionMsg)}
+                      className="flex h-11 items-center justify-center gap-2 rounded-xl bg-emerald-50 text-xs font-semibold text-emerald-900 dark:bg-emerald-950 dark:text-emerald-200"
+                    >
+                      <Edit2 className="h-4 w-4" /> Edit
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const mId = mobileActionMsg.id;
+                      setMobileActionMsg(null);
+                      handleDeleteMessage(mId);
+                    }}
+                    className="flex h-11 items-center justify-center gap-2 rounded-xl bg-rose-50 text-xs font-semibold text-rose-700 dark:bg-rose-950 dark:text-rose-200"
+                  >
+                    <Trash2 className="h-4 w-4" /> Delete
+                  </button>
+                </>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const mId = mobileActionMsg.id;
+                    setMobileActionMsg(null);
+                    setReportingMsgId(mId);
+                  }}
+                  className="flex h-11 items-center justify-center gap-2 rounded-xl bg-amber-50 text-xs font-semibold text-amber-700 dark:bg-amber-950 dark:text-amber-200"
+                >
+                  <Flag className="h-4 w-4" /> Report
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {reportingMsgId && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/40 p-4 backdrop-blur-xs">

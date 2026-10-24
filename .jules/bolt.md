@@ -17,3 +17,7 @@
 ## 2025-05-14 - Pre-parsing Date Timestamps in Memoized Sort Hooks
 **Learning:** Calling date parsing helpers inside JavaScript `.sort()` comparators without pre-parsing invokes regex/string split/`Date` object allocations $O(N \log N)$ times per render. In hooks driving high-frequency Dashboard components (e.g. `useSlippingSessions`), wrapping the filter/sort pipeline in `useMemo` and pre-mapping candidate items to include numeric `startTime` timestamps beforehand reduces date parsing from $O(N \log N)$ per render down to $O(N)$ per session/timer update.
 **Action:** When sorting collection state by computed Date values in React custom hooks, use `useMemo` and pre-map items to extract numeric `getTime()` timestamps in an $O(N)$ pass before running `.sort()`.
+
+## 2025-05-15 - Single-Pass Aggregation for Session Analytics
+**Learning:** Combining chained array transformations (`.filter()`, `.reduce()`, `.map()`) over raw session collections creates $O(k N)$ iterations and multiple intermediate array allocations. Refactoring multi-metric analytics derivations into a single $O(N)$ `for` loop pass that populates primitive counters and `Set` collections reduces execution time and garbage collection overhead.
+**Action:** When deriving multiple aggregate metrics from an array in `useMemo`, consolidate the calculations into a single $O(N)$ loop rather than chaining multiple array methods.

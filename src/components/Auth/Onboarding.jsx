@@ -1,157 +1,29 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useTransition, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, ArrowRight, Check, RefreshCw } from "lucide-react";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
 import supabase from "../../lib/supabase.js";
-
-const validateDisplayName = (name) => {
-  if (!name || !name.trim()) return "Name is required.";
-  const trimmed = name.trim();
-  if (trimmed.length < 2) return "Name must be at least 2 characters.";
-  if (trimmed.length > 24) return "Name must be 24 characters or less.";
-  if (!/^[a-zA-Z0-9 '-]+$/.test(trimmed)) {
-    return "Name can only contain letters, numbers, spaces, hyphens, and apostrophes.";
-  }
-  return null;
-};
-
-const QUESTION_STEPS = [
-  {
-    id: "greeting",
-    key: "display_name",
-    label: "Welcome",
-    title: "What would you like to be called?",
-    subtitle: "We'll use this name to personalize your tutoring experience.",
-    type: "name",
-  },
-  {
-    id: "learner_type",
-    key: "learner_type",
-    label: "Learner Type",
-    title: "Which learner sounds most like you?",
-    subtitle: "This helps Lumo tailor explanations to your pace.",
-    type: "single",
-    options: ["Academic achiever", "Struggling learner", "Lifelong learner"],
-  },
-  {
-    id: "education_level",
-    key: "education_level",
-    label: "Education Level",
-    title: "Where are you learning right now?",
-    subtitle: "We'll align study materials to your academic stage.",
-    type: "single",
-    options: ["High school", "College / university", "Working professional", "Independent learner"],
-  },
-  {
-    id: "primary_goal",
-    key: "primary_goal",
-    label: "Primary Goal",
-    title: "What is your primary goal?",
-    subtitle: "Select the goal you want to focus on first.",
-    type: "single",
-    options: ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"],
-  },
-  {
-    id: "subjects",
-    key: "subjects",
-    label: "Study Subjects",
-    title: "What would you like to study?",
-    subtitle: "Choose all topics that apply to your schedule.",
-    type: "multiple",
-    options: ["Math", "Science", "Languages", "Computer science", "Business", "Arts", "Exam prep"],
-  },
-  {
-    id: "weekly_hours",
-    key: "weekly_hours",
-    label: "Weekly Rhythm",
-    title: "How many hours can you study each week?",
-    subtitle: "Be realistic — consistency beats intensity.",
-    type: "number",
-    min: 1,
-    max: 80,
-  },
-  {
-    id: "study_days",
-    key: "study_days",
-    label: "Study Schedule",
-    title: "Which days work best for you?",
-    subtitle: "Select the days you plan to be active.",
-    type: "multiple",
-    options: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
-  },
-  {
-    id: "preferred_time",
-    key: "preferred_time",
-    label: "Focus Window",
-    title: "When do you focus best?",
-    subtitle: "We'll schedule reminders during your peak productivity hours.",
-    type: "single",
-    options: ["Morning", "Afternoon", "Evening", "Flexible"],
-  },
-  {
-    id: "learning_style",
-    key: "learning_style",
-    label: "Learning Style",
-    title: "How do you learn best?",
-    subtitle: "Choose the method that makes concepts click fastest.",
-    type: "single",
-    options: ["Visual", "Practice first", "Step-by-step", "Conversation"],
-  },
-  {
-    id: "accessibility_needs",
-    key: "accessibility_needs",
-    label: "Accessibility",
-    title: "Would any accessibility support help?",
-    subtitle: "Select any features you want enabled by default.",
-    type: "multiple",
-    options: ["Screen reader", "Text-to-speech", "High contrast", "Larger text", "None"],
-  },
-  {
-    id: "collaboration_interest",
-    key: "collaboration_interest",
-    label: "Community",
-    title: "How would you like to learn with others?",
-    subtitle: "You can change your community settings anytime.",
-    type: "single",
-    options: ["Keep me focused", "Find study groups", "Peer support", "Just me for now"],
-  },
-  {
-    id: "summary",
-    key: "summary",
-    label: "Your Plan",
-    title: "Your personalized study setup is ready",
-    subtitle: "Here is how Hyper Tutor will tailor your learning path.",
-    type: "summary",
-  },
-];
-
-const initialForm = {
-  displayName: "",
-  learnerType: "",
-  educationLevel: "",
-  primaryGoal: "",
-  subjects: [],
-  weeklyHours: 5,
-  studyDays: [],
-  preferredTime: "",
-  learningStyle: "",
-  accessibilityNeeds: [],
-  collaborationInterest: "",
-};
+import {
+  validateDisplayName,
+  QUESTION_STEPS,
+  INITIAL_FORM,
+  mapDailyTimeToWeeklyHours,
+  validateStepAnswer,
+} from "../../lib/onboarding.js";
 
 export default function Onboarding({ session: _session }) {
   const navigate = useNavigate();
-  const [currentStep, setCurrentStep] = useState(0);
-  const [form, setForm] = useState(initialForm);
-  const [firstName, setFirstName] = useState("");
-  const [nameError, setNameError] = useState("");
-  const [generalError, setGeneralError] = useState("");
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [inlineNotice, setInlineNotice] = useState("");
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
-  const [owlState, setOwlState] = useState("normal"); // 'normal' | 'blink' | 'nod' | 'celebrate'
+  const [, startTransition] = useTransition();
 
-  const inputRef = useRef(null);
+  const textInputRef = useRef(null);
+  const otherInputRef = useRef(null);
 
+  // Check prefers-reduced-motion
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReducedMotion(mediaQuery.matches);
@@ -168,28 +40,28 @@ export default function Onboarding({ session: _session }) {
       try {
         setLoading(true);
 
-        const { data: { user } } = await supabase.auth.getUser();
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+
         if (!user) {
           if (mounted) navigate("/login", { replace: true });
           return;
         }
 
-        // Derive initial first name from auth metadata
         const rawName =
           user.user_metadata?.full_name ||
           user.user_metadata?.userName ||
           user.email?.split("@")[0] ||
           "Learner";
         const derivedFirstName = rawName.trim().split(" ")[0] || "Learner";
-        if (mounted) {
-          setFirstName(derivedFirstName);
-        }
 
-        // Fetch user profile and stored answers
         const [{ data: profile }, { data: savedAnswers }] = await Promise.all([
           supabase
             .from("profiles")
-            .select("username, full_name, learner_type, education_level, primary_goal, subjects, weekly_hours, study_days, preferred_time, learning_style, accessibility_needs, collaboration_interest, onboarding_step, onboarding_completed")
+            .select(
+              "username, full_name, primary_goal, education_level, subjects, learning_style, weekly_hours, onboarding_step, onboarding_completed"
+            )
             .eq("user_id", user.id)
             .maybeSingle(),
           supabase
@@ -205,44 +77,73 @@ export default function Onboarding({ session: _session }) {
           return;
         }
 
-        // Merge saved answers into form
-        const updatedForm = { ...initialForm };
-        const initialDisplayName = profile?.username || profile?.full_name || derivedFirstName;
-        updatedForm.displayName = initialDisplayName;
+        const updatedForm = { ...INITIAL_FORM };
+        updatedForm.display_name =
+          profile?.username || profile?.full_name || derivedFirstName;
 
-        if (profile?.learner_type) updatedForm.learnerType = profile.learner_type;
-        if (profile?.education_level) updatedForm.educationLevel = profile.education_level;
-        if (profile?.primary_goal) updatedForm.primaryGoal = profile.primary_goal;
-        if (Array.isArray(profile?.subjects) && profile.subjects.length) updatedForm.subjects = profile.subjects;
-        if (profile?.weekly_hours) updatedForm.weeklyHours = profile.weekly_hours;
-        if (Array.isArray(profile?.study_days) && profile.study_days.length) updatedForm.studyDays = profile.study_days;
-        if (profile?.preferred_time) updatedForm.preferredTime = profile.preferred_time;
-        if (profile?.learning_style) updatedForm.learningStyle = profile.learning_style;
-        if (Array.isArray(profile?.accessibility_needs) && profile.accessibility_needs.length) updatedForm.accessibilityNeeds = profile.accessibility_needs;
-        if (profile?.collaboration_interest) updatedForm.collaborationInterest = profile.collaboration_interest;
+        if (profile?.primary_goal) updatedForm.primary_goal = profile.primary_goal;
+        if (profile?.education_level) updatedForm.education_level = profile.education_level;
+        if (Array.isArray(profile?.subjects) && profile.subjects.length > 0) {
+          updatedForm.subjects = profile.subjects;
+        }
+        if (Array.isArray(profile?.learning_style) && profile.learning_style.length > 0) {
+          updatedForm.learning_style = profile.learning_style;
+        } else if (typeof profile?.learning_style === "string" && profile.learning_style.trim()) {
+          updatedForm.learning_style = [profile.learning_style.trim()];
+        }
 
         if (savedAnswers && savedAnswers.length > 0) {
           savedAnswers.forEach((item) => {
-            if (item.question_key === "display_name" && item.answer) updatedForm.displayName = item.answer;
-            if (item.question_key === "learner_type" && item.answer) updatedForm.learnerType = item.answer;
-            if (item.question_key === "education_level" && item.answer) updatedForm.educationLevel = item.answer;
-            if (item.question_key === "primary_goal" && item.answer) updatedForm.primaryGoal = item.answer;
-            if (item.question_key === "subjects" && Array.isArray(item.answer)) updatedForm.subjects = item.answer;
-            if (item.question_key === "weekly_hours" && item.answer) updatedForm.weeklyHours = Number(item.answer);
-            if (item.question_key === "study_days" && Array.isArray(item.answer)) updatedForm.studyDays = item.answer;
-            if (item.question_key === "preferred_time" && item.answer) updatedForm.preferredTime = item.answer;
-            if (item.question_key === "learning_style" && item.answer) updatedForm.learningStyle = item.answer;
-            if (item.question_key === "accessibility_needs" && Array.isArray(item.answer)) updatedForm.accessibilityNeeds = item.answer;
-            if (item.question_key === "collaboration_interest" && item.answer) updatedForm.collaborationInterest = item.answer;
+            if (item.question_key === "display_name" && item.answer) {
+              updatedForm.display_name = item.answer;
+            }
+            if (item.question_key === "subjects") {
+              if (Array.isArray(item.answer)) {
+                const knownOptions = [
+                  "Math",
+                  "Science",
+                  "Computer Science",
+                  "Languages",
+                  "Humanities",
+                  "Business",
+                  "Exam Prep",
+                ];
+                const selectedKnown = item.answer.filter((s) => knownOptions.includes(s));
+                const custom = item.answer.find((s) => !knownOptions.includes(s));
+                updatedForm.subjects = selectedKnown;
+                if (custom) updatedForm.otherSubject = custom;
+              }
+            }
+            if (item.question_key === "primary_goal" && item.answer) {
+              updatedForm.primary_goal = item.answer;
+            }
+            if (item.question_key === "education_level" && item.answer) {
+              updatedForm.education_level = item.answer;
+            }
+            if (item.question_key === "learning_style" && item.answer) {
+              if (Array.isArray(item.answer)) {
+                updatedForm.learning_style = item.answer;
+              } else if (typeof item.answer === "string") {
+                updatedForm.learning_style = [item.answer];
+              }
+            }
+            if (item.question_key === "daily_time" && item.answer) {
+              updatedForm.daily_time = item.answer;
+            }
           });
         }
 
         setForm(updatedForm);
 
-        // Resume at first incomplete step
-        const savedStepIndex = typeof profile?.onboarding_step === "number" ? profile.onboarding_step : 0;
-        const clampedStep = Math.min(Math.max(0, savedStepIndex), QUESTION_STEPS.length - 1);
-        setCurrentStep(clampedStep);
+        const savedStepIndex =
+          typeof profile?.onboarding_step === "number"
+            ? profile.onboarding_step
+            : 0;
+        const clampedStep = Math.min(
+          Math.max(0, savedStepIndex),
+          QUESTION_STEPS.length - 2 // Don't land directly on completion
+        );
+        setCurrentStepIndex(clampedStep);
       } catch (err) {
         console.error("Error loading onboarding state:", err);
       } finally {
@@ -257,22 +158,24 @@ export default function Onboarding({ session: _session }) {
     };
   }, [navigate]);
 
-  // Trigger brief owl mascot reaction on step changes
+  // Focus input automatically on step change
   useEffect(() => {
     if (loading) return;
-    if (currentStep === QUESTION_STEPS.length - 1) {
-      setOwlState("celebrate");
-    } else {
-      setOwlState("nod");
-      const t = setTimeout(() => setOwlState("normal"), 800);
-      return () => clearTimeout(t);
-    }
-  }, [currentStep, loading]);
+    setInlineNotice("");
+    const timer = setTimeout(() => {
+      if (textInputRef.current) {
+        textInputRef.current.focus();
+      }
+    }, 100);
+    return () => clearTimeout(timer);
+  }, [currentStepIndex, loading]);
 
-  const triggerOwlBlink = () => {
-    setOwlState("blink");
-    setTimeout(() => setOwlState("normal"), 400);
-  };
+  const currentStep = QUESTION_STEPS[currentStepIndex];
+  const isLastQuestion = currentStepIndex === QUESTION_STEPS.length - 2;
+  const isCompletionScreen = currentStep.type === "completion";
+
+  const firstName =
+    form.display_name.trim().split(" ")[0] || "there";
 
   const updateField = (key, value) => {
     setGeneralError("");
@@ -284,52 +187,21 @@ export default function Onboarding({ session: _session }) {
     setGeneralError("");
     triggerOwlBlink();
     setForm((prev) => {
-      const currentArr = prev[key] || [];
-      if (option === "None") {
-        return { ...prev, [key]: ["None"] };
-      }
-      const filtered = currentArr.filter((item) => item !== "None");
-      const exists = filtered.includes(option);
-      const nextArr = exists ? filtered.filter((i) => i !== option) : [...filtered, option];
-      return { ...prev, [key]: nextArr };
+      const currentList = prev[stepKey] || [];
+      const exists = currentList.includes(option);
+      const nextList = exists
+        ? currentList.filter((item) => item !== option)
+        : [...currentList, option];
+      return { ...prev, [stepKey]: nextList };
     });
   };
 
-  const currentStepData = QUESTION_STEPS[currentStep];
-
-  const canProceed = () => {
-    switch (currentStepData.id) {
-      case "greeting":
-        return !validateDisplayName(form.displayName);
-      case "learner_type":
-        return Boolean(form.learnerType);
-      case "education_level":
-        return Boolean(form.educationLevel);
-      case "primary_goal":
-        return Boolean(form.primaryGoal);
-      case "subjects":
-        return Array.isArray(form.subjects) && form.subjects.length > 0;
-      case "weekly_hours":
-        return Number(form.weeklyHours) >= 1 && Number(form.weeklyHours) <= 80;
-      case "study_days":
-        return Array.isArray(form.studyDays) && form.studyDays.length > 0;
-      case "preferred_time":
-        return Boolean(form.preferredTime);
-      case "learning_style":
-        return Boolean(form.learningStyle);
-      case "accessibility_needs":
-        return Array.isArray(form.accessibilityNeeds) && form.accessibilityNeeds.length > 0;
-      case "collaboration_interest":
-        return Boolean(form.collaborationInterest);
-      case "summary":
-        return true;
-      default:
-        return false;
-    }
-  };
+  const canContinue = validateStepAnswer(currentStep, form);
 
   const persistStepProgress = async (stepIndex, answerVal, profileUpdates) => {
-    const { data: { user } } = await supabase.auth.getUser();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
     if (!user) return;
 
     const stepKey = QUESTION_STEPS[stepIndex].key;
@@ -355,84 +227,83 @@ export default function Onboarding({ session: _session }) {
     await supabase.from("profiles").upsert(updatePayload, { onConflict: "user_id" });
   };
 
-  const handleNextStep = async () => {
-    setGeneralError("");
-    setNameError("");
+  const handleNextStep = useCallback(async () => {
+    if (saving) return;
 
-    if (currentStepData.id === "greeting") {
-      const err = validateDisplayName(form.displayName);
+    if (currentStep.id === "name") {
+      const err = validateDisplayName(form.display_name);
       if (err) {
-        setNameError(err);
+        setInlineNotice(err);
         return;
       }
     }
 
-    if (!canProceed()) {
-      setGeneralError("Please select or fill in an answer to continue.");
+    if (!canContinue) {
+      setInlineNotice("Please answer to continue.");
       return;
     }
 
     setSaving(true);
+    setInlineNotice("");
+
     try {
       let answerVal;
       let profileUpdates = {};
 
-      switch (currentStepData.id) {
-        case "greeting":
-          answerVal = form.displayName.trim();
+      switch (currentStep.id) {
+        case "name": {
+          const nameTrimmed = form.display_name.trim();
+          answerVal = nameTrimmed;
           profileUpdates = {
-            username: form.displayName.trim(),
-            full_name: form.displayName.trim(),
+            username: nameTrimmed,
+            full_name: nameTrimmed,
           };
           break;
-        case "learner_type":
-          answerVal = form.learnerType;
-          profileUpdates = { learner_type: form.learnerType };
+        }
+        case "subjects": {
+          const allSubjects = [...form.subjects];
+          if (form.otherSubject && form.otherSubject.trim()) {
+            const cleanOther = form.otherSubject.trim();
+            if (!allSubjects.includes(cleanOther)) {
+              allSubjects.push(cleanOther);
+            }
+          }
+          answerVal = allSubjects;
+          profileUpdates = { subjects: allSubjects };
+          break;
+        }
+        case "primary_goal":
+          answerVal = form.primary_goal;
+          profileUpdates = { primary_goal: form.primary_goal };
           break;
         case "education_level":
-          answerVal = form.educationLevel;
-          profileUpdates = { education_level: form.educationLevel };
-          break;
-        case "primary_goal":
-          answerVal = form.primaryGoal;
-          profileUpdates = { primary_goal: form.primaryGoal };
-          break;
-        case "subjects":
-          answerVal = form.subjects;
-          profileUpdates = { subjects: form.subjects };
-          break;
-        case "weekly_hours":
-          answerVal = Number(form.weeklyHours);
-          profileUpdates = { weekly_hours: Number(form.weeklyHours) };
-          break;
-        case "study_days":
-          answerVal = form.studyDays;
-          profileUpdates = { study_days: form.studyDays };
-          break;
-        case "preferred_time":
-          answerVal = form.preferredTime;
-          profileUpdates = { preferred_time: form.preferredTime };
+          answerVal = form.education_level;
+          profileUpdates = { education_level: form.education_level };
           break;
         case "learning_style":
-          answerVal = form.learningStyle;
-          profileUpdates = { learning_style: form.learningStyle };
+          answerVal = form.learning_style;
+          profileUpdates = { learning_style: form.learning_style };
           break;
-        case "accessibility_needs":
-          answerVal = form.accessibilityNeeds;
-          profileUpdates = { accessibility_needs: form.accessibilityNeeds };
+        case "daily_time": {
+          answerVal = form.daily_time;
+          const weeklyHrs = mapDailyTimeToWeeklyHours(form.daily_time);
+          profileUpdates = { weekly_hours: weeklyHrs };
           break;
-        case "collaboration_interest":
-          answerVal = form.collaborationInterest;
-          profileUpdates = { collaboration_interest: form.collaborationInterest };
-          break;
+        }
         default:
           break;
       }
 
-      await persistStepProgress(currentStep, answerVal, profileUpdates);
+      await persistStepProgress(currentStepIndex, answerVal, profileUpdates);
 
-      if (currentStep === QUESTION_STEPS.length - 1) {
-        const { data: { user } } = await supabase.auth.getUser();
+      if (isLastQuestion) {
+        // Move to calm completion step
+        setCurrentStepIndex(QUESTION_STEPS.length - 1);
+
+        // Complete onboarding on server
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
         if (user) {
           await supabase.from("profiles").upsert(
             {
@@ -444,7 +315,10 @@ export default function Onboarding({ session: _session }) {
           );
 
           try {
-            sessionStorage.setItem(`hyper-tutor-onboarding-complete:${user.id}`, "true");
+            sessionStorage.setItem(
+              `hyper-tutor-onboarding-complete:${user.id}`,
+              "true"
+            );
           } catch (e) {
             console.error("sessionStorage write error:", e);
           }
@@ -455,303 +329,371 @@ export default function Onboarding({ session: _session }) {
             })
           );
         }
-        navigate("/Dashboard", { replace: true });
+
+        // Delay 1.8s then navigate to main app dashboard
+        setTimeout(() => {
+          startTransition(() => {
+            navigate("/Dashboard", { replace: true });
+          });
+        }, 1800);
         return;
       }
 
-      setCurrentStep((prev) => prev + 1);
+      setCurrentStepIndex((prev) => prev + 1);
     } catch (err) {
       console.error("Step save error:", err);
-      setGeneralError("Could not save progress. Please try again.");
+      setInlineNotice("Could not save response. Please try again.");
     } finally {
       setSaving(false);
     }
-  };
+  }, [
+    saving,
+    currentStep,
+    form,
+    canContinue,
+    currentStepIndex,
+    isLastQuestion,
+    navigate,
+  ]);
 
   const handlePrevStep = () => {
-    if (currentStep > 0 && !saving) {
-      setGeneralError("");
-      setNameError("");
-      setCurrentStep((prev) => prev - 1);
+    if (currentStepIndex > 0 && !saving) {
+      setInlineNotice("");
+      setCurrentStepIndex((prev) => prev - 1);
     }
   };
 
+  const handleSkip = () => {
+    if (saving) return;
+    if (isLastQuestion) {
+      handleNextStep();
+      return;
+    }
+    setInlineNotice("");
+    setCurrentStepIndex((prev) => prev + 1);
+  };
+
+  // Keyboard navigation handler
+  useEffect(() => {
+    if (loading || isCompletionScreen) return;
+
+    const handleKeyDown = (e) => {
+      // Don't intercept if user is typing into text inputs
+      const isTargetInput =
+        e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA";
+
+      if (e.key === "Enter") {
+        e.preventDefault();
+        if (canContinue) {
+          handleNextStep();
+        } else {
+          setInlineNotice("Please answer to continue.");
+        }
+        return;
+      }
+
+      // Number key selection for option steps when not typing in text field
+      if (!isTargetInput && ["single", "multiple", "multi-subject"].includes(currentStep.type)) {
+        const num = parseInt(e.key, 10);
+        if (!isNaN(num) && num >= 1 && num <= (currentStep.options?.length || 0)) {
+          e.preventDefault();
+          const option = currentStep.options[num - 1];
+          if (currentStep.type === "single") {
+            toggleSingleSelect(currentStep.id, option);
+          } else {
+            toggleMultiSelect(currentStep.id, option);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    loading,
+    isCompletionScreen,
+    currentStep,
+    canContinue,
+    form,
+    currentStepIndex,
+    handleNextStep,
+  ]);
+
   if (loading) {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-slate-950 text-slate-100 p-6">
-        <div className="text-center space-y-4">
-          <RefreshCw className="w-8 h-8 text-emerald-400 animate-spin mx-auto" />
-          <p className="text-sm text-slate-400">Setting up your onboarding experience...</p>
-        </div>
+      <div className="min-h-dvh flex items-center justify-center bg-[#0B0D0C] text-neutral-300 p-6">
+        <div className="w-5 h-5 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
       </div>
     );
   }
 
-  const progressPercent = Math.round(((currentStep + 1) / QUESTION_STEPS.length) * 100);
+  // Calculate top progress line percentage
+  const totalQuestionSteps = QUESTION_STEPS.length - 1; // exclude completion
+  const progressPercent = isCompletionScreen
+    ? 100
+    : Math.round(((currentStepIndex + 1) / totalQuestionSteps) * 100);
 
   return (
-    <div className="min-h-dvh w-full bg-[#18211F] text-slate-100 flex flex-col justify-between p-4 sm:p-6 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] overflow-hidden select-none">
-      {/* Top Bar: Progress & Mascot */}
-      <header className="w-full max-w-xl mx-auto flex items-center justify-between gap-4 mb-4">
-        <div className="flex items-center gap-2">
-          {currentStep > 0 && (
+    <div className="min-h-dvh w-full bg-[#0B0D0C] text-neutral-100 flex flex-col justify-between relative overflow-hidden select-none font-sans">
+      {/* Subtle Ambient Blurred Emerald Background Glow */}
+      <div
+        className="aria-hidden:true pointer-events-none absolute inset-0 z-0 overflow-hidden"
+        aria-hidden="true"
+      >
+        <div className="absolute -top-[20%] left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-emerald-500/10 blur-[140px] motion-safe:animate-pulse" />
+        <div className="absolute -bottom-[20%] right-[10%] w-[500px] h-[500px] rounded-full bg-emerald-600/5 blur-[160px]" />
+      </div>
+
+      {/* 2px Thin Top Progress Bar */}
+      <div className="fixed top-0 left-0 right-0 h-[2px] bg-neutral-900 z-50">
+        <div
+          className="h-full bg-emerald-400 transition-all duration-300 ease-out"
+          style={{ width: `${progressPercent}%` }}
+          role="progressbar"
+          aria-valuenow={progressPercent}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        />
+      </div>
+
+      {/* Top Header Bar: Back Link, Skip Link & Tiny Owl Logo */}
+      <header className="relative z-10 w-full max-w-2xl mx-auto px-6 pt-6 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          {currentStepIndex > 0 && !isCompletionScreen && (
             <button
               type="button"
               onClick={handlePrevStep}
               disabled={saving}
-              className="p-2 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition-colors disabled:opacity-50"
-              aria-label="Previous step"
+              className="text-xs font-medium text-neutral-400 hover:text-neutral-200 transition-colors flex items-center gap-1.5 focus:outline-none focus:ring-1 focus:ring-emerald-400/50 rounded-md px-1 py-0.5"
+              aria-label="Go to previous question"
             >
-              <ArrowLeft className="w-5 h-5" />
+              <ArrowLeft className="w-3.5 h-3.5" />
+              <span>Back</span>
             </button>
           )}
-          <span className="text-xs font-semibold text-slate-400">
-            Step {currentStep + 1} of {QUESTION_STEPS.length}
-          </span>
         </div>
 
-        {/* Progress bar */}
-        <div className="flex-1 max-w-[160px] sm:max-w-[200px] h-2 bg-slate-800 rounded-full overflow-hidden">
-          <div
-            className="h-full bg-emerald-400 transition-all duration-300 ease-out"
-            style={{ width: `${progressPercent}%` }}
-          />
-        </div>
-
-        {/* Small Mascot Header Icon */}
-        <div className="w-8 h-8 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center overflow-hidden">
-          <img
-            src="/logo3.png"
-            alt="Owl Mascot"
-            className={`w-6 h-6 object-contain ${
-              owlState === "blink" ? "scale-90 opacity-80" : owlState === "nod" ? "translate-y-0.5" : ""
-            }`}
-          />
+        {/* Tiny Owl Logomark in Top Right Corner */}
+        <div className="flex items-center gap-3">
+          {!currentStep.required && !isCompletionScreen && (
+            <button
+              type="button"
+              onClick={handleSkip}
+              className="text-xs font-medium text-neutral-400 hover:text-neutral-200 transition-colors focus:outline-none focus:ring-1 focus:ring-emerald-400/50 rounded-md px-1.5 py-0.5"
+            >
+              Skip
+            </button>
+          )}
+          <div className="w-6 h-6 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center overflow-hidden">
+            <img
+              src="/logo3.png"
+              alt="Hyper Tutor Owl"
+              className="w-4 h-4 object-contain opacity-80"
+            />
+          </div>
         </div>
       </header>
 
-      {/* Main Content Area */}
-      <main className="w-full max-w-xl mx-auto flex-1 flex flex-col justify-center py-2">
+      {/* Main Screen Content */}
+      <main className="relative z-10 w-full max-w-xl mx-auto px-6 my-auto py-12 flex flex-col justify-center min-h-[60vh]">
         <div
+          key={currentStep.id}
           className={`w-full transition-all duration-300 ${
-            prefersReducedMotion ? "" : "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-right-4"
+            prefersReducedMotion
+              ? "opacity-100"
+              : "motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2"
           }`}
-          key={currentStepData.id}
         >
-          {/* Owl Banner Card */}
-          <div className="flex items-center gap-4 mb-6 p-4 rounded-2xl bg-slate-900/60 border border-slate-800/80">
-            <div className="w-14 h-14 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center shrink-0">
-              <img
-                src="/logo3.png"
-                alt="Hyper Tutor Owl Mascot"
-                className={`w-10 h-10 object-contain ${
-                  owlState === "celebrate"
-                    ? "animate-bounce"
-                    : owlState === "nod"
-                    ? "animate-pulse"
-                    : ""
-                }`}
-              />
-            </div>
-            <div>
-              <p className="text-xs font-semibold text-emerald-400 uppercase tracking-wider">
-                {currentStepData.label}
-              </p>
-              <h2 className="text-xl sm:text-2xl font-bold text-white tracking-tight leading-snug">
-                {currentStepData.id === "greeting" && firstName
-                  ? `Welcome, ${firstName}!`
-                  : currentStepData.title}
-              </h2>
-            </div>
-          </div>
+          {/* Personalized Greeting Badge on Steps after Name */}
+          {currentStepIndex > 0 && !isCompletionScreen && (
+            <p className="text-xs font-medium text-emerald-400/90 mb-3 tracking-wide">
+              Nice to meet you, {firstName}.
+            </p>
+          )}
 
-          {/* Step Subtitle / Question Prompt */}
-          <p className="text-sm sm:text-base text-slate-300 mb-6 font-medium leading-relaxed">
-            {currentStepData.id === "greeting"
-              ? "What would you like to be called?"
-              : currentStepData.subtitle}
+          {/* Question Title */}
+          <h1 className="text-2xl sm:text-4xl lg:text-5xl font-bold text-neutral-100 tracking-tight leading-tight sm:leading-tight mb-3">
+            {currentStep.question}
+          </h1>
+
+          {/* Muted Small Helper Line */}
+          <p className="text-sm sm:text-base text-neutral-400 font-normal mb-10 leading-relaxed">
+            {currentStep.helper}
           </p>
 
-          {/* Interactive Question Inputs */}
-          {currentStepData.type === "name" && (
-            <div className="space-y-3">
-              <input
-                ref={inputRef}
-                type="text"
-                value={form.displayName}
-                onChange={(e) => {
-                  setNameError("");
-                  updateField("displayName", e.target.value);
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleNextStep();
-                  }
-                }}
-                placeholder="Enter your preferred name"
-                className="w-full px-4 py-3.5 bg-slate-900 border border-slate-700/80 rounded-2xl text-white placeholder-slate-500 text-base font-semibold focus:outline-none focus:border-emerald-400 focus:ring-1 focus:ring-emerald-400 transition-all"
-                maxLength={24}
-              />
-              {nameError && (
-                <p className="text-xs font-semibold text-red-400 bg-red-950/40 p-2.5 rounded-xl border border-red-800/40">
-                  {nameError}
-                </p>
-              )}
+          {/* Input Types */}
+          {currentStep.type === "text" && (
+            <div className="space-y-4">
+              <div className="relative">
+                <input
+                  ref={textInputRef}
+                  type="text"
+                  value={form.display_name}
+                  onChange={(e) => updateField("display_name", e.target.value)}
+                  placeholder="Your preferred name"
+                  maxLength={24}
+                  className="w-full bg-transparent py-3 text-xl sm:text-2xl font-semibold text-neutral-100 placeholder-neutral-600 border-b-2 border-neutral-800 focus:border-emerald-400 focus:outline-none transition-colors"
+                  aria-label={currentStep.question}
+                />
+              </div>
             </div>
           )}
 
-          {currentStepData.type === "single" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {currentStepData.options.map((option) => {
-                const selected = form[currentStepData.id] === option;
+          {currentStep.type === "single" && (
+            <div className="space-y-3" role="radiogroup" aria-label={currentStep.question}>
+              {currentStep.options.map((option, idx) => {
+                const selected = form[currentStep.id] === option;
                 return (
                   <button
                     key={option}
                     type="button"
-                    onClick={() => updateField(currentStepData.id, option)}
-                    className={`min-h-[52px] px-4 py-3 rounded-2xl border text-left text-sm font-semibold flex items-center justify-between transition-all ${
+                    role="radio"
+                    aria-checked={selected}
+                    onClick={() => toggleSingleSelect(currentStep.id, option)}
+                    className={`w-full text-left px-5 py-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group ${
                       selected
-                        ? "border-emerald-400 bg-emerald-500/20 text-white shadow-lg shadow-emerald-500/5"
-                        : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-900"
+                        ? "border-emerald-500/60 bg-emerald-500/10 text-neutral-100 scale-[1.01]"
+                        : "border-neutral-800/80 bg-neutral-900/40 text-neutral-300 hover:border-neutral-700 hover:bg-neutral-900/80"
                     }`}
                   >
-                    <span>{option}</span>
-                    <span
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center ${
-                        selected
-                          ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                          : "border-slate-700 bg-slate-800"
-                      }`}
-                    >
-                      {selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {currentStepData.type === "multiple" && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              {currentStepData.options.map((option) => {
-                const selected = (form[currentStepData.id] || []).includes(option);
-                return (
-                  <button
-                    key={option}
-                    type="button"
-                    onClick={() => toggleMultiple(currentStepData.id, option)}
-                    className={`min-h-[52px] px-4 py-3 rounded-2xl border text-left text-sm font-semibold flex items-center justify-between transition-all ${
-                      selected
-                        ? "border-emerald-400 bg-emerald-500/20 text-white shadow-lg shadow-emerald-500/5"
-                        : "border-slate-800 bg-slate-900/60 text-slate-300 hover:border-slate-700 hover:bg-slate-900"
-                    }`}
-                  >
-                    <span>{option}</span>
-                    <span
-                      className={`w-5 h-5 rounded-xl border flex items-center justify-center ${
-                        selected
-                          ? "border-emerald-400 bg-emerald-400 text-slate-950"
-                          : "border-slate-700 bg-slate-800"
-                      }`}
-                    >
-                      {selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
-                    </span>
-                  </button>
-                );
-              })}
-            </div>
-          )}
-
-          {currentStepData.type === "number" && (
-            <div className="space-y-4 bg-slate-900/60 border border-slate-800 p-6 rounded-2xl">
-              <div className="flex items-center justify-between">
-                <label className="text-sm font-semibold text-slate-300">Target Study Hours / Week</label>
-                <span className="text-2xl font-black text-emerald-400">{form.weeklyHours} hrs</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="40"
-                value={form.weeklyHours}
-                onChange={(e) => updateField("weeklyHours", Number(e.target.value))}
-                className="w-full accent-emerald-400 bg-slate-800 rounded-lg cursor-pointer h-2"
-              />
-              <div className="flex justify-between text-xs text-slate-500 font-medium">
-                <span>1 hr</span>
-                <span>20 hrs</span>
-                <span>40 hrs</span>
-              </div>
-            </div>
-          )}
-
-          {currentStepData.type === "summary" && (
-            <div className="space-y-3 bg-slate-900/80 border border-slate-800 p-5 rounded-2xl text-xs sm:text-sm">
-              <p className="font-semibold text-emerald-400 mb-2">
-                Nice to meet you, {form.displayName}! Here is your tailored plan:
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-slate-300">
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Learner Type</span>
-                  <span className="font-semibold text-white">{form.learnerType || "General"}</span>
-                </div>
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Goal</span>
-                  <span className="font-semibold text-white">{form.primaryGoal || "Improvement"}</span>
-                </div>
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Weekly Target</span>
-                  <span className="font-semibold text-white">{form.weeklyHours} hours/week</span>
-                </div>
-                <div className="bg-slate-950/60 p-2.5 rounded-xl border border-slate-800">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold">Focus Window</span>
-                  <span className="font-semibold text-white">{form.preferredTime || "Flexible"}</span>
-                </div>
-              </div>
-              {form.subjects.length > 0 && (
-                <div className="mt-2 pt-2 border-t border-slate-800/80">
-                  <span className="text-slate-500 block text-[10px] uppercase font-bold mb-1">Key Subjects</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {form.subjects.map((sub) => (
-                      <span key={sub} className="bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 px-2 py-0.5 rounded-lg text-xs font-medium">
-                        {sub}
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-neutral-500 group-hover:text-neutral-400 transition-colors">
+                        {idx + 1}
                       </span>
-                    ))}
-                  </div>
-                </div>
-              )}
+                      <span className="text-base sm:text-lg font-medium">
+                        {option}
+                      </span>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                        selected
+                          ? "border-emerald-400 bg-emerald-400 text-neutral-950 scale-100 opacity-100"
+                          : "border-neutral-700 bg-transparent opacity-0 scale-75"
+                      }`}
+                    >
+                      {selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           )}
 
-          {generalError && (
-            <p className="mt-4 text-xs font-semibold text-red-400 bg-red-950/40 p-2.5 rounded-xl border border-red-800/40">
-              {generalError}
+          {currentStep.type === "multiple" && (
+            <div className="space-y-3" role="group" aria-label={currentStep.question}>
+              {currentStep.options.map((option, idx) => {
+                const selected = (form[currentStep.id] || []).includes(option);
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => toggleMultiSelect(currentStep.id, option)}
+                    className={`w-full text-left px-5 py-4 rounded-2xl border transition-all duration-200 flex items-center justify-between group ${
+                      selected
+                        ? "border-emerald-500/60 bg-emerald-500/10 text-neutral-100 scale-[1.01]"
+                        : "border-neutral-800/80 bg-neutral-900/40 text-neutral-300 hover:border-neutral-700 hover:bg-neutral-900/80"
+                    }`}
+                  >
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs font-mono text-neutral-500 group-hover:text-neutral-400 transition-colors">
+                        {idx + 1}
+                      </span>
+                      <span className="text-base sm:text-lg font-medium">
+                        {option}
+                      </span>
+                    </div>
+                    <div
+                      className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${
+                        selected
+                          ? "border-emerald-400 bg-emerald-400 text-neutral-950 scale-100 opacity-100"
+                          : "border-neutral-700 bg-transparent opacity-0 scale-75"
+                      }`}
+                    >
+                      {selected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+
+          {currentStep.type === "multi-subject" && (
+            <div className="space-y-4">
+              <div className="flex flex-wrap gap-2.5" role="group" aria-label={currentStep.question}>
+                {currentStep.options.map((option) => {
+                  const selected = (form.subjects || []).includes(option);
+                  return (
+                    <button
+                      key={option}
+                      type="button"
+                      aria-pressed={selected}
+                      onClick={() => toggleMultiSelect("subjects", option)}
+                      className={`px-4 py-3 rounded-xl border text-sm sm:text-base font-medium transition-all duration-200 flex items-center gap-2 ${
+                        selected
+                          ? "border-emerald-500/60 bg-emerald-500/15 text-neutral-100 scale-[1.02]"
+                          : "border-neutral-800 bg-neutral-900/40 text-neutral-300 hover:border-neutral-700 hover:bg-neutral-900/80"
+                      }`}
+                    >
+                      <span>{option}</span>
+                      {selected && <Check className="w-4 h-4 text-emerald-400 stroke-[2.5]" />}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Other Subject Input Field */}
+              <div className="pt-2">
+                <input
+                  ref={otherInputRef}
+                  type="text"
+                  value={form.otherSubject}
+                  onChange={(e) => updateField("otherSubject", e.target.value)}
+                  placeholder="Other subject (e.g. Economics, Law)"
+                  maxLength={30}
+                  className="w-full bg-transparent py-2.5 text-sm sm:text-base text-neutral-200 placeholder-neutral-600 border-b border-neutral-800 focus:border-emerald-400 focus:outline-none transition-colors"
+                />
+              </div>
+            </div>
+          )}
+
+          {currentStep.type === "completion" && (
+            <div className="py-6 space-y-4">
+              <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
+                <Check className="w-6 h-6 text-emerald-400" />
+              </div>
+              <p className="text-sm text-neutral-400">
+                Welcome aboard, {firstName}. Your study space is tailored and ready.
+              </p>
+            </div>
+          )}
+
+          {/* Gentle Inline Notice */}
+          {inlineNotice && (
+            <p className="mt-4 text-xs font-medium text-emerald-400/90 transition-opacity">
+              {inlineNotice}
             </p>
           )}
         </div>
       </main>
 
-      {/* Footer / Primary Action Button */}
-      <footer className="w-full max-w-xl mx-auto pt-2">
-        <button
-          type="button"
-          disabled={saving}
-          onClick={handleNextStep}
-          className="w-full min-h-[52px] bg-emerald-400 hover:bg-emerald-300 active:bg-emerald-500 text-slate-950 font-bold py-3.5 px-6 rounded-2xl transition-all text-base shadow-lg shadow-emerald-400/10 flex items-center justify-center gap-2 disabled:opacity-50"
-        >
-          {saving ? (
-            <>
-              <RefreshCw className="w-5 h-5 animate-spin" /> Saving...
-            </>
-          ) : currentStep === QUESTION_STEPS.length - 1 ? (
-            "Take me to my dashboard"
-          ) : (
-            <>
-              Continue <ArrowRight className="w-5 h-5" />
-            </>
-          )}
-        </button>
-      </footer>
+      {/* Bottom Actions: Understated Continue Button */}
+      {!isCompletionScreen && (
+        <footer className="relative z-10 w-full max-w-xl mx-auto px-6 pb-8 pt-2 flex flex-col items-center">
+          <button
+            type="button"
+            disabled={saving || !canContinue}
+            onClick={handleNextStep}
+            className="group px-6 py-2.5 rounded-full bg-neutral-900 hover:bg-neutral-800 border border-neutral-800 hover:border-neutral-700 text-neutral-200 hover:text-white font-medium text-sm transition-all duration-200 flex items-center gap-2 focus:outline-none focus:ring-2 focus:ring-emerald-400/40 disabled:opacity-40 disabled:pointer-events-none"
+          >
+            <span>{saving ? "Saving..." : "Continue"}</span>
+            <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
+          </button>
+          <span className="text-[11px] font-mono text-neutral-500 mt-2">
+            Press Enter ↵
+          </span>
+        </footer>
+      )}
     </div>
   );
 }

@@ -48,7 +48,7 @@ function PlannerActivityModal({
   onClose,
   onSubmit,
   onDelete = null,
-  onDuplicate = null,
+  onDuplicate: _onDuplicate = null,
   preferredTime = null,
 }) {
   const defaults = getPlannerDefaults(preferredTime);

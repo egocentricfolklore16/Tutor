@@ -427,6 +427,7 @@ const PlannerPage = () => {
 
       <PlannerActivityModal
         mode={activityMode}
+        selectedDate={selectedDate}
         initialData={editingActivity}
         subjects={allSubjects}
         preferredTime={profile?.preferred_time}

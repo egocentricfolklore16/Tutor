@@ -37,8 +37,11 @@ export function generateRecurringOccurrences(rule, rangeFrom, rangeTo) {
         matches = dayOfWeek >= 1 && dayOfWeek <= 5;
         break;
       case 'weekly':
+      case 'custom':
         if (Array.isArray(rule.days_of_week) && rule.days_of_week.length > 0) {
           matches = rule.days_of_week.includes(dayOfWeek);
+        } else {
+          matches = dayOfWeek === ruleStart.getDay();
         }
         break;
       case 'monthly':
@@ -53,7 +56,13 @@ export function generateRecurringOccurrences(rule, rangeFrom, rangeTo) {
       const month = String(curr.getMonth() + 1).padStart(2, '0');
       const day = String(curr.getDate()).padStart(2, '0');
       const dateStr = `${year}-${month}-${day}`;
-      const startTime = rule.start_time ? rule.start_time.slice(0, 5) : '09:00';
+      const startTimeRaw = rule.start_time ? String(rule.start_time).trim().slice(0, 5) : '09:00';
+      const [sh, sm] = startTimeRaw.split(':').map(Number);
+      const safeH = isNaN(sh) ? 9 : sh;
+      const safeM = isNaN(sm) ? 0 : sm;
+      const startTime = `${String(safeH).padStart(2, '0')}:${String(safeM).padStart(2, '0')}`;
+
+      const occurrenceDate = new Date(curr.getFullYear(), curr.getMonth(), curr.getDate(), safeH, safeM, 0, 0);
 
       occurrences.push({
         id: `rec-${rule.id}-${dateStr}`,
@@ -63,7 +72,7 @@ export function generateRecurringOccurrences(rule, rangeFrom, rangeTo) {
         activityType: 'session',
         title: rule.title,
         subject: rule.subject || '',
-        date: new Date(`${dateStr}T${startTime}:00`),
+        date: occurrenceDate,
         startTime: startTime,
         duration: rule.duration_minutes || 25,
         reminder: rule.reminder_minutes ?? 15,
@@ -117,7 +126,7 @@ export function usePlannerActivities(dateRange = {}) {
           .from('Study')
           .select('*')
           .eq('user_id', user.id)
-          .neq('session_status', 'completed'),
+          .or('session_status.neq.completed,session_status.is.null'),
         supabase
           .from('deadlines')
           .select('*')
@@ -157,6 +166,16 @@ export function usePlannerActivities(dateRange = {}) {
             color = 'bg-blue-500';
         }
 
+        const rawDateStr = session.Date ? String(session.Date).slice(0, 10) : new Date().toISOString().slice(0, 10);
+        const rawTimeStr = session.Start ? String(session.Start).trim().slice(0, 5) : '09:00';
+        const [sh, sm] = rawTimeStr.split(':').map(Number);
+        const safeH = isNaN(sh) ? 9 : sh;
+        const safeM = isNaN(sm) ? 0 : sm;
+        const startTime = `${String(safeH).padStart(2, '0')}:${String(safeM).padStart(2, '0')}`;
+
+        const [y, m, d] = rawDateStr.split('-').map(Number);
+        const sessionDate = (y && m && d) ? new Date(y, m - 1, d, safeH, safeM, 0, 0) : new Date();
+
         return {
           id: session.id,
           activityId: session.id,
@@ -164,8 +183,8 @@ export function usePlannerActivities(dateRange = {}) {
           activityType: session.activity_type || 'session',
           title: session.Topic || session.Subject || 'Study Session',
           subject: session.Subject || '',
-          date: new Date(`${session.Date}T${session.Start || '09:00'}:00`),
-          startTime: session.Start || '09:00',
+          date: sessionDate,
+          startTime: startTime,
           duration: Math.round(Number(session.Duration || 0.75) * 60),
           reminder: session.reminder_minutes ?? 15,
           priority: session.Status === 'very important' ? 'urgent' : session.Status === 'not so important' ? 'low' : 'normal',
@@ -178,30 +197,44 @@ export function usePlannerActivities(dateRange = {}) {
 
       // Map Deadlines
       const rawDeadlines = deadlinesRes.data || [];
-      const deadlinesMapped = rawDeadlines.map((dl) => ({
-        id: dl.id,
-        activityId: dl.id,
-        type: 'deadline',
-        activityType: 'deadline',
-        title: dl.title,
-        subject: dl.subject || '',
-        deadline: dl.due_date,
-        due_date: dl.due_date,
-        date: new Date(`${dl.due_date}T00:00:00`),
-        priority: dl.status || 'medium',
-        status: dl.status || 'medium',
-        reminder: dl.reminder_minutes ?? 15,
-        color: 'bg-red-500',
-        isRecurring: false,
-      }));
+      const deadlinesMapped = rawDeadlines.map((dl) => {
+        const rawDateStr = dl.due_date ? String(dl.due_date).slice(0, 10) : new Date().toISOString().slice(0, 10);
+        const [y, m, d] = rawDateStr.split('-').map(Number);
+        const deadlineDate = (y && m && d) ? new Date(y, m - 1, d, 0, 0, 0, 0) : new Date();
+
+        return {
+          id: dl.id,
+          activityId: dl.id,
+          type: 'deadline',
+          activityType: 'deadline',
+          title: dl.title,
+          subject: dl.subject || '',
+          deadline: dl.due_date,
+          due_date: dl.due_date,
+          date: deadlineDate,
+          priority: dl.status || 'medium',
+          status: dl.status || 'medium',
+          reminder: dl.reminder_minutes ?? 15,
+          color: 'bg-red-500',
+          isRecurring: false,
+        };
+      });
 
       // Map Time Blocks
       const rawTimeBlocks = timeBlocksRes.data || [];
       const timeBlocksMapped = rawTimeBlocks.map((tb) => {
-        const startTime = tb.start_time ? tb.start_time.slice(0, 5) : '09:00';
-        const endTime = tb.end_time ? tb.end_time.slice(0, 5) : '10:00';
+        const startTime = tb.start_time ? String(tb.start_time).trim().slice(0, 5) : '09:00';
+        const endTime = tb.end_time ? String(tb.end_time).trim().slice(0, 5) : '10:00';
         const duration = calculateMinutesBetween(startTime, endTime);
-        const dayLabel = new Date(`${tb.block_date}T00:00:00`).toLocaleDateString('en-US', { weekday: 'short' });
+
+        const rawDateStr = tb.block_date ? String(tb.block_date).slice(0, 10) : new Date().toISOString().slice(0, 10);
+        const [sh, sm] = startTime.split(':').map(Number);
+        const safeH = isNaN(sh) ? 9 : sh;
+        const safeM = isNaN(sm) ? 0 : sm;
+
+        const [y, m, d] = rawDateStr.split('-').map(Number);
+        const blockDate = (y && m && d) ? new Date(y, m - 1, d, safeH, safeM, 0, 0) : new Date();
+        const dayLabel = blockDate.toLocaleDateString('en-US', { weekday: 'short' });
 
         return {
           id: tb.id,
@@ -211,7 +244,7 @@ export function usePlannerActivities(dateRange = {}) {
           title: tb.purpose || 'Time Block',
           purpose: tb.purpose || 'Time Block',
           block_date: tb.block_date,
-          date: new Date(`${tb.block_date}T${startTime}:00`),
+          date: blockDate,
           start_time: startTime,
           end_time: endTime,
           start: startTime,
@@ -444,7 +477,7 @@ export function useUpdateActivity() {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
 
-  const updateActivity = async (id, payload) => {
+  const updateActivity = async (idInput, payload) => {
     setIsSaving(true);
     setError(null);
 
@@ -452,7 +485,16 @@ export function useUpdateActivity() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      const targetType = payload.type;
+      // Resolve rule ID or activity ID if it starts with rec-
+      let id = idInput;
+      if (typeof id === 'string' && id.startsWith('rec-')) {
+        const parts = id.split('-');
+        if (parts.length >= 2) {
+          id = parts[1];
+        }
+      }
+
+      const targetType = payload.type || (typeof idInput === 'string' && idInput.startsWith('rec-') ? 'recurring_session' : null);
 
       if (targetType === 'deadline') {
         const updateData = {};
@@ -552,7 +594,7 @@ export function useDeleteActivity() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [error, setError] = useState(null);
 
-  const deleteActivity = async (activityId, activityType = 'study') => {
+  const deleteActivity = async (activityIdInput, activityType = 'study') => {
     setIsDeleting(true);
     setError(null);
 
@@ -560,7 +602,18 @@ export function useDeleteActivity() {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) throw new Error('User not authenticated');
 
-      if (activityType === 'deadline') {
+      let activityId = activityIdInput;
+      let effectiveType = activityType;
+
+      if (typeof activityId === 'string' && activityId.startsWith('rec-')) {
+        const parts = activityId.split('-');
+        if (parts.length >= 2) {
+          activityId = parts[1];
+        }
+        effectiveType = 'recurring_session';
+      }
+
+      if (effectiveType === 'deadline') {
         const { error: err } = await supabase
           .from('deadlines')
           .delete()

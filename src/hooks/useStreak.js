@@ -144,7 +144,7 @@ export function useStreak() {
       // Fetch user_streaks record
       const { data: streakRow, error: streakErr } = await supabase
         .from("users_streaks")
-        .select("current_streak, longest_streak, freeze_tokens_available, last_active_date")
+        .select("current_streak, longest_streak, freeze_tokens_available, freeze_tokens, last_active_date, last_completed_date")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -154,8 +154,8 @@ export function useStreak() {
 
       const curStreak = streakRow?.current_streak ?? 0;
       const longStreak = streakRow?.longest_streak ?? 0;
-      const freezes = streakRow?.freeze_tokens_available ?? 0;
-      const lastActive = streakRow?.last_active_date || null;
+      const freezes = streakRow?.freeze_tokens_available ?? streakRow?.freeze_tokens ?? 0;
+      const lastActive = streakRow?.last_completed_date || streakRow?.last_active_date || null;
 
       // Stale streak resolution check
       const displayStreak = resolveStaleDisplayStreak(curStreak, lastActive, todayCutoffStr, freezes);

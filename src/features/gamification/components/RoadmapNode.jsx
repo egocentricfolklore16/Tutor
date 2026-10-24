@@ -14,11 +14,10 @@ export const RoadmapNode = memo(function RoadmapNode({
   onKeyDown,
   nodeRef,
 }) {
-  const { level, isMilestone, milestoneTitle, isTeaser, teaserText, zone } = node;
+  const { level, isMilestone, milestoneTitle, isTeaser, teaserText } = node;
 
   const isDone = level < userLevel;
   const isCurrent = level === userLevel;
-  const isLocked = level > userLevel;
 
   // Social avatars calculation (max 3 displayed + badge)
   const displayedAvatars = avatars.slice(0, 3);

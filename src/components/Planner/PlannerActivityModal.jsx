@@ -15,7 +15,6 @@ import {
 } from "lucide-react";
 import { getPermissionState } from "../../lib/push";
 import {
-  getNextHalfHour,
   formatTimeSlot,
   calculateEndTimeString,
   getPlannerDefaults,
@@ -85,7 +84,7 @@ function PlannerActivityModal({
       subject: defaults.subject || "",
       subject_id: null,
       date: defaults.date,
-      startTime: getNextHalfHour(),
+      startTime: defaults.startTime,
       duration: defaults.duration || 45,
       priority: defaults.priority || "normal",
       color: defaults.color || "#3B82F6",

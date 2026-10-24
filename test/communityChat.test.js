@@ -7,6 +7,10 @@ import {
   calculateUnreadCount,
   sanitizeUrl,
   parseLinksInText,
+  toggleMessageReaction,
+  filterMessagesBySearchQuery,
+  formatReplyReference,
+  togglePinnedMessage,
 } from "../src/lib/communityChat.js";
 
 test("formatRelativeTime returns 'just now' for null or invalid inputs", () => {
@@ -121,4 +125,55 @@ test("parseLinksInText extracts and sanitizes links from message text", () => {
   assert.equal(parts[1].value, "https://hypertutor.app");
   assert.equal(parts[2].type, "text");
   assert.equal(parts[2].value, " for study tools");
+});
+
+test("toggleMessageReaction adds and removes reactions correctly", () => {
+  const initial = {};
+  const step1 = toggleMessageReaction(initial, "user-1", "👍");
+  assert.deepEqual(step1, { "👍": ["user-1"] });
+
+  const step2 = toggleMessageReaction(step1, "user-2", "👍");
+  assert.deepEqual(step2, { "👍": ["user-1", "user-2"] });
+
+  const step3 = toggleMessageReaction(step2, "user-1", "👍");
+  assert.deepEqual(step3, { "👍": ["user-2"] });
+
+  const step4 = toggleMessageReaction(step3, "user-2", "👍");
+  assert.deepEqual(step4, {});
+});
+
+test("filterMessagesBySearchQuery filters messages by text content or resource title", () => {
+  const messages = [
+    { id: "1", content: "Let's study Calculus" },
+    { id: "2", content: "Physics notes", resourceTitle: "Mechanics Ch 1" },
+    { id: "3", content: "Where is the room link?" },
+  ];
+
+  assert.equal(filterMessagesBySearchQuery(messages, "calculus").length, 1);
+  assert.equal(filterMessagesBySearchQuery(messages, "mechanics").length, 1);
+  assert.equal(filterMessagesBySearchQuery(messages, "").length, 3);
+  assert.equal(filterMessagesBySearchQuery(messages, "biology").length, 0);
+});
+
+test("formatReplyReference formats target message preview for reply quote", () => {
+  const messages = [
+    { id: "msg-10", sender_id: "u-1", content: "What time is our group study session?" },
+  ];
+  const profiles = {
+    "u-1": { full_name: "Alice Newton" },
+  };
+
+  const ref = formatReplyReference(messages, "msg-10", profiles);
+  assert.equal(ref.id, "msg-10");
+  assert.equal(ref.senderName, "Alice Newton");
+  assert.equal(ref.snippet, "What time is our group study session?");
+});
+
+test("togglePinnedMessage adds and removes message ID from pinned list", () => {
+  const pinned = ["msg-1"];
+  const added = togglePinnedMessage(pinned, "msg-2");
+  assert.deepEqual(added, ["msg-1", "msg-2"]);
+
+  const removed = togglePinnedMessage(added, "msg-1");
+  assert.deepEqual(removed, ["msg-2"]);
 });

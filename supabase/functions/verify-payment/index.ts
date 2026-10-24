@@ -48,12 +48,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { reference } = body || {};
 
-    if (!reference) {
+    if (!reference || typeof reference !== "string" || !reference.trim()) {
       return new Response(
-        JSON.stringify({ error: "Missing reference in request body" }),
+        JSON.stringify({ error: "Missing or invalid reference in request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -106,13 +115,18 @@ Deno.serve(async (req) => {
       customerMetadata = {};
     }
 
-    const metadataUserId =
+    const rawMetadataUserId =
       metadata.userId ||
       metadata.user_id ||
       customerMetadata.userId ||
       customerMetadata.user_id;
 
-    if (!metadataUserId || metadataUserId !== user.id) {
+    const metadataUserId =
+      rawMetadataUserId !== null && rawMetadataUserId !== undefined
+        ? String(rawMetadataUserId).trim()
+        : "";
+
+    if (!metadataUserId || metadataUserId !== user.id.trim()) {
       return new Response(
         JSON.stringify({ error: "Forbidden: Payment user ID mismatch" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }

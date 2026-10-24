@@ -57,8 +57,79 @@ function PlannerActivityModal({
   const [activeMode, setActiveMode] = useState(modeProp || "session");
 
   useEffect(() => {
-    if (modeProp) setActiveMode(modeProp);
+    if (modeProp) {
+      setActiveMode(modeProp);
+    }
   }, [modeProp]);
+
+  // Re-initialize form state when modal opens or when initialData/selectedDate changes
+  useEffect(() => {
+    if (!modeProp) return;
+
+    const targetDateObj = selectedDate || new Date();
+    const dateStr = targetDateObj instanceof Date && !isNaN(targetDateObj.getTime())
+      ? `${targetDateObj.getFullYear()}-${String(targetDateObj.getMonth() + 1).padStart(2, '0')}-${String(targetDateObj.getDate()).padStart(2, '0')}`
+      : defaults.date;
+
+    let timeStr = defaults.startTime;
+    if (selectedDate instanceof Date && !isNaN(selectedDate.getTime())) {
+      if (selectedDate.getHours() !== 0 || selectedDate.getMinutes() !== 0) {
+        timeStr = `${String(selectedDate.getHours()).padStart(2, '0')}:${String(selectedDate.getMinutes()).padStart(2, '0')}`;
+      }
+    }
+
+    const dayOfWeek = targetDateObj instanceof Date && !isNaN(targetDateObj.getTime()) ? targetDateObj.getDay() : new Date().getDay();
+
+    if (initialData) {
+      const initDate = initialData.date
+        ? (initialData.date instanceof Date ? `${initialData.date.getFullYear()}-${String(initialData.date.getMonth() + 1).padStart(2, '0')}-${String(initialData.date.getDate()).padStart(2, '0')}` : String(initialData.date).slice(0, 10))
+        : (initialData.block_date || dateStr);
+
+      setForm({
+        id: initialData.id,
+        ruleId: initialData.ruleId,
+        type: initialData.type || (modeProp === "timeblock" ? "time_block" : modeProp === "recurring" ? "recurring_session" : modeProp === "deadline" ? "deadline" : "study"),
+        title: initialData.title || initialData.purpose || "",
+        subject: initialData.subject || defaults.subject || "",
+        subject_id: initialData.subjectId || null,
+        date: initDate,
+        startTime: initialData.startTime || initialData.start_time || timeStr,
+        duration: initialData.duration || defaults.duration,
+        priority: initialData.priority || defaults.priority,
+        color: initialData.color || defaults.color,
+        reminder: initialData.reminder ?? defaults.reminder,
+        notes: initialData.notes || "",
+        break_reminder: Boolean(initialData.break_reminder),
+        recurring_frequency: initialData.recurring_frequency || initialData.frequency || (modeProp === "recurring" ? "daily" : "none"),
+        recurring_interval: initialData.recurring_interval || 1,
+        recurring_days_of_week: initialData.recurring_days_of_week || initialData.days_of_week || [dayOfWeek],
+        recurring_ends_mode: initialData.recurring_ends_mode || "never",
+        recurring_ends_on: initialData.recurring_ends_on || initialData.end_date || null,
+        recurring_max_occurrences: initialData.recurring_max_occurrences || null,
+      });
+    } else {
+      setForm({
+        type: modeProp === "timeblock" ? "time_block" : modeProp === "recurring" ? "recurring_session" : modeProp === "deadline" ? "deadline" : "study",
+        title: "",
+        subject: defaults.subject || "",
+        subject_id: null,
+        date: dateStr,
+        startTime: timeStr,
+        duration: defaults.duration || 45,
+        priority: defaults.priority || "normal",
+        color: defaults.color || "#3B82F6",
+        reminder: defaults.reminder ?? 15,
+        notes: "",
+        break_reminder: false,
+        recurring_frequency: modeProp === "recurring" ? "daily" : "none",
+        recurring_interval: 1,
+        recurring_days_of_week: [dayOfWeek],
+        recurring_ends_mode: "never",
+        recurring_ends_on: null,
+        recurring_max_occurrences: null,
+      });
+    }
+  }, [modeProp, initialData, selectedDate]);
 
   const mode = activeMode;
 
@@ -145,7 +216,7 @@ function PlannerActivityModal({
   const currentStartAt = form.date && form.startTime ? `${form.date}T${form.startTime}:00` : null;
   const { conflicts } = usePlannerConflicts(currentStartAt, form.duration, form.id);
 
-  if (!mode) return null;
+  if (!modeProp) return null;
 
   const permission = getPermissionState();
   const isTimeBlock = mode === "timeblock" || form.type === "time_block";

@@ -60,26 +60,57 @@ function Progress() {
     loadProgress();
   }, []);
 
+  // Performance optimization: Single-pass O(N) calculation for all session analytics metrics.
+  // Replaces multiple array iterations (.filter, .reduce, .map) and temporary array allocations,
+  // reducing execution time and garbage collection overhead when processing session histories.
   const analytics = useMemo(() => {
     const now = new Date();
     const today = new Date(now);
     today.setHours(23, 59, 59, 999);
-    const pastSessions = sessions.filter((item) => {
-      const d = toDate(item.Date);
-      return d && d <= today;
-    });
-    const plannedHours = sessions.reduce((total, item) => total + (Number.parseFloat(item.Duration) || 0), 0);
-    const completedHours = pastSessions.reduce((total, item) => total + (Number.parseFloat(item.Duration) || 0), 0);
-    const studyDays = new Set(pastSessions.map((item) => dateKey(item.Date)).filter(Boolean)).size;
-    const subjects = new Set(sessions.map((item) => item.Subject).filter(Boolean)).size;
 
-    const subjectHours = sessions.reduce((result, item) => {
-      const subject = item.Subject || "Uncategorised";
-      result[subject] = (result[subject] || 0) + (Number.parseFloat(item.Duration) || 0);
-      return result;
-    }, {});
-    const topSubjects = Object.entries(subjectHours).sort(([, left], [, right]) => right - left).slice(0, 5);
-    return { plannedHours, completedHours, pastSessions: pastSessions.length, upcoming: sessions.length - pastSessions.length, studyDays, subjects, topSubjects };
+    let plannedHours = 0;
+    let completedHours = 0;
+    let pastSessionsCount = 0;
+
+    const studyDaysSet = new Set();
+    const subjectsSet = new Set();
+    const subjectHours = {};
+
+    for (let i = 0; i < sessions.length; i++) {
+      const item = sessions[i];
+      const duration = Number.parseFloat(item.Duration) || 0;
+      plannedHours += duration;
+
+      if (item.Subject) {
+        subjectsSet.add(item.Subject);
+      }
+      const subjectKey = item.Subject || "Uncategorised";
+      subjectHours[subjectKey] = (subjectHours[subjectKey] || 0) + duration;
+
+      const d = toDate(item.Date);
+      if (d && d <= today) {
+        pastSessionsCount++;
+        completedHours += duration;
+        const dKey = dateKey(item.Date);
+        if (dKey) {
+          studyDaysSet.add(dKey);
+        }
+      }
+    }
+
+    const topSubjects = Object.entries(subjectHours)
+      .sort(([, left], [, right]) => right - left)
+      .slice(0, 5);
+
+    return {
+      plannedHours,
+      completedHours,
+      pastSessions: pastSessionsCount,
+      upcoming: sessions.length - pastSessionsCount,
+      studyDays: studyDaysSet.size,
+      subjects: subjectsSet.size,
+      topSubjects,
+    };
   }, [sessions]);
 
   if (status === "loading") return <LoadingCompanion message="Loading progress..." />;

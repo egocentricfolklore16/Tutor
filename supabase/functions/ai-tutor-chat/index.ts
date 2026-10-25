@@ -47,7 +47,7 @@ serve(async (req) => {
       return jsonResponse({ error: "Missing Authorization header" }, 401);
     }
 
-    const token = authHeader.replace("Bearer ", "");
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     const { data: userData, error: userError } = await supabase.auth.getUser(token);
     if (userError || !userData?.user) {
       return jsonResponse({ error: "Unauthorized: Invalid or expired session token" }, 401);

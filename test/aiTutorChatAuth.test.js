@@ -8,7 +8,7 @@ function verifyAiTutorChatAuth(authHeader, userResolver) {
     return { status: 401, error: "Missing Authorization header" };
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const user = userResolver(token);
   if (!user) {
     return { status: 401, error: "Unauthorized: Invalid or expired session token" };
@@ -36,6 +36,22 @@ test("verifyAiTutorChatAuth returns 200 and userId if token is valid", () => {
   });
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.userId, "user_456");
+});
+
+test("verifyAiTutorChatAuth handles case-insensitive Bearer prefix and whitespace padding", () => {
+  const resolver = (token) => (token === "valid_token" ? { id: "user_789" } : null);
+
+  const lowerRes = verifyAiTutorChatAuth("bearer valid_token", resolver);
+  assert.strictEqual(lowerRes.status, 200);
+  assert.strictEqual(lowerRes.userId, "user_789");
+
+  const upperRes = verifyAiTutorChatAuth("BEARER valid_token", resolver);
+  assert.strictEqual(upperRes.status, 200);
+  assert.strictEqual(upperRes.userId, "user_789");
+
+  const paddedRes = verifyAiTutorChatAuth("Bearer   valid_token  ", resolver);
+  assert.strictEqual(paddedRes.status, 200);
+  assert.strictEqual(paddedRes.userId, "user_789");
 });
 
 test("normalizeStrictness normalizes UI display labels, DB enums, and fallback strings", () => {

@@ -69,3 +69,9 @@
 **Learning:** Direct answer demands using the verb "answer" (e.g., "can you answer this", "just answer this", "answer this for me") or indefinite article "an" (e.g., "give me an answer") previously bypassed `countGenuineAttempts` because `nonAttemptDemandRegex` missing `an` in article matchers and `answer` in verb lists. Including `an` in article groups (`(?:the\s*|a\s*|an\s*|your\s*)`), `answer` in verb lists, and `that` in target pronoun lists ensures zero-effort answer requests are filtered server-side.
 
 **Action:** Include `an` in article lists and `answer` in demand verb regexes so answer requests with indefinite articles or direct verb phrasing do not prematurely increment attempt counts.
+
+## 2026-10-14 - Catching Desire-Based and Supply Verb Demands in Turn Counting
+
+**Learning:** Students can express answer demands using desire-based statements ("i need the answer", "i want the solution", "i would like the steps") or supply verbs ("provide the solution", "provide me with the solution") that bypassed `nonAttemptDemandRegex` because the regex verb list only included imperative actions like `give`, `tell`, `show`, `send`, `write`. Expanding verb groups to include desire-based phrases (`i\s*(?:need|want|would\s+like)`) and supply verbs (`provide`) with optional prepositions (`with`) ensures zero-effort desire statements are filtered server-side while preserving legitimate hint requests ("i need a hint").
+
+**Action:** Include desire-based phrases (`i need`, `i want`, `i would like`) and supply verbs (`provide`) in `nonAttemptDemandRegex` while verifying that hint requests remain recognized as genuine interactions.

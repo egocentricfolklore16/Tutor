@@ -6,9 +6,18 @@ import { formatMetricValue } from "../../utils/rankUtils";
 export default function LeaderboardPodium({ top1, top2, top3, metric, onUserClick }) {
   if (!top1 && !top2 && !top3) return null;
 
+  const count = (top1 ? 1 : 0) + (top2 ? 1 : 0) + (top3 ? 1 : 0);
+
+  const gridClass =
+    count === 1
+      ? "flex justify-center pt-2 pb-2"
+      : count === 2
+      ? "grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-end max-w-2xl mx-auto pt-2 pb-2"
+      : "grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end pt-2 pb-2";
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3 sm:items-end pt-2 pb-2">
-      {/* Rank 2 - Silver (Left on Desktop) */}
+    <div className={gridClass}>
+      {/* Rank 2 - Silver (Left on Desktop if 3 entries, right if 2 entries) */}
       {top2 && (
         <div
           onClick={() => onUserClick?.(top2.user_id)}
@@ -16,7 +25,7 @@ export default function LeaderboardPodium({ top1, top2, top3, metric, onUserClic
           tabIndex={0}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onUserClick?.(top2.user_id)}
           aria-label={`2nd Place: ${top2.full_name || top2.username}, ${formatMetricValue(top2.value, metric)}`}
-          className="order-2 sm:order-1 relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white p-5 text-center shadow-surface hover:shadow-surface-hover dark:border-slate-700/60 dark:from-slate-800/40 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus"
+          className={`${count === 3 ? "order-2 sm:order-1" : "order-2"} w-full sm:max-w-xs relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border border-slate-200/90 bg-gradient-to-b from-slate-100/90 via-slate-50 to-white p-5 text-center shadow-surface hover:shadow-surface-hover dark:border-slate-700/60 dark:from-slate-800/40 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus`}
         >
           <div className="relative mb-2">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-slate-300 text-xs font-black text-slate-900 shadow-xs dark:bg-slate-700 dark:text-slate-100">
@@ -57,7 +66,7 @@ export default function LeaderboardPodium({ top1, top2, top3, metric, onUserClic
           tabIndex={0}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onUserClick?.(top1.user_id)}
           aria-label={`1st Place Champion: ${top1.full_name || top1.username}, ${formatMetricValue(top1.value, metric)}`}
-          className="order-1 sm:order-2 relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-amber-100/90 via-amber-50/60 to-white p-6 text-center shadow-surface-hover dark:border-amber-500/60 dark:from-amber-950/40 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1.5 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus"
+          className={`${count === 3 ? "order-1 sm:order-2" : "order-1"} w-full sm:max-w-xs relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border-2 border-amber-300 bg-gradient-to-b from-amber-100/90 via-amber-50/60 to-white p-6 text-center shadow-surface-hover dark:border-amber-500/60 dark:from-amber-950/40 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1.5 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus`}
         >
           <div className="relative mb-2 flex items-center gap-1.5">
             <Crown className="h-6 w-6 text-amber-500 animate-pulse" />
@@ -99,7 +108,7 @@ export default function LeaderboardPodium({ top1, top2, top3, metric, onUserClic
           tabIndex={0}
           onKeyDown={(e) => (e.key === "Enter" || e.key === " ") && onUserClick?.(top3.user_id)}
           aria-label={`3rd Place: ${top3.full_name || top3.username}, ${formatMetricValue(top3.value, metric)}`}
-          className="order-3 relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border border-amber-800/20 bg-gradient-to-b from-amber-100/50 via-amber-50/20 to-white p-5 text-center shadow-surface hover:shadow-surface-hover dark:border-amber-900/40 dark:from-amber-950/20 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus"
+          className="order-3 w-full sm:max-w-xs relative flex min-h-[44px] flex-col items-center justify-center rounded-3xl border border-amber-800/20 bg-gradient-to-b from-amber-100/50 via-amber-50/20 to-white p-5 text-center shadow-surface hover:shadow-surface-hover dark:border-amber-900/40 dark:from-amber-950/20 dark:via-[#18211f] dark:to-[#14171c] cursor-pointer hover:-translate-y-1 transition-all duration-200 group focus-visible:outline-none focus-visible:shadow-focus"
         >
           <div className="relative mb-2">
             <span className="inline-flex h-7 w-7 items-center justify-center rounded-full bg-amber-800 text-xs font-black text-amber-100 shadow-xs dark:bg-amber-900 dark:text-amber-200">

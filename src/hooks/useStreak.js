@@ -62,16 +62,15 @@ export function getCurrentWeekDays(todayCutoffStr) {
  * Resolves whether a streak is stale given last active/completed date, today's cutoff date, and freeze tokens.
  */
 export function resolveStaleDisplayStreak(curStreak, activeOrCompleted, todayCutoffStr, freezes) {
+  if (!activeOrCompleted) return 0;
   let displayStreak = curStreak;
-  if (activeOrCompleted) {
-    const anchorParts = activeOrCompleted.split("-").map(Number);
-    const anchorUtc = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
-    const todayParts = todayCutoffStr.split("-").map(Number);
-    const todayUtc = new Date(Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]));
-    const diffDays = Math.round((todayUtc - anchorUtc) / 86400000);
-    if (diffDays > 2 || (diffDays === 2 && freezes === 0)) {
-      displayStreak = 0;
-    }
+  const anchorParts = activeOrCompleted.split("-").map(Number);
+  const anchorUtc = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+  const todayParts = todayCutoffStr.split("-").map(Number);
+  const todayUtc = new Date(Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]));
+  const diffDays = Math.round((todayUtc - anchorUtc) / 86400000);
+  if (diffDays > 2 || (diffDays === 2 && freezes === 0)) {
+    displayStreak = 0;
   }
   return displayStreak;
 }

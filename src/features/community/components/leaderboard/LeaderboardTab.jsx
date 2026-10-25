@@ -8,15 +8,15 @@ import {
   Search,
   Flag,
 } from "lucide-react";
-import { useLeaderboard } from "../../features/community/hooks/useLeaderboard";
-import ScopeTabs from "../../features/community/components/leaderboard/ScopeTabs";
-import PeriodTabs from "../../features/community/components/leaderboard/PeriodTabs";
-import MetricTabs from "../../features/community/components/leaderboard/MetricTabs";
-import LeaderboardPodium from "../../features/community/components/leaderboard/LeaderboardPodium";
-import LeaderboardTable from "../../features/community/components/leaderboard/LeaderboardTable";
-import YourRankCard from "../../features/community/components/leaderboard/YourRankCard";
-import { getWeeklyResetCountdown } from "../../features/community/utils/rankUtils";
-import { ReportDialog } from "../../features/community/components/shared/ReportDialog";
+import { useLeaderboard } from "../../hooks/useLeaderboard";
+import ScopeTabs from "./ScopeTabs";
+import PeriodTabs from "./PeriodTabs";
+import MetricTabs from "./MetricTabs";
+import LeaderboardPodium from "./LeaderboardPodium";
+import LeaderboardTable from "./LeaderboardTable";
+import YourRankCard from "./YourRankCard";
+import { getWeeklyResetCountdown } from "../../utils/rankUtils";
+import { ReportDialog } from "../shared/ReportDialog";
 
 export default function LeaderboardTab({ user, userGroups = [] }) {
   const navigate = useNavigate();

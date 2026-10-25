@@ -72,7 +72,7 @@ export default function AdminFeedbackDashboard({ user }) {
     }
   };
 
-  const handlePriorityChange = async (newPriority) => {
+  const _handlePriorityChange = async (newPriority) => {
     if (!selectedItem) return;
     const res = await updateAdminFeedback(selectedItem.id, { priority: Number(newPriority) });
     if (res.success) {

@@ -38,8 +38,8 @@ import VirtualStudyRoom from "./VirtualStudyRoom";
 import HelpForum from "./HelpForum";
 import ForumPostDetail from "./ForumPostDetail";
 import PeerTutors from "./PeerTutors";
-import LeaderboardTab from "./LeaderboardTab";
 import AchievementsPage from "./AchievementsPage";
+import { LeaderboardTab } from "../../features/community";
 
 import { useFriends } from "../../features/community/hooks/useFriends";
 import { useGroups } from "../../features/community/hooks/useGroups";

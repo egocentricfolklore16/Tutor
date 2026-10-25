@@ -19,6 +19,7 @@ export { default as MetricTabs } from "./components/leaderboard/MetricTabs";
 export { default as LeaderboardPodium } from "./components/leaderboard/LeaderboardPodium";
 export { default as LeaderboardTable } from "./components/leaderboard/LeaderboardTable";
 export { default as YourRankCard } from "./components/leaderboard/YourRankCard";
+export { default as LeaderboardTab } from "./components/leaderboard/LeaderboardTab";
 
 export { default as FriendList } from "./components/friends/FriendList";
 export { default as PendingRequests } from "./components/friends/PendingRequests";

@@ -184,6 +184,10 @@ test("computeWeekDays backfills contiguous active streak days as completed", () 
 });
 
 test("resolveStaleDisplayStreak evaluates stale streaks correctly across multi-day gaps and freeze tokens", () => {
+  // Scenario 0: Missing or null last active date returns 0 display streak
+  assert.equal(resolveStaleDisplayStreak(5, null, "2026-05-10", 1), 0);
+  assert.equal(resolveStaleDisplayStreak(5, "", "2026-05-10", 1), 0);
+
   // Scenario 1: Same day or 1-day gap (diffDays = 0 or 1) -> preserves active streak
   assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-10", 0), 5);
   assert.equal(resolveStaleDisplayStreak(5, "2026-05-10", "2026-05-11", 0), 5);

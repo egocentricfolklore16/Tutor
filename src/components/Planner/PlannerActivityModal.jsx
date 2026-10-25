@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import {
   Bell,
   CalendarDays,
@@ -51,7 +51,7 @@ function PlannerActivityModal({
   _onDuplicate = null,
   preferredTime = null,
 }) {
-  const defaults = getPlannerDefaults(preferredTime);
+  const defaults = useMemo(() => getPlannerDefaults(preferredTime), [preferredTime]);
   const titleInputRef = useRef(null);
 
   const [activeMode, setActiveMode] = useState(modeProp || "session");
@@ -129,7 +129,7 @@ function PlannerActivityModal({
         recurring_max_occurrences: null,
       });
     }
-  }, [modeProp, initialData, selectedDate]);
+  }, [modeProp, initialData, selectedDate, defaults]);
 
   const mode = activeMode;
 

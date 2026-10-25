@@ -71,6 +71,7 @@ export function useFeedbackPrompts(user) {
           userId,
           promptId: candidate.id,
           action: "shown",
+          context: customContext,
         });
 
         return candidate;

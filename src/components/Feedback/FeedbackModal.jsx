@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { MessageSquare, X, Send, Sparkles, AlertCircle, CheckCircle2, Shield, Paperclip } from "lucide-react";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 import {
@@ -40,17 +40,22 @@ export default function FeedbackModal({ isOpen, onClose, user, initialType = FEE
   const [isSuccess, setIsSuccess] = useState(false);
   const [rateLimitInfo, setRateLimitInfo] = useState({ allowed: true, remaining: 5 });
 
+  const hasLoadedDraftRef = useRef(false);
+
   useEffect(() => {
-    if (isOpen) {
+    if (isOpen && !hasLoadedDraftRef.current) {
+      hasLoadedDraftRef.current = true;
       setRateLimitInfo(checkRateLimit());
       const draft = getFeedbackDraft();
-      if (draft && !message) {
+      if (draft) {
         if (draft.type) setType(draft.type);
         if (draft.rating) setRating(draft.rating);
         if (draft.message) setMessage(draft.message);
         if (draft.email) setEmail(draft.email);
         if (draft.allow_contact !== undefined) setAllowContact(draft.allow_contact);
       }
+    } else if (!isOpen) {
+      hasLoadedDraftRef.current = false;
     }
   }, [isOpen]);
 

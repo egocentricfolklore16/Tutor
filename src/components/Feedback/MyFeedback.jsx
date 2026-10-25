@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { MessageSquare, Clock, CheckCircle2, AlertCircle, ShieldAlert, Sparkles, Plus, CornerDownRight } from "lucide-react";
 import { fetchMyFeedback, FEEDBACK_STATUSES } from "../../lib/feedback";
 import FeedbackModal from "./FeedbackModal";
@@ -21,7 +21,7 @@ export default function MyFeedback({ user }) {
 
   const userId = user?.id || null;
 
-  const loadFeedback = async () => {
+  const loadFeedback = useCallback(async () => {
     if (!userId) {
       setLoading(false);
       return;
@@ -30,7 +30,7 @@ export default function MyFeedback({ user }) {
     const data = await fetchMyFeedback(userId);
     setItems(data);
     setLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     loadFeedback();
@@ -59,7 +59,7 @@ export default function MyFeedback({ user }) {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [userId]);
+  }, [userId, loadFeedback]);
 
   return (
     <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">

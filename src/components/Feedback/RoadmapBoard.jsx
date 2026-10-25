@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { ThumbsUp, Lightbulb, Plus, Sparkles, Filter } from "lucide-react";
 import { fetchPublicRoadmap, toggleFeedbackVote, FEEDBACK_TYPES, FEEDBACK_STATUSES } from "../../lib/feedback";
 import FeedbackModal from "./FeedbackModal";
@@ -11,16 +11,16 @@ export default function RoadmapBoard({ user }) {
 
   const userId = user?.id || null;
 
-  const loadRoadmap = async () => {
+  const loadRoadmap = useCallback(async () => {
     setLoading(true);
     const data = await fetchPublicRoadmap(userId);
     setIdeas(data);
     setLoading(false);
-  };
+  }, [userId]);
 
   useEffect(() => {
     loadRoadmap();
-  }, [userId]);
+  }, [loadRoadmap]);
 
   const handleVoteToggle = async (ideaId) => {
     if (!userId) {

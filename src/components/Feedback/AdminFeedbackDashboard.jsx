@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   Inbox,
   Filter,
@@ -41,11 +41,11 @@ export default function AdminFeedbackDashboard({ user }) {
   const [newTagInput, setNewTagInput] = useState("");
   const [adminNotesInput, setAdminNotesInput] = useState("");
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     setLoading(true);
     const data = await fetchAdminFeedbackList(filters);
     setItems(data);
-    if (selectedItem) {
+    if (selectedItem?.id) {
       const refreshedSelected = data.find((i) => i.id === selectedItem.id);
       if (refreshedSelected) {
         setSelectedItem(refreshedSelected);
@@ -53,11 +53,11 @@ export default function AdminFeedbackDashboard({ user }) {
       }
     }
     setLoading(false);
-  };
+  }, [filters, selectedItem?.id]);
 
   useEffect(() => {
     loadData();
-  }, [filters]);
+  }, [loadData]);
 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
@@ -325,6 +325,18 @@ export default function AdminFeedbackDashboard({ user }) {
                 </div>
 
                 <div className="flex items-center gap-2">
+                  <select
+                    value={selectedItem.priority || 3}
+                    onChange={(e) => handlePriorityChange(e.target.value)}
+                    className="px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-slate-100 text-xs font-semibold"
+                    title="Priority"
+                  >
+                    <option value={1}>P1 - Urgent</option>
+                    <option value={2}>P2 - High</option>
+                    <option value={3}>P3 - Normal</option>
+                    <option value={4}>P4 - Low</option>
+                    <option value={5}>P5 - Trivial</option>
+                  </select>
                   <select
                     value={selectedItem.status}
                     onChange={(e) => handleStatusChange(e.target.value)}

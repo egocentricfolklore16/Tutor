@@ -189,6 +189,26 @@ export async function processVerifiedPayment({
           alreadyProcessed: true,
         };
       }
+
+      if (isSubPayment && existingSub && existingPayment.created_at) {
+        const { data: newerPayments } = await supabaseClient
+          .from("payments")
+          .select("id, created_at")
+          .eq("user_id", userId)
+          .eq("status", "success")
+          .neq("id", existingPayment.id)
+          .gt("created_at", existingPayment.created_at)
+          .limit(1);
+
+        if (newerPayments && newerPayments.length > 0) {
+          return {
+            payment: existingPayment,
+            subscription: existingSub,
+            plan,
+            alreadyProcessed: true,
+          };
+        }
+      }
     }
   }
 

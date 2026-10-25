@@ -96,22 +96,57 @@ function createMockSupabaseClient({
       }
 
       if (tableName === "payments") {
+        const createQueryBuilder = (filters = []) => {
+          const filterFn = (items) => {
+            return items.filter((row) => {
+              for (const f of filters) {
+                if (f.type === "eq" && row[f.col] !== f.val) return false;
+                if (f.type === "neq" && row[f.col] === f.val) return false;
+                if (f.type === "gte" && row[f.col] < f.val) return false;
+                if (f.type === "gt" && row[f.col] <= f.val) return false;
+              }
+              return true;
+            });
+          };
+
+          return {
+            eq(col, val) {
+              return createQueryBuilder([...filters, { type: "eq", col, val }]);
+            },
+            neq(col, val) {
+              return createQueryBuilder([...filters, { type: "neq", col, val }]);
+            },
+            gte(col, val) {
+              return createQueryBuilder([...filters, { type: "gte", col, val }]);
+            },
+            gt(col, val) {
+              return createQueryBuilder([...filters, { type: "gt", col, val }]);
+            },
+            limit(count) {
+              return createQueryBuilder([...filters, { type: "limit", count }]);
+            },
+            async maybeSingle() {
+              const matches = filterFn(paymentsStore);
+              return { data: matches[0] || null, error: null };
+            },
+            then(resolve) {
+              let matches = filterFn(paymentsStore);
+              const limitFilter = filters.find((f) => f.type === "limit");
+              if (limitFilter) {
+                matches = matches.slice(0, limitFilter.count);
+              }
+              return Promise.resolve({ data: matches, error: null }).then(resolve);
+            },
+          };
+        };
+
         return {
           select() {
-            return {
-              eq(col, val) {
-                return {
-                  async maybeSingle() {
-                    const row = paymentsStore.find((p) => p[col] === val);
-                    return { data: row || null, error: null };
-                  },
-                };
-              },
-            };
+            return createQueryBuilder();
           },
           upsert(payload) {
             const existingIdx = paymentsStore.findIndex((p) => p.reference === payload.reference);
-            const newRow = { id: `payment-uuid-${payload.reference}`, ...payload };
+            const newRow = { id: payload.id || `payment-uuid-${payload.reference}`, ...payload };
             if (existingIdx >= 0) {
               paymentsStore[existingIdx] = { ...paymentsStore[existingIdx], ...newRow };
             } else {
@@ -250,6 +285,70 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
       message: "Currency mismatch: expected NGN, received USD",
     }
   );
+});
+
+test("processVerifiedPayment returns alreadyProcessed when replaying an older superseded subscription payment", async () => {
+  const oldPayment = {
+    id: "payment-uuid-old-101",
+    user_id: "user-uuid-111",
+    reference: "ref_superseded_old_101",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-01-01T00:00:00.000Z",
+    verified_at: "2025-01-01T00:00:05.000Z",
+  };
+
+  const newPayment = {
+    id: "payment-uuid-new-102",
+    user_id: "user-uuid-111",
+    reference: "ref_newer_payment_102",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-02-01T00:00:00.000Z",
+    verified_at: "2025-02-01T00:00:05.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-111",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-new-102",
+    current_period_start: "2025-02-01T00:00:00.000Z",
+    current_period_end: "2025-03-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({
+    existingPayment: oldPayment,
+    existingSub,
+  });
+
+  // Inject newer payment into payments store
+  mockClient.from("payments").upsert(newPayment);
+
+  // Replay old payment ref
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_superseded_old_101",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.reference, "ref_superseded_old_101");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-new-102");
+  assert.strictEqual(result.subscription.current_period_end, "2025-03-01T00:00:00.000Z");
 });
 
 test("processVerifiedPayment converts numeric and whitespace-padded metadata IDs correctly", async () => {

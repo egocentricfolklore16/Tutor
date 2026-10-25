@@ -252,7 +252,7 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={toggleStreakDropdownMobile}
             aria-label={`Study streak: ${streakLoading || currentStreak === null ? "loading" : streakError ? "error" : `${currentStreak} days`}`}
             aria-expanded={streakDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
           >
             <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
             <span>{streakLoading || currentStreak === null ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
@@ -390,7 +390,7 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setXpDropdownOpen((prev) => !prev)}
             aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
             aria-expanded={xpDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
           >
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
           </button>
@@ -444,7 +444,7 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setGemsDropdownOpen((prev) => !prev)}
             aria-label={`Gems balance: ${gemsCount}`}
             aria-expanded={gemsDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
           >
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
           </button>

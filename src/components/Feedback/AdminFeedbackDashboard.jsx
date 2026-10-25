@@ -41,7 +41,7 @@ export default function AdminFeedbackDashboard({ user }) {
   const [newTagInput, setNewTagInput] = useState("");
   const [adminNotesInput, setAdminNotesInput] = useState("");
 
-  const loadData = async () => {
+  const loadData = React.useCallback(async () => {
     setLoading(true);
     const data = await fetchAdminFeedbackList(filters);
     setItems(data);
@@ -53,11 +53,11 @@ export default function AdminFeedbackDashboard({ user }) {
       }
     }
     setLoading(false);
-  };
+  }, [filters, selectedItem]);
 
   useEffect(() => {
     loadData();
-  }, [filters]);
+  }, [loadData]);
 
   const handleSelectItem = (item) => {
     setSelectedItem(item);
@@ -72,9 +72,9 @@ export default function AdminFeedbackDashboard({ user }) {
     }
   };
 
-  const handlePriorityChange = async (newPriority) => {
+  const _handlePriorityChange = async (_newPriority) => {
     if (!selectedItem) return;
-    const res = await updateAdminFeedback(selectedItem.id, { priority: Number(newPriority) });
+    const res = await updateAdminFeedback(selectedItem.id, { priority: Number(_newPriority) });
     if (res.success) {
       loadData();
     }

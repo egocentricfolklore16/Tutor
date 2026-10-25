@@ -25,3 +25,7 @@
 ## 2026-10-23 - `last_completed_date` / `last_active_date` Synchronization for Stale Streak Evaluation
 **Learning:** Selecting only `last_active_date` without `last_completed_date` in `useStreak` caused stale-streak resolution to compute invalid date gaps when `record_study_activity` updated `last_completed_date` on `users_streaks`, causing active streaks to falsely drop to "0d". Selecting both columns and calculating `lastActive = streakRow?.last_completed_date || streakRow?.last_active_date || null` ensures stale-streak resolution correctly evaluates activity dates against local cutoff boundaries.
 **Action:** Always query both `last_completed_date` and `last_active_date` from `users_streaks` when deriving streak freshness.
+
+## 2026-10-25 - Focus-Visible Keyboard Ring Navigation on Gamification Header Badges
+**Learning:** Explicit focus rings (`focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-...`) on interactive header gamification badges (Streak, XP, Gems) ensure keyboard navigation (Tab / Space / Enter) provides unambiguous visual feedback while preserving ARIA screen reader attributes (`aria-label`, `aria-expanded`).
+**Action:** Always include high-contrast `focus-visible` ring utilities on interactive gamification badge buttons across desktop and mobile headers.

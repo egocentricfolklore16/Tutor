@@ -117,6 +117,40 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
+  const confusionAndLossNonAttempts = [
+    "i'm confused",
+    "im confused",
+    "i am confused",
+    "i'm lost",
+    "im lost",
+    "i am lost",
+    "i have no idea",
+    "i have no clue",
+  ];
+  for (const statement of confusionAndLossNonAttempts) {
+    const history = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: statement },
+    ];
+    assert.strictEqual(
+      countGenuineAttempts(history),
+      0,
+      `Bare statement '${statement}' should filter as 0 genuine attempts`
+    );
+  }
+
+  const confusionWithReasoning = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "I am confused because x is negative when I subtract 20" },
+  ];
+  assert.strictEqual(
+    countGenuineAttempts(confusionWithReasoning),
+    1,
+    "Confusion statement with reasoning ('because') should count as 1 genuine attempt"
+  );
+
   const stepAndWorkDemands = [
     "show me the steps",
     "give me the step by step",

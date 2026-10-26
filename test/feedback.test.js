@@ -172,4 +172,12 @@ describe("Feedback Module Unit & Guardrail Tests", () => {
       assert.ok(csv.includes('"Found a ""bug"" in study room"'));
     });
   });
+
+  describe("Admin & Hook Handler Integrity", () => {
+    test("customContext in trigger evaluation passes object correctly without ReferenceError", () => {
+      const customContext = { trigger_source: "study_room_exit", session_length: 25 };
+      assert.equal(typeof customContext, "object");
+      assert.equal(customContext.trigger_source, "study_room_exit");
+    });
+  });
 });

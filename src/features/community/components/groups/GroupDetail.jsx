@@ -5,18 +5,22 @@ import {
   Loader2,
   UserCheck,
   UserX,
+  UserPlus,
   Trash2,
 } from "lucide-react";
 import Avatar from "../../../../components/common/Avatar";
 import GroupStudySessions from "../../../../components/Community/GroupStudySessions";
 import MemberList from "./MemberList";
+import InviteDialog from "./InviteDialog";
 import Modal from "../../../../components/common/ResponsiveSheet";
+import { inviteFriendToGroup } from "../../services/groupsService";
 
 export default function GroupDetail({
   groupId,
   groupOverview,
   overviewLoading,
   currentUserId,
+  friends = [],
   onClose,
   onOpenChat,
   onJoinSession,
@@ -28,6 +32,7 @@ export default function GroupDetail({
   refetchOverview,
 }) {
   const [modalSubTab, setModalSubTab] = useState("overview");
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   // Settings form state
   const [editName, setEditName] = useState("");
@@ -147,15 +152,24 @@ export default function GroupDetail({
           {/* Overview Sub-tab */}
           {modalSubTab === "overview" && (
             <div className="space-y-5 pt-2">
-              {groupOverview?.conversation_id && (
+              <div className="flex flex-wrap items-center gap-2">
+                {groupOverview?.conversation_id && (
+                  <button
+                    type="button"
+                    onClick={() => onOpenChat?.(groupOverview.conversation_id)}
+                    className="flex-1 inline-flex min-h-[44px] items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-2.5 px-4 text-xs font-bold text-white hover:bg-emerald-700 shadow-button-primary transition"
+                  >
+                    <MessageSquare className="h-4 w-4" /> Open Group Chat
+                  </button>
+                )}
                 <button
                   type="button"
-                  onClick={() => onOpenChat?.(groupOverview.conversation_id)}
-                  className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 shadow-button-primary"
+                  onClick={() => setShowInviteDialog(true)}
+                  className="inline-flex min-h-[44px] items-center justify-center gap-1.5 rounded-2xl bg-emerald-100 dark:bg-emerald-950 dark:text-emerald-300 py-2.5 px-4 text-xs font-bold text-emerald-800 hover:bg-emerald-200 dark:hover:bg-emerald-900 transition"
                 >
-                  <MessageSquare className="h-4 w-4" /> Open Group Chat
+                  <UserPlus className="h-4 w-4" /> Invite Friends
                 </button>
-              )}
+              </div>
 
               <div>
                 <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-2">
@@ -355,6 +369,18 @@ export default function GroupDetail({
           )}
         </div>
       )}
+
+      {/* Invite Friends Dialog */}
+      <InviteDialog
+        isOpen={showInviteDialog}
+        onClose={() => setShowInviteDialog(false)}
+        groupName={groupOverview?.group?.name}
+        friends={friends}
+        members={groupOverview?.members || []}
+        onSendInvite={async (friendUserId) => {
+          await inviteFriendToGroup(groupId, currentUserId, friendUserId);
+        }}
+      />
     </Modal>
   );
 }

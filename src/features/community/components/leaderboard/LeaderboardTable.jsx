@@ -1,9 +1,9 @@
 import React from "react";
-import { ArrowUp, ArrowDown, Minus } from "lucide-react";
+import { ArrowUp, ArrowDown, Minus, Flag } from "lucide-react";
 import Avatar from "../../../../components/common/Avatar";
 import { formatMetricValue } from "../../utils/rankUtils";
 
-export default function LeaderboardTable({ entries, currentUser, metric, onUserClick }) {
+export default function LeaderboardTable({ entries, currentUser, metric, onUserClick, onReportUser }) {
   if (!entries || entries.length === 0) return null;
 
   return (
@@ -62,10 +62,25 @@ export default function LeaderboardTable({ entries, currentUser, metric, onUserC
                 </div>
               </div>
 
-              <div className="flex items-center gap-3 shrink-0">
+              <div className="flex items-center gap-2 shrink-0">
                 <span className="text-xs font-black text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-2.5 py-1 rounded-2xl">
                   {formatMetricValue(item.value, metric)}
                 </span>
+
+                {onReportUser && !isSelf && (
+                  <button
+                    type="button"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onReportUser?.(item);
+                    }}
+                    aria-label={`Report ${item.full_name || item.username}`}
+                    title={`Report ${item.full_name || item.username}`}
+                    className="p-1.5 rounded-xl text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition min-h-[44px] min-w-[44px] flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                  >
+                    <Flag className="h-3.5 w-3.5" />
+                  </button>
+                )}
               </div>
             </div>
           );

@@ -203,6 +203,7 @@ export default function LeaderboardTab({ user, userGroups = [] }) {
               currentUser={user}
               metric={metric}
               onUserClick={handleUserClick}
+              onReportUser={(item) => setReportTarget(item)}
             />
           )}
 

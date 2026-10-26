@@ -19,3 +19,7 @@
 ## 2026-10-18 - Ledger Granularity & Feature Sub-directory Auditing
 **Learning:** Re-auditing revealed 22 modular sub-components and service files in `src/features/` that had been grouped under parent modules in previous coverage ledgers. Auditing every individual `.jsx` and `.ts` file guarantees complete coverage tracking across component subtrees.
 **Action:** Always enumerate nested directories programmatically when building the coverage ledger to prevent file omission.
+
+## 2026-10-26 - Dual-Path Feedback Component Auditing
+**Learning:** Found two distinct feedback submission paths in the codebase: `FeedbackModal.jsx` (which invokes `submitFeedback` in `src/lib/feedback.js` to write to `feedback` table) versus `FeedbackDialog.jsx` (exit dialog in `Sidebar.jsx` and `Overview.jsx` that traps feedback in `localStorage`).
+**Action:** When evaluating UI controls, distinguish between different components that share similar domain names to ensure stubbed paths are properly differentiated from backed paths.

@@ -35,16 +35,29 @@ const faqs = [
   ["Privacy and access", "Can I use Hyper Tutor with a screen reader?", "The app includes accessibility preferences and semantic controls. Select Screen reader in onboarding and report any issue through support."],
 ];
 
+// Bolt Optimization: Hoist static categories and pre-calculate search text at module scope
+// to avoid repeated array allocations and string lowercasing on every render/keystroke.
+const FAQ_CATEGORIES = ["All", ...new Set(faqs.map(([itemCategory]) => itemCategory))];
+
+const FAQS_WITH_SEARCH_TEXT = faqs.map(([itemCategory, question, answer]) => ({
+  itemCategory,
+  question,
+  answer,
+  searchText: `${question} ${answer}`.toLowerCase(),
+}));
+
 function FAQ() {
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [openQuestion, setOpenQuestion] = useState(0);
-  const categories = ["All", ...new Set(faqs.map(([itemCategory]) => itemCategory))];
-  const filteredFaqs = useMemo(() => faqs.filter(([itemCategory, question, answer]) => {
-    const matchesCategory = category === "All" || itemCategory === category;
-    const text = `${question} ${answer}`.toLowerCase();
-    return matchesCategory && text.includes(query.toLowerCase().trim());
-  }), [category, query]);
+
+  const filteredFaqs = useMemo(() => {
+    const normalizedQuery = query.toLowerCase().trim();
+    return FAQS_WITH_SEARCH_TEXT.filter(({ itemCategory, searchText }) => {
+      const matchesCategory = category === "All" || itemCategory === category;
+      return matchesCategory && (normalizedQuery === "" || searchText.includes(normalizedQuery));
+    });
+  }, [category, query]);
 
   return (
     <PageContainer maxWidth="max-w-4xl">
@@ -70,7 +83,7 @@ function FAQ() {
         </label>
 
         <div className="mt-4 flex gap-2 overflow-x-auto pb-2">
-          {categories.map((itemCategory) => (
+          {FAQ_CATEGORIES.map((itemCategory) => (
             <button
               key={itemCategory}
               type="button"
@@ -88,7 +101,7 @@ function FAQ() {
 
         <div className="mt-6 space-y-3">
           {filteredFaqs.length ? (
-            filteredFaqs.map(([itemCategory, question, answer]) => {
+            filteredFaqs.map(({ itemCategory, question, answer }) => {
               const isOpen = openQuestion === question;
               return (
                 <article key={question} className="overflow-hidden rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900">

@@ -287,6 +287,31 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
+test("processVerifiedPayment resolves planId from customer metadata when missing in top-level metadata", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_customer_meta_plan_9005",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {},
+      customer: {
+        metadata: JSON.stringify({
+          planId: "pro",
+          userId: "user-uuid-333",
+        }),
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.user_id, "user-uuid-333");
+  assert.strictEqual(result.subscription.plan_id, "pro");
+});
+
 test("processVerifiedPayment returns alreadyProcessed when replaying an older superseded subscription payment", async () => {
   const oldPayment = {
     id: "payment-uuid-old-101",

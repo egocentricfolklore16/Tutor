@@ -61,6 +61,8 @@ export interface ProcessPaymentParams {
     customer?: {
       email?: string;
       metadata?: {
+        planId?: string;
+        plan_id?: string;
         userId?: string;
         user_id?: string;
       };
@@ -107,7 +109,11 @@ export async function processVerifiedPayment({
     customerMetadata = {};
   }
 
-  const rawPlanId = metadata.planId || metadata.plan_id;
+  const rawPlanId =
+    metadata.planId ||
+    metadata.plan_id ||
+    customerMetadata.planId ||
+    customerMetadata.plan_id;
   const rawUserId =
     metadata.userId ||
     metadata.user_id ||

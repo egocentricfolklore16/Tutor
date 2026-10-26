@@ -5,6 +5,8 @@ export { useGamification } from "./hooks/useGamification.js";
 export { useCelebrations } from "./hooks/useCelebrations.js";
 export { useLevelProgress } from "./hooks/useLevelProgress.js";
 
+export { default as BadgeGrid } from "./components/BadgeGrid.jsx";
+export { sortBadges } from "./utils/badgeUtils.js";
 export { LevelRoadmap } from "./components/LevelRoadmap.jsx";
 export { RoadmapNode } from "./components/RoadmapNode.jsx";
 export { RoadmapPath } from "./components/RoadmapPath.jsx";

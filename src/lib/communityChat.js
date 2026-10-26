@@ -231,8 +231,17 @@ export function sanitizeUrl(urlInput) {
   const trimmed = urlInput.trim();
   if (!trimmed) return "#";
 
+  // Strip control characters & whitespace inserted into scheme to obfuscate protocols
+  let sanitized = "";
+  for (let i = 0; i < trimmed.length; i++) {
+    const code = trimmed.charCodeAt(i);
+    if (code >= 32 && code !== 127 && (code < 128 || code > 159)) {
+      sanitized += trimmed[i];
+    }
+  }
+
   // Allow safe absolute and relative URL protocols (http, https, mailto, tel, relative path / or #)
-  if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed)) {
+  if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(sanitized)) {
     return trimmed;
   }
 

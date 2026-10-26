@@ -50,7 +50,7 @@ export function useFeedbackPrompts(user) {
 
   // Trigger evaluation helper
   const evaluateTrigger = useCallback(
-    (triggerType, _customContext = {}) => {
+    (triggerType, customContext = {}) => {
       if (!userId || sessionPromptCount > 0 || activePrompt) return null;
 
       const candidate = prompts.find((p) => p.trigger_type === triggerType);

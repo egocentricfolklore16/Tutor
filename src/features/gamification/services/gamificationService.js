@@ -198,6 +198,30 @@ export const gamificationService = {
   },
 
   /**
+   * Fetches achievement badges via Supabase RPC get_achievements.
+   */
+  async getBadges(userId) {
+    try {
+      let targetId = userId;
+      if (!targetId) {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return { data: [], error: new Error("Unauthenticated") };
+        targetId = user.id;
+      }
+
+      const { data, error } = await supabase.rpc("get_achievements", { p_user: targetId });
+      if (error) {
+        console.error("Error fetching badges in gamificationService:", error);
+        return { data: null, error };
+      }
+      return { data: data || [], error: null };
+    } catch (err) {
+      console.error("Unexpected error in getBadges:", err);
+      return { data: null, error: err };
+    }
+  },
+
+  /**
    * Fetches transaction ledger or returns honest unavailable state.
    */
   async getTransactions(_userId) {

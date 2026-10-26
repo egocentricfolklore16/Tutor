@@ -18,12 +18,22 @@ const STORAGE_BUCKET = "user-images";
 const levels = ["High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
 const primaryGoalOptions = ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"];
 const learnerTypeOptions = ["Academic achiever", "Struggling learner", "Lifelong learner"];
-const styles = ["Visual", "Practice first", "Step-by-step", "Conversation"];
+const styles = ["Explanations", "Practice questions", "Examples", "Quizzes", "Step-by-step"];
 const accessibilityOptions = ["Screen reader", "Text-to-speech", "High contrast", "Larger text", "None"];
 const collaborationOptions = ["Keep me focused", "Find study groups", "Peer support", "Just me for now"];
 const preferredTimeOptions = ["Morning", "Afternoon", "Evening", "Flexible"];
 const dayOptions = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const defaultSettings = { primaryGoal: "Improve my grades", learnerType: "Academic achiever", studentLevel: "", subject: "", currentTopic: "", curriculumStandard: "None/General", learningStyle: "Step-by-step", knowledgeGaps: [], accessibilityNeeds: [], language: "English", reducedMotion: false, collaborationInterest: "Just me for now", preferredTime: "Flexible", studyDays: [], weeklyHours: 5 };
+
+function resolveLearningStyleFromProfile(profileStyle) {
+  if (Array.isArray(profileStyle) && profileStyle.length > 0) {
+    return profileStyle[0];
+  }
+  if (typeof profileStyle === "string" && profileStyle.trim()) {
+    return profileStyle.trim();
+  }
+  return defaultSettings.learningStyle;
+}
 
 function Section({ title, description, children, open, onToggle }) {
   return <section className="settings-section"><button type="button" onClick={onToggle} className="flex w-full items-center justify-between gap-4 text-left"><span><h2 className="text-xl font-bold text-slate-900">{title}</h2><p className="mt-1 text-sm text-slate-500">{description}</p></span><ChevronDown className={`shrink-0 text-slate-400 transition-transform ${open ? "rotate-180" : ""}`} size={20} /></button>{open && <div className="mt-7">{children}</div>}</section>;
@@ -41,7 +51,7 @@ function Settings() {
   const { profile, refreshProfile, darkMode, toggleDarkMode } = useProfile();
   const fileInputRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [settings, setSettings] = useState({ ...defaultSettings, primaryGoal: profile?.primary_goal || defaultSettings.primaryGoal, learnerType: profile?.learner_type || defaultSettings.learnerType, studentLevel: profile?.education_level || "", subject: profile?.settings_subject || profile?.subjects?.[0] || "", currentTopic: profile?.current_topic || "", curriculumStandard: profile?.curriculum_standard || "None/General", learningStyle: profile?.learning_style || defaultSettings.learningStyle, knowledgeGaps: profile?.knowledge_gaps || [], accessibilityNeeds: profile?.accessibility_needs || [], language: profile?.language || "English", reducedMotion: profile?.reduced_motion || false, collaborationInterest: profile?.collaboration_interest || defaultSettings.collaborationInterest, preferredTime: profile?.preferred_time || defaultSettings.preferredTime, studyDays: profile?.study_days || defaultSettings.studyDays, weeklyHours: profile?.weekly_hours || defaultSettings.weeklyHours });
+  const [settings, setSettings] = useState({ ...defaultSettings, primaryGoal: profile?.primary_goal || defaultSettings.primaryGoal, learnerType: profile?.learner_type || defaultSettings.learnerType, studentLevel: profile?.education_level || "", subject: profile?.settings_subject || profile?.subjects?.[0] || "", currentTopic: profile?.current_topic || "", curriculumStandard: profile?.curriculum_standard || "None/General", learningStyle: resolveLearningStyleFromProfile(profile?.learning_style), knowledgeGaps: profile?.knowledge_gaps || [], accessibilityNeeds: profile?.accessibility_needs || [], language: profile?.language || "English", reducedMotion: profile?.reduced_motion || false, collaborationInterest: profile?.collaboration_interest || defaultSettings.collaborationInterest, preferredTime: profile?.preferred_time || defaultSettings.preferredTime, studyDays: profile?.study_days || defaultSettings.studyDays, weeklyHours: profile?.weekly_hours || defaultSettings.weeklyHours });
   const [openSections, setOpenSections] = useState([true, true, true, true]);
   const [gapInput, setGapInput] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -74,7 +84,7 @@ function Settings() {
       subject: profile.settings_subject || profile.subjects?.[0] || "",
       currentTopic: profile.current_topic || "",
       curriculumStandard: profile.curriculum_standard || "None/General",
-      learningStyle: profile.learning_style || defaultSettings.learningStyle,
+      learningStyle: resolveLearningStyleFromProfile(profile.learning_style),
       knowledgeGaps: profile.knowledge_gaps || [],
       accessibilityNeeds: profile.accessibility_needs || [],
       language: profile.language || "English",
@@ -106,7 +116,7 @@ function Settings() {
       ? Array.from(new Set([settings.subject, ...(Array.isArray(profile?.subjects) ? profile.subjects : [])].filter(Boolean)))
       : (Array.isArray(profile?.subjects) ? profile.subjects : []);
 
-    const payload = { primary_goal: settings.primaryGoal, learner_type: settings.learnerType, education_level: settings.studentLevel, settings_subject: settings.subject, subjects: updatedSubjects, current_topic: settings.currentTopic.trim(), curriculum_standard: settings.curriculumStandard, learning_style: settings.learningStyle, knowledge_gaps: settings.knowledgeGaps, accessibility_needs: settings.accessibilityNeeds, language: settings.language, reduced_motion: settings.reducedMotion, collaboration_interest: settings.collaborationInterest, preferred_time: settings.preferredTime, study_days: settings.studyDays, weekly_hours: Number(settings.weeklyHours) || 5, dark_mode: darkMode, ...(selectedFile ? { user_img: userImg } : {}) };
+    const payload = { primary_goal: settings.primaryGoal, learner_type: settings.learnerType, education_level: settings.studentLevel, settings_subject: settings.subject, subjects: updatedSubjects, current_topic: settings.currentTopic.trim(), curriculum_standard: settings.curriculumStandard, learning_style: Array.isArray(profile?.learning_style) ? [settings.learningStyle] : settings.learningStyle, knowledge_gaps: settings.knowledgeGaps, accessibility_needs: settings.accessibilityNeeds, language: settings.language, reduced_motion: settings.reducedMotion, collaboration_interest: settings.collaborationInterest, preferred_time: settings.preferredTime, study_days: settings.studyDays, weekly_hours: Number(settings.weeklyHours) || 5, dark_mode: darkMode, ...(selectedFile ? { user_img: userImg } : {}) };
     const { error: saveError } = await supabase.from("profiles").update(payload).eq("user_id", user.id);
     if (saveError) { if (selectedFile) await supabase.storage.from(STORAGE_BUCKET).remove([userImg]); setError(saveError.message); setIsSaving(false); return; }
 

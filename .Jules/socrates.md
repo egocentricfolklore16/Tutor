@@ -75,3 +75,9 @@
 **Learning:** Students can express answer demands using desire-based statements ("i need the answer", "i want the solution", "i would like the steps") or supply verbs ("provide the solution", "provide me with the solution") that bypassed `nonAttemptDemandRegex` because the regex verb list only included imperative actions like `give`, `tell`, `show`, `send`, `write`. Expanding verb groups to include desire-based phrases (`i\s*(?:need|want|would\s+like)`) and supply verbs (`provide`) with optional prepositions (`with`) ensures zero-effort desire statements are filtered server-side while preserving legitimate hint requests ("i need a hint").
 
 **Action:** Include desire-based phrases (`i need`, `i want`, `i would like`) and supply verbs (`provide`) in `nonAttemptDemandRegex` while verifying that hint requests remain recognized as genuine interactions.
+
+## 2026-10-15 - Filtering Confusion and Lostness Statements in Turn Counting
+
+**Learning:** Bare declarations of confusion or lostness ("i'm confused", "im confused", "i am lost", "i have no idea") previously bypassed `nonAttemptExactRegex` and `.startsWith` short-circuit filters in `countGenuineAttempts` because only "i am stuck" and "idk" were caught. Adding confusion and lostness statements (`i'm confused`, `im confused`, `i am confused`, `i'm lost`, `im lost`, `i am lost`, `i have no idea`, `i have no clue`) ensures bare confusion responses do not falsely count as genuine attempts while preserving statements with reasoning ("because" / "think").
+
+**Action:** Include bare confusion and lostness declarations in `nonAttemptExactRegex` and `.startsWith` checks while ensuring statements with reasoning continue to count as genuine attempts.

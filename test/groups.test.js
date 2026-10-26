@@ -1,5 +1,6 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { inviteFriendToGroup, respondToGroupInvite } from "../src/features/community/services/groupsService.js";
 
 function getGroupCardState({ isMember, isPending, isCooldown, privacy }) {
   if (isMember) return "member";
@@ -52,4 +53,28 @@ test("computeCooldownDaysLeft calculates 7-day cooldown remaining accurately", (
 
   assert.equal(computeCooldownDaysLeft(threeDaysAgo, now.toISOString()), 4);
   assert.equal(computeCooldownDaysLeft(eightDaysAgo, now.toISOString()), 0);
+});
+
+test("inviteFriendToGroup validates required parameters and self-invite", async () => {
+  await assert.rejects(
+    () => inviteFriendToGroup(null, "user1", "user2"),
+    /Group ID, inviter ID, and invitee ID are required/
+  );
+
+  await assert.rejects(
+    () => inviteFriendToGroup("group1", "user1", "user1"),
+    /You cannot invite yourself/
+  );
+});
+
+test("respondToGroupInvite validates required parameters", async () => {
+  await assert.rejects(
+    () => respondToGroupInvite(null, {}, "accepted"),
+    /Invite ID and decision required/
+  );
+
+  await assert.rejects(
+    () => respondToGroupInvite("invite1", {}, null),
+    /Invite ID and decision required/
+  );
 });

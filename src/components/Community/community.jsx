@@ -19,6 +19,8 @@ import {
   Maximize2,
   Minimize2,
   CheckCircle,
+  Check,
+  X,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { useProfile } from "../../app/ProfileContext";
@@ -47,6 +49,8 @@ import {
   createGroup,
   updateGroupDetails,
   deleteGroup,
+  fetchMyGroupInvites,
+  respondToGroupInvite,
 } from "../../features/community/services/groupsService";
 import FriendList from "../../features/community/components/friends/FriendList";
 import PendingRequests from "../../features/community/components/friends/PendingRequests";
@@ -189,11 +193,40 @@ const Community = () => {
   // Request Join Modal State
   const [requestTargetGroup, setRequestTargetGroup] = useState(null);
 
+  // Study Group Invites State
+  const [groupInvites, setGroupInvites] = useState([]);
+
   // Toast Notification
   const [toastMsg, setToastMsg] = useState(null);
   const showToast = (msg) => {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 4000);
+  };
+
+  const loadGroupInvites = useCallback(async () => {
+    if (!user?.id) return;
+    try {
+      const invites = await fetchMyGroupInvites(user.id);
+      setGroupInvites(invites);
+    } catch (err) {
+      console.error("Failed to load group invites:", err);
+    }
+  }, [user?.id]);
+
+  useEffect(() => {
+    loadGroupInvites();
+  }, [loadGroupInvites]);
+
+  const handleRespondInvite = async (invite, decision) => {
+    try {
+      await respondToGroupInvite(invite.id, invite, decision);
+      showToast(`Group invite ${decision}.`);
+      loadGroupInvites();
+      refetchMyGroups();
+      refetchExplore();
+    } catch {
+      showToast("Failed to process group invite.");
+    }
   };
 
   const handleCreateGroup = async ({ name, description, subject, privacy }) => {
@@ -449,6 +482,48 @@ const Community = () => {
                     userSubjects={userSubjects}
                   />
 
+                  {/* Pending Group Invites Banner */}
+                  {groupInvites.length > 0 && (
+                    <div className="rounded-2xl bg-amber-500/10 border border-amber-500/30 p-4 dark:bg-amber-950/30">
+                      <p className="text-xs font-bold uppercase tracking-wide text-amber-800 dark:text-amber-300 mb-2">
+                        Pending Study Group Invitations ({groupInvites.length})
+                      </p>
+                      <div className="space-y-2">
+                        {groupInvites.map((inv) => (
+                          <div
+                            key={inv.id}
+                            className="flex flex-wrap items-center justify-between gap-3 rounded-xl bg-white p-3 shadow-surface dark:bg-[#14171c]"
+                          >
+                            <div>
+                              <p className="text-xs font-bold text-slate-900 dark:text-white">
+                                {inv.group?.name}
+                              </p>
+                              <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                                Invited by @{inv.inviter?.username || "classmate"} · {inv.group?.subject}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              <button
+                                type="button"
+                                onClick={() => handleRespondInvite(inv, "accepted")}
+                                className="inline-flex min-h-[44px] items-center gap-1 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
+                              >
+                                <Check className="h-3.5 w-3.5" /> Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => handleRespondInvite(inv, "declined")}
+                                className="inline-flex min-h-[44px] items-center gap-1 rounded-xl bg-slate-200 dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-slate-700 dark:text-slate-300 hover:bg-slate-300 dark:hover:bg-slate-700 transition"
+                              >
+                                <X className="h-3.5 w-3.5" /> Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* My Groups Section */}
                   {myGroups.length > 0 && (
                     <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
@@ -555,6 +630,7 @@ const Community = () => {
                       groupOverview={groupOverview}
                       overviewLoading={overviewLoading}
                       currentUserId={user?.id}
+                      friends={acceptedFriends}
                       onClose={() => setSelectedGroupId(null)}
                       onOpenChat={(convId) => {
                         navigate(`/community/chat/${convId}`);

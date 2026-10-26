@@ -173,3 +173,97 @@ export async function deleteGroup(groupId) {
   if (error) throw error;
   return true;
 }
+
+/**
+ * Send a study group invite to a friend
+ */
+export async function inviteFriendToGroup(groupId, inviterId, inviteeId) {
+  if (!groupId || !inviterId || !inviteeId) {
+    throw new Error("Group ID, inviter ID, and invitee ID are required");
+  }
+
+  if (inviterId === inviteeId) {
+    throw new Error("You cannot invite yourself");
+  }
+
+  const { data, error } = await supabase
+    .from("study_group_invites")
+    .insert({
+      group_id: groupId,
+      inviter_id: inviterId,
+      invitee_id: inviteeId,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (error && !error.message?.includes("duplicate")) throw error;
+  return data;
+}
+
+/**
+ * Fetch pending group invites for current user
+ */
+export async function fetchMyGroupInvites(userId) {
+  if (!userId) return [];
+
+  const { data, error } = await supabase
+    .from("study_group_invites")
+    .select("*, group:study_groups(*)")
+    .eq("invitee_id", userId)
+    .eq("status", "pending");
+
+  if (error) throw error;
+  const invites = data || [];
+
+  if (invites.length === 0) return [];
+
+  const inviterIds = [...new Set(invites.map((i) => i.inviter_id))];
+  const { data: profiles } = await supabase
+    .from("community_profiles")
+    .select("user_id, username, full_name, user_img")
+    .in("user_id", inviterIds);
+
+  const profileMap = new Map((profiles || []).map((p) => [p.user_id, p]));
+
+  return invites.map((inv) => ({
+    ...inv,
+    inviter: profileMap.get(inv.inviter_id) || {
+      username: "learner",
+      full_name: "Learner",
+    },
+  }));
+}
+
+/**
+ * Accept or decline a group invite
+ */
+export async function respondToGroupInvite(inviteId, inviteObj, decision) {
+  if (!inviteId || !decision) throw new Error("Invite ID and decision required");
+
+  const { error: updateError } = await supabase
+    .from("study_group_invites")
+    .update({
+      status: decision,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", inviteId);
+
+  if (updateError) throw updateError;
+
+  if (decision === "accepted" && inviteObj?.group_id && inviteObj?.invitee_id) {
+    const { error: joinError } = await supabase
+      .from("study_group_members")
+      .insert({
+        group_id: inviteObj.group_id,
+        user_id: inviteObj.invitee_id,
+        role: "member",
+      });
+
+    if (joinError && !joinError.message?.includes("duplicate")) {
+      throw joinError;
+    }
+  }
+
+  return { success: true };
+}

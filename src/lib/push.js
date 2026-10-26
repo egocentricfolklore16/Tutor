@@ -11,7 +11,11 @@ export function urlBase64ToUint8Array(base64String) {
   const padding = "=".repeat((4 - (cleanStr.length % 4)) % 4);
   const base64 = (cleanStr + padding).replace(/-/g, "+").replace(/_/g, "/");
   try {
-    const rawData = window.atob(base64);
+    const atobFn =
+      typeof window !== "undefined" && typeof window.atob === "function"
+        ? window.atob.bind(window)
+        : globalThis.atob;
+    const rawData = atobFn(base64);
     const outputArray = new Uint8Array(rawData.length);
     for (let i = 0; i < rawData.length; ++i) {
       outputArray[i] = rawData.charCodeAt(i);
@@ -99,7 +103,10 @@ export async function enablePush(userId) {
   }
 
   // 4. Read VAPID public key from env var
-  const rawVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  const rawVapidKey =
+    (typeof globalThis !== "undefined" && globalThis.process?.env?.VITE_VAPID_PUBLIC_KEY) ||
+    import.meta?.env?.VITE_VAPID_PUBLIC_KEY ||
+    "";
   if (!rawVapidKey || !rawVapidKey.trim()) {
     throw new Error("VAPID_KEY_MISSING");
   }
@@ -225,7 +232,10 @@ export async function syncSubscription(userId) {
     if (!registration) return;
 
     const subscription = await registration.pushManager.getSubscription();
-    const rawVapidKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+    const rawVapidKey =
+      (typeof globalThis !== "undefined" && globalThis.process?.env?.VITE_VAPID_PUBLIC_KEY) ||
+      import.meta?.env?.VITE_VAPID_PUBLIC_KEY ||
+      "";
 
     if (!subscription && rawVapidKey && rawVapidKey.trim()) {
       let convertedKey;
@@ -291,7 +301,10 @@ export async function debugPush() {
     console.error("/sw.js fetch error:", err);
   }
 
-  const rawKey = import.meta.env.VITE_VAPID_PUBLIC_KEY;
+  const rawKey =
+    (typeof globalThis !== "undefined" && globalThis.process?.env?.VITE_VAPID_PUBLIC_KEY) ||
+    import.meta?.env?.VITE_VAPID_PUBLIC_KEY ||
+    "";
   if (!rawKey) {
     console.log("VAPID key:", "MISSING in import.meta.env.VITE_VAPID_PUBLIC_KEY");
   } else {
@@ -325,7 +338,7 @@ export async function debugPush() {
 
 if (
   typeof window !== "undefined" &&
-  (import.meta.env.DEV || import.meta.env.MODE === "development")
+  (import.meta?.env?.DEV || import.meta?.env?.MODE === "development")
 ) {
   window.debugPush = debugPush;
 }

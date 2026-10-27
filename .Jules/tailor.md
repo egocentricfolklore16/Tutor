@@ -7,7 +7,7 @@
 | `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
 | `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions, Study Group creation (`CreateGroupModal`) | Used |
-| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
+| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings, Progress (`StudyTrendChart` daily goal target line) | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
 | `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, PlannerActivityModal start time, Settings | Used |
 | `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
@@ -83,3 +83,7 @@
 ## 2026-11-26 - Pre-filling Planner Activity Modal Start Time from Preferred Time
 **Learning:** `PlannerActivityModal.jsx` computes `defaults = getPlannerDefaults(preferredTime)` but hardcoded `startTime: getNextHalfHour()` in the state initializer for new activities instead of using `defaults.startTime`, overriding the student's onboarding focus preference ("Morning", "Afternoon", "Evening").
 **Action:** Update `PlannerActivityModal.jsx` state initializer to use `defaults.startTime`, so new study activities, time blocks, and recurring sessions automatically default to the student's preferred focus time slot.
+
+## 2026-11-30 - Connecting Onboarding Study Time Preferences to Progress Study Trend Chart Goal
+**Learning:** `Progress.jsx` made an ad-hoc query `supabase.from("profiles").select("daily_goal_minutes").eq("id", user.id)` which failed because primary key is `user_id` and `daily_goal_minutes` is not a database column, leaving `dailyGoalHours` as `0` on the `StudyTrendChart`.
+**Action:** Consume `useProfile()` in `Progress.jsx` and derive daily study goal target via `getDailyGoalMinutes(profile) / 60` from `weekly_hours` and `study_days`, displaying the student's onboarding study goal reference line on the trend chart without extra network calls.

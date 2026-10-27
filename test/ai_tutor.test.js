@@ -117,6 +117,16 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
+  const exactNonAttempts = ["help me", "skip", "n/a", "nothing"];
+  for (const nonAttempt of exactNonAttempts) {
+    const nonAttemptHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: nonAttempt },
+    ];
+    assert.strictEqual(countGenuineAttempts(nonAttemptHistory), 0, `Exact non-attempt '${nonAttempt}' must be filtered as 0 genuine attempts`);
+  }
+
   const stepAndWorkDemands = [
     "show me the steps",
     "give me the step by step",
@@ -148,6 +158,19 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "provide the solution",
     "provide me with the solution",
     "i want the code and explanation",
+    "generate the answer",
+    "output the solution",
+    "display the steps",
+    "reveal the answer",
+    "just generate it",
+    "just output the steps",
+    "give me the formula",
+    "give me the definition",
+    "output the proof",
+    "what is the formula",
+    "compute this",
+    "evaluate this for me",
+    "can you resolve this",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [

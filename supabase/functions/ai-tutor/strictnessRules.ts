@@ -3,17 +3,17 @@ import { normalizeStrictness, strictnessRules } from "../ai-tutor-chat/prompt.ts
 export function countGenuineAttempts(messages: any[]): number {
   if (!Array.isArray(messages)) return 0;
 
-  const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand)|no\s*idea|no\s*clue|pass|help|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
+  const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand)|no\s*idea|no\s*clue|pass|help|help\s*me|skip|n\/?a|nothing|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
-  const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary)`;
+  const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary|formula|formulas|definition|definitions|proof|proofs|equation|equations|derivation|derivations)`;
   const compoundTargetNouns = `${targetNoun}(?:\\s*(?:and|&|\\+|,)\\s*(?:the\\s*|a\\s*|an\\s*|your\\s*)?${targetNoun})*`;
 
   const nonAttemptDemandRegex = new RegExp(
-    `(?:i\\s*(?:need|want|would\\s+like)|give|tell|show|send|write|solve|explain|provide)\\s*(?:me\\s*)?(?:with\\s*)?(?:the\\s*|a\\s*|an\\s*|your\\s*)?${compoundTargetNouns}|` +
+    `(?:i\\s*(?:need|want|would\\s+like)|give|tell|show|send|write|solve|explain|provide|output|generate|return|display|print|share|reveal)\\s*(?:me\\s*)?(?:with\\s*)?(?:the\\s*|a\\s*|an\\s*|your\\s*)?${compoundTargetNouns}|` +
       `(?:what|whats|what's)\\s*(?:is|are)?\\s*(?:the\\s*|a\\s*|an\\s*)?${compoundTargetNouns}|` +
-      `(?:answer|solution|result|steps?)\\s*(?:please|pls)|` +
-      `(?:can\\s+you\\s+|could\\s+you\\s+|would\\s+you\\s+|please\\s+)?(?:solve|do|write|calculate|figure\\s*(?:out)?|work\\s*(?:out)?|answer)\\s*(?:it|this|that|the\\s*(?:problem|question|equation))?\\s*(?:for\\s*me|now|please)?|` +
-      `just\\s*(?:solve|do|write|give|tell|show|calculate|answer)\\s*(?:it|this|that|me|how|answer|solution|result|steps?)*|` +
+      `(?:answer|solution|result|steps?|formula|definition)\\s*(?:please|pls)|` +
+      `(?:can\\s+you\\s+|could\\s+you\\s+|would\\s+you\\s+|please\\s+)?(?:solve|do|write|calculate|compute|evaluate|resolve|figure\\s*(?:out)?|work\\s*(?:out)?|answer|generate|output)\\s*(?:it|this|that|the\\s*(?:problem|question|equation|formula|integral|expression))?\\s*(?:for\\s*me|now|please)?|` +
+      `just\\s*(?:solve|do|write|give|tell|show|calculate|answer|output|generate|return|display|print|share|reveal|provide)\\s*(?:it|this|that|me|how|answer|solution|result|steps?)*|` +
       `(?:show|tell|explain)\\s*(?:me\\s*)?how\\s*(?:to\\s*)?(?:solve|do|work)\\s*(?:it|this|that|the\\s*(?:problem|question|equation))?|` +
       `show\\s*(?:your\\s*)?work|` +
       `ignore\\s*(?:all\\s*)?(?:previous\\s*|your\\s*)?instructions|system\\s*prompt|you\\s*are\\s*now|pretend\\s*(?:you\\s*are|to\\s*be)`,

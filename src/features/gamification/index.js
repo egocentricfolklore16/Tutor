@@ -17,4 +17,7 @@ export { QuestList } from "./components/QuestList.jsx";
 export { XpToast } from "./components/XpToast.jsx";
 
 export { gamificationService } from "./services/gamificationService.js";
+export { default as BadgeGrid } from "./components/BadgeGrid.jsx";
+export { sortBadges } from "./utils/badgeUtils.js";
+
 export { GAMIFICATION_CONFIG } from "./config.js";

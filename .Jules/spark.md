@@ -25,3 +25,7 @@
 ## 2026-10-23 - `last_completed_date` / `last_active_date` Synchronization for Stale Streak Evaluation
 **Learning:** Selecting only `last_active_date` without `last_completed_date` in `useStreak` caused stale-streak resolution to compute invalid date gaps when `record_study_activity` updated `last_completed_date` on `users_streaks`, causing active streaks to falsely drop to "0d". Selecting both columns and calculating `lastActive = streakRow?.last_completed_date || streakRow?.last_active_date || null` ensures stale-streak resolution correctly evaluates activity dates against local cutoff boundaries.
 **Action:** Always query both `last_completed_date` and `last_active_date` from `users_streaks` when deriving streak freshness.
+
+## 2026-10-27 - Consolidated Achievement Badge Rendering Suite
+**Learning:** Creating a reusable `BadgeGrid` component backed by `sortBadges` utility ensures earned badges (sorted by newest unlock date) and closest-to-completion unearned badges (sorted by progress ratio) are rendered consistently across Dashboard preview cards (`AchievementsCard.jsx`) and full milestone pages (`AchievementsPage.jsx`).
+**Action:** Always fetch achievement badges through `gamificationService.getBadges(userId)` and delegate rendering to `BadgeGrid` to maintain uniform locked/unlocked visuals and progress indicators.

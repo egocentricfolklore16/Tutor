@@ -85,7 +85,8 @@ export default function PaystackCheckoutButton({
         typeof planData.price_kobo === "number" && Number.isFinite(planData.price_kobo)
           ? Math.round(planData.price_kobo)
           : Math.round((planData.price_naira || 0) * 100);
-      const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+      // Use cryptographically secure random values for payment transaction references
+      const reference = `pstk_${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}`;
 
       // Async callback handler for server-side verification
       async function handlePaystackCallback(response) {

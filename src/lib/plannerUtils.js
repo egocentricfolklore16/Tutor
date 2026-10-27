@@ -46,14 +46,32 @@ export const getLocalDateKey = (v) => {
   return '';
 };
 
+const AMPM_REGEX = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i;
+const HHMM_REGEX = /^(\d{1,2}):(\d{2})/;
+
 /**
  * Parses time string (e.g. "14:30", "09:00:00", "2:30 PM") or Date into { hour, minute }.
+ * BOLT OPTIMIZATION: Uses module-scoped compiled regexes and direct fast-path checks
+ * for standard "HH:MM" and "HH:MM:SS" 24h strings, avoiding regex and Date allocations.
  */
 export const parseTime = (timeInput) => {
   if (!timeInput) return { hour: 9, minute: 0 };
   if (typeof timeInput === 'string') {
     const str = timeInput.trim();
-    const ampmMatch = str.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+
+    // Fast path: standard "HH:MM" (len 5) or "HH:MM:SS" (len 8) 24h formats
+    if (
+      (str.length === 5 && str.charCodeAt(2) === 58) ||
+      (str.length === 8 && str.charCodeAt(2) === 58 && str.charCodeAt(5) === 58)
+    ) {
+      const h = parseInt(str.slice(0, 2), 10);
+      const m = parseInt(str.slice(3, 5), 10);
+      if (h >= 0 && h < 24 && m >= 0 && m < 60) {
+        return { hour: h, minute: m };
+      }
+    }
+
+    const ampmMatch = str.match(AMPM_REGEX);
     if (ampmMatch) {
       let h = parseInt(ampmMatch[1], 10);
       const m = parseInt(ampmMatch[2], 10);
@@ -62,10 +80,12 @@ export const parseTime = (timeInput) => {
       if (period === 'AM' && h === 12) h = 0;
       return { hour: h, minute: m };
     }
-    const hhmmMatch = str.match(/^(\d{1,2}):(\d{2})/);
+
+    const hhmmMatch = str.match(HHMM_REGEX);
     if (hhmmMatch) {
       return { hour: parseInt(hhmmMatch[1], 10), minute: parseInt(hhmmMatch[2], 10) };
     }
+
     const d = new Date(str);
     if (!isNaN(d.getTime())) {
       return { hour: d.getHours(), minute: d.getMinutes() };

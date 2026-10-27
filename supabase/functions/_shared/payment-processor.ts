@@ -172,6 +172,10 @@ export async function processVerifiedPayment({
       throw new Error("Payment reference belongs to another user");
     }
 
+    if (existingPayment.status === "refunded") {
+      throw new Error("Payment reference has been refunded and cannot be processed");
+    }
+
     if (existingPayment.status === "success") {
       const { data: existingSub } = await supabaseClient
         .from("subscriptions")
@@ -338,4 +342,95 @@ export async function processVerifiedPayment({
   }
 
   return { payment: paymentRow, subscription: subRow, plan, alreadyProcessed: false };
+}
+
+export interface ProcessRefundParams {
+  supabaseClient: any;
+  reference: string;
+  paystackData?: any;
+}
+
+export async function processRefundedPayment({
+  supabaseClient,
+  reference,
+}: ProcessRefundParams) {
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    throw new Error("Missing or invalid payment reference");
+  }
+
+  const cleanReference = reference.trim();
+
+  // 1. Fetch existing payment record
+  const { data: existingPayment } = await supabaseClient
+    .from("payments")
+    .select("*")
+    .eq("reference", cleanReference)
+    .maybeSingle();
+
+  if (!existingPayment) {
+    throw new Error(`Payment reference not found for refund: ${cleanReference}`);
+  }
+
+  if (existingPayment.status === "refunded") {
+    // Idempotent return: already marked refunded
+    const { data: existingSub } = await supabaseClient
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", existingPayment.user_id)
+      .maybeSingle();
+
+    return {
+      payment: existingPayment,
+      subscription: existingSub,
+      alreadyProcessed: true,
+    };
+  }
+
+  // 2. Mark payment status as "refunded"
+  const { data: updatedPayment, error: updatePaymentError } = await supabaseClient
+    .from("payments")
+    .update({
+      status: "refunded",
+      verified_at: new Date().toISOString(),
+    })
+    .eq("id", existingPayment.id)
+    .select()
+    .single();
+
+  if (updatePaymentError) {
+    throw new Error(`Failed to update payment status to refunded: ${updatePaymentError.message}`);
+  }
+
+  // 3. Revoke/cancel linked subscription if this payment was linked
+  const { data: linkedSub } = await supabaseClient
+    .from("subscriptions")
+    .select("*")
+    .eq("payment_id", existingPayment.id)
+    .maybeSingle();
+
+  let updatedSub = null;
+
+  if (linkedSub) {
+    const { data: cancelledSub, error: cancelSubError } = await supabaseClient
+      .from("subscriptions")
+      .update({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", linkedSub.id)
+      .select()
+      .single();
+
+    if (cancelSubError) {
+      throw new Error(`Failed to cancel subscription on refund: ${cancelSubError.message}`);
+    }
+
+    updatedSub = cancelledSub;
+  }
+
+  return {
+    payment: updatedPayment,
+    subscription: updatedSub,
+    alreadyProcessed: false,
+  };
 }

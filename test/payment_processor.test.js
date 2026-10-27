@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   processVerifiedPayment,
+  processRefundedPayment,
   timingSafeEqualStrings,
   addMonths,
   addYears,
@@ -165,6 +166,27 @@ function createMockSupabaseClient({
               },
             };
           },
+          update(payload) {
+            return {
+              eq(col, val) {
+                const idx = paymentsStore.findIndex((p) => p[col] === val);
+                if (idx >= 0) {
+                  paymentsStore[idx] = { ...paymentsStore[idx], ...payload };
+                }
+                const updatedRow = idx >= 0 ? paymentsStore[idx] : null;
+                return {
+                  select() {
+                    return {
+                      async single() {
+                        if (updatedRow) return { data: updatedRow, error: null };
+                        return { data: null, error: { message: "Payment not found" } };
+                      },
+                    };
+                  },
+                };
+              },
+            };
+          },
         };
       }
 
@@ -195,6 +217,27 @@ function createMockSupabaseClient({
               },
             };
           },
+          update(payload) {
+            return {
+              eq(col, val) {
+                const idx = subsStore.findIndex((s) => s[col] === val);
+                if (idx >= 0) {
+                  subsStore[idx] = { ...subsStore[idx], ...payload };
+                }
+                const updatedRow = idx >= 0 ? subsStore[idx] : null;
+                return {
+                  select() {
+                    return {
+                      async single() {
+                        if (updatedRow) return { data: updatedRow, error: null };
+                        return { data: null, error: { message: "Subscription not found" } };
+                      },
+                    };
+                  },
+                };
+              },
+            };
+          },
         };
       }
 
@@ -202,6 +245,109 @@ function createMockSupabaseClient({
     },
   };
 }
+
+test("processRefundedPayment revokes linked subscription and sets payment status to refunded", async () => {
+  const existingPayment = {
+    id: "payment-uuid-refund-101",
+    user_id: "user-uuid-111",
+    reference: "ref_to_be_refunded_101",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-refund-101",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-refund-101",
+    current_period_start: "2025-05-01T00:00:00.000Z",
+    current_period_end: "2025-06-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  const result = await processRefundedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_to_be_refunded_101",
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.status, "refunded");
+  assert.strictEqual(result.subscription.status, "cancelled");
+});
+
+test("processRefundedPayment is idempotent when processing duplicate refund webhook events", async () => {
+  const refundedPayment = {
+    id: "payment-uuid-refund-102",
+    user_id: "user-uuid-111",
+    reference: "ref_already_refunded_102",
+    amount: 250000,
+    currency: "NGN",
+    status: "refunded",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const cancelledSub = {
+    id: "sub-uuid-refund-102",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "cancelled",
+    payment_id: "payment-uuid-refund-102",
+  };
+
+  const mockClient = createMockSupabaseClient({
+    existingPayment: refundedPayment,
+    existingSub: cancelledSub,
+  });
+
+  const result = await processRefundedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_already_refunded_102",
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.status, "refunded");
+  assert.strictEqual(result.subscription.status, "cancelled");
+});
+
+test("processVerifiedPayment rejects verification attempts on refunded payment references", async () => {
+  const refundedPayment = {
+    id: "payment-uuid-refund-103",
+    user_id: "user-uuid-111",
+    reference: "ref_refunded_attempt_103",
+    amount: 250000,
+    currency: "NGN",
+    status: "refunded",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment: refundedPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_refunded_attempt_103",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: { planId: "pro", userId: "user-uuid-111" },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment reference has been refunded and cannot be processed",
+    }
+  );
+});
 
 test("processVerifiedPayment processes a valid payment and updates subscription", async () => {
   const mockClient = createMockSupabaseClient();

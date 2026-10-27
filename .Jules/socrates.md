@@ -75,3 +75,9 @@
 **Learning:** Students can express answer demands using desire-based statements ("i need the answer", "i want the solution", "i would like the steps") or supply verbs ("provide the solution", "provide me with the solution") that bypassed `nonAttemptDemandRegex` because the regex verb list only included imperative actions like `give`, `tell`, `show`, `send`, `write`. Expanding verb groups to include desire-based phrases (`i\s*(?:need|want|would\s+like)`) and supply verbs (`provide`) with optional prepositions (`with`) ensures zero-effort desire statements are filtered server-side while preserving legitimate hint requests ("i need a hint").
 
 **Action:** Include desire-based phrases (`i need`, `i want`, `i would like`) and supply verbs (`provide`) in `nonAttemptDemandRegex` while verifying that hint requests remain recognized as genuine interactions.
+
+## 2026-10-15 - Filtering Output Verbs, Concept Targets, and Exact Non-Attempts in Turn Counting
+
+**Learning:** Students can bypass Socratic answer locking by phrasing answer demands with output/display/generation verbs (`output`, `generate`, `return`, `display`, `print`, `share`, `reveal`), concept target nouns (`formula`, `definition`, `proof`, `equation`, `derivation`), computation verbs (`compute`, `evaluate`, `resolve`), or short non-attempt inputs (`help me`, `skip`, `n/a`, `nothing`). Expanding `targetNoun`, demand verbs, problem-solving command verbs, and exact non-attempt regexes in `countGenuineAttempts` ensures these zero-effort submissions do not prematurely increment attempt counts and unlock answers on turn 1.
+
+**Action:** Maintain comprehensive coverage of generation verbs, concept target nouns, math problem-solving verbs, and exact non-attempt phrases in `countGenuineAttempts` while verifying that genuine subject queries, hint requests, and reasoning statements pass through.

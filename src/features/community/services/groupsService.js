@@ -173,3 +173,69 @@ export async function deleteGroup(groupId) {
   if (error) throw error;
   return true;
 }
+
+export async function inviteFriendToGroup(groupId, inviteeId) {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("Must be logged in to send invites.");
+
+  const { data, error } = await supabase
+    .from("study_group_invites")
+    .insert({
+      group_id: groupId,
+      inviter_id: user.id,
+      invitee_id: inviteeId,
+      status: "pending",
+    })
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data;
+}
+
+export async function fetchMyGroupInvites(userId) {
+  if (!userId) return [];
+  const { data, error } = await supabase
+    .from("study_group_invites")
+    .select("*, group:study_groups(*), inviter:profiles!inviter_id(user_id, username, full_name, user_img)")
+    .eq("invitee_id", userId)
+    .eq("status", "pending");
+
+  if (error) throw error;
+  return data || [];
+}
+
+export async function respondToGroupInvite(inviteId, status) {
+  if (!["accepted", "declined"].includes(status)) {
+    throw new Error("Invalid status response.");
+  }
+
+  const { data, error } = await supabase
+    .from("study_group_invites")
+    .update({ status, updated_at: new Date().toISOString() })
+    .eq("id", inviteId)
+    .select()
+    .single();
+
+  if (error) throw error;
+
+  if (status === "accepted" && data) {
+    // Add user to study_group_members
+    const { error: memberError } = await supabase.from("study_group_members").insert({
+      group_id: data.group_id,
+      user_id: data.invitee_id,
+      role: "member",
+    });
+
+    if (memberError) {
+      // Revert invite status back to pending
+      await supabase
+        .from("study_group_invites")
+        .update({ status: "pending", updated_at: new Date().toISOString() })
+        .eq("id", inviteId);
+      throw memberError;
+    }
+  }
+
+  return data;
+}

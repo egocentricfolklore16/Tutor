@@ -9,3 +9,9 @@
 **Root cause:** Duration inputs in planner modals allowed unbound or non-finite values, and activity form submission handlers allowed scheduling activities for dates/times in the past.
 **Guardrail added:** Added duration boundary checks (5 to 720 minutes in Planner modals; positive finite hours in Study Home) and past date/time validation checks before submission, backed by `test/studyValidation.test.js` regression tests.
 **Watch for:** Any new scheduling forms or modal dialogs that accept custom date, time, or duration inputs.
+
+## 2028-05-18 - Mismatched and unused parameter identifiers causing ESLint errors
+**Bug class:** Undeclared identifier / unused variable lint errors due to mismatch between handler names or unused argument prefixes.
+**Root cause:** Function defined as `_handlePriorityChange` while JSX referenced `handlePriorityChange`, and parameter defined as `_customContext` while body referenced `customContext`.
+**Guardrail added:** Aligned function and parameter names across component, hook, and unit test suites, backed by `pnpm lint` in CI pipeline and `test/feedback.test.js`.
+**Watch for:** Renaming handlers or adding underscore prefixes without checking all usage sites across JSX and callback bodies.

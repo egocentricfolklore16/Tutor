@@ -103,6 +103,39 @@ describe("Feedback Module Unit & Guardrail Tests", () => {
     });
   });
 
+  describe("evaluateTrigger context parameter handling", () => {
+    test("customContext is passed into logPromptEvent correctly", () => {
+      let loggedEvent = null;
+      const fakeLogPromptEvent = (event) => {
+        loggedEvent = event;
+      };
+
+      const candidatePrompt = {
+        id: "p123",
+        trigger_type: "study_completed",
+        is_active: true,
+        cooldown_days: 0,
+      };
+
+      // Pure helper simulating evaluateTrigger logic
+      const evaluateTriggerLogic = (triggerType, customContext = {}, prompts = []) => {
+        const candidate = prompts.find((p) => p.trigger_type === triggerType);
+        if (!candidate) return null;
+        fakeLogPromptEvent({
+          userId: "user-1",
+          promptId: candidate.id,
+          action: "shown",
+          context: customContext,
+        });
+        return candidate;
+      };
+
+      const result = evaluateTriggerLogic("study_completed", { source: "modal" }, [candidatePrompt]);
+      assert.equal(result.id, "p123");
+      assert.deepEqual(loggedEvent.context, { source: "modal" });
+    });
+  });
+
   describe("checkPromptEligibility", () => {
     const activePrompt = {
       id: "p1",

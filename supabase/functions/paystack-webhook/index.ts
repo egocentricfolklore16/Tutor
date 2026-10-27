@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { processVerifiedPayment, timingSafeEqualStrings } from "../_shared/payment-processor.ts";
+import { processVerifiedPayment, processRefundedPayment, timingSafeEqualStrings } from "../_shared/payment-processor.ts";
 
 async function verifyPaystackSignature(
   rawBody: string,
@@ -57,10 +57,10 @@ Deno.serve(async (req) => {
     const payload = JSON.parse(rawBody);
     const event = payload.event;
 
-    if (event === "charge.success" || event === "charge.failed") {
-      const eventData = payload.data;
-      const reference = eventData?.reference;
+    const eventData = payload.data;
+    const reference = eventData?.reference;
 
+    if (event === "charge.success" || event === "charge.failed") {
       if (eventData && reference && typeof reference === "string" && reference.trim()) {
         const supabaseUrl = Deno.env.get("SUPABASE_URL");
         const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
@@ -77,6 +77,26 @@ Deno.serve(async (req) => {
             // If event was charge.failed, processVerifiedPayment will record the failure row and throw.
             // Catch and log so response to Paystack remains 200 OK.
             console.warn(`Processed payment event ${event} with expected rejection:`, procErr.message);
+          }
+        }
+      } else {
+        console.warn(`Paystack webhook event ${event} received without valid reference or data payload`);
+      }
+    } else if (event === "charge.refunded" || event === "refund.processed") {
+      if (eventData && reference && typeof reference === "string" && reference.trim()) {
+        const supabaseUrl = Deno.env.get("SUPABASE_URL");
+        const supabaseServiceRoleKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+
+        if (supabaseUrl && supabaseServiceRoleKey) {
+          const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          try {
+            await processRefundedPayment({
+              supabaseClient,
+              reference: reference.trim(),
+              paystackData: eventData,
+            });
+          } catch (refundErr: any) {
+            console.warn(`Processed refund event ${event} with error:`, refundErr.message);
           }
         }
       } else {

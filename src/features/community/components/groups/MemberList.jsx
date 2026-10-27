@@ -9,6 +9,7 @@ export default function MemberList({
   selectedGroupId,
   onSetRole,
   onRemoveMember,
+  onTransferOwnership,
 }) {
   const [activeMenuId, setActiveMenuId] = useState(null);
 
@@ -87,6 +88,16 @@ export default function MemberList({
                         Demote Member
                       </button>
                     )}
+                    <button
+                      type="button"
+                      onClick={() => {
+                        onTransferOwnership?.(selectedGroupId, m.user_id);
+                        setActiveMenuId(null);
+                      }}
+                      className="w-full text-left px-2.5 py-1.5 text-xs font-semibold text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-950/30 rounded-lg"
+                    >
+                      Transfer Owner
+                    </button>
                     <button
                       type="button"
                       onClick={() => {

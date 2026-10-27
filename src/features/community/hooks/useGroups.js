@@ -3,6 +3,7 @@ import {
   fetchExploreGroups,
   fetchMyGroups,
   fetchGroupOverview,
+  fetchMyGroupInvites,
   requestToJoinGroup,
   cancelJoinRequest,
   decideJoinRequest,
@@ -11,6 +12,8 @@ import {
   setGroupMemberRole,
   transferGroupOwnership,
   updateGroupPrivacy,
+  inviteFriendToGroup,
+  respondToGroupInvite,
 } from "../services/groupsService.js";
 
 export function useExploreGroups({ search = "", subject = "all", privacy = "all" } = {}) {
@@ -68,6 +71,34 @@ export function useMyGroups(userId) {
   }, [loadMyGroups]);
 
   return { myGroups, loading, error, refetch: loadMyGroups, setMyGroups };
+}
+
+export function useMyGroupInvites(userId) {
+  const [invites, setInvites] = useState([]);
+  const [loading, setLoading] = useState(Boolean(userId));
+
+  const loadInvites = useCallback(async () => {
+    if (!userId) {
+      setInvites([]);
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
+    try {
+      const data = await fetchMyGroupInvites(userId);
+      setInvites(data);
+    } catch (err) {
+      console.error("Error fetching my group invites:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    loadInvites();
+  }, [loadInvites]);
+
+  return { invites, loading, refetch: loadInvites };
 }
 
 export function useGroupOverview(groupId) {
@@ -135,12 +166,15 @@ export function useGroupActions() {
     setRole: (groupId, targetId, role) => executeAction(setGroupMemberRole, groupId, targetId, role),
     transferOwner: (groupId, newOwnerId) => executeAction(transferGroupOwnership, groupId, newOwnerId),
     updatePrivacy: (groupId, privacy) => executeAction(updateGroupPrivacy, groupId, privacy),
+    inviteFriend: (groupId, inviteeId) => executeAction(inviteFriendToGroup, groupId, inviteeId),
+    respondToInvite: (inviteId, status) => executeAction(respondToGroupInvite, inviteId, status),
   };
 }
 
 export function useGroups(userId, options = {}) {
   const explore = useExploreGroups(options);
   const my = useMyGroups(userId);
+  const myInvites = useMyGroupInvites(userId);
   const overview = useGroupOverview(options.selectedGroupId);
   const actions = useGroupActions();
 
@@ -153,6 +187,10 @@ export function useGroups(userId, options = {}) {
     myGroups: my.myGroups,
     myGroupsLoading: my.loading,
     refetchMyGroups: my.refetch,
+
+    myGroupInvites: myInvites.invites,
+    myGroupInvitesLoading: myInvites.loading,
+    refetchMyGroupInvites: myInvites.refetch,
 
     groupOverview: overview.overview,
     overviewLoading: overview.loading,

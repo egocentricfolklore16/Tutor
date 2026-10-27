@@ -6,13 +6,16 @@ import {
   UserCheck,
   UserX,
   Trash2,
+  UserPlus,
 } from "lucide-react";
 import Avatar from "../../../../components/common/Avatar";
 import GroupStudySessions from "../../../../components/Community/GroupStudySessions";
 import MemberList from "./MemberList";
+import InviteDialog from "./InviteDialog";
 import Modal from "../../../../components/common/ResponsiveSheet";
 
 export default function GroupDetail({
+  acceptedFriends = [],
   groupId,
   groupOverview,
   overviewLoading,
@@ -28,6 +31,7 @@ export default function GroupDetail({
   refetchOverview,
 }) {
   const [modalSubTab, setModalSubTab] = useState("overview");
+  const [showInviteDialog, setShowInviteDialog] = useState(false);
 
   // Settings form state
   const [editName, setEditName] = useState("");
@@ -188,7 +192,17 @@ export default function GroupDetail({
 
           {/* Members Sub-tab */}
           {modalSubTab === "members" && (
-            <div className="pt-2">
+            <div className="pt-2 space-y-4">
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => setShowInviteDialog(true)}
+                  className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
+                >
+                  <UserPlus className="h-3.5 w-3.5" /> Invite Friends
+                </button>
+              </div>
+
               <MemberList
                 members={groupOverview?.members || []}
                 currentUserId={currentUserId}
@@ -200,6 +214,19 @@ export default function GroupDetail({
                 onRemoveMember={(grpId, targetId, ban) =>
                   groupActions?.removeMember(grpId, targetId, ban).then(() => refetchOverview?.())
                 }
+                onTransferOwnership={(grpId, targetId) =>
+                  groupActions?.transferOwner(grpId, targetId).then(() => refetchOverview?.())
+                }
+              />
+
+              <InviteDialog
+                isOpen={showInviteDialog}
+                onClose={() => setShowInviteDialog(false)}
+                group={groupOverview?.group}
+                friends={acceptedFriends}
+                existingMemberUserIds={(groupOverview?.members || []).map((m) => m.user_id)}
+                currentUserId={currentUserId}
+                onSendInvite={(grpId, friendId) => groupActions?.inviteFriend(grpId, friendId)}
               />
             </div>
           )}

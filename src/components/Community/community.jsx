@@ -171,6 +171,8 @@ const Community = () => {
     refetchExplore,
     myGroups,
     refetchMyGroups,
+    myGroupInvites,
+    refetchMyGroupInvites,
     groupOverview,
     overviewLoading,
     refetchOverview,
@@ -449,6 +451,58 @@ const Community = () => {
                     userSubjects={userSubjects}
                   />
 
+                  {/* Group Invitations Section */}
+                  {myGroupInvites?.length > 0 && (
+                    <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 p-4 shadow-surface dark:border-amber-500/30">
+                      <p className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
+                        <Users className="h-4 w-4 text-amber-500" /> Pending Group Invitations ({myGroupInvites.length})
+                      </p>
+                      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                        {myGroupInvites.map((inv) => (
+                          <div
+                            key={inv.id}
+                            className="flex items-center justify-between rounded-xl bg-white p-3 shadow-surface dark:bg-[#18211f]"
+                          >
+                            <div className="min-w-0 pr-2">
+                              <p className="truncate text-xs font-bold text-slate-900 dark:text-white">
+                                {inv.group?.name || "Study Group"}
+                              </p>
+                              <p className="text-[10px] text-slate-500">
+                                Invited by @{inv.inviter?.username || "classmate"}
+                              </p>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await groupActions.respondToInvite(inv.id, "accepted");
+                                  showToast("Joined study group!");
+                                  refetchMyGroupInvites();
+                                  refetchMyGroups();
+                                  refetchExplore();
+                                }}
+                                className="rounded-xl bg-emerald-600 px-3 py-1 text-xs font-bold text-white hover:bg-emerald-700 shadow-button-primary transition"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  await groupActions.respondToInvite(inv.id, "declined");
+                                  showToast("Invitation declined.");
+                                  refetchMyGroupInvites();
+                                }}
+                                className="rounded-xl bg-slate-100 px-3 py-1 text-xs font-bold text-slate-700 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300 transition"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* My Groups Section */}
                   {myGroups.length > 0 && (
                     <div className="rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
@@ -551,6 +605,7 @@ const Community = () => {
                   {/* Group Detail Modal */}
                   {selectedGroupId && (
                     <GroupDetail
+                      acceptedFriends={acceptedFriends}
                       groupId={selectedGroupId}
                       groupOverview={groupOverview}
                       overviewLoading={overviewLoading}

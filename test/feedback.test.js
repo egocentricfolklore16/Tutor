@@ -172,4 +172,139 @@ describe("Feedback Module Unit & Guardrail Tests", () => {
       assert.ok(csv.includes('"Found a ""bug"" in study room"'));
     });
   });
+
+  describe("Admin & Prompt Context Operations", () => {
+    test("updateAdminFeedback sets resolved_at timestamp when resolving or closing", async () => {
+      const { updateAdminFeedback, FEEDBACK_STATUSES } = await import("../src/lib/feedback.js");
+      const supabaseModule = await import("../src/lib/supabase.js");
+      const originalFrom = supabaseModule.default.from;
+
+      let updatedPayload = null;
+      supabaseModule.default.from = (table) => {
+        if (table === "feedback") {
+          return {
+            update: (payload) => {
+              updatedPayload = payload;
+              return {
+                eq: (col, val) => ({
+                  select: () => ({
+                    single: () => Promise.resolve({ data: { id: val, ...payload }, error: null }),
+                  }),
+                }),
+              };
+            },
+          };
+        }
+        return originalFrom(table);
+      };
+
+      try {
+        const res = await updateAdminFeedback("fb-999", { status: FEEDBACK_STATUSES.RESOLVED, priority: 1 });
+        assert.equal(res.success, true);
+        assert.equal(updatedPayload.priority, 1);
+        assert.equal(updatedPayload.status, FEEDBACK_STATUSES.RESOLVED);
+        assert.ok(updatedPayload.resolved_at, "resolved_at must be populated when status is RESOLVED");
+      } finally {
+        supabaseModule.default.from = originalFrom;
+      }
+    });
+
+    test("addFeedbackReply validates missing parameters and handles reply inserts", async () => {
+      const { addFeedbackReply } = await import("../src/lib/feedback.js");
+
+      // Missing message
+      const missingMsgRes = await addFeedbackReply({ feedbackId: "fb-1", authorId: "usr-1", message: "" });
+      assert.equal(missingMsgRes.success, false);
+      assert.equal(missingMsgRes.error, "Missing required fields.");
+
+      const supabaseModule = await import("../src/lib/supabase.js");
+      const originalFrom = supabaseModule.default.from;
+
+      let insertedReply = null;
+      supabaseModule.default.from = (table) => {
+        if (table === "feedback_replies") {
+          return {
+            insert: (payloads) => {
+              insertedReply = payloads[0];
+              return {
+                select: () => ({
+                  single: () => Promise.resolve({ data: { id: "reply-1", ...payloads[0] }, error: null }),
+                }),
+              };
+            },
+          };
+        }
+        return originalFrom(table);
+      };
+
+      try {
+        const res = await addFeedbackReply({
+          feedbackId: "fb-1",
+          authorId: "admin-1",
+          message: "We have deployed a fix!",
+          isInternal: false,
+        });
+
+        assert.equal(res.success, true);
+        assert.equal(insertedReply.feedback_id, "fb-1");
+        assert.equal(insertedReply.message, "We have deployed a fix!");
+        assert.equal(insertedReply.is_internal, false);
+      } finally {
+        supabaseModule.default.from = originalFrom;
+      }
+    });
+
+    test("logPromptEvent handles snoozed, dismissed, and submitted prompt event state transitions", async () => {
+      const { logPromptEvent } = await import("../src/lib/feedback.js");
+      const supabaseModule = await import("../src/lib/supabase.js");
+      const originalFrom = supabaseModule.default.from;
+
+      let loggedEvent = null;
+      let updatedState = null;
+
+      supabaseModule.default.from = (table) => {
+        if (table === "feedback_prompt_events") {
+          return {
+            insert: (payloads) => {
+              loggedEvent = payloads[0];
+              return Promise.resolve({ error: null });
+            },
+          };
+        }
+        if (table === "user_feedback_state") {
+          return {
+            select: () => ({
+              eq: () => ({
+                maybeSingle: () => Promise.resolve({ data: { total_submitted: 0, total_dismissed: 1 }, error: null }),
+              }),
+            }),
+            update: (payload) => {
+              updatedState = payload;
+              return { eq: () => Promise.resolve({ error: null }) };
+            },
+          };
+        }
+        return originalFrom(table);
+      };
+
+      try {
+        // Test dismissed twice triggering 14-day snooze
+        await logPromptEvent({
+          userId: "usr-77",
+          promptId: "prompt-88",
+          action: "dismissed",
+          currentDismissedCount: 1,
+        });
+
+        assert.equal(loggedEvent.user_id, "usr-77");
+        assert.equal(loggedEvent.prompt_id, "prompt-88");
+        assert.equal(loggedEvent.action, "dismissed");
+
+        assert.equal(updatedState.total_dismissed, 2);
+        assert.ok(updatedState.snooze_until, "Snooze date should be set when dismissed twice");
+      } finally {
+        supabaseModule.default.from = originalFrom;
+      }
+    });
+  });
 });

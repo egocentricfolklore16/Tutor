@@ -8,6 +8,8 @@ import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
 import StudyTrendChart from "./StudyTrendChart";
 import { useGamification, LevelRoadmap, LEVEL_MILESTONES } from "../../features/gamification";
+import { useProfile } from "../../app/ProfileContext";
+import { getDailyGoalMinutes } from "../../lib/weeklyHours";
 
 const dateKey = (value) => {
   const date = toDate(value);
@@ -15,11 +17,13 @@ const dateKey = (value) => {
 };
 
 function Progress() {
+  const { profile } = useProfile();
   const { xp, refreshAll } = useGamification();
   const [sessions, setSessions] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
-  const [dailyGoalHours, setDailyGoalHours] = useState(0);
   const [status, setStatus] = useState("loading");
+
+  const dailyGoalHours = useMemo(() => getDailyGoalMinutes(profile) / 60, [profile]);
 
   useEffect(() => {
     const loadProgress = async () => {
@@ -29,13 +33,11 @@ function Progress() {
       const [
         { data: sessionData, error: sessionError },
         { data: historyData },
-        { count, error: resourceError },
-        { data: profileData }
+        { count, error: resourceError }
       ] = await Promise.all([
         supabase.from("Study").select("id, Subject, Topic, Date, Duration").eq("user_id", user.id).neq("session_status", "completed"),
         supabase.from("study_history").select("id, subject, topic, completed_at, duration_minutes").eq("user_id", user.id),
         supabase.from("session_resources").select("id", { count: "exact", head: true }).eq("user_id", user.id),
-        supabase.from("profiles").select("daily_goal_minutes").eq("id", user.id).maybeSingle(),
       ]);
       if (sessionError || resourceError) { setStatus("error"); return; }
 
@@ -50,10 +52,6 @@ function Progress() {
 
       setSessions([...(sessionData || []), ...historicalAsSessions]);
       setResourceCount(count || 0);
-
-      if (profileData && profileData.daily_goal_minutes) {
-        setDailyGoalHours(profileData.daily_goal_minutes / 60);
-      }
 
       setStatus("ready");
     };

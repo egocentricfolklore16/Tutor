@@ -1,21 +1,22 @@
-import { Check, AlertCircle } from "lucide-react";
+import { Check, AlertCircle, Sparkles } from "lucide-react";
 import { useAITutor } from "../../app/AITutorContext";
+import { Card, Badge } from "../common/UIKit";
 
 const STRICTNESS_OPTIONS = [
   {
     label: "Always Guide First",
     value: "always_guide",
-    description: "The tutor asks questions and gives you steps to try. It won't hand over the answer.",
+    description: "The tutor asks guiding questions to help you derive the solution yourself without giving direct answers.",
   },
   {
     label: "Hints Then Answer",
     value: "hints_then_answer",
-    description: "You get hints first, and the full answer if you're still stuck.",
+    description: "Provides helpful hints first, then reveals the complete answer if you are still stuck.",
   },
   {
     label: "Direct Help",
     value: "direct_help",
-    description: "You get the answer and explanation right away.",
+    description: "Gives clear, direct answers and step-by-step explanations immediately.",
   },
 ];
 
@@ -27,23 +28,32 @@ export default function SocraticStrictness() {
     strictnessError,
   } = useAITutor();
 
-  const activeOption =
-    STRICTNESS_OPTIONS.find((opt) => opt.value === strictness) || STRICTNESS_OPTIONS[1];
-
   return (
-    <div className="rounded-2xl bg-zinc-900 border border-zinc-800 p-6 shadow-sm text-white">
-      <div className="flex items-center justify-between mb-4">
-        <h3 className="text-xl font-bold text-white">Socratic Strictness</h3>
+    <Card className="flex flex-col gap-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="p-2 rounded-xl bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400">
+            <Sparkles className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              Socratic Strictness Mode
+            </h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Customize how your AI Tutor guides your learning process.
+            </p>
+          </div>
+        </div>
+
         {strictnessSaveStatus === "saved" && (
-          <span className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-400 bg-emerald-950/60 border border-emerald-800/60 rounded-full px-2.5 py-1">
-            <Check size={13} />
+          <Badge variant="mint" size="sm" icon={Check}>
             Saved
-          </span>
+          </Badge>
         )}
       </div>
 
-      {/* Segmented pill control */}
-      <div className="inline-flex w-full sm:w-auto items-center p-1 bg-zinc-900 rounded-full border border-zinc-800 gap-1">
+      {/* 3 Stacked Option Cards */}
+      <div className="flex flex-col gap-3 mt-1">
         {STRICTNESS_OPTIONS.map((option) => {
           const isSelected = strictness === option.value;
           return (
@@ -51,29 +61,47 @@ export default function SocraticStrictness() {
               key={option.value}
               type="button"
               onClick={() => updateStrictness(option.value)}
-              className={`flex-1 sm:flex-initial rounded-full px-4 py-2.5 text-sm font-semibold transition-colors duration-150 active:scale-95 ${
+              className={`flex items-start gap-3.5 p-4 rounded-2xl border text-left transition-all ${
                 isSelected
-                  ? "bg-green-900/40 text-green-400 border border-green-700/50"
-                  : "text-zinc-300 hover:text-white bg-transparent"
+                  ? "bg-violet-50/80 border-violet-500 dark:bg-violet-950/60 dark:border-violet-600 shadow-sm"
+                  : "bg-slate-50/50 dark:bg-[#181432] border-slate-200/80 dark:border-violet-900/30 hover:border-slate-300 dark:hover:border-violet-800"
               }`}
             >
-              {option.label}
+              <div
+                className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 mt-0.5 ${
+                  isSelected
+                    ? "bg-violet-600 border-violet-600 text-white"
+                    : "border-slate-300 dark:border-slate-600"
+                }`}
+              >
+                {isSelected && <Check className="w-3 h-3" />}
+              </div>
+
+              <div>
+                <h4
+                  className={`text-sm font-bold ${
+                    isSelected
+                      ? "text-violet-900 dark:text-violet-200"
+                      : "text-slate-900 dark:text-slate-100"
+                  }`}
+                >
+                  {option.label}
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                  {option.description}
+                </p>
+              </div>
             </button>
           );
         })}
       </div>
 
-      {/* Helper text describing the active mode in one sentence */}
-      <p className="mt-3 text-xs text-zinc-400 min-h-[20px]">
-        {activeOption.description}
-      </p>
-
       {strictnessSaveStatus === "error" && (
-        <div className="mt-3 inline-flex items-center gap-1.5 text-xs text-rose-400 bg-rose-950/60 border border-rose-800/60 rounded-lg px-3 py-1.5">
-          <AlertCircle size={14} />
-          <span>{strictnessError || "Failed to save preference. Please try again."}</span>
+        <div className="flex items-center gap-2 text-xs text-rose-600 bg-rose-50 dark:bg-rose-950/60 p-3 rounded-xl border border-rose-200 dark:border-rose-900">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{strictnessError || "Failed to save preference."}</span>
         </div>
       )}
-    </div>
+    </Card>
   );
 }

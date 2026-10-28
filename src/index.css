@@ -1,8 +1,7 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lexend:wght@400;500;600;700;800&display=swap');
 
 @theme {
-  --font-sans: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
 
   --color-emerald-brand: #10b981;
   --color-emerald-brand-hover: #059669;
@@ -19,7 +18,7 @@
 }
 
 :root {
-  font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   font-feature-settings: "tnum";
   background-color: #fbf3ec;
   color: #1f1b16;
@@ -72,7 +71,7 @@ body {
   margin: 0;
   background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
   transition: background-color 150ms ease-out, color 150ms ease-out;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;

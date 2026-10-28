@@ -1,7 +1,6 @@
 @import "tailwindcss";
 
 :root {
-  font-family: "Lexend", sans-serif;
   background-color: #ffffff;
   color-scheme: light;
   --bg-base: #0F1115;
@@ -76,6 +75,7 @@ html.accessibility-large-text {
 }
 
 body {
+  font-family: "Plus Jakarta Sans", system-ui, sans-serif;
   margin: 0;
   background: #f8fafc;
   color: #0f172a;

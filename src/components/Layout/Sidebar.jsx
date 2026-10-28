@@ -228,7 +228,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       <div
         className={`${
           isOpen ? "w-60" : "w-16"
-        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col shadow-surface bg-white dark:bg-[#14171c] font-['Lexend'] text-black dark:text-white transition-all duration-300 ease-out dark-sidebar`}
+        } z-[1000] min-h-screen fixed left-0 top-0 h-full flex flex-col shadow-surface bg-white dark:bg-[#14171c] font-sans text-black dark:text-white transition-all duration-300 ease-out dark-sidebar`}
       >
         {/* Logo Section */}
         <div className="flex items-center justify-between p-4">

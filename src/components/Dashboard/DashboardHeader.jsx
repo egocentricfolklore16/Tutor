@@ -21,11 +21,11 @@ function GemIcon({ className }) {
   );
 }
 
-function DashboardHeader({ toggleSidebar }) {
+function DashboardHeader({ title = "Dashboard", toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
   const { streak, xp, gems, toast } = useGamification();
   const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = streak;
-  const { activeCelebration, dismissCelebration } = useCelebrations(xp.level);
+  const { activeCelebration, dismissCelebration } = useCelebrations(xp?.level || 1);
   const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
   const [menuOpen, setMenuOpen] = useState(false);
@@ -48,17 +48,15 @@ function DashboardHeader({ toggleSidebar }) {
   const [notifications, setNotifications] = useState(() => getStoredNotifications());
   const navigate = useNavigate();
   const name = profile?.full_name || profile?.username || "Learner";
-  const hour = new Date().getHours();
-  const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
   const activeFriendStreaks = profile?.active_friend_streaks ?? 0;
 
-  const xpPoints = xp.total;
-  const xpLevel = xp.level;
-  const xpToNextLevel = xp.xpToNextLevel;
-  const xpProgressPercent = xp.xpProgressPercent;
+  const xpPoints = xp?.total ?? 0;
+  const xpLevel = xp?.level ?? 1;
+  const xpToNextLevel = xp?.xpToNextLevel ?? 50;
+  const xpProgressPercent = xp?.xpProgressPercent ?? 0;
 
-  const gemsCount = gems.balance;
+  const gemsCount = gems?.balance ?? 0;
 
   const getMotivationalText = () => {
     if (streakLoading) return "Loading streak...";
@@ -218,16 +216,6 @@ function DashboardHeader({ toggleSidebar }) {
 
   const isSocietyUnlocked = (currentStreak ?? 0) >= 7;
 
-  const getNextStreakMilestoneInfo = (streakVal) => {
-    const val = Number(streakVal) || 0;
-    if (val < 7) return { target: 7, daysLeft: 7 - val, label: "7-day Streak Society" };
-    if (val < 30) return { target: 30, daysLeft: 30 - val, label: "30-day 2x Gem Multiplier" };
-    if (val < 100) return { target: 100, daysLeft: 100 - val, label: "100-day Centurion Badge" };
-    return { target: 365, daysLeft: Math.max(0, 365 - val), label: "365-day Legend" };
-  };
-
-  const nextMilestone = getNextStreakMilestoneInfo(currentStreak);
-
   return <>
     <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
       <div className="flex min-w-0 shrink items-center gap-2">
@@ -240,7 +228,10 @@ function DashboardHeader({ toggleSidebar }) {
           <img src="/logo3.png" alt="Hyper Tutor" className="h-7 w-7 object-contain" />
         </span>
 
-        <p className="hidden truncate text-base text-slate-950 sm:block dark:text-slate-100">{timeOfDay}, {name}!</p>
+        {/* Page Title only (no greeting in top bar) */}
+        <h1 className="text-lg font-bold text-slate-900 dark:text-white truncate">
+          {title}
+        </h1>
       </div>
 
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-slate-900 sm:gap-2 dark:text-slate-100">
@@ -251,15 +242,15 @@ function DashboardHeader({ toggleSidebar }) {
           {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-overlay hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
         </div>
 
-        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
-          <Search className="h-4 w-4 text-sky-700 dark:text-sky-400" />
-          <span className="hidden text-xs font-semibold sm:inline">Search</span>
-          <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex dark:bg-slate-800/80 dark:text-sky-300">
+        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 sm:gap-3 sm:bg-emerald-100 sm:px-3 sm:py-2 sm:text-emerald-900 shadow-surface dark:text-emerald-300 dark:sm:bg-emerald-950/40 dark:sm:text-emerald-200">
+          <Search className="h-4 w-4 text-emerald-700 dark:text-emerald-400" />
+          <span className="hidden text-xs font-bold sm:inline">Search</span>
+          <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-emerald-800 sm:flex dark:bg-slate-800/80 dark:text-emerald-300">
             <Command className="h-3 w-3" />K
           </span>
         </button>
 
-        {/* Streak Button & Dropdown */}
+        {/* Streak Button & Dropdown (Amber) */}
         <div
           className="relative inline-block"
           onMouseEnter={openStreakDropdown}
@@ -268,136 +259,30 @@ function DashboardHeader({ toggleSidebar }) {
           <button
             type="button"
             onClick={toggleStreakDropdownMobile}
-            aria-label={`Study streak: ${streakLoading || currentStreak === null ? "loading" : streakError ? "error" : `${currentStreak} days`}`}
+            aria-label={`Study streak: ${streakLoading ? "loading" : streakError ? "error" : `${currentStreak || 0} days`}`}
             aria-expanded={streakDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-100 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25 tabular-nums"
           >
-            <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-            <span>{streakLoading || currentStreak === null ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
+            <Flame className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 fill-amber-500" />
+            <span>{streakLoading ? "0d" : streakError ? "0d" : `${currentStreak || 0}d`}</span>
           </button>
 
           {streakDropdownOpen && (
             <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
               <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
                 <Flame className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
-                <div className="relative flex items-center justify-between">
-                  <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-300">
-                    {streakLoading ? "– day streak" : streakError ? "– day streak" : `${currentStreak} day streak`}
-                  </p>
-                  {streakError && (
-                    <button
-                      type="button"
-                      onClick={() => refreshStreak()}
-                      className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200 dark:bg-rose-950/60 dark:text-rose-300"
-                      title="Retry fetching streak"
-                    >
-                      <RefreshCw className="h-3 w-3" /> Retry
-                    </button>
-                  )}
-                  {freezeTokens > 0 && !streakError && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" title={`${freezeTokens} Streak Freeze Token(s) available`}>
-                      <Snowflake className="h-3.5 w-3.5 text-blue-500" />
-                      {freezeTokens}
-                    </span>
-                  )}
-                </div>
-                <p className="relative mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
+                <p className="relative text-2xl font-extrabold text-amber-600 dark:text-amber-300 tabular-nums">
+                  {currentStreak || 0} Day Streak
+                </p>
+                <p className="relative mt-1 text-xs font-semibold text-slate-600 dark:text-slate-300">
                   {getMotivationalText()}
                 </p>
-
-                {/* 7-day Weekday Row */}
-                <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
-                  {(weekDays || []).map((day, index) => {
-                    return (
-                      <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
-                        <span className={`text-[11px] font-bold ${day.isToday ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500"}`}>
-                          {day.label}
-                        </span>
-
-                        {day.state === "completed" && (
-                          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 shadow-surface dark:bg-orange-500/20">
-                            <img src="/streak.svg" alt="Streak completed" className="animate-streak-pop h-5 w-5 object-contain" />
-                          </div>
-                        )}
-
-                        {day.state === "frozen" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40" title="Streak frozen">
-                            <Snowflake className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-                          </div>
-                        )}
-
-                        {day.state === "today-pending" && (
-                          <div className="animate-streak-pulse flex h-7 w-7 items-center justify-center rounded-full bg-transparent" title="Study today to keep your streak">
-                            <span className="h-2 w-2 rounded-full bg-orange-500 dark:bg-orange-400" />
-                          </div>
-                        )}
-
-                        {day.state === "missed" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800/40" title="Missed day">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                          </div>
-                        )}
-
-                        {day.state === "future" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full" title="Upcoming day">
-                            <span className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-700" />
-                          </div>
-                        )}
-
-                        <span className="sr-only">{`Day ${day.label}: ${day.state}`}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="relative mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  <span>Longest Streak: <strong className="text-amber-700 dark:text-amber-300">{streakLoading || streakError || longestStreak === null ? "–" : `${longestStreak} days`}</strong></span>
-                  <span>Freezes: <strong className="text-blue-600 dark:text-blue-300">{freezeTokens}</strong></span>
-                </div>
-
-                {!streakLoading && !streakError && currentStreak !== null && (
-                  <div className="relative mt-2 text-center text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-500/20 py-1.5 px-2.5 rounded-lg">
-                    {nextMilestone.daysLeft > 0
-                      ? `${nextMilestone.daysLeft} day${nextMilestone.daysLeft === 1 ? "" : "s"} away from ${nextMilestone.label}!`
-                      : `Achieved ${nextMilestone.label}! Keep it up!`}
-                  </div>
-                )}
-              </div>
-
-              {/* Friend Streaks Card */}
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-orange-500 p-4 shadow-surface dark:bg-orange-600/80">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <Users className="h-5 w-5 text-white" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white">Friend Streaks</p>
-                  <p className="text-xs text-orange-50">{activeFriendStreaks} active Friend Streaks</p>
-                </div>
-                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-surface transition hover:bg-orange-50">
-                  VIEW LIST
-                </button>
-              </div>
-
-              {/* Streak Society Card */}
-              <div className={`mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 transition shadow-surface ${isSocietyUnlocked ? "bg-amber-50/80 dark:bg-amber-950/30" : "bg-slate-50 dark:bg-slate-800/40"}`}>
-                <span className={`mt-0.5 rounded-full p-2 ${isSocietyUnlocked ? "bg-amber-200 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" : "bg-slate-100 text-slate-400 dark:bg-white/10"}`}>
-                  {isSocietyUnlocked ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className={`text-sm font-bold ${isSocietyUnlocked ? "text-amber-900 dark:text-amber-200" : "text-slate-900 dark:text-white"}`}>Streak Society</p>
-                    {isSocietyUnlocked && <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-900 dark:bg-amber-500/30 dark:text-amber-200">Unlocked</span>}
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    {isSocietyUnlocked ? "Congratulations! You are a member of the Streak Society with 2x bonus rewards." : "Reach a 7 day streak to join the Streak Society and earn exclusive rewards."}
-                  </p>
-                </div>
               </div>
             </div>
           )}
         </div>
 
-        {/* XP Button & Dropdown */}
+        {/* XP Button & Dropdown (Amber) */}
         <div
           className="relative hidden sm:block"
           onMouseEnter={openXpDropdown}
@@ -408,50 +293,13 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setXpDropdownOpen((prev) => !prev)}
             aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
             aria-expanded={xpDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-100 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-200 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25 tabular-nums"
           >
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
           </button>
-          {xpDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
-              <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
-                <Zap className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
-                <p className="relative text-2xl font-extrabold text-amber-500 dark:text-amber-300">{xpPoints} XP</p>
-                <p className="relative mt-1 max-w-[75%] text-sm text-slate-700 dark:text-slate-300">Level {xpLevel} · {xpToNextLevel} XP to next level</p>
-                <div className="relative mt-4 rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
-                  <div className="mb-1.5 flex items-center justify-between text-[11px] font-bold text-slate-500 dark:text-slate-400">
-                    <span>Level {xpLevel}</span>
-                    <span>Level {xpLevel + 1}</span>
-                  </div>
-                  <div className="h-2 w-full overflow-hidden rounded-full bg-slate-200 dark:bg-white/10">
-                    <div className="h-full rounded-full bg-amber-400 dark:bg-amber-500/70" style={{ width: `${xpProgressPercent}%` }} />
-                  </div>
-                </div>
-              </div>
-
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-amber-500 p-4 shadow-surface dark:bg-amber-600/80">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <Trophy className="h-5 w-5 text-white" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white">Leaderboard</p>
-                  <p className="text-xs text-amber-50">See how you rank this week</p>
-                </div>
-                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-amber-600 shadow-surface transition hover:bg-amber-50">VIEW</button>
-              </div>
-
-              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 shadow-surface dark:bg-slate-800/40">
-                <span className="mt-0.5 rounded-full bg-slate-100 p-2 text-slate-400 dark:bg-white/10"><Lock className="h-4 w-4" /></span>
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Level {xpLevel + 1}</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Earn {xpToNextLevel} more XP to unlock Level {xpLevel + 1} and new practice sets.</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
-        {/* Gems Button & Dropdown */}
+        {/* Gems Button & Dropdown (Cyan) */}
         <div
           className="relative hidden md:block"
           onMouseEnter={openGemsDropdown}
@@ -462,38 +310,10 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setGemsDropdownOpen((prev) => !prev)}
             aria-label={`Gems balance: ${gemsCount}`}
             aria-expanded={gemsDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
+            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-100 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-200 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25 tabular-nums"
           >
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
           </button>
-          {gemsDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
-              <div className="relative overflow-hidden bg-cyan-100 p-5 dark:bg-cyan-500/10">
-                <GemIcon className="absolute -right-3 -top-2 h-24 w-24 text-cyan-300/60 dark:text-cyan-500/15" />
-                <p className="relative text-2xl font-extrabold text-cyan-500 dark:text-cyan-300">{gemsCount} Gems</p>
-                <p className="relative mt-1 max-w-[75%] text-sm text-slate-700 dark:text-slate-300">Earn gems by finishing lessons and challenges!</p>
-              </div>
-
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-cyan-500 p-4 shadow-surface dark:bg-cyan-600/80">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <GemIcon className="h-5 w-5 text-white" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white">Gem Shop</p>
-                  <p className="text-xs text-cyan-50">Redeem gems for rewards</p>
-                </div>
-                <button type="button" onClick={() => navigate("/Shop")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-cyan-600 shadow-surface transition hover:bg-cyan-50">VISIT SHOP</button>
-              </div>
-
-              <div className="mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 shadow-surface dark:bg-slate-800/40">
-                <span className="mt-0.5 rounded-full bg-slate-100 p-2 text-slate-400 dark:bg-white/10"><Lock className="h-4 w-4" /></span>
-                <div>
-                  <p className="text-sm font-bold text-slate-900 dark:text-white">Gem Multiplier</p>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">Reach a 30 day streak to unlock 2x Gem rewards.</p>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Dark Mode & Notifications */}
@@ -501,14 +321,14 @@ function DashboardHeader({ toggleSidebar }) {
           type="button"
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => toggleDarkMode(!darkMode)}
-          className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 dark:text-slate-300 dark:hover:bg-violet-950/40"
+          className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/40"
         >
           {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-950/40">
+        <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/40">
           <Bell className="h-4 w-4" />
-          {totalUnreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(totalUnreadCount, 9)}</span>}
+          {totalUnreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white tabular-nums">{Math.min(totalUnreadCount, 9)}</span>}
         </button>
 
         {/* Profile Avatar */}
@@ -520,19 +340,14 @@ function DashboardHeader({ toggleSidebar }) {
             <div className="absolute right-0 top-13 w-56 rounded-2xl bg-white p-2 text-sm shadow-overlay dark:bg-[#18211f] dark:text-white z-[220]">
               <div className="px-3 py-2">
                 <p className="truncate font-bold text-slate-900 dark:text-white">{name}</p>
-                <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500 sm:hidden">
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><Zap className="h-3 w-3" />{xpPoints} XP</span>
-                  <span>·</span>
-                  <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400"><GemIcon className="h-3 w-3" />{gemsCount} Gems</span>
-                </div>
               </div>
-              <button type="button" onClick={() => { toggleDarkMode(!darkMode); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
+              <button type="button" onClick={() => { toggleDarkMode(!darkMode); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left font-semibold hover:bg-slate-100 dark:hover:bg-white/10">
                 {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />} {darkMode ? "Light Theme" : "Dark Theme"}
               </button>
-              <button type="button" onClick={() => { navigate("/Settings"); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">
+              <button type="button" onClick={() => { navigate("/Settings"); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left font-semibold hover:bg-slate-100 dark:hover:bg-white/10">
                 <Settings className="h-4 w-4" /> Settings
               </button>
-              <button type="button" onClick={logout} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30">
+              <button type="button" onClick={logout} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left font-bold text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-950/30">
                 <LogOut className="h-4 w-4" /> Logout
               </button>
             </div>

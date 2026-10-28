@@ -280,7 +280,6 @@ const StyledWrapper = styled.div`
   .screen {
     width: 13em;
     height: 7.85em;
-    font-family: Montserrat;
     border: 2px solid #1d0e01;
     background: repeating-radial-gradient(#000 0 0.0001%, #ffffff 0 0.0002%) 50%
         0/2500px 2500px,
@@ -303,7 +302,6 @@ const StyledWrapper = styled.div`
     width: 13em;
     height: 7.85em;
     position: relative;
-    font-family: Montserrat;
     background: linear-gradient(
       to right,
       #002fc6 0%,
@@ -601,7 +599,6 @@ const StyledWrapper = styled.div`
     align-items: center;
     justify-content: center;
     opacity: 0.5;
-    font-family: Montserrat;
   }
   .text_4041 {
     transform: scaleY(24.5) scaleX(9);

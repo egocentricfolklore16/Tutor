@@ -1,84 +1,79 @@
 @import "tailwindcss";
-@import url('https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Lexend:wght@400;500;600;700;800&display=swap');
 
 @theme {
-  --font-sans: 'Lexend', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-sans: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
 
-  --color-brand-emerald-50: #ecfdf5;
-  --color-brand-emerald-100: #d1fae5;
-  --color-brand-emerald-500: #10b981;
-  --color-brand-emerald-600: #059669;
-  --color-brand-emerald-700: #047857;
-  --color-brand-emerald-800: #065f46;
-  --color-brand-emerald-900: #064e3b;
-  --color-brand-emerald-950: #022c22;
+  --color-emerald-brand: #10b981;
+  --color-emerald-brand-hover: #059669;
 
-  --color-cta-orange: #f97316;
-  --color-cta-orange-hover: #ea580c;
+  --color-cta-orange: #f26b21;
+  --color-cta-orange-hover: #d95812;
 
   --color-amber-streak: #f59e0b;
   --color-cyan-gems: #06b6d4;
   --color-rose-danger: #f43f5e;
 
   --radius-2xl: 1rem;
+  --radius-3xl: 1.5rem;
 }
 
 :root {
-  font-family: 'Lexend', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
   font-feature-settings: "tnum";
-  background-color: #f8fafc;
-  color: #0f172a;
+  background-color: #fbf3ec;
+  color: #1f1b16;
   color-scheme: light;
 
-  --bg-base: #f8fafc;
-  --bg-surface: #ffffff;
-  --bg-elevated: #f1f5f9;
-  --border-subtle: rgba(226, 232, 240, 0.8);
+  --bg-base: #fbf3ec;
+  --bg-surface: #fffaf5;
+  --bg-elevated: #f4ece4;
+  --border-subtle: rgba(0, 0, 0, 0.06);
   --border-focus: rgba(16, 185, 129, 0.4);
 
-  --text-primary: #0f172a;
-  --text-secondary: #475569;
-  --text-muted: #64748b;
+  --text-primary: #1f1b16;
+  --text-secondary: #6b6257;
+  --text-muted: #9c9285;
 
   --bottom-nav-height: 4.25rem;
   --safe-area-bottom: env(safe-area-inset-bottom, 0px);
 
   /* Shadows */
-  --shadow-sm-soft: 0 1px 3px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
-  --shadow-surface: 0 1px 2px rgb(15 23 42 / 0.04), 0 4px 12px rgb(15 23 42 / 0.06);
-  --shadow-overlay: 0 4px 6px rgb(15 23 42 / 0.05), 0 16px 36px rgb(15 23 42 / 0.12);
-  --shadow-button-primary: 0 2px 8px rgb(5 150 105 / 0.25);
-  --shadow-button-cta: 0 4px 12px rgb(249 115 22 / 0.3);
+  --shadow-sm-soft: 0 1px 2px rgba(31, 27, 22, 0.04);
+  --shadow-surface: 0 1px 2px rgba(31, 27, 22, 0.04), 0 8px 24px rgba(31, 27, 22, 0.05);
+  --shadow-overlay: 0 8px 20px rgba(31, 27, 22, 0.08), 0 24px 48px rgba(31, 27, 22, 0.12);
+  --shadow-button-primary: 0 2px 8px rgba(16, 185, 129, 0.25);
+  --shadow-button-cta: 0 4px 14px rgba(242, 107, 33, 0.35);
 }
 
 .dark {
   color-scheme: dark;
-  background-color: #0f1115;
+  background-color: #0d1117;
   color: #f8fafc;
 
-  --bg-base: #0f1115;
-  --bg-surface: #14171c;
-  --bg-elevated: #1f242d;
+  --bg-base: #0d1117;
+  --bg-surface: #141923;
+  --bg-elevated: #1b2230;
   --border-subtle: rgba(255, 255, 255, 0.08);
   --border-focus: rgba(16, 185, 129, 0.5);
 
   --text-primary: #f8fafc;
-  --text-secondary: #cbd5e1;
-  --text-muted: #94a3b8;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
 
   --shadow-sm-soft: 0 1px 3px rgba(0, 0, 0, 0.4);
-  --shadow-surface: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px rgb(0 0 0 / 0.35), inset 0 1px 0 rgb(255 255 255 / 0.04);
-  --shadow-overlay: 0 8px 16px rgb(0 0 0 / 0.6), 0 24px 48px rgb(0 0 0 / 0.5), inset 0 1px 0 rgb(255 255 255 / 0.06);
-  --shadow-button-primary: 0 2px 10px rgb(5 150 105 / 0.35);
-  --shadow-button-cta: 0 4px 14px rgb(249 115 22 / 0.35);
+  --shadow-surface: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --shadow-overlay: 0 8px 16px rgba(0, 0, 0, 0.6), 0 24px 48px rgba(0, 0, 0, 0.5);
+  --shadow-button-primary: 0 2px 10px rgba(16, 185, 129, 0.35);
+  --shadow-button-cta: 0 4px 14px rgba(242, 107, 33, 0.4);
 }
 
 body {
   margin: 0;
   background-color: var(--bg-base);
   color: var(--text-primary);
-  font-family: 'Lexend', 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
-  transition: background-color 180ms ease, color 180ms ease;
+  font-family: 'Plus Jakarta Sans', 'Lexend', system-ui, -apple-system, sans-serif;
+  transition: background-color 150ms ease-out, color 150ms ease-out;
   overflow-x: hidden;
   -webkit-tap-highlight-color: transparent;
 }
@@ -92,7 +87,7 @@ body {
 }
 
 button, input, select, textarea, a {
-  transition: all 160ms ease-out;
+  transition: all 150ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 button:active:not(:disabled) {

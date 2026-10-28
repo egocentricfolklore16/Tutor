@@ -15,9 +15,9 @@ import {
   TrendingUp,
   Clock,
   AlertCircle,
-  CheckCircle2,
   BookOpen,
   RefreshCw,
+  Rocket,
 } from "lucide-react";
 import { useProfile } from "../../app/ProfileContext";
 import { useGamification, QuestList } from "../../features/gamification";
@@ -30,6 +30,9 @@ import {
   ProgressRing,
   Skeleton,
   EmptyState,
+  Lumo,
+  ErrorState,
+  SectionLabel,
 } from "../common/UIKit";
 import supabase from "../../lib/supabase";
 
@@ -57,16 +60,32 @@ export function DashboardOverview() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [weeklyFocusData, setWeeklyFocusData] = useState([]);
 
-  const hour = new Date().getHours();
-  const greetingTime = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+  // Time-aware greeting using profile timezone
+  const getTimeOfDayGreeting = () => {
+    try {
+      const userTz = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const hour = new Date().toLocaleTimeString("en-US", { timeZone: userTz, hour12: false, hour: "2-digit" });
+      const currentHour = parseInt(hour, 10);
+      if (currentHour < 12) return "Good morning";
+      if (currentHour < 18) return "Good afternoon";
+      return "Good evening";
+    } catch {
+      const hour = new Date().getHours();
+      if (hour < 12) return "Good morning";
+      if (hour < 18) return "Good afternoon";
+      return "Good evening";
+    }
+  };
+
+  const greetingTime = getTimeOfDayGreeting();
 
   useEffect(() => {
     if (profile) {
-      setUserName(profile.full_name || profile.username || "Learner");
+      const name = profile.full_name?.split(" ")[0] || profile.username || "Learner";
+      setUserName(name);
     }
   }, [profile]);
 
-  // Fetch today's sessions and weekly focus hours
   useEffect(() => {
     let isMounted = true;
     async function loadDashboardData() {
@@ -74,7 +93,6 @@ export function DashboardOverview() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
-        // Fetch recent active or today's study sessions
         const { data: sessionData } = await supabase
           .from("study_sessions")
           .select("id, title, subject, topic, status, duration_minutes, current_step")
@@ -87,7 +105,6 @@ export function DashboardOverview() {
           setLoadingSessions(false);
         }
 
-        // Fetch weekly focus time tracking
         const { data: trackingData } = await supabase
           .from("daily_session_tracking")
           .select("activity_date, total_duration_seconds")
@@ -100,7 +117,7 @@ export function DashboardOverview() {
         }
       } catch (err) {
         console.error("Error loading dashboard data:", err);
-      } finally {
+      } font-medium {
         if (isMounted) setLoadingSessions(false);
       }
     }
@@ -135,29 +152,31 @@ export function DashboardOverview() {
   return (
     <PageContainer maxWidth="max-w-7xl">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* CENTER COLUMN */}
+        {/* CENTER COLUMN (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6 min-w-0">
           {/* 1. HERO GREETING CARD */}
           <Card
             variant="gradient"
             padding="p-6 md:p-8"
-            className="relative overflow-hidden flex flex-col justify-between min-h-[220px]"
+            className="relative overflow-hidden flex flex-col justify-between min-h-[180px] md:min-h-[200px]"
           >
-            <div className="relative z-10 flex flex-col gap-2 max-w-lg">
-              <div className="flex items-center gap-2">
-                <img src="/logo3.png" alt="Lumo Mascot" className="w-8 h-8 object-contain" />
-                <Badge variant="amber" size="sm">
+            <div className="relative z-10 flex items-start justify-between">
+              <div className="flex flex-col gap-1.5 max-w-lg">
+                <Badge variant="amber" size="sm" icon={Sparkles}>
                   Lumo AI Companion
                 </Badge>
+                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mt-1">
+                  {greetingTime}, {userName}!
+                </h1>
+                <p className="text-xs md:text-sm text-emerald-100 font-medium leading-relaxed mt-0.5">
+                  {activeSession
+                    ? `You have a session waiting: "${activeSession.topic || activeSession.subject || "Study Session"}".`
+                    : currentStreak > 0
+                    ? `Study 10 minutes to keep your ${currentStreak}-day streak going!`
+                    : "Ready for a focused study session?"}
+                </p>
               </div>
-              <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mt-1">
-                {greetingTime}, {userName}!
-              </h1>
-              <p className="text-sm md:text-base text-emerald-100 font-medium leading-relaxed">
-                {activeSession
-                  ? `Ready to continue "${activeSession.topic || activeSession.subject || "your session"}"?`
-                  : "Start a focused study session with Lumo to level up your skills today."}
-              </p>
+              <Lumo pose="greeting" size="lg" className="hidden sm:block shrink-0" />
             </div>
 
             <div className="relative z-10 flex flex-wrap items-center gap-3 mt-6">
@@ -168,7 +187,7 @@ export function DashboardOverview() {
                 onClick={handleStartSession}
                 className="font-extrabold text-white"
               >
-                {activeSession ? `Continue ${activeSession.subject || "Session"}` : "Start Study Session"}
+                {activeSession ? `Resume ${activeSession.subject || "Session"}` : "Start Study Session"}
               </Button>
               <Button
                 variant="ghost"
@@ -184,10 +203,10 @@ export function DashboardOverview() {
             <div className="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
           </Card>
 
-          {/* ONBOARDING CARD FOR FIRST-TIME USERS */}
+          {/* ONBOARDING CARD FOR BRAND NEW ACCOUNTS */}
           {hasNoData && !loadingSessions && (
             <Card className="border-2 border-emerald-500/40 bg-emerald-50/50 dark:bg-emerald-950/20 flex flex-col sm:flex-row items-center gap-5 p-6">
-              <img src="/logo3.png" alt="Lumo Mascot" className="w-20 h-20 object-contain shrink-0" />
+              <Lumo pose="greeting" size="lg" className="shrink-0" />
               <div className="flex-1 text-center sm:text-left">
                 <h3 className="text-base font-bold text-slate-900 dark:text-white">
                   Welcome to Hyper Tutor!
@@ -199,22 +218,65 @@ export function DashboardOverview() {
                   variant="cta"
                   size="sm"
                   onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
-                  className="mt-3 font-bold"
+                  className="mt-3 font-extrabold"
                 >
-                  Start your first session to unlock stats
+                  Start your first session to unlock your stats
                 </Button>
               </div>
             </Card>
           )}
 
-          {/* 2. QUICK ACTIONS ROW */}
+          {/* 2. CONTINUE LEARNING CARDS */}
+          {sessions.length > 0 && (
+            <div className="flex flex-col gap-3">
+              <SectionLabel>CONTINUE LEARNING</SectionLabel>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {sessions.slice(0, 2).map((s) => (
+                  <Card key={s.id} className="flex flex-col justify-between gap-3">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-10 h-10 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 flex items-center justify-center font-extrabold text-sm">
+                          {s.subject?.charAt(0) || "S"}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate">
+                            {s.subject || "General"}
+                          </p>
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white truncate">
+                            {s.topic || s.title || "Study Session"}
+                          </h4>
+                        </div>
+                      </div>
+                    </div>
+
+                    <ProgressBar value={s.current_step || 1} max={5} variant="orange" />
+
+                    <div className="flex items-center justify-between text-xs font-bold pt-1">
+                      <span className="text-slate-500 dark:text-slate-400 flex items-center gap-1 tabular-nums">
+                        <Clock className="w-3.5 h-3.5 text-slate-400" /> {s.duration_minutes || 25} min
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => navigate(`/Study/${s.id}`)}
+                        className="text-orange-500 hover:text-orange-600 dark:text-orange-400 font-extrabold hover:underline"
+                      >
+                        Resume session →
+                      </button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* 3. QUICK ACTIONS ROW */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <button
               type="button"
               onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
-              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-[#14171c] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group"
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white dark:bg-[#141923] border border-slate-200/80 dark:border-white/10 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group shadow-surface"
             >
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                 <Plus className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">New Session</span>
@@ -223,9 +285,9 @@ export function DashboardOverview() {
             <button
               type="button"
               onClick={() => openAiTutor("Generate a quick quiz for me")}
-              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-[#14171c] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group"
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white dark:bg-[#141923] border border-slate-200/80 dark:border-white/10 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group shadow-surface"
             >
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                 <Brain className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">AI Quiz</span>
@@ -234,9 +296,9 @@ export function DashboardOverview() {
             <button
               type="button"
               onClick={() => navigate("/Library")}
-              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-[#14171c] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group"
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white dark:bg-[#141923] border border-slate-200/80 dark:border-white/10 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group shadow-surface"
             >
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                 <Upload className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Upload Resource</span>
@@ -245,16 +307,16 @@ export function DashboardOverview() {
             <button
               type="button"
               onClick={() => navigate("/Study")}
-              className="flex flex-col items-center justify-center p-4 rounded-2xl bg-white dark:bg-[#14171c] border border-slate-200/80 dark:border-slate-800 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group"
+              className="flex flex-col items-center justify-center p-4 rounded-3xl bg-white dark:bg-[#141923] border border-slate-200/80 dark:border-white/10 hover:border-emerald-400 hover:-translate-y-0.5 transition-all text-center gap-2 group shadow-surface"
             >
-              <div className="p-3 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
+              <div className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-600 dark:text-emerald-400 group-hover:scale-110 transition-transform">
                 <Layers className="w-5 h-5" />
               </div>
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">Review Flashcards</span>
             </button>
           </div>
 
-          {/* 3. TODAY'S SESSIONS */}
+          {/* 4. TODAY'S SESSIONS */}
           <Card>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -273,10 +335,10 @@ export function DashboardOverview() {
               </div>
             ) : sessions.length === 0 ? (
               <EmptyState
-                title="No study sessions yet"
-                description="Create your first session to start active learning with Hyper Tutor."
-                actionLabel="Create Session"
-                onAction={() => navigate("/Study", { state: { openCreateSession: true } })}
+                title="No study sessions planned for today"
+                description="Schedule your learning activity in Planner."
+                actionLabel="Plan today's study"
+                onAction={() => navigate("/Planner")}
               />
             ) : (
               <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
@@ -304,7 +366,7 @@ export function DashboardOverview() {
                   return (
                     <div
                       key={s.id}
-                      className="min-w-[240px] max-w-[280px] p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col justify-between gap-3 shrink-0"
+                      className="min-w-[240px] max-w-[280px] p-4 rounded-2xl border border-slate-200/80 dark:border-white/10 bg-slate-50/50 dark:bg-slate-900/40 flex flex-col justify-between gap-3 shrink-0"
                     >
                       <div className="flex items-start justify-between">
                         <span className="text-xs font-bold text-slate-500 dark:text-slate-400 truncate max-w-[120px]">
@@ -320,19 +382,19 @@ export function DashboardOverview() {
                           {s.topic || s.title || "Study Session"}
                         </h3>
                         <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1 tabular-nums">
-                          <Clock className="w-3 h-3 text-slate-400" /> {s.duration_minutes || 25} mins
+                          <Clock className="w-3.5 h-3.5 text-slate-400" /> {s.duration_minutes || 25} mins
                         </p>
                       </div>
 
                       <ProgressBar value={s.current_step || 1} max={5} variant={badgeVariant} />
 
                       <Button
-                        variant={inProgress ? "primary" : "soft"}
+                        variant={inProgress ? "cta" : "soft"}
                         size="sm"
                         onClick={() => navigate(`/Study/${s.id}`)}
                         className="w-full text-xs font-bold"
                       >
-                        {isCompleted ? "Review" : inProgress ? "Resume" : "Start"}
+                        {isCompleted ? "View" : inProgress ? "Resume" : "Start"}
                       </Button>
                     </div>
                   );
@@ -341,14 +403,12 @@ export function DashboardOverview() {
             )}
           </Card>
 
-          {/* 4. INSIGHTS GRID */}
+          {/* 5. INSIGHTS GRID */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Weekly Focus Time */}
             <Card>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                  Weekly Focus Time
-                </span>
+                <SectionLabel>WEEKLY FOCUS TIME</SectionLabel>
                 <Clock className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
               </div>
               <div className="flex items-baseline gap-2 mb-3">
@@ -364,7 +424,9 @@ export function DashboardOverview() {
                 {[40, 65, 30, 85, 50, 90, 70].map((h, i) => (
                   <div key={i} className="flex-1 flex flex-col items-center gap-1">
                     <div
-                      className="w-full bg-emerald-600 dark:bg-emerald-500 rounded-t-md transition-all duration-300"
+                      className={`w-full rounded-t-md transition-all duration-300 ${
+                        i === new Date().getDay() ? "bg-orange-500" : "bg-emerald-600/80 dark:bg-emerald-500/80"
+                      }`}
                       style={{ height: `${h}%` }}
                     />
                     <span className="text-[10px] font-bold text-slate-400">
@@ -378,19 +440,17 @@ export function DashboardOverview() {
             {/* Quiz Score Trend */}
             <Card>
               <div className="flex items-center justify-between mb-3">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                  Quiz Performance
-                </span>
+                <SectionLabel>QUIZ PERFORMANCE</SectionLabel>
                 <TrendingUp className="w-4 h-4 text-emerald-600" />
               </div>
               <div className="flex items-baseline gap-2 mb-3">
                 <span className="text-2xl font-extrabold tabular-nums text-slate-900 dark:text-white">0%</span>
-                <span className="text-xs text-slate-500">Average Score</span>
+                <span className="text-xs font-semibold text-slate-500">Average Score</span>
               </div>
               {/* TODO(backend): needs quiz_score_trends view or RPC for aggregated score trend line */}
-              <div className="flex items-center justify-center p-4 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800">
-                <p className="text-xs text-slate-500 dark:text-slate-400 text-center">
-                  Take more quizzes to build your score trend line.
+              <div className="flex items-center justify-center p-4 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-800">
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 text-center">
+                  Take your first quiz to see your trend.
                 </p>
               </div>
             </Card>
@@ -415,7 +475,7 @@ export function DashboardOverview() {
                   {knowledgeGaps.slice(0, 3).map((gap, idx) => (
                     <div
                       key={idx}
-                      className="flex items-center justify-between p-3 rounded-xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800"
+                      className="flex items-center justify-between p-3 rounded-2xl bg-slate-50 dark:bg-slate-900/40 border border-slate-200/60 dark:border-slate-800"
                     >
                       <span className="text-xs font-bold text-slate-800 dark:text-slate-200 truncate max-w-[200px]">
                         {typeof gap === "string" ? gap : gap.topic || "Concept Review"}
@@ -426,7 +486,7 @@ export function DashboardOverview() {
                         onClick={() => openAiTutor(`Explain ${typeof gap === "string" ? gap : gap.topic}`)}
                         className="text-xs font-bold"
                       >
-                        Practice this
+                        Practice
                       </Button>
                     </div>
                   ))}
@@ -436,42 +496,87 @@ export function DashboardOverview() {
           </div>
         </div>
 
-        {/* RIGHT RAIL */}
+        {/* RIGHT RAIL (4 cols) */}
         <div className="lg:col-span-4 flex flex-col gap-6">
-          {/* 5. STREAK CARD */}
+          {/* FOCOTECH STYLE PROFILE CARD */}
+          <Card className="flex flex-col gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 font-extrabold text-lg flex items-center justify-center overflow-hidden border-2 border-emerald-500">
+                {profile?.avatar_url ? (
+                  <img src={profile.avatar_url} alt={userName} className="w-full h-full object-cover" />
+                ) : (
+                  userName.charAt(0).toUpperCase()
+                )}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base font-extrabold text-slate-900 dark:text-white truncate">
+                  {userName}
+                </h3>
+                <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
+                  Level {xpLevel} Scholar
+                </p>
+              </div>
+            </div>
+
+            {/* 3 Mini Stat Tiles */}
+            <div className="grid grid-cols-3 gap-2">
+              <div className="p-2.5 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200/60 dark:border-amber-900/40 text-center">
+                <span className="block text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase">Streak</span>
+                <span className="text-sm font-extrabold text-amber-900 dark:text-amber-200 tabular-nums">{currentStreak}d</span>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200/60 dark:border-emerald-900/40 text-center">
+                <span className="block text-[10px] font-bold text-emerald-700 dark:text-emerald-400 uppercase">Quests</span>
+                <span className="text-sm font-extrabold text-emerald-900 dark:text-emerald-200 tabular-nums">0</span>
+              </div>
+              <div className="p-2.5 rounded-2xl bg-cyan-50 dark:bg-cyan-950/40 border border-cyan-200/60 dark:border-cyan-900/40 text-center">
+                <span className="block text-[10px] font-bold text-cyan-700 dark:text-cyan-400 uppercase">Gems</span>
+                <span className="text-sm font-extrabold text-cyan-900 dark:text-cyan-200 tabular-nums">{gemsBalance}</span>
+              </div>
+            </div>
+
+            {/* XP Progress to next level */}
+            <div className="pt-2 border-t border-slate-100 dark:border-slate-800">
+              <div className="flex justify-between text-xs font-bold text-slate-500 mb-1.5 tabular-nums">
+                <span>{xpTotal} XP</span>
+                <span>{xpToNextLevel} XP to Level {xpLevel + 1}</span>
+              </div>
+              <ProgressBar value={xpProgressPercent} variant="amber" />
+            </div>
+          </Card>
+
+          {/* WEEKLY STREAK CARD */}
           <Card className="relative overflow-hidden">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="p-2.5 rounded-xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
+                <div className="p-2.5 rounded-2xl bg-amber-50 text-amber-600 dark:bg-amber-950/60 dark:text-amber-400">
                   <Flame className="w-6 h-6 fill-amber-500" />
                 </div>
                 <div>
-                  <h3 className="text-lg font-extrabold tabular-nums text-slate-900 dark:text-white">
+                  <h3 className="text-base font-extrabold tabular-nums text-slate-900 dark:text-white">
                     {currentStreak} Day Streak
                   </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
+                  <p className="text-xs font-semibold text-slate-500 dark:text-slate-400 tabular-nums">
                     Longest: {longestStreak} days
                   </p>
                 </div>
               </div>
-              <Badge variant={todayCompleted ? "emerald" : "amber"} size="sm">
-                {todayCompleted ? "Completed" : "At Risk Today"}
-              </Badge>
+              {currentStreak > 0 && !todayCompleted && new Date().getHours() >= 18 && (
+                <Badge variant="rose" size="sm">
+                  At Risk
+                </Badge>
+              )}
             </div>
 
-            {/* Quiet error fallback inline */}
+            {/* Quiet Error State */}
             {streakError && (
-              <div className="mt-3 flex items-center justify-between p-2 rounded-xl bg-amber-50 dark:bg-amber-950/40 text-xs text-amber-700 dark:text-amber-300">
-                <span>Unable to sync streak</span>
-                {refreshStreak && (
-                  <button type="button" onClick={() => refreshStreak()} className="p-1 hover:opacity-80">
-                    <RefreshCw className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
+              <ErrorState
+                message="Unable to sync streak"
+                onRetry={refreshStreak}
+                className="mt-3"
+              />
             )}
 
-            {/* Weekly dots */}
+            {/* Mon-Sun Pills */}
             <div className="flex items-center justify-between mt-4 pt-3 border-t border-slate-100 dark:border-slate-800">
               {weekDays.map((day, idx) => (
                 <div key={idx} className="flex flex-col items-center gap-1">
@@ -479,7 +584,7 @@ export function DashboardOverview() {
                   <div
                     className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold ${
                       day.state === "completed"
-                        ? "bg-amber-500 text-white"
+                        ? "bg-orange-500 text-white"
                         : day.state === "frozen"
                         ? "bg-cyan-500 text-white"
                         : "bg-slate-100 text-slate-400 dark:bg-slate-800"
@@ -492,37 +597,7 @@ export function DashboardOverview() {
             </div>
           </Card>
 
-          {/* 6. XP / LEVEL CARD */}
-          <Card>
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <ProgressRing size={52} strokeWidth={5} progress={xpProgressPercent} variant="amber">
-                  <span className="text-xs font-bold text-amber-600 dark:text-amber-400 tabular-nums">
-                    L{xpLevel}
-                  </span>
-                </ProgressRing>
-                <div>
-                  <h3 className="text-sm font-bold text-slate-900 dark:text-white">
-                    Level {xpLevel} Scholar
-                  </h3>
-                  <p className="text-xs text-slate-500 dark:text-slate-400 tabular-nums">
-                    {xpTotal} XP Total
-                  </p>
-                </div>
-              </div>
-
-              <Badge variant="cyan" size="md" icon={Gift}>
-                <span className="tabular-nums">{gemsBalance} Gems</span>
-              </Badge>
-            </div>
-
-            <ProgressBar value={xpProgressPercent} variant="amber" />
-            <p className="text-[11px] text-slate-400 mt-2 text-right tabular-nums">
-              {xpToNextLevel} XP to Level {xpLevel + 1}
-            </p>
-          </Card>
-
-          {/* 7. DAILY QUESTS */}
+          {/* DAILY QUESTS */}
           <Card>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
@@ -533,7 +608,7 @@ export function DashboardOverview() {
             <QuestList />
           </Card>
 
-          {/* 8. UPCOMING DEADLINES */}
+          {/* UPCOMING DEADLINES */}
           {/* TODO(backend): needs user_deadlines view or RPC for study deadlines tracking */}
           <Card>
             <div className="flex items-center justify-between mb-3">
@@ -544,20 +619,16 @@ export function DashboardOverview() {
             </div>
             <EmptyState
               title="No upcoming deadlines"
-              description="Add exams and assignment dates in Planner to stay on track."
+              description="Add exams and assignment dates in Planner or ask Lumo."
               actionLabel="Go to Planner"
               onAction={() => navigate("/Planner")}
             />
           </Card>
 
-          {/* 9. MINI CALENDAR */}
+          {/* MINI CALENDAR */}
           {/* TODO(backend): needs monthly_activity_calendar view or RPC for calendar date highlights */}
-          <Card>
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wide">
-                This Month
-              </h3>
-            </div>
+          <Card className="hidden sm:block">
+            <SectionLabel className="mb-3">THIS MONTH</SectionLabel>
             <div className="grid grid-cols-7 gap-1 text-center text-xs">
               {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
                 <span key={i} className="font-bold text-slate-400 py-1">
@@ -579,18 +650,19 @@ export function DashboardOverview() {
             </div>
           </Card>
 
-          {/* 10. UPGRADE CARD FOR FREE USERS */}
+          {/* UPGRADE CARD FOR FREE USERS */}
           {!isProUser && (
             <Card variant="gradient" className="flex flex-col gap-3">
               <div className="flex items-center justify-between">
                 <Badge variant="amber" size="sm" icon={Crown}>
-                  RECOMMENDED
+                  MOST POPULAR
                 </Badge>
+                <Lumo pose="greeting" size="md" />
               </div>
               <div>
-                <h3 className="text-lg font-extrabold text-white">Upgrade to Pro</h3>
+                <h3 className="text-lg font-extrabold text-white">Go Pro</h3>
                 <p className="text-xs text-emerald-100 mt-1 leading-relaxed">
-                  NGN 2,500 / month · Unlimited AI practice, mock exams & priority tutor answers.
+                  NGN 2,500 / month · Unlimited AI tutor practice, mock exams & priority answers.
                 </p>
               </div>
               <Button
@@ -599,7 +671,7 @@ export function DashboardOverview() {
                 onClick={() => navigate("/Shop")}
                 className="w-full font-extrabold mt-1"
               >
-                View Plans
+                Upgrade now
               </Button>
             </Card>
           )}

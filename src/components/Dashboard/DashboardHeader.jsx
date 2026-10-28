@@ -91,7 +91,7 @@ function DashboardHeader({ toggleSidebar }) {
   }, []);
 
   useEffect(() => {
-    const handleSearchShortcut = (event) => {
+    const handleKeyboardShortcuts = (event) => {
       const target = event.target;
       const isTyping = target instanceof HTMLElement && (
         target.tagName === "INPUT" ||
@@ -100,14 +100,24 @@ function DashboardHeader({ toggleSidebar }) {
         target.isContentEditable
       );
 
+      if (event.key === "Escape") {
+        setStreakDropdownOpen(false);
+        setXpDropdownOpen(false);
+        setGemsDropdownOpen(false);
+        setMenuOpen(false);
+        setAiSuggestionsOpen(false);
+        setSearchOpen(false);
+        return;
+      }
+
       if (!isTyping && event.key.toLowerCase() === "k") {
         event.preventDefault();
         setSearchOpen(true);
       }
     };
 
-    document.addEventListener("keydown", handleSearchShortcut);
-    return () => document.removeEventListener("keydown", handleSearchShortcut);
+    document.addEventListener("keydown", handleKeyboardShortcuts);
+    return () => document.removeEventListener("keydown", handleKeyboardShortcuts);
   }, []);
 
   useEffect(() => {
@@ -144,6 +154,8 @@ function DashboardHeader({ toggleSidebar }) {
 
   const openStreakDropdown = () => {
     clearTimeout(streakCloseTimer.current);
+    setXpDropdownOpen(false);
+    setGemsDropdownOpen(false);
     setStreakDropdownOpen(true);
   };
 
@@ -152,11 +164,15 @@ function DashboardHeader({ toggleSidebar }) {
   };
 
   const toggleStreakDropdownMobile = () => {
+    setXpDropdownOpen(false);
+    setGemsDropdownOpen(false);
     setStreakDropdownOpen((prev) => !prev);
   };
 
   const openXpDropdown = () => {
     clearTimeout(xpCloseTimer.current);
+    setStreakDropdownOpen(false);
+    setGemsDropdownOpen(false);
     setXpDropdownOpen(true);
   };
 
@@ -166,6 +182,8 @@ function DashboardHeader({ toggleSidebar }) {
 
   const openGemsDropdown = () => {
     clearTimeout(gemsCloseTimer.current);
+    setStreakDropdownOpen(false);
+    setXpDropdownOpen(false);
     setGemsDropdownOpen(true);
   };
 

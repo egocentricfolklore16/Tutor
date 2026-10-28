@@ -58,7 +58,7 @@ function Overview() {
   const navigate = useNavigate();
   const { profile, isLoading: isProfileLoading } = useProfile();
   const { streak } = useGamification();
-  const { currentStreak, loading: streakLoading, error: streakError, refreshStreak } = streak;
+  const { currentStreak, todayCompleted, freezeTokens, loading: streakLoading, error: streakError, refreshStreak } = streak;
   const [userName, setUserName] = useState("");
   const [_userId, setUserId] = useState(null);
   const [todayMinutes, setTodayMinutes] = useState(0);
@@ -193,7 +193,14 @@ function Overview() {
           </div>
 
           <div className="min-w-0 2xl:col-span-12">
-            <StudyStreak currentStreak={currentStreak} loading={streakLoading} error={streakError} onRetry={refreshStreak} />
+            <StudyStreak
+              currentStreak={currentStreak}
+              todayCompleted={todayCompleted}
+              freezeTokens={freezeTokens}
+              loading={streakLoading}
+              error={streakError}
+              onRetry={refreshStreak}
+            />
           </div>
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <AISuggestions />

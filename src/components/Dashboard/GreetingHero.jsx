@@ -52,12 +52,13 @@ export function GreetingHero({
 
   if (isLoading) {
     return (
-      <div className="hero animate-pulse min-h-[280px] flex items-center p-8 border border-white/10 rounded-3xl bg-slate-900/60">
-        <div className="flex flex-col gap-3 w-1/2">
-          <div className="h-3 w-24 bg-white/20 rounded-md" />
-          <div className="h-8 w-64 bg-white/20 rounded-xl" />
-          <div className="h-4 w-48 bg-white/15 rounded-md" />
-          <div className="h-11 w-36 bg-white/20 rounded-full mt-4" />
+      <div className="hero animate-pulse min-h-[210px] flex items-center p-6 rounded-3xl bg-slate-900/60 relative">
+        <div className="hero-bg" />
+        <div className="flex flex-col gap-2.5 w-1/2 relative z-10">
+          <div className="h-3 w-20 bg-white/20 rounded-md" />
+          <div className="h-7 w-56 bg-white/20 rounded-xl" />
+          <div className="h-3.5 w-44 bg-white/15 rounded-md" />
+          <div className="h-10 w-32 bg-white/20 rounded-full mt-3" />
         </div>
       </div>
     );
@@ -72,6 +73,10 @@ export function GreetingHero({
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
+      {/* Background with clipped rounded corners and layered gradient glow */}
+      <div className="hero-bg" />
+
+      {/* Hero Text Content */}
       <div className="hero-content">
         <p className="hero-eyebrow">{eyebrow}</p>
         <h1 id="hero-title" className="hero-title">
@@ -81,15 +86,16 @@ export function GreetingHero({
         <div className="hero-actions">
           <button type="button" className="hero-cta" onClick={onPrimary}>
             <span>{primaryLabel}</span>
-            <ArrowRight className="w-4 h-4 ml-1.5" />
+            <ArrowRight className="w-3.5 h-3.5 ml-1.5" />
           </button>
           <button type="button" className="hero-ghost" onClick={onSecondary}>
-            <Sparkles className="w-4 h-4 mr-1.5 text-emerald-200" />
+            <Sparkles className="w-3.5 h-3.5 mr-1.5 text-emerald-200" />
             <span>{secondaryLabel}</span>
           </button>
         </div>
       </div>
 
+      {/* Hero Art & Owl Mascot (owl top extends above hero-bg for head-pop effect) */}
       <div className="hero-art" aria-hidden="true">
         <div className="hero-glow-fallback" />
         <img
@@ -112,10 +118,10 @@ export function GreetingHero({
 
         {/* Floating Glass Icon */}
         <div className="glass glass-icon f1">
-          <GraduationCap className="w-8 h-8 text-white" />
+          <GraduationCap className="w-7 h-7 text-white" />
         </div>
 
-        {/* Floating Glass Quote Card */}
+        {/* Floating Glass Quote Card - Owl wing slightly overlaps for depth */}
         {quotes && quotes.length > 0 && (
           <div className="glass glass-quote f2">
             <p key={quoteIndex} className="quote-text">
@@ -130,12 +136,12 @@ export function GreetingHero({
           <div className="glass glass-stat f3">
             {streak !== undefined && (
               <span className="stat-row">
-                <Flame className="w-4 h-4 text-amber-300 fill-amber-300" /> {streak} day streak
+                <Flame className="w-3.5 h-3.5 text-amber-300 fill-amber-300" /> {streak} day streak
               </span>
             )}
             {goalTotal > 0 && (
               <span className="stat-row">
-                <Target className="w-4 h-4 text-emerald-300" /> {goalDone || 0}/{goalTotal} min today
+                <Target className="w-3.5 h-3.5 text-emerald-300" /> {goalDone || 0}/{goalTotal} min today
               </span>
             )}
           </div>

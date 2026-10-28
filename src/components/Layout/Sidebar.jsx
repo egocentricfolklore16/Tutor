@@ -203,7 +203,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           .from("profiles")
           .select("full_name")
           .eq("user_id", currentUser.id)
-          .single();
+          .maybeSingle();
 
         if (error) {
           console.error("Supabase fetch error:", error);

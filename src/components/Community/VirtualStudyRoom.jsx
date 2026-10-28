@@ -122,7 +122,7 @@ export default function VirtualStudyRoom() {
           .from("study_rooms")
           .select("*, host:created_by(id, username, full_name, user_img)")
           .eq("id", roomId)
-          .single();
+          .maybeSingle();
 
         const endMs = Date.now();
         const estimatedServerMs = startMs + Math.round((endMs - startMs) / 2);

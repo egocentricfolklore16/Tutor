@@ -15,3 +15,9 @@
 **Root cause:** Function defined as `_handlePriorityChange` while JSX referenced `handlePriorityChange`, and parameter defined as `_customContext` while body referenced `customContext`.
 **Guardrail added:** Aligned function and parameter names across component, hook, and unit test suites, backed by `pnpm lint` in CI pipeline and `test/feedback.test.js`.
 **Watch for:** Renaming handlers or adding underscore prefixes without checking all usage sites across JSX and callback bodies.
+
+## 2028-05-18 - Unsafe .single() PostgREST query runtime crashes
+**Bug class:** Querying non-existent rows with PostgREST .single() throwing PGRST116 errors and crashing component state.
+**Root cause:** Using `.single()` on queries where zero rows can be returned (such as user profiles, session details, room details, or note details) throws an unhandled exception when no record matches.
+**Guardrail added:** Replaced `.single()` calls with `.maybeSingle()` across `Sidebar.jsx`, `ForumPostDetail.jsx`, `SessionRoom.jsx`, `VirtualStudyRoom.jsx`, and `NoteDetail.jsx`, combining with explicit `!data` checks and adding unit regression test coverage in `test/studyValidation.test.js`.
+**Watch for:** Any new Supabase select queries that fetch specific IDs or foreign keys using `.single()`.

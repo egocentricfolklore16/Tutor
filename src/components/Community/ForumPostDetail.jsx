@@ -82,7 +82,7 @@ export default function ForumPostDetail() {
         .from("forum_posts")
         .select("*")
         .eq("id", postId)
-        .single();
+        .maybeSingle();
 
       if (postErr || !postData) throw new Error("Question not found.");
 

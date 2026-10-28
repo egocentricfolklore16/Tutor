@@ -38,9 +38,9 @@ export default function SessionRoom({
         .from("group_study_sessions")
         .select("*")
         .eq("id", sessionId)
-        .single();
+        .maybeSingle();
 
-      if (sessErr) throw sessErr;
+      if (sessErr || !sess) throw sessErr || new Error("Session not found");
       setSession(sess);
       setIsHost(sess.host_id === currentUserId);
 

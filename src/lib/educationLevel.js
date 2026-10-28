@@ -1,4 +1,19 @@
 export const EDUCATION_LEVEL_SUGGESTIONS = {
+  "Beginner": {
+    label: "Beginner Level",
+    badge: "Beginner",
+    contextNote: "tailored for foundational concepts with step-by-step guidance",
+  },
+  "Intermediate": {
+    label: "Intermediate Level",
+    badge: "Intermediate",
+    contextNote: "focused on deepening core concepts and practical problem solving",
+  },
+  "Advanced": {
+    label: "Advanced Level",
+    badge: "Advanced",
+    contextNote: "paced for high-level theory, synthesis, and complex challenges",
+  },
   "High school": {
     label: "High School Student",
     badge: "High School",
@@ -38,6 +53,15 @@ export function getEducationLevelSuggestion(educationLevel) {
     }
   }
 
+  if (/beginner|novice|intro/i.test(trimmed)) {
+    return EDUCATION_LEVEL_SUGGESTIONS["Beginner"];
+  }
+  if (/intermediate|medium/i.test(trimmed)) {
+    return EDUCATION_LEVEL_SUGGESTIONS["Intermediate"];
+  }
+  if (/advanced|expert|master/i.test(trimmed)) {
+    return EDUCATION_LEVEL_SUGGESTIONS["Advanced"];
+  }
   if (/grade|high school|k-12/i.test(trimmed)) {
     return EDUCATION_LEVEL_SUGGESTIONS["High school"];
   }

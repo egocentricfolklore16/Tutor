@@ -142,8 +142,8 @@ function NoteDetail() {
           .from("session_notes")
           .select("id, session_id, title, content, created_at")
           .eq("id", noteId)
-          .single(),
-        supabase.from("Study").select("Status").eq("id", Studyid).single(),
+          .maybeSingle(),
+        supabase.from("Study").select("Status").eq("id", Studyid).maybeSingle(),
       ]);
 
       if (error) setStatus("error");

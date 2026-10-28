@@ -55,3 +55,15 @@ test('study session duration and past-date validation helpers logic', () => {
   assert.equal(isFutureDateTime('2028-05-10', '11:00', fakeNow), false);
   assert.equal(isFutureDateTime('2028-05-09', '14:00', fakeNow), false);
 });
+
+test('maybeSingle query result evaluation helper handles missing rows safely', () => {
+  const resolveSingleResult = (queryResult) => {
+    const { data, error } = queryResult;
+    if (error || !data) return null;
+    return data;
+  };
+
+  assert.equal(resolveSingleResult({ data: { id: '123', name: 'Test Room' }, error: null })?.name, 'Test Room');
+  assert.equal(resolveSingleResult({ data: null, error: null }), null);
+  assert.equal(resolveSingleResult({ data: null, error: { message: 'PGRST116' } }), null);
+});

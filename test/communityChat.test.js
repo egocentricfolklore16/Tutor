@@ -108,6 +108,11 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
   assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
 
+  // ASCII control character obfuscation payloads
+  assert.equal(sanitizeUrl("java\x00script:alert(1)"), "#");
+  assert.equal(sanitizeUrl("java\r\nscript:alert(1)"), "#");
+  assert.equal(sanitizeUrl("https://example.com/path\x07"), "https://example.com/path");
+
   // Edge cases
   assert.equal(sanitizeUrl(null), "#");
   assert.equal(sanitizeUrl(undefined), "#");

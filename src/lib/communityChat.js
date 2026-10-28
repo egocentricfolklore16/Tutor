@@ -228,12 +228,14 @@ export function clearChatDraft(conversationId) {
  */
 export function sanitizeUrl(urlInput) {
   if (!urlInput || typeof urlInput !== "string") return "#";
-  const trimmed = urlInput.trim();
-  if (!trimmed) return "#";
+  // Strip ASCII control characters and whitespace
+  // eslint-disable-next-line no-control-regex
+  const clean = urlInput.replace(/[\x00-\x1F\x7F]/g, "").trim();
+  if (!clean) return "#";
 
   // Allow safe absolute and relative URL protocols (http, https, mailto, tel, relative path / or #)
-  if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(trimmed)) {
-    return trimmed;
+  if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(clean)) {
+    return clean;
   }
 
   // Fallback to safe anchor for dangerous protocols (javascript:, data:, vbscript:, etc.)

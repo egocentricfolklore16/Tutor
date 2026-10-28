@@ -76,29 +76,29 @@ export default function LeaderboardTable({ entries, currentUser, metric, onUserC
 }
 
 function RankChangeIndicator({ change }) {
-  if (change > 0) {
+  if (!change) {
     return (
-      <span
-        className="flex items-center text-[10px] font-bold text-emerald-600 dark:text-emerald-400 shrink-0"
-        title={`Up ${change} positions`}
-      >
-        <ArrowUp className="h-3 w-3" />
+      <span className="flex items-center text-[10px] text-slate-400 shrink-0" title="No rank change">
+        <Minus className="h-3 w-3" />
       </span>
     );
   }
-  if (change < 0) {
+  if (change > 0) {
     return (
       <span
-        className="flex items-center text-[10px] font-bold text-rose-600 dark:text-rose-400 shrink-0"
-        title={`Down ${Math.abs(change)} positions`}
+        className="flex items-center text-[10px] font-extrabold text-emerald-600 dark:text-emerald-400 shrink-0 gap-0.5"
+        title={`Up ${change} positions`}
       >
-        <ArrowDown className="h-3 w-3" />
+        <ArrowUp className="h-3 w-3 stroke-[3]" />+{change}
       </span>
     );
   }
   return (
-    <span className="flex items-center text-[10px] text-slate-400 shrink-0" title="No rank change">
-      <Minus className="h-3 w-3" />
+    <span
+      className="flex items-center text-[10px] font-extrabold text-rose-600 dark:text-rose-400 shrink-0 gap-0.5"
+      title={`Down ${Math.abs(change)} positions`}
+    >
+      <ArrowDown className="h-3 w-3 stroke-[3]" />{change}
     </span>
   );
 }

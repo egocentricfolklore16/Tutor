@@ -540,3 +540,14 @@ export function Input({
     </div>
   );
 }
+
+export function Tooltip({ children, text }) {
+  return (
+    <div className="relative group inline-block">
+      {children}
+      <div className="absolute bottom-full mb-1.5 left-1/2 -translate-x-1/2 hidden group-hover:block px-2.5 py-1 text-[11px] font-bold text-white bg-slate-900 dark:bg-slate-800 rounded-md whitespace-nowrap shadow-md z-50 pointer-events-none">
+        {text}
+      </div>
+    </div>
+  );
+}

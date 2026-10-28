@@ -117,7 +117,7 @@ export function DashboardOverview() {
         }
       } catch (err) {
         console.error("Error loading dashboard data:", err);
-      } font-medium {
+      } finally {
         if (isMounted) setLoadingSessions(false);
       }
     }

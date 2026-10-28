@@ -81,3 +81,9 @@
 **Learning:** Students can bypass Socratic answer locking by phrasing answer demands with output/display/generation verbs (`output`, `generate`, `return`, `display`, `print`, `share`, `reveal`), concept target nouns (`formula`, `definition`, `proof`, `equation`, `derivation`), computation verbs (`compute`, `evaluate`, `resolve`), or short non-attempt inputs (`help me`, `skip`, `n/a`, `nothing`). Expanding `targetNoun`, demand verbs, problem-solving command verbs, and exact non-attempt regexes in `countGenuineAttempts` ensures these zero-effort submissions do not prematurely increment attempt counts and unlock answers on turn 1.
 
 **Action:** Maintain comprehensive coverage of generation verbs, concept target nouns, math problem-solving verbs, and exact non-attempt phrases in `countGenuineAttempts` while verifying that genuine subject queries, hint requests, and reasoning statements pass through.
+
+## 2026-10-16 - Filtering Answer Key, Solution Key, and Rubric Demands in Turn Counting
+
+**Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
+
+**Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.

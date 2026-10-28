@@ -171,6 +171,13 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "compute this",
     "evaluate this for me",
     "can you resolve this",
+    "give me the answer key",
+    "show me the key",
+    "tell me the rubric",
+    "provide the answer key",
+    "give me the solution key",
+    "what is the rubric",
+    "give me the grading scheme",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [

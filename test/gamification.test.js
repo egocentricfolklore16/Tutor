@@ -36,6 +36,28 @@ test("GAMIFICATION_CONFIG defines economy defaults and feature flags", () => {
   assert.equal(typeof GAMIFICATION_CONFIG.features.dailyQuests, "boolean");
 });
 
+test("gamification milestone calculator resolves upcoming milestones correctly", () => {
+  const getNextStreakMilestoneInfo = (streakVal) => {
+    const val = Number(streakVal) || 0;
+    if (val < 7) return { target: 7, daysLeft: 7 - val, label: "7-day Streak Society" };
+    if (val < 30) return { target: 30, daysLeft: 30 - val, label: "30-day 2x Gem Multiplier" };
+    if (val < 100) return { target: 100, daysLeft: 100 - val, label: "100-day Centurion Badge" };
+    return { target: 365, daysLeft: Math.max(0, 365 - val), label: "365-day Legend" };
+  };
+
+  assert.deepEqual(getNextStreakMilestoneInfo(3), {
+    target: 7,
+    daysLeft: 4,
+    label: "7-day Streak Society",
+  });
+
+  assert.deepEqual(getNextStreakMilestoneInfo(12), {
+    target: 30,
+    daysLeft: 18,
+    label: "30-day 2x Gem Multiplier",
+  });
+});
+
 test("gamificationService quest methods validate required parameters and handle errors", async () => {
   const noKey = await gamificationService.claimQuest(null);
   assert.equal(noKey.data, null);

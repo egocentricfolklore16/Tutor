@@ -1,7 +1,9 @@
 import React from "react";
-import { AlertCircle, RefreshCw } from "lucide-react";
+import { AlertCircle, ArrowRight, Flame, RefreshCw, ShieldCheck, Snowflake } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
-function StudyStreak({ streak, currentStreak: directStreak, loading, error, onRetry }) {
+function StudyStreak({ streak, currentStreak: directStreak, todayCompleted, freezeTokens = 0, loading, error, onRetry }) {
+  const navigate = useNavigate();
   const currentStreak = directStreak ?? streak?.display_current_streak ?? null;
 
   if (error) {
@@ -64,6 +66,44 @@ function StudyStreak({ streak, currentStreak: directStreak, loading, error, onRe
           <p className="mt-2 text-sm font-medium text-red-600 dark:text-red-400">days in a row</p>
         </div></>}
       </div>
+
+      {!loading && !error && currentStreak > 0 && (
+        <div className="mt-3 flex flex-col gap-2.5 rounded-xl bg-orange-50/80 p-3.5 sm:flex-row sm:items-center sm:justify-between dark:bg-orange-950/30 border border-orange-200/60 dark:border-orange-900/40">
+          <div className="flex items-center gap-2.5 text-xs text-orange-900 dark:text-orange-200">
+            {todayCompleted ? (
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300">
+                <ShieldCheck className="h-4 w-4" />
+              </span>
+            ) : (
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-orange-100 text-orange-600 dark:bg-orange-900/50 dark:text-orange-300">
+                <Flame className="h-4 w-4 animate-pulse" />
+              </span>
+            )}
+            <div className="min-w-0">
+              <p className="font-bold">
+                {todayCompleted
+                  ? `Streak safe for today! ${currentStreak}-day streak secured.`
+                  : `Keep your ${currentStreak}-day streak alive! Complete a session before 3:00 AM cutoff.`}
+              </p>
+              {!todayCompleted && freezeTokens > 0 && (
+                <p className="mt-0.5 text-[11px] font-medium text-blue-700 dark:text-blue-300 flex items-center gap-1">
+                  <Snowflake className="h-3 w-3" /> {freezeTokens} Streak Freeze Token available as backup.
+                </p>
+              )}
+            </div>
+          </div>
+
+          {!todayCompleted && (
+            <button
+              type="button"
+              onClick={() => navigate("/Study")}
+              className="inline-flex shrink-0 items-center justify-center gap-1.5 rounded-lg bg-orange-500 px-3.5 py-1.5 text-xs font-bold text-white shadow-xs transition hover:bg-orange-600"
+            >
+              Protect Streak <ArrowRight className="h-3.5 w-3.5" />
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

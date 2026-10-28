@@ -5,6 +5,8 @@ import { formatMetricValue } from "../../utils/rankUtils";
 export default function YourRankCard({ me, metric }) {
   if (!me) return null;
 
+  const displayRank = me.rank ? `#${me.rank}` : "#—";
+
   return (
     <div
       role="region"
@@ -14,7 +16,7 @@ export default function YourRankCard({ me, metric }) {
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">
           <span className="shrink-0 inline-flex items-center justify-center rounded-2xl bg-emerald-600 px-3 py-1 text-xs font-black text-white shadow-xs dark:bg-emerald-500 dark:text-slate-950">
-            #{me.rank || "—"}
+            {displayRank}
           </span>
 
           <Avatar
@@ -35,7 +37,7 @@ export default function YourRankCard({ me, metric }) {
               </span>
             </div>
             <p className="text-[10px] font-medium text-slate-500 dark:text-slate-400 truncate">
-              Keep studying to climb the board!
+              {me.rank ? "Keep studying to climb the board!" : "Complete a study session to claim your rank!"}
             </p>
           </div>
         </div>

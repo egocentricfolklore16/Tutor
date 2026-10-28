@@ -1,6 +1,7 @@
 export * from "./types";
 export * from "./constants";
 export * from "./utils/rankUtils";
+export * from "./utils/friendsUtils";
 
 export * from "./services/leaderboardService";
 export * from "./services/friendsService";

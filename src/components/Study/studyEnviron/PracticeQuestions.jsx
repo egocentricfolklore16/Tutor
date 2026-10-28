@@ -11,6 +11,7 @@ import {
   Sparkles,
   Star,
   Target,
+  Trophy,
   XCircle,
   ChevronRight,
   ChevronLeft,
@@ -126,10 +127,13 @@ function QuizModal({
 }) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOption, setSelectedOption] = useState(null);
-  const [feedback, setFeedback] = useState(null); // { isCorrect, explanation }
+  const [feedback, setFeedback] = useState(null);
 
-  const isResults = Boolean(result);
-  const modalOpen = Boolean(quiz || result);
+  useEffect(() => {
+    setCurrentIndex(0);
+    setSelectedOption(null);
+    setFeedback(null);
+  }, [quiz?.id, result?.quiz?.id]);
 
   useEffect(() => {
     if (quiz && answers) {
@@ -143,6 +147,7 @@ function QuizModal({
     }
   }, [currentIndex, quiz, answers]);
 
+  const modalOpen = Boolean(quiz || result);
   if (!modalOpen) return null;
 
   const activeQuiz = result?.quiz || quiz;
@@ -151,7 +156,7 @@ function QuizModal({
   const totalQuestions = activeQuestions.length;
 
   const handleOptionClick = (optionIdx) => {
-    if (feedback !== null) return; // Prevent changing after answer confirmed
+    if (feedback !== null || !currentQuestion) return;
     setSelectedOption(optionIdx);
     onSelectAnswer(currentQuestion.id, optionIdx);
 
@@ -183,12 +188,12 @@ function QuizModal({
     <Modal
       isOpen={modalOpen}
       onClose={onClose}
-      title={isResults ? "Quiz Results" : activeQuiz?.title || "Quiz Focus"}
+      title={result ? "Quiz Results" : activeQuiz?.title || "Quiz Focus"}
       maxWidth="max-w-xl"
     >
-      {isResults ? (
+      {result ? (
         <div className="flex flex-col items-center text-center gap-6 py-4">
-          <div className="p-4 rounded-full bg-violet-50 text-violet-600 dark:bg-violet-950/60 dark:text-violet-400">
+          <div className="p-4 rounded-full bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
             <Trophy className="w-12 h-12" />
           </div>
 
@@ -204,7 +209,7 @@ function QuizModal({
           <ProgressBar
             value={result.score}
             max={result.total}
-            variant={result.score / result.total >= 0.7 ? "mint" : "rose"}
+            variant={result.score / result.total >= 0.7 ? "emerald" : "rose"}
           />
 
           <div className="flex items-center gap-3 w-full mt-4">
@@ -212,7 +217,10 @@ function QuizModal({
               variant="outline"
               size="md"
               leftIcon={<RotateCcw className="w-4 h-4" />}
-              onClick={onTryAgain}
+              onClick={() => {
+                setCurrentIndex(0);
+                onTryAgain();
+              }}
               className="flex-1"
             >
               Review Mistakes
@@ -234,12 +242,12 @@ function QuizModal({
             <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
               Question {currentIndex + 1} of {totalQuestions}
             </span>
-            <Badge variant="violet" size="sm">
+            <Badge variant="emerald" size="sm">
               {Math.round(((currentIndex + 1) / totalQuestions) * 100)}%
             </Badge>
           </div>
 
-          <ProgressBar value={currentIndex + 1} max={totalQuestions} variant="violet" />
+          <ProgressBar value={currentIndex + 1} max={totalQuestions} variant="emerald" />
 
           {/* Question Text */}
           <Card padding="p-6">
@@ -253,7 +261,7 @@ function QuizModal({
             {currentQuestion?.options.map((optionText, idx) => {
               const isSelected = selectedOption === idx;
               let optionStyle =
-                "bg-slate-50 dark:bg-[#181432] border-slate-200/80 dark:border-violet-900/40 text-slate-800 dark:text-slate-200";
+                "bg-slate-50 dark:bg-[#14171c] border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200";
 
               if (feedback && isSelected) {
                 optionStyle = feedback.isCorrect
@@ -268,7 +276,7 @@ function QuizModal({
                   onClick={() => handleOptionClick(idx)}
                   className={`flex items-center gap-3 p-4 rounded-2xl border text-left font-semibold text-sm transition-all min-h-[48px] ${optionStyle}`}
                 >
-                  <span className="w-7 h-7 rounded-full bg-slate-200 dark:bg-violet-900/60 text-xs font-bold flex items-center justify-center shrink-0">
+                  <span className="w-7 h-7 rounded-full bg-slate-200 dark:bg-slate-800 text-xs font-bold flex items-center justify-center shrink-0">
                     {String.fromCharCode(65 + idx)}
                   </span>
                   <span className="flex-1">{optionText}</span>
@@ -355,6 +363,7 @@ function PracticeQuestions({ studyId, userId, topic, onTimelineEvent, requestedQ
   const [isLoading, setIsLoading] = useState(true);
   const [savingId, setSavingId] = useState(null);
   const [error, setError] = useState("");
+  const requestedLookupRef = useRef(null);
 
   const loadQuizzes = useCallback(async () => {
     if (!studyId) {
@@ -430,6 +439,24 @@ function PracticeQuestions({ studyId, userId, topic, onTimelineEvent, requestedQ
     setAnswers({});
   }, [quizzes]);
 
+  // Listener for AI Tutor requested quiz action card
+  useEffect(() => {
+    if (!requestedQuizId || isLoading) return;
+    const requestedQuiz = quizzes.find((quiz) => String(quiz.id) === String(requestedQuizId));
+    if (requestedQuiz) {
+      startQuiz(requestedQuiz.id);
+      requestedLookupRef.current = null;
+      onQuizOpened?.();
+      return;
+    }
+    if (requestedLookupRef.current !== String(requestedQuizId)) {
+      requestedLookupRef.current = String(requestedQuizId);
+      loadQuizzes();
+    } else {
+      setError("That practice set could not be found in this study session.");
+    }
+  }, [requestedQuizId, quizzes, isLoading, startQuiz, onQuizOpened, loadQuizzes]);
+
   const selectAnswer = useCallback((questionId, selectedIndex) => {
     setAnswers((current) => ({ ...current, [questionId]: selectedIndex }));
   }, []);
@@ -493,7 +520,7 @@ function PracticeQuestions({ studyId, userId, topic, onTimelineEvent, requestedQ
       <Card>
         <div className="flex items-center justify-between mb-2">
           <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-            <BookOpen className="w-5 h-5 text-violet-600" />
+            <BookOpen className="w-5 h-5 text-emerald-600" />
             Session Quizzes
           </h2>
           <Button variant="soft" size="sm" onClick={() => loadQuizzes()}>
@@ -511,7 +538,7 @@ function PracticeQuestions({ studyId, userId, topic, onTimelineEvent, requestedQ
         </Card>
       ) : quizzes.length === 0 ? (
         <Card className="p-8 flex flex-col items-center text-center gap-3">
-          <HelpCircle className="w-8 h-8 text-violet-500" />
+          <HelpCircle className="w-8 h-8 text-emerald-500" />
           <h3 className="text-base font-bold text-slate-900 dark:text-white">
             No Quizzes Available
           </h3>
@@ -537,7 +564,7 @@ function PracticeQuestions({ studyId, userId, topic, onTimelineEvent, requestedQ
                     </p>
                   </div>
                   {lastAttempt && (
-                    <Badge variant={lastAttempt.score / lastAttempt.total >= 0.7 ? "mint" : "amber"} size="sm">
+                    <Badge variant={lastAttempt.score / lastAttempt.total >= 0.7 ? "emerald" : "amber"} size="sm">
                       Score: {lastAttempt.score}/{lastAttempt.total}
                     </Badge>
                   )}

@@ -3,7 +3,15 @@ import assert from "node:assert/strict";
 import { getEducationLevelSuggestion, EDUCATION_LEVEL_SUGGESTIONS } from "../src/lib/educationLevel.js";
 
 test("getEducationLevelSuggestion maps all onboarding options accurately", () => {
-  const options = ["High school", "College / university", "Working professional", "Independent learner"];
+  const options = [
+    "Beginner",
+    "Intermediate",
+    "Advanced",
+    "High school",
+    "College / university",
+    "Working professional",
+    "Independent learner",
+  ];
 
   for (const option of options) {
     const info = getEducationLevelSuggestion(option);
@@ -12,7 +20,10 @@ test("getEducationLevelSuggestion maps all onboarding options accurately", () =>
   }
 });
 
-test("getEducationLevelSuggestion handles case variations and grade level strings", () => {
+test("getEducationLevelSuggestion handles case variations and level strings", () => {
+  assert.equal(getEducationLevelSuggestion("beginner").badge, "Beginner");
+  assert.equal(getEducationLevelSuggestion("intermediate").badge, "Intermediate");
+  assert.equal(getEducationLevelSuggestion("advanced").badge, "Advanced");
   assert.equal(getEducationLevelSuggestion("high school").badge, "High School");
   assert.equal(getEducationLevelSuggestion("11th Grade").badge, "High School");
   assert.equal(getEducationLevelSuggestion("College Freshman").badge, "College / University");

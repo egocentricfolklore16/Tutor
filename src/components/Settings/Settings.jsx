@@ -15,7 +15,7 @@ import { hasAccessibilityNeed } from "../../lib/accessibility.js";
 import { getSubjectOptions } from "../../lib/userSubjects.js";
 
 const STORAGE_BUCKET = "user-images";
-const levels = ["High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
+const levels = ["Beginner", "Intermediate", "Advanced", "High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
 const primaryGoalOptions = ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"];
 const learnerTypeOptions = ["Academic achiever", "Struggling learner", "Lifelong learner"];
 const styles = ["Visual", "Practice first", "Step-by-step", "Conversation"];

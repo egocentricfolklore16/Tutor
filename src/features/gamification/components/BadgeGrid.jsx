@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Check, CheckCircle2, Lock, Loader2, AlertCircle, RefreshCw } from "lucide-react";
 import AchievementIcon from "../../../components/common/AchievementIcon";
 import { sortBadges } from "../utils/badgeUtils";
@@ -16,6 +16,10 @@ export default function BadgeGrid({
   onBadgeClick = null,
   onRetry = null,
 }) {
+  // Memoize sorted badges at the top of the hook unconditionally to comply with React hook rules
+  const sortedBadges = useMemo(() => sortBadges(badges), [badges]);
+  const displayBadges = useMemo(() => (limit ? sortedBadges.slice(0, limit) : sortedBadges), [limit, sortedBadges]);
+
   if (loading) {
     return (
       <div className="flex min-h-[140px] items-center justify-center gap-2 rounded-2xl bg-slate-50/60 dark:bg-slate-800/40 p-4">
@@ -42,9 +46,6 @@ export default function BadgeGrid({
       </div>
     );
   }
-
-  const sortedBadges = sortBadges(badges);
-  const displayBadges = limit ? sortedBadges.slice(0, limit) : sortedBadges;
 
   if (displayBadges.length === 0) {
     return (

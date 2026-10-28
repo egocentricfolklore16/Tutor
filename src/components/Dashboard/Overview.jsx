@@ -34,6 +34,8 @@ import {
   ErrorState,
   SectionLabel,
 } from "../common/UIKit";
+import GreetingHero from "./GreetingHero";
+import { getHeroState } from "./getHeroState";
 import supabase from "../../lib/supabase";
 
 export function DashboardOverview() {
@@ -60,25 +62,6 @@ export function DashboardOverview() {
   const [loadingSessions, setLoadingSessions] = useState(true);
   const [weeklyFocusData, setWeeklyFocusData] = useState([]);
 
-  // Time-aware greeting using profile timezone
-  const getTimeOfDayGreeting = () => {
-    try {
-      const userTz = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const hour = new Date().toLocaleTimeString("en-US", { timeZone: userTz, hour12: false, hour: "2-digit" });
-      const currentHour = parseInt(hour, 10);
-      if (currentHour < 12) return "Good morning";
-      if (currentHour < 18) return "Good afternoon";
-      return "Good evening";
-    } catch {
-      const hour = new Date().getHours();
-      if (hour < 12) return "Good morning";
-      if (hour < 18) return "Good afternoon";
-      return "Good evening";
-    }
-  };
-
-  const greetingTime = getTimeOfDayGreeting();
-
   useEffect(() => {
     if (profile) {
       const name = profile.full_name?.split(" ")[0] || profile.username || "Learner";
@@ -93,21 +76,31 @@ export function DashboardOverview() {
         const { data: { user } } = await supabase.auth.getUser();
         if (!user) return;
 
+        // Query the Study table according to the exact Data Contract schema
         const { data: sessionData } = await supabase
-          .from("study_sessions")
-          .select("id, title, subject, topic, status, duration_minutes, current_step")
+          .from("Study")
+          .select('id, Subject, Topic, session_status, Duration, time_left, Date, Start, user_id')
           .eq("user_id", user.id)
-          .order("updated_at", { ascending: false })
+          .order("Date", { ascending: false })
           .limit(5);
 
         if (isMounted) {
-          setSessions(sessionData || []);
+          const mappedSessions = (sessionData || []).map((s) => ({
+            id: s.id,
+            subject: s.Subject,
+            topic: s.Topic,
+            status: s.session_status,
+            duration_minutes: s.Duration || 25,
+            current_step: 1,
+          }));
+          setSessions(mappedSessions);
           setLoadingSessions(false);
         }
 
+        // Query daily_session_tracking according to contract (activity_date, total_study_hours)
         const { data: trackingData } = await supabase
           .from("daily_session_tracking")
-          .select("activity_date, total_duration_seconds")
+          .select("activity_date, total_study_hours")
           .eq("user_id", user.id)
           .order("activity_date", { ascending: false })
           .limit(7);
@@ -128,18 +121,10 @@ export function DashboardOverview() {
     };
   }, []);
 
-  const activeSession = sessions.find((s) => s.status === "in_progress" || s.status === "paused") || sessions[0];
+  const activeSession = sessions.find((s) => s.status === "active" || s.status === "paused") || sessions[0];
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
   const isProUser = profile?.subscription_tier === "pro" || profile?.subscription_tier === "elite";
   const hasNoData = sessions.length === 0 && xpTotal === 0 && currentStreak === 0;
-
-  const handleStartSession = () => {
-    if (activeSession) {
-      navigate(`/Study/${activeSession.id}`);
-    } else {
-      navigate("/Study", { state: { openCreateSession: true } });
-    }
-  };
 
   const openAiTutor = (topic = "") => {
     window.dispatchEvent(
@@ -149,59 +134,59 @@ export function DashboardOverview() {
     );
   };
 
+  const handleStartSession = () => {
+    if (activeSession) {
+      navigate(`/Study/${activeSession.id}`);
+    } else {
+      navigate("/Study", { state: { openCreateSession: true } });
+    }
+  };
+
+  const getCurrentHour = () => {
+    try {
+      const userTz = profile?.timezone || Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const hourStr = new Date().toLocaleTimeString("en-US", { timeZone: userTz, hour12: false, hour: "2-digit" });
+      return parseInt(hourStr, 10);
+    } catch {
+      return new Date().getHours();
+    }
+  };
+
+  const currentHour = getCurrentHour();
+
+  const heroState = getHeroState({
+    hour: currentHour,
+    name: userName,
+    isNewUser: hasNoData,
+    resumable: activeSession ? { id: activeSession.id, topic: activeSession.topic, subject: activeSession.subject } : null,
+    streak: currentStreak,
+    lastActiveDate: profile?.last_active_date || null,
+    studiedToday: todayCompleted,
+    goalMinutes: profile?.daily_goal_minutes || 45,
+    doneMinutes: Math.round((weeklyFocusData[0]?.total_study_hours || 0) * 60),
+  });
+
   return (
     <PageContainer maxWidth="max-w-7xl">
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* CENTER COLUMN (8 cols) */}
         <div className="lg:col-span-8 flex flex-col gap-6 min-w-0">
-          {/* 1. HERO GREETING CARD */}
-          <Card
-            variant="gradient"
-            padding="p-6 md:p-8"
-            className="relative overflow-hidden flex flex-col justify-between min-h-[180px] md:min-h-[200px]"
-          >
-            <div className="relative z-10 flex items-start justify-between">
-              <div className="flex flex-col gap-1.5 max-w-lg">
-                <Badge variant="amber" size="sm" icon={Sparkles}>
-                  Lumo AI Companion
-                </Badge>
-                <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight text-white mt-1">
-                  {greetingTime}, {userName}!
-                </h1>
-                <p className="text-xs md:text-sm text-emerald-100 font-medium leading-relaxed mt-0.5">
-                  {activeSession
-                    ? `You have a session waiting: "${activeSession.topic || activeSession.subject || "Study Session"}".`
-                    : currentStreak > 0
-                    ? `Study 10 minutes to keep your ${currentStreak}-day streak going!`
-                    : "Ready for a focused study session?"}
-                </p>
-              </div>
-              <Lumo pose="greeting" size="lg" className="hidden sm:block shrink-0" />
-            </div>
-
-            <div className="relative z-10 flex flex-wrap items-center gap-3 mt-6">
-              <Button
-                variant="cta"
-                size="md"
-                leftIcon={<Play className="w-4 h-4 fill-current" />}
-                onClick={handleStartSession}
-                className="font-extrabold text-white"
-              >
-                {activeSession ? `Resume ${activeSession.subject || "Session"}` : "Start Study Session"}
-              </Button>
-              <Button
-                variant="ghost"
-                size="md"
-                leftIcon={<Sparkles className="w-4 h-4 text-emerald-200" />}
-                onClick={() => openAiTutor()}
-                className="text-white hover:bg-white/10"
-              >
-                Ask AI Tutor
-              </Button>
-            </div>
-
-            <div className="absolute -right-10 -bottom-10 w-64 h-64 rounded-full bg-emerald-400/20 blur-3xl pointer-events-none" />
-          </Card>
+          {/* 1. CAMPUS-APP BANNER GREETING HERO */}
+          <GreetingHero
+            eyebrow={heroState.eyebrow}
+            headline={heroState.headline}
+            subline={heroState.subline}
+            primaryLabel={heroState.primaryLabel}
+            onPrimary={handleStartSession}
+            secondaryLabel={heroState.secondaryLabel}
+            onSecondary={() => openAiTutor()}
+            timeVariant={heroState.timeVariant}
+            owlSrc="/logo3.png"
+            streak={currentStreak}
+            goalDone={Math.round((weeklyFocusData[0]?.total_study_hours || 0) * 60)}
+            goalTotal={profile?.daily_goal_minutes || 45}
+            isLoading={isProfileLoading}
+          />
 
           {/* ONBOARDING CARD FOR BRAND NEW ACCOUNTS */}
           {hasNoData && !loadingSessions && (
@@ -344,7 +329,7 @@ export function DashboardOverview() {
               <div className="flex gap-4 overflow-x-auto pb-2 no-scrollbar">
                 {sessions.map((s) => {
                   const isCompleted = s.status === "completed";
-                  const inProgress = s.status === "in_progress";
+                  const inProgress = s.status === "active";
                   const isPaused = s.status === "paused";
 
                   const badgeVariant = isCompleted
@@ -414,8 +399,7 @@ export function DashboardOverview() {
               <div className="flex items-baseline gap-2 mb-3">
                 <span className="text-2xl font-extrabold tabular-nums text-slate-900 dark:text-white">
                   {Math.round(
-                    weeklyFocusData.reduce((acc, curr) => acc + (curr.total_duration_seconds || 0), 0) /
-                      3600
+                    weeklyFocusData.reduce((acc, curr) => acc + (curr.total_study_hours || 0), 0)
                   )}{" "}
                   hrs
                 </span>

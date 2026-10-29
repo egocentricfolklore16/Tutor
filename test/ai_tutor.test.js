@@ -127,6 +127,36 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     assert.strictEqual(countGenuineAttempts(nonAttemptHistory), 0, `Exact non-attempt '${nonAttempt}' must be filtered as 0 genuine attempts`);
   }
 
+  const zeroEffortDeclarations = [
+    "i have no idea",
+    "i have no clue",
+    "i'm clueless",
+    "i am clueless",
+    "clueless",
+    "i am lost",
+    "i'm lost",
+    "i am confused",
+    "i'm confused",
+    "i don't get it",
+    "i'm not sure",
+    "i am not sure",
+  ];
+  for (const decl of zeroEffortDeclarations) {
+    const declHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: decl },
+    ];
+    assert.strictEqual(countGenuineAttempts(declHistory), 0, `Zero-effort declaration '${decl}' must be filtered as 0 genuine attempts`);
+  }
+
+  const reasoningWithConfusion = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "I'm confused because I thought subtracting 5 gives 15, but what do I do with 3x?" },
+  ];
+  assert.strictEqual(countGenuineAttempts(reasoningWithConfusion), 1, "Confusion declaration with reasoning ('because...') must count as 1 genuine attempt");
+
   const stepAndWorkDemands = [
     "show me the steps",
     "give me the step by step",

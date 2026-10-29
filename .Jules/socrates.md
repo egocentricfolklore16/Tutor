@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-10-17 - Filtering Zero-Effort Confusion and Loss Declarations in Turn Counting
+
+**Learning:** Declarations of zero-effort confusion or lack of knowledge ("i have no idea", "i have no clue", "i'm clueless", "i am lost", "i'm confused", "i don't get it", "i'm not sure") previously bypassed `countGenuineAttempts` because `cleanLower.startsWith(...)` only checked phrases starting with "i don't know" / "i don't understand" / "idk" / "i am stuck". As a result, sending "i have no idea" or "i'm lost" on turn 1 incremented `attemptCount` to 1 and prematurely unlocked answer-giving in `hints_then_answer` mode. Adding zero-effort confusion and loss declarations to `nonAttemptExactRegex` and `cleanLower.startsWith(...)` in `countGenuineAttempts` ensures students cannot bypass Socratic mode with simple confusion statements, while preserving reasoning statements containing keywords like `because` or `think`.
+
+**Action:** Expand non-attempt declaration prefix checks in `countGenuineAttempts` to cover zero-effort loss and confusion phrasing (`no idea`, `no clue`, `clueless`, `lost`, `confused`, `don't get it`, `not sure`) while maintaining the `because` and `think` reasoning exceptions.

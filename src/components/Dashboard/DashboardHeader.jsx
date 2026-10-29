@@ -180,6 +180,12 @@ function DashboardHeader({ toggleSidebar }) {
     xpCloseTimer.current = setTimeout(() => setXpDropdownOpen(false), 150);
   };
 
+  const toggleXpDropdownMobile = () => {
+    setStreakDropdownOpen(false);
+    setGemsDropdownOpen(false);
+    setXpDropdownOpen((prev) => !prev);
+  };
+
   const openGemsDropdown = () => {
     clearTimeout(gemsCloseTimer.current);
     setStreakDropdownOpen(false);
@@ -189,6 +195,12 @@ function DashboardHeader({ toggleSidebar }) {
 
   const closeGemsDropdown = () => {
     gemsCloseTimer.current = setTimeout(() => setGemsDropdownOpen(false), 150);
+  };
+
+  const toggleGemsDropdownMobile = () => {
+    setStreakDropdownOpen(false);
+    setXpDropdownOpen(false);
+    setGemsDropdownOpen((prev) => !prev);
   };
 
   const runSearch = async (event) => {
@@ -399,16 +411,16 @@ function DashboardHeader({ toggleSidebar }) {
 
         {/* XP Button & Dropdown */}
         <div
-          className="relative hidden sm:block"
+          className="relative inline-block"
           onMouseEnter={openXpDropdown}
           onMouseLeave={closeXpDropdown}
         >
           <button
             type="button"
-            onClick={() => setXpDropdownOpen((prev) => !prev)}
+            onClick={toggleXpDropdownMobile}
             aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
             aria-expanded={xpDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
+            className="inline-flex cursor-pointer items-center gap-1 sm:gap-1.5 rounded-2xl bg-amber-200 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
           >
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
           </button>
@@ -453,16 +465,16 @@ function DashboardHeader({ toggleSidebar }) {
 
         {/* Gems Button & Dropdown */}
         <div
-          className="relative hidden md:block"
+          className="relative inline-block"
           onMouseEnter={openGemsDropdown}
           onMouseLeave={closeGemsDropdown}
         >
           <button
             type="button"
-            onClick={() => setGemsDropdownOpen((prev) => !prev)}
+            onClick={toggleGemsDropdownMobile}
             aria-label={`Gems balance: ${gemsCount}`}
             aria-expanded={gemsDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
+            className="inline-flex cursor-pointer items-center gap-1 sm:gap-1.5 rounded-2xl bg-cyan-200 px-2 py-1 sm:px-3 sm:py-1.5 text-xs font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
           >
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
           </button>
@@ -521,9 +533,23 @@ function DashboardHeader({ toggleSidebar }) {
               <div className="px-3 py-2">
                 <p className="truncate font-bold text-slate-900 dark:text-white">{name}</p>
                 <div className="mt-1 flex items-center gap-2 text-xs font-semibold text-slate-500 sm:hidden">
-                  <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400"><Zap className="h-3 w-3" />{xpPoints} XP</span>
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); toggleXpDropdownMobile(); }}
+                    className="flex items-center gap-1 text-amber-600 hover:underline dark:text-amber-400 cursor-pointer"
+                    aria-label="View XP progress"
+                  >
+                    <Zap className="h-3 w-3" />{xpPoints} XP
+                  </button>
                   <span>·</span>
-                  <span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400"><GemIcon className="h-3 w-3" />{gemsCount} Gems</span>
+                  <button
+                    type="button"
+                    onClick={() => { setMenuOpen(false); toggleGemsDropdownMobile(); }}
+                    className="flex items-center gap-1 text-cyan-600 hover:underline dark:text-cyan-400 cursor-pointer"
+                    aria-label="View Gems wallet"
+                  >
+                    <GemIcon className="h-3 w-3" />{gemsCount} Gems
+                  </button>
                 </div>
               </div>
               <button type="button" onClick={() => { toggleDarkMode(!darkMode); setMenuOpen(false); }} className="flex min-h-[44px] w-full items-center gap-2.5 rounded-xl px-3 py-2 text-left hover:bg-slate-100 dark:hover:bg-white/10">

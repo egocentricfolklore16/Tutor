@@ -119,6 +119,38 @@ test("gamificationService.getGamificationState merges profile and streak data an
   }
 });
 
+test("header dropdown toggle state helper enforces mutual exclusion across Streak, XP, and Gems", () => {
+  let dropdownState = { streak: false, xp: false, gems: false };
+
+  const toggleStreak = () => {
+    dropdownState = { streak: !dropdownState.streak, xp: false, gems: false };
+  };
+
+  const toggleXp = () => {
+    dropdownState = { streak: false, xp: !dropdownState.xp, gems: false };
+  };
+
+  const toggleGems = () => {
+    dropdownState = { streak: false, xp: false, gems: !dropdownState.gems };
+  };
+
+  // Open XP dropdown
+  toggleXp();
+  assert.deepEqual(dropdownState, { streak: false, xp: true, gems: false });
+
+  // Toggling Gems closes XP and opens Gems
+  toggleGems();
+  assert.deepEqual(dropdownState, { streak: false, xp: false, gems: true });
+
+  // Toggling Streak closes Gems and opens Streak
+  toggleStreak();
+  assert.deepEqual(dropdownState, { streak: true, xp: false, gems: false });
+
+  // Toggling Streak again closes Streak
+  toggleStreak();
+  assert.deepEqual(dropdownState, { streak: false, xp: false, gems: false });
+});
+
 test("gamificationService.checkAndClaimQuests triggers claimCompletedQuests, emits toast and update events", async () => {
   const originalRpc = (await import("../src/lib/supabase.js")).default.rpc;
   const supabase = (await import("../src/lib/supabase.js")).default;

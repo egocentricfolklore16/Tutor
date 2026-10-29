@@ -777,7 +777,7 @@ export default function VirtualStudyRoom() {
                       <a
                         href={sanitizeUrl(msg.link)}
                         target="_blank"
-                        rel="noreferrer"
+                        rel="noopener noreferrer"
                         className="underline break-all text-xs text-sky-400"
                       >
                         {msg.text}

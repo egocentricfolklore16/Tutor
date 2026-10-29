@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Check, ShieldCheck, Loader2, AlertCircle, History, Calendar, CreditCard } from "lucide-react";
 import supabase from "../../lib/supabase.js";
 import PaystackCheckoutButton from "./PaystackCheckoutButton";
+import { getActivePlanId, getSubscriptionStatusDisplay } from "../../lib/billing.js";
 
 export default function Billing({ user }) {
   const [plans, setPlans] = useState([]);
@@ -78,8 +79,9 @@ export default function Billing({ user }) {
     );
   }
 
-  const currentPlanId = subscription?.plan_id || "free";
+  const currentPlanId = getActivePlanId(subscription);
   const currentPlan = subscription?.plans || plans.find((p) => p.id === currentPlanId);
+  const statusDisplay = getSubscriptionStatusDisplay(subscription);
 
   const formatPrice = (priceNaira) => {
     if (!priceNaira || priceNaira === 0) return "₦0";
@@ -223,9 +225,9 @@ export default function Billing({ user }) {
               Status
             </span>
             <div className="mt-1 flex items-center gap-2">
-              <span className="inline-block h-2.5 w-2.5 rounded-full bg-emerald-500"></span>
+              <span className={`inline-block h-2.5 w-2.5 rounded-full ${statusDisplay.dotColor}`}></span>
               <p className="text-lg font-bold text-slate-900 capitalize">
-                {subscription?.status || "Active"}
+                {statusDisplay.label}
               </p>
             </div>
           </div>

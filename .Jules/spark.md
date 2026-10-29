@@ -33,3 +33,7 @@
 ## 2026-10-28 - Header Dropdowns Mutual Exclusion & Streak Safeguard Banner
 **Learning:** Enforcing mutual exclusion across header gamification dropdowns (Streak, XP, Gems) prevents overlapping popup cards on mobile and desktop, while adding an `Escape` key listener closes all open dropdowns cleanly. Pairing active streaks with a Streak Safeguard callout on `Overview.jsx` and `StudyStreak.jsx` when today's study is pending (`todayCompleted === false`) gives students clear, encouraging 3am cutoff notices and a 1-click action to protect their streak.
 **Action:** Always handle keyboard navigation (`Escape`) for header menus and provide positive, encouraging streak protection banners when study goals are pending.
+
+## 2026-10-29 - Mobile Header Gamification Badges & Interactive Avatar Menu Triggers
+**Learning:** Rendering Streak, XP, and Gems buttons as responsive pill badges across all viewport widths (<640px and <768px) and wiring the mobile profile avatar dropdown's XP and Gems items as interactive buttons ensures mobile users can seamlessly toggle rich XP level progression or Gem wallet details with a single tap.
+**Action:** Always ensure header gamification badges remain visible and touch-interactive on mobile screens with compact responsive styling and direct dropdown triggers.

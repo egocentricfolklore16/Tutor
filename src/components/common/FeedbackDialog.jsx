@@ -1,10 +1,18 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import ResponsiveSheet from "./ResponsiveSheet";
 
 function FeedbackDialog({ open, onClose, onLogout }) {
   const [reason, setReason] = useState("Taking a break");
   const [message, setMessage] = useState("");
   const [submitted, setSubmitted] = useState(false);
+
+  useEffect(() => {
+    if (open) {
+      setSubmitted(false);
+      setMessage("");
+      setReason("Taking a break");
+    }
+  }, [open]);
 
   const submitFeedback = (event) => {
     event.preventDefault();

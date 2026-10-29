@@ -35,11 +35,13 @@ function StudyHistoryDetail() {
         .from("study_history")
         .select("*")
         .eq("id", historyId)
-        .single();
+        .maybeSingle();
 
       if (fetchError) {
         console.error("Fetch history detail error:", fetchError);
         setError("Unable to load history entry.");
+      } else if (!data) {
+        setHistoryItem(null);
       } else {
         setHistoryItem(data);
       }

@@ -18,6 +18,7 @@ import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
 import FeedbackDialog from "../common/FeedbackDialog";
 import { getDailyGoalMinutes } from "../../lib/weeklyHours";
+import { getUserSubjectsFormatted } from "../../lib/userSubjects";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -179,7 +180,7 @@ function Overview() {
             <PerformanceDashboard />
           </div>
           <div className="min-w-0 xl:col-span-2 2xl:col-span-4">
-            <StudyCompanion topic={profile?.current_topic || "your studies"} />
+            <StudyCompanion topic={profile?.current_topic || getUserSubjectsFormatted(profile)} />
           </div>
 
           <div className="min-w-0 2xl:col-span-4">

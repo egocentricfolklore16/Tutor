@@ -9,10 +9,11 @@ import NotificationPromptCard from "../components/Notifications/NotificationProm
 import BottomNavBar from "../components/common/BottomNavBar";
 import { ProfileProvider, useProfile } from "./ProfileContext";
 import { AITutorProvider } from "./AITutorContext";
+import { getUserSubjectsFormatted } from "../lib/userSubjects";
 
 function GlobalStudyCompanion() {
   const { profile } = useProfile();
-  return <StudyCompanion topic={profile?.current_topic || "your studies"} />;
+  return <StudyCompanion topic={profile?.current_topic || getUserSubjectsFormatted(profile)} />;
 }
 
 function Layout({ session, needsOnboarding }) {

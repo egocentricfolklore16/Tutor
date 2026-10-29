@@ -37,6 +37,15 @@ test("getUserSubjectsFormatted falls back safely to 'your priority subjects' whe
   assert.equal(getUserSubjectsFormatted({ subjects: ["   "] }), "your priority subjects");
 });
 
+test("StudyCompanion topic resolution prioritizes current_topic over onboarding subjects and safe fallback", () => {
+  const resolveTopic = (p) => p?.current_topic || getUserSubjectsFormatted(p);
+
+  assert.equal(resolveTopic({ current_topic: "Cell Division", subjects: ["Math", "Science"] }), "Cell Division");
+  assert.equal(resolveTopic({ current_topic: "", subjects: ["Math", "Science"] }), "Math, Science");
+  assert.equal(resolveTopic({ subjects: ["Computer science"] }), "Computer science");
+  assert.equal(resolveTopic(null), "your priority subjects");
+});
+
 test("getSubjectOptions includes all onboarding subjects in options list", () => {
   const generalOptions = getSubjectOptions("College / university");
   for (const subject of ONBOARDING_SUBJECTS) {

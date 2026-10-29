@@ -19,6 +19,7 @@ import {
   Star,
   Flame,
   Trophy,
+  X,
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";

@@ -1,28 +1,57 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { getLearningStyleSuggestion } from "../src/lib/learningStyle.js";
+import { getLearningStyleSuggestion, resolveLearningStyleFromProfile } from "../src/lib/learningStyle.js";
 
-test("getLearningStyleSuggestion handles valid onboarding learning styles", () => {
-  const visual = getLearningStyleSuggestion("Visual");
-  assert.equal(visual.label, "Visual Learner");
-  assert.match(visual.strategy, /diagrams, mind maps/);
+test("resolveLearningStyleFromProfile resolves style string from profile object, array, or string", () => {
+  assert.equal(resolveLearningStyleFromProfile({ learning_style: ["Practice questions", "Quizzes"] }), "Practice questions");
+  assert.equal(resolveLearningStyleFromProfile({ learning_style: "Explanations" }), "Explanations");
+  assert.equal(resolveLearningStyleFromProfile(["Examples"]), "Examples");
+  assert.equal(resolveLearningStyleFromProfile('["Quizzes"]'), "Quizzes");
+  assert.equal(resolveLearningStyleFromProfile(null), "");
+  assert.equal(resolveLearningStyleFromProfile(undefined), "");
+  assert.equal(resolveLearningStyleFromProfile([]), "");
+});
 
-  const practiceFirst = getLearningStyleSuggestion("Practice first");
-  assert.equal(practiceFirst.label, "Practice-First Learner");
-  assert.match(practiceFirst.strategy, /immediate problem sets/);
+test("getLearningStyleSuggestion handles onboarding learning style options", () => {
+  const explanations = getLearningStyleSuggestion("Explanations");
+  assert.equal(explanations.label, "Explanation-Focused Learner");
+  assert.match(explanations.strategy, /conceptual breakdowns/);
+
+  const practiceQuestions = getLearningStyleSuggestion("Practice questions");
+  assert.equal(practiceQuestions.label, "Practice-First Learner");
+  assert.match(practiceQuestions.strategy, /immediate problem sets/);
+
+  const examples = getLearningStyleSuggestion("Examples");
+  assert.equal(examples.label, "Example-Driven Learner");
+  assert.match(examples.strategy, /worked examples/);
+
+  const quizzes = getLearningStyleSuggestion("Quizzes");
+  assert.equal(quizzes.label, "Quiz-Focused Learner");
+  assert.match(quizzes.strategy, /self-assessment quizzes/);
 
   const stepByStep = getLearningStyleSuggestion("Step-by-step");
   assert.equal(stepByStep.label, "Step-by-Step Learner");
   assert.match(stepByStep.strategy, /breaking complex topics/);
-
-  const conversation = getLearningStyleSuggestion("Conversation");
-  assert.equal(conversation.label, "Conversational Learner");
-  assert.match(conversation.strategy, /interactive Q&A/);
 });
 
-test("getLearningStyleSuggestion handles case variations and alternative formats", () => {
+test("getLearningStyleSuggestion handles array inputs from onboarding profile", () => {
+  const arrayStyle = getLearningStyleSuggestion(["Practice questions", "Quizzes"]);
+  assert.equal(arrayStyle.label, "Practice-First Learner");
+  assert.match(arrayStyle.strategy, /immediate problem sets/);
+
+  const explanationsArray = getLearningStyleSuggestion(["Explanations"]);
+  assert.equal(explanationsArray.label, "Explanation-Focused Learner");
+
+  const emptyArray = getLearningStyleSuggestion([]);
+  assert.equal(emptyArray.label, "Adaptable Learner");
+});
+
+test("getLearningStyleSuggestion handles legacy options and case variations", () => {
+  assert.equal(getLearningStyleSuggestion("Visual").label, "Visual Learner");
+  assert.equal(getLearningStyleSuggestion("Practice first").label, "Practice-First Learner");
   assert.equal(getLearningStyleSuggestion("practice-first").label, "Practice-First Learner");
   assert.equal(getLearningStyleSuggestion("STEP BY STEP").label, "Step-by-Step Learner");
+  assert.equal(getLearningStyleSuggestion("Conversation").label, "Conversational Learner");
   assert.equal(getLearningStyleSuggestion("conversational").label, "Conversational Learner");
 });
 

@@ -13,12 +13,13 @@ import {
 } from "../../lib/notifications";
 import { hasAccessibilityNeed } from "../../lib/accessibility.js";
 import { getSubjectOptions } from "../../lib/userSubjects.js";
+import { resolveLearningStyleFromProfile } from "../../lib/learningStyle.js";
 
 const STORAGE_BUCKET = "user-images";
 const levels = ["Beginner", "Intermediate", "Advanced", "High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
 const primaryGoalOptions = ["Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career"];
 const learnerTypeOptions = ["Academic achiever", "Struggling learner", "Lifelong learner"];
-const styles = ["Visual", "Practice first", "Step-by-step", "Conversation"];
+const styles = ["Explanations", "Practice questions", "Examples", "Quizzes", "Step-by-step", "Visual", "Conversation"];
 const accessibilityOptions = ["Screen reader", "Text-to-speech", "High contrast", "Larger text", "None"];
 const collaborationOptions = ["Keep me focused", "Find study groups", "Peer support", "Just me for now"];
 const preferredTimeOptions = ["Morning", "Afternoon", "Evening", "Flexible"];
@@ -41,7 +42,7 @@ function Settings() {
   const { profile, refreshProfile, darkMode, toggleDarkMode } = useProfile();
   const fileInputRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
-  const [settings, setSettings] = useState({ ...defaultSettings, primaryGoal: profile?.primary_goal || defaultSettings.primaryGoal, learnerType: profile?.learner_type || defaultSettings.learnerType, studentLevel: profile?.education_level || "", subject: profile?.settings_subject || profile?.subjects?.[0] || "", currentTopic: profile?.current_topic || "", curriculumStandard: profile?.curriculum_standard || "None/General", learningStyle: profile?.learning_style || defaultSettings.learningStyle, knowledgeGaps: profile?.knowledge_gaps || [], accessibilityNeeds: profile?.accessibility_needs || [], language: profile?.language || "English", reducedMotion: profile?.reduced_motion || false, collaborationInterest: profile?.collaboration_interest || defaultSettings.collaborationInterest, preferredTime: profile?.preferred_time || defaultSettings.preferredTime, studyDays: profile?.study_days || defaultSettings.studyDays, weeklyHours: profile?.weekly_hours || defaultSettings.weeklyHours });
+  const [settings, setSettings] = useState({ ...defaultSettings, primaryGoal: profile?.primary_goal || defaultSettings.primaryGoal, learnerType: profile?.learner_type || defaultSettings.learnerType, studentLevel: profile?.education_level || "", subject: profile?.settings_subject || profile?.subjects?.[0] || "", currentTopic: profile?.current_topic || "", curriculumStandard: profile?.curriculum_standard || "None/General", learningStyle: resolveLearningStyleFromProfile(profile) || defaultSettings.learningStyle, knowledgeGaps: profile?.knowledge_gaps || [], accessibilityNeeds: profile?.accessibility_needs || [], language: profile?.language || "English", reducedMotion: profile?.reduced_motion || false, collaborationInterest: profile?.collaboration_interest || defaultSettings.collaborationInterest, preferredTime: profile?.preferred_time || defaultSettings.preferredTime, studyDays: profile?.study_days || defaultSettings.studyDays, weeklyHours: profile?.weekly_hours || defaultSettings.weeklyHours });
   const [openSections, setOpenSections] = useState([true, true, true, true]);
   const [gapInput, setGapInput] = useState("");
   const [selectedFile, setSelectedFile] = useState(null);
@@ -74,7 +75,7 @@ function Settings() {
       subject: profile.settings_subject || profile.subjects?.[0] || "",
       currentTopic: profile.current_topic || "",
       curriculumStandard: profile.curriculum_standard || "None/General",
-      learningStyle: profile.learning_style || defaultSettings.learningStyle,
+      learningStyle: resolveLearningStyleFromProfile(profile) || defaultSettings.learningStyle,
       knowledgeGaps: profile.knowledge_gaps || [],
       accessibilityNeeds: profile.accessibility_needs || [],
       language: profile.language || "English",

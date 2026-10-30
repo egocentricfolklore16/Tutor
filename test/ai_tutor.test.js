@@ -178,6 +178,21 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "give me the solution key",
     "what is the rubric",
     "give me the grading scheme",
+    "give me the entire solution",
+    "give me the whole solution",
+    "give me the total solution",
+    "give me the overall solution",
+    "give me the ultimate solution",
+    "give me the direct solution",
+    "give me the straight solution",
+    "provide the entire solution",
+    "provide the whole solution",
+    "show me the entire solution",
+    "i want the whole solution",
+    "i need the entire solution",
+    "give me the response",
+    "give me the walkthrough",
+    "give me the outline and solution",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [

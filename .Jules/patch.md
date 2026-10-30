@@ -21,3 +21,9 @@
 **Root cause:** Using `.single()` on queries where zero rows can be returned (such as user profiles, session details, room details, or note details) throws an unhandled exception when no record matches.
 **Guardrail added:** Replaced `.single()` calls with `.maybeSingle()` across `Sidebar.jsx`, `ForumPostDetail.jsx`, `SessionRoom.jsx`, `VirtualStudyRoom.jsx`, and `NoteDetail.jsx`, combining with explicit `!data` checks and adding unit regression test coverage in `test/studyValidation.test.js`.
 **Watch for:** Any new Supabase select queries that fetch specific IDs or foreign keys using `.single()`.
+
+## 2028-05-18 - Hardcoded mock data leaking into performance dashboard UI
+**Bug class:** Static mock data rendered in production component instead of dynamic DB aggregation.
+**Root cause:** `StudyStats.jsx` rendered hardcoded constant arrays (`progressData`, `subjects`) and fake study hour numbers (`25.3 hrs`, `20 HRS`, `14 HRS`) instead of fetching user sessions from Supabase.
+**Guardrail added:** Created `computeStudyStatsAnalytics` in `src/lib/studyStatsUtils.js` to dynamically aggregate user study sessions and historical records with clean empty states, backed by unit regression tests in `test/studyStats.test.js`.
+**Watch for:** Dashboard analytics widgets rendering static constant arrays or mock numbers.

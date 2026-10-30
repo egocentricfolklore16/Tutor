@@ -28,6 +28,12 @@ test("a freeze token preserves a one-day gap", () => {
   assert.deepEqual(result, { currentStreak: 5, longestStreak: 5, lastActiveDate: "2026-09-02", freezeTokensAvailable: 0 });
 });
 
+test("a freeze token is NOT consumed when current streak is zero", () => {
+  const previous = { currentStreak: 0, longestStreak: 10, lastActiveDate: "2026-05-11", freezeTokensAvailable: 1 };
+  const result = calculateStreakUpdate(previous, "2026-05-13");
+  assert.deepEqual(result, { currentStreak: 1, longestStreak: 10, lastActiveDate: "2026-05-13", freezeTokensAvailable: 1 });
+});
+
 test("activity before the 3am cutoff belongs to the prior local day", () => {
   assert.equal(getActivityDate(new Date("2026-09-02T06:30:00Z"), "America/New_York", 3), "2026-09-01");
   assert.equal(getActivityDate(new Date("2026-09-02T06:59:00Z"), "America/New_York", 3), "2026-09-01");

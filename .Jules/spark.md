@@ -33,3 +33,7 @@
 ## 2026-10-28 - Header Dropdowns Mutual Exclusion & Streak Safeguard Banner
 **Learning:** Enforcing mutual exclusion across header gamification dropdowns (Streak, XP, Gems) prevents overlapping popup cards on mobile and desktop, while adding an `Escape` key listener closes all open dropdowns cleanly. Pairing active streaks with a Streak Safeguard callout on `Overview.jsx` and `StudyStreak.jsx` when today's study is pending (`todayCompleted === false`) gives students clear, encouraging 3am cutoff notices and a 1-click action to protect their streak.
 **Action:** Always handle keyboard navigation (`Escape`) for header menus and provide positive, encouraging streak protection banners when study goals are pending.
+
+## 2026-10-30 - Gem Wallet Progress Page Integration Suite
+**Learning:** Integrating `GemWallet` on `Progress.jsx` alongside `LevelRoadmap` provides students with a cohesive view of both their XP milestone unlocks and study gem balance, with direct action triggers to `/Shop` for instant reward redemption.
+**Action:** Always pair progression level curves with currency wallet cards on summary pages so students can track earnings and spent rewards together.

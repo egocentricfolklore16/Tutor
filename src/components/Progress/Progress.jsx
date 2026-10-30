@@ -7,7 +7,8 @@ import PageContainer from "../common/PageContainer";
 import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
 import StudyTrendChart from "./StudyTrendChart";
-import { useGamification, LevelRoadmap, LEVEL_MILESTONES } from "../../features/gamification";
+import { useNavigate } from "react-router-dom";
+import { useGamification, LevelRoadmap, LEVEL_MILESTONES, GemWallet } from "../../features/gamification";
 import { useProfile } from "../../app/ProfileContext";
 import { getDailyGoalMinutes } from "../../lib/weeklyHours";
 
@@ -17,8 +18,9 @@ const dateKey = (value) => {
 };
 
 function Progress() {
+  const navigate = useNavigate();
   const { profile } = useProfile();
-  const { xp, refreshAll } = useGamification();
+  const { xp, gems, refreshAll } = useGamification();
   const [sessions, setSessions] = useState([]);
   const [resourceCount, setResourceCount] = useState(0);
   const [status, setStatus] = useState("loading");
@@ -135,15 +137,26 @@ function Progress() {
           {cards.map(([Icon, value, label, color]) => <div key={label} className="rounded-xl bg-white p-5 shadow-surface dark:bg-[#14171c]"><Icon className={`mb-4 h-5 w-5 ${color}`} /><p className="text-2xl font-bold text-slate-900 dark:text-white">{value}</p><p className="mt-1 text-sm text-slate-500">{label}</p></div>)}
         </div>
 
-        <div className="mt-6">
-          <LevelRoadmap
-            level={xp.level}
-            totalXp={xp.total}
-            xpInLevel={xp.xpInCurrentLevel}
-            xpForLevel={xp.xpForNextLevel}
-            milestones={LEVEL_MILESTONES}
-            onRetry={refreshAll}
-          />
+        <div className="mt-6 grid gap-6 lg:grid-cols-3">
+          <div className="lg:col-span-2">
+            <LevelRoadmap
+              level={xp.level}
+              totalXp={xp.total}
+              xpInLevel={xp.xpInCurrentLevel}
+              xpForLevel={xp.xpForNextLevel}
+              milestones={LEVEL_MILESTONES}
+              onRetry={refreshAll}
+            />
+          </div>
+          <div className="flex flex-col justify-between rounded-2xl bg-white p-5 shadow-surface dark:bg-[#14171c]">
+            <div>
+              <h2 className="font-semibold text-slate-900 dark:text-white">Study Gem Balance</h2>
+              <p className="mt-1 text-xs text-slate-500">Earn gems through daily goals, quests, and streak milestones.</p>
+            </div>
+            <div className="mt-4">
+              <GemWallet balance={gems.balance} onVisitShop={() => navigate("/Shop")} />
+            </div>
+          </div>
         </div>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-3">

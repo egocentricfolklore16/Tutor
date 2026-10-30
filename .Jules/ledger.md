@@ -39,3 +39,7 @@
 ## 2025-05-29 - Refund Revocation and Re-verification Rejection Guard
 **Learning:** Paystack webhooks deliver `charge.refunded` and `refund.processed` events when payments are refunded or chargebacks occur. Without marking payment status as `"refunded"` and revoking any linked subscription (`status: "cancelled"`), refunded users retain active subscription benefits indefinitely. Furthermore, without blocking re-verification of refunded references in `processVerifiedPayment`, a refunded reference can be replayed to regain active subscription access.
 **Action:** Handle `charge.refunded` and `refund.processed` in the webhook handler via `processRefundedPayment` to set payment `status: "refunded"` and cancel linked subscriptions, while rejecting re-verification attempts on refunded references in `processVerifiedPayment`.
+
+## 2025-05-30 - Expired and Cancelled Subscription Active Plan Fallback
+**Learning:** Checking `subscription?.plan_id` directly in frontend components without validating `status === 'active'` and `current_period_end > now` treats expired, cancelled, or inactive subscriptions as active paid tiers. This locks users into disabled "Current Plan" button states and prevents them from renewing or upgrading.
+**Action:** Use pure billing resolution utilities (`isSubscriptionActive`, `getActivePlanId`, `getSubscriptionStatusDisplay`) in frontend views to evaluate subscription status and period end dates before resolving the active plan ID, falling back safely to `'free'`.

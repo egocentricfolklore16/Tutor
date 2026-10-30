@@ -24,7 +24,7 @@ export function calculateStreakUpdate(previous, activityDate, freezeEnabled = tr
   const daysSinceActivity = Math.round((currentDate - previousDate) / 86400000);
   if (daysSinceActivity <= 0) return { ...previous, noOp: true };
 
-  const canUseFreeze = freezeEnabled && daysSinceActivity === 2 && (previous.freezeTokensAvailable || 0) > 0;
+  const canUseFreeze = freezeEnabled && (previous.currentStreak || 0) > 0 && daysSinceActivity === 2 && (previous.freezeTokensAvailable || 0) > 0;
   const currentStreak = daysSinceActivity === 1 || canUseFreeze ? previous.currentStreak + 1 : 1;
   const freezeTokensAvailable = canUseFreeze ? previous.freezeTokensAvailable - 1 : previous.freezeTokensAvailable || 0;
   return { currentStreak, longestStreak: Math.max(previous.longestStreak || 0, currentStreak), lastActiveDate: activityDate, freezeTokensAvailable };

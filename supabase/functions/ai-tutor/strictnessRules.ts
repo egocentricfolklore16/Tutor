@@ -5,7 +5,7 @@ export function countGenuineAttempts(messages: any[]): number {
 
   const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand)|no\s*idea|no\s*clue|pass|help|help\s*me|skip|n\/?a|nothing|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
-  const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary|formula|formulas|definition|definitions|proof|proofs|equation|equations|derivation|derivations|key|answer\\s*key|solution\\s*key|rubric|grading\\s*scheme)`;
+  const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real|entire|whole|total|overall|ultimate|direct|straight)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary|formula|formulas|definition|definitions|proof|proofs|equation|equations|derivation|derivations|key|answer\\s*key|solution\\s*key|rubric|grading\\s*scheme|response|walkthrough|outline)`;
   const compoundTargetNouns = `${targetNoun}(?:\\s*(?:and|&|\\+|,)\\s*(?:the\\s*|a\\s*|an\\s*|your\\s*)?${targetNoun})*`;
 
   const nonAttemptDemandRegex = new RegExp(

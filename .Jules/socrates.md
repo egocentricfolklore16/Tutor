@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-10-17 - Filtering Solution Modifier Adjectives and Walkthrough Target Nouns in Turn Counting
+
+**Learning:** Students can bypass server-side Socratic answer locking by pairing demand verbs with modifier adjectives (`entire`, `whole`, `total`, `overall`, `ultimate`, `direct`, `straight`) or target nouns (`response`, `walkthrough`, `outline`) when requesting solutions (e.g., "give me the entire solution", "i need the whole solution", "give me the direct solution", "give me the walkthrough"). Expanding `targetNoun` in `strictnessRules.ts` to include these modifier adjectives and target nouns ensures zero-effort requests are filtered server-side as 0 genuine attempts.
+
+**Action:** Maintain solution modifier adjectives (`entire`, `whole`, `total`, `overall`, `ultimate`, `direct`, `straight`) and target nouns (`response`, `walkthrough`, `outline`) in `targetNoun` regexes in `strictnessRules.ts`.

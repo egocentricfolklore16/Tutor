@@ -481,7 +481,11 @@ function StudyHome() {
     });
   }, [history, subjectFilter, rangeFilter, historySearch, clockNow]);
 
-  const visibleHistory = filteredHistory.slice(0, visibleHistoryCount);
+  // Memoize visible history slicing to avoid re-allocating sliced arrays on unrelated re-renders
+  const visibleHistory = useMemo(
+    () => filteredHistory.slice(0, visibleHistoryCount),
+    [filteredHistory, visibleHistoryCount]
+  );
 
   const historyGroups = useMemo(() => {
     const groups = new Map();

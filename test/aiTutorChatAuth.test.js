@@ -8,7 +8,7 @@ function verifyAiTutorChatAuth(authHeader, userResolver) {
     return { status: 401, error: "Missing Authorization header" };
   }
 
-  const token = authHeader.replace("Bearer ", "");
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const user = userResolver(token);
   if (!user) {
     return { status: 401, error: "Unauthorized: Invalid or expired session token" };
@@ -36,6 +36,22 @@ test("verifyAiTutorChatAuth returns 200 and userId if token is valid", () => {
   });
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.userId, "user_456");
+});
+
+test("verifyAiTutorChatAuth handles case-insensitive scheme variations and extra whitespace", () => {
+  const resolver = (token) => (token === "valid_token" ? { id: "user_789" } : null);
+
+  const lowercaseResult = verifyAiTutorChatAuth("bearer valid_token", resolver);
+  assert.strictEqual(lowercaseResult.status, 200);
+  assert.strictEqual(lowercaseResult.userId, "user_789");
+
+  const uppercaseResult = verifyAiTutorChatAuth("BEARER valid_token", resolver);
+  assert.strictEqual(uppercaseResult.status, 200);
+  assert.strictEqual(uppercaseResult.userId, "user_789");
+
+  const spacedResult = verifyAiTutorChatAuth("Bearer   valid_token  ", resolver);
+  assert.strictEqual(spacedResult.status, 200);
+  assert.strictEqual(spacedResult.userId, "user_789");
 });
 
 test("normalizeStrictness normalizes UI display labels, DB enums, and fallback strings", () => {

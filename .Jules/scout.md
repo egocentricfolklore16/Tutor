@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-10-31 - Modular UI Utility & Dialog Decomposition Auditing
+**Learning:** Recent feature optimizations in PR #372 introduced modular badge sorting utilities (`src/features/gamification/utils/badgeUtils.js`), component extractions (`BadgeGrid.jsx`), and group invite dialogs (`InviteDialog.jsx`). While these components consume existing backend services (`gamificationService.getBadges` backed by RPC `get_achievements`, and `groupsService.inviteFriendToGroup` backed by table `study_group_invites`), omitting these decomposed source files from the coverage ledger would cause coverage drift.
+**Action:** Maintain an automated file discovery script across all `src/` subdirectories during each audit run to ensure 100% file coverage in Appendix A regardless of component refactorings.

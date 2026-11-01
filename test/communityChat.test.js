@@ -98,6 +98,8 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("http://localhost:3000"), "http://localhost:3000");
   assert.equal(sanitizeUrl("mailto:support@example.com"), "mailto:support@example.com");
   assert.equal(sanitizeUrl("/community/chat"), "/community/chat");
+  assert.equal(sanitizeUrl("/"), "/");
+  assert.equal(sanitizeUrl("/?query=1"), "/?query=1");
   assert.equal(sanitizeUrl("#section"), "#section");
 
   // XSS payloads
@@ -107,6 +109,13 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("javascript:document.cookie"), "#");
   assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
   assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
+
+  // Protocol-relative and scheme bypass payloads (open redirect / bypass prevention)
+  assert.equal(sanitizeUrl("//evil.com"), "#");
+  assert.equal(sanitizeUrl("//malicious.site/phish"), "#");
+  assert.equal(sanitizeUrl("///evil.com"), "#");
+  assert.equal(sanitizeUrl("/\\evil.com"), "#");
+  assert.equal(sanitizeUrl("/\\\\evil.com"), "#");
 
   // ASCII control character obfuscation payloads
   assert.equal(sanitizeUrl("java\x00script:alert(1)"), "#");

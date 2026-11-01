@@ -223,7 +223,7 @@ export function clearChatDraft(conversationId) {
 }
 
 /**
- * Sanitizes a URL string to prevent XSS attacks (e.g. javascript:, data:, vbscript: protocols).
+ * Sanitizes a URL string to prevent XSS attacks and open redirect / scheme-relative bypasses.
  * Returns the sanitized URL string or '#' if unsafe.
  */
 export function sanitizeUrl(urlInput) {
@@ -232,6 +232,11 @@ export function sanitizeUrl(urlInput) {
   // eslint-disable-next-line no-control-regex
   const clean = urlInput.replace(/[\x00-\x1F\x7F]/g, "").trim();
   if (!clean) return "#";
+
+  // Security: Disallow protocol-relative URLs (//) and backslash-based scheme bypasses (/\)
+  if (/^\/[/\\]/.test(clean)) {
+    return "#";
+  }
 
   // Allow safe absolute and relative URL protocols (http, https, mailto, tel, relative path / or #)
   if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(clean)) {

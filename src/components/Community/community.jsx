@@ -691,10 +691,6 @@ const Community = () => {
                         <FriendList
                           friends={acceptedFriends}
                           currentUserId={user?.id}
-                          onMessage={async (otherId) => {
-                            const { data: convId } = await supabase.rpc("get_or_create_direct_conversation", { p_other_user_id: otherId });
-                            if (convId) navigate(`/community/chat/${convId}`);
-                          }}
                           onRemoveFriend={removeFriendship}
                         />
                       </div>

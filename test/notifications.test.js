@@ -362,17 +362,107 @@ test("requestBrowserNotificationPermission handles unsupported, granted, denied,
   cleanup4();
 });
 
+test("scheduleStudyReminder suppresses time_block activity types", async () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  const fixedNow = new Date(2026, 5, 15, 9, 0, 0).getTime();
+  const cleanup = mockBrowserGlobals({ permission: "granted", pushSubscription: null });
+
+  try {
+    const timeBlockSession1 = {
+      id: "tb_1",
+      type: "time_block",
+      date: "2026-06-15",
+      startTime: "10:00",
+      reminder: 15,
+    };
+    const timeBlockSession2 = {
+      id: "tb_2",
+      activityType: "time_block",
+      date: "2026-06-15",
+      startTime: "10:00",
+      reminder: 15,
+    };
+
+    assert.equal(await scheduleStudyReminder(timeBlockSession1, null, fixedNow), null);
+    assert.equal(await scheduleStudyReminder(timeBlockSession2, null, fixedNow), null);
+  } finally {
+    cleanup();
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("scheduleStudyReminder handles deadline activity types and deadlineReminders preference", async () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  // Deadline due_date defaults to 09:00 local time; with reminder: 0, reminderTime is 09:00.
+  // fixedNow at 08:30 gives a 30m future delay.
+  const fixedNow = new Date(2026, 5, 15, 8, 30, 0).getTime();
+  const cleanup = mockBrowserGlobals({ permission: "granted", pushSubscription: null });
+
+  try {
+    const deadlineSession = {
+      id: "dl_1",
+      type: "deadline",
+      due_date: "2026-06-15",
+      reminder: 0,
+      title: "History Essay",
+    };
+
+    // Disabled deadlineReminders -> returns null
+    const disabledPrefs = normalizeNotificationPreferences({ deadlineReminders: false });
+    assert.equal(await scheduleStudyReminder(deadlineSession, disabledPrefs, fixedNow), null);
+
+    // Enabled deadlineReminders -> schedules timer handle
+    const activePrefs = normalizeNotificationPreferences({ deadlineReminders: true });
+    const timer = await scheduleStudyReminder(deadlineSession, activePrefs, fixedNow);
+    assert.ok(timer !== null, "Must schedule reminder for deadline when deadlineReminders is true");
+    clearTimeout(timer);
+  } finally {
+    cleanup();
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
+test("scheduleStudyReminder handles 0-minute reminder offset and recurring timer key isolation", async () => {
+  const originalLocalStorage = globalThis.localStorage;
+  globalThis.localStorage = createMockLocalStorage();
+  const fixedNow = new Date(2026, 5, 15, 9, 30, 0).getTime();
+  const cleanup = mockBrowserGlobals({ permission: "granted", pushSubscription: null });
+
+  try {
+    const recurringSession = {
+      id: "rec_sess_1",
+      activityId: "act_42",
+      isRecurring: true,
+      date: "2026-06-15",
+      startTime: "10:00",
+      reminder: 0, // Starts now at 10:00 (30 mins from fixedNow)
+      Topic: "Linear Algebra",
+      Subject: "Mathematics",
+    };
+
+    const timer = await scheduleStudyReminder(recurringSession, null, fixedNow);
+    assert.ok(timer !== null, "Must schedule reminder handle for 0-minute offset starting in future");
+    clearTimeout(timer);
+  } finally {
+    cleanup();
+    globalThis.localStorage = originalLocalStorage;
+  }
+});
+
 test("scheduleStudyReminder checks permissions, push subscription status, preferences, and delay offset", async () => {
   const originalLocalStorage = globalThis.localStorage;
   globalThis.localStorage = createMockLocalStorage();
-  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+  // Use local-time constructor to match resolveSessionDateTime's local-time date & time parsing across all timezones
+  const fixedNow = new Date(2026, 5, 15, 9, 0, 0).getTime();
 
   try {
     const session = {
       id: "sess_101",
       date: "2026-06-15",
-      startTime: "10:00", // Scheduled for 10:00 AM UTC
-      reminder: 15,        // 15 minute reminder -> 09:45 AM UTC (delay 45 mins)
+      startTime: "10:00", // Scheduled for 10:00 AM local time
+      reminder: 15,        // 15 minute reminder -> 09:45 AM local time (delay 45 mins)
       Topic: "Derivatives",
       Subject: "Calculus",
     };
@@ -421,7 +511,7 @@ test("scheduleStudyReminder checks permissions, push subscription status, prefer
 test("scheduleSessionRemindersFromSessions processes batch sessions cleanly", async () => {
   const originalLocalStorage = globalThis.localStorage;
   globalThis.localStorage = createMockLocalStorage();
-  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+  const fixedNow = new Date(2026, 5, 15, 9, 0, 0).getTime();
 
   const cleanup = mockBrowserGlobals({ permission: "granted", pushSubscription: null });
 

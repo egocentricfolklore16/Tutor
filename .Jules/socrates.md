@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-11-02 - Filtering Deliverable Completion Demands and Whole-Solution Shortcuts in Turn Counting
+
+**Learning:** Students can bypass Socratic answer locking by requesting completion of academic deliverables (e.g., "complete this assignment", "finish my assignment", "complete this essay", "finish this task", "complete this project", "finish this paper") or demanding shortcut solutions (e.g., "give me the entire solution", "give me the whole solution", "give me the direct solution", "give me the walkthrough", "give me the cheat sheet"). Adding `complete` and `finish` verbs with target deliverables (`assignment`, `homework`, `task`, `project`, `essay`, `paper`, `worksheet`) and supporting modifiers (`entire`, `whole`, `direct`) and shortcuts (`walkthrough`, `cheat sheet`) ensures these zero-effort bypasses do not prematurely increment genuine attempt counts.
+
+**Action:** Ensure completion verbs (`complete`, `finish`) paired with academic deliverables and whole-solution modifiers are filtered in `nonAttemptDemandRegex` within server-side turn counters.

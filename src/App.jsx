@@ -23,7 +23,6 @@ import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
-import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 
 // Routing will be handled inside the BrowserRouter below

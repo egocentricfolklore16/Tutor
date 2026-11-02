@@ -132,9 +132,9 @@ function KeepsSlipping({ userId }) {
   }, [slippingData]);
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
+    <div className="rounded-2xl bg-white shadow-sm dark:bg-slate-900 overflow-hidden transition-colors">
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-900 px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-slate-800">
+      <div className="bg-slate-50 px-4 py-4 sm:px-6 sm:py-5 dark:bg-slate-800/80">
         <div className="flex items-center justify-between mb-2">
           <div className="flex items-center gap-3">
             <div className={`p-2 rounded-lg ${hasSlips ? "bg-red-100 dark:bg-red-950/50" : "bg-emerald-100 dark:bg-emerald-950/50"}`}>

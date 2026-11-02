@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-02 - Verifying Backend Wiring in Newly Extracted Modular Subsystems
+**Learning:** PR #387 integrated 4 new modular files (`InviteDialog.jsx`, `BadgeGrid.jsx`, `badgeUtils.js`, and `studyStatsUtils.js`). Auditing the data flow revealed that `InviteDialog` dispatches through `groupsService.inviteFriendToGroup` (backed by `study_group_invites` table & migration), `BadgeGrid` consumes `gamificationService.getBadges` (backed by RPC `get_achievements`), and `studyStatsUtils` computes analytics over verified Supabase `Study` and `study_history` rows. None of the four files introduced new backend gaps.
+**Action:** When inspecting newly extracted modular components or utility functions, trace data props up to their consuming container components and services to determine whether they utilize existing database schemas or require new backend endpoints.

@@ -108,6 +108,12 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
   assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
 
+  // Protocol-relative and backslash open redirect payloads
+  assert.equal(sanitizeUrl("//attacker.com"), "#");
+  assert.equal(sanitizeUrl("///attacker.com"), "#");
+  assert.equal(sanitizeUrl("/\\attacker.com"), "#");
+  assert.equal(sanitizeUrl("  //evil.com/phish  "), "#");
+
   // ASCII control character obfuscation payloads
   assert.equal(sanitizeUrl("java\x00script:alert(1)"), "#");
   assert.equal(sanitizeUrl("java\r\nscript:alert(1)"), "#");

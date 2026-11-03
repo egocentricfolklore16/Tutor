@@ -85,6 +85,27 @@ test("rapid double completion or concurrent tabs on same date returns no-op", ()
   assert.equal(second.lastActiveDate, "2026-05-11");
 });
 
+test("freeze token is NOT consumed when resuming activity with a current streak of zero", () => {
+  // If user previously had a streak that fell to 0 (or was reset), returning after a 1-day missed gap
+  // (daysSinceActivity === 2) should NOT consume a freeze token to start a streak of 1.
+  const zeroStreak = calculateStreakUpdate(
+    { currentStreak: 0, longestStreak: 10, lastActiveDate: "2026-05-08", freezeTokensAvailable: 2 },
+    "2026-05-10",
+    true
+  );
+  assert.equal(zeroStreak.currentStreak, 1);
+  assert.equal(zeroStreak.freezeTokensAvailable, 2, "Freeze token must not be consumed when current streak is 0");
+
+  // Fallback property freeze_tokens or freezeTokens
+  const zeroStreakWithFallback = calculateStreakUpdate(
+    { currentStreak: 0, longestStreak: 10, lastActiveDate: "2026-05-08", freeze_tokens: 3 },
+    "2026-05-10",
+    true
+  );
+  assert.equal(zeroStreakWithFallback.currentStreak, 1);
+  assert.equal(zeroStreakWithFallback.freezeTokensAvailable, 3);
+});
+
 test("freeze token behavior: disabled, zero tokens, or multi-day gap", () => {
   // 1-day gap with 0 freeze tokens available resets streak
   const noTokens = calculateStreakUpdate(
@@ -175,5 +196,15 @@ test("getDisplayStreak preserves active streak display when freeze tokens protec
       "UTC"
     ),
     0
+  );
+
+  // Property fallback to freeze_tokens (from migration 032)
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 10, last_active_date: "2026-08-31", freeze_tokens: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    10
   );
 });

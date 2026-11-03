@@ -1,13 +1,14 @@
 import supabase from "./supabase.js";
+import { toDate, toTime } from "./dates.js";
 
 /**
  * Convert a study session to Google Calendar event format
  */
 export function toGoogleEvent(studySession) {
-  const start = new Date(studySession.date);
+  const start = toDate(studySession.date) || new Date();
   const [hours, minutes] = (studySession?.startTime || "09:00").split(":").map(Number);
   start.setHours(hours || 9, minutes || 0, 0, 0);
-  const end = new Date(start.getTime() + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
+  const end = new Date(toTime(start) + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   
   return {
     summary: studySession.title || studySession.subject || "Hyper Tutor Study Session",
@@ -56,7 +57,8 @@ export async function syncSessionToGoogleCalendar(studySession) {
     }
 
     // Only sync future sessions
-    if (new Date(studySession.date) < new Date()) {
+    const sessionStartDate = toDate(studySession.date);
+    if (!sessionStartDate || sessionStartDate < new Date()) {
       return {
         success: false,
         message: "Cannot sync past sessions to Google Calendar.",

@@ -2,23 +2,27 @@
 
 | Field | Collected in | Table/Column | Loaded in | Used in | Status |
 |---|---|---|---|---|---|
-| `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings | Used |
+| `fullName` | Onboarding Step 0 | `profiles.full_name` | `ProfileContext` | Dashboard header, Settings, Lumo AI Chat empty state greeting & user avatar | Used |
 | `learnerType` | Onboarding Step 0 | `profiles.learner_type` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
-| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
-| `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Settings, AI Tutor system prompt | Used |
-| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings | Used |
-| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings | Used |
+| `educationLevel` | Onboarding Step 0 | `profiles.education_level` | `ProfileContext` | Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
+| `primaryGoal` | Onboarding Step 1 | `profiles.primary_goal` | `ProfileContext` | Dashboard Overview header, Dashboard AI Suggestions, Settings, AI Tutor system prompt | Used |
+| `subjects` | Onboarding Step 1 | `profiles.subjects` | `ProfileContext` | Dashboard Overview header, Settings, Dashboard AI Suggestions, Planner, Study Home modal, Community, Lumo AI Chat prompt suggestions, Study Group creation (`CreateGroupModal`) | Used |
+| `weeklyHours` | Onboarding Step 2 | `profiles.weekly_hours` | `ProfileContext` | Dashboard AI suggestions, Planner, Settings, Progress (`StudyTrendChart` daily goal target line) | Used |
 | `studyDays` | Onboarding Step 2 | `profiles.study_days` | `ProfileContext` | Planner calendar view, Planner session length calculation, Settings | Used |
-| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Settings | Used |
-| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
-| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor system prompt | Used |
-| `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings | Used |
+| `preferredTime` | Onboarding Step 2 | `profiles.preferred_time` | `ProfileContext` | Planner default start time, Dashboard AI Suggestions, Study Home modal defaults, PlannerActivityModal start time, Settings | Used |
+| `learningStyle` | Onboarding Step 3 | `profiles.learning_style` | `ProfileContext` | Settings, Dashboard AI Suggestions, AI Tutor system prompt | Used |
+| `accessibilityNeeds` | Onboarding Step 3 | `profiles.accessibility_needs` | `ProfileContext` | Settings, AI Tutor prompt, Root Document Accessibility Classes (`high-contrast`, `accessibility-large-text`) | Used |
+| `collaborationInterest` | Onboarding Step 3 | `profiles.collaboration_interest` | `ProfileContext` | Community Hub, Settings, Dashboard Community Spotlight | Used |
 
 ## Journal
 
 ## 2025-05-20 - Connecting Orphaned Collaboration Interest Field
 **Learning:** `collaboration_interest` was collected in Onboarding step 3 ("How would you like to learn with others?") and stored in `profiles.collaboration_interest`, but was never referenced in any UI component, Settings form, or AI context.
 **Action:** Connect `collaboration_interest` to `Community.jsx` to render a personalized Phase 2 community preview badge and add a preference control in `Settings.jsx` so changes propagate instantly via `ProfileContext`.
+
+## 2026-11-26 - Connecting Collaboration Interest to Dashboard Community Spotlight
+**Learning:** `collaboration_interest` was saved to `profiles.collaboration_interest` and rendered as a badge on the Community Hub header, but the Dashboard Overview `CommunitySpotlight` card always rendered generic static text ("Learn together - Find study partners, share a breakthrough...").
+**Action:** Create `getCommunitySpotlight` helper in `src/lib/collaboration.js` with tests in `test/collaboration_interest.test.js`, and connect it to `CommunitySpotlight.jsx` via `useProfile()` so the Dashboard card dynamically tailors its title and callout copy based on the student's collaboration preference ("Focus rooms ready", "Find your study group", "Ask & support peers", "Explore quietly").
 
 ## 2026-09-30 - Connecting Primary Goal to AI Tutor Prompt & Settings
 **Learning:** `primary_goal` was collected in Onboarding step 1 ("What is your primary goal?"), stored in `profiles.primary_goal`, and displayed in the Dashboard header, but was not passed to the AI Tutor system prompt or editable in Settings.
@@ -39,3 +43,51 @@
 ## 2026-10-14 - Connecting Weekly Hours to Settings & AI Suggestions
 **Learning:** `weekly_hours` was collected in Onboarding Step 2 ("How many hours can you study each week?") and referenced in `AISuggestions.jsx` and `Planner.jsx`, but was not editable in Settings and lacked a dedicated helper with safe numeric bounds fallback testing.
 **Action:** Create `getWeeklyHours` in `src/lib/weeklyHours.js` with tests in `test/weeklyHours.test.js`, connect it to `AISuggestions.jsx`, and add a Target Weekly Study Hours input control in `Settings.jsx` with immediate propagation via `ProfileContext`.
+
+## 2026-10-18 - Connecting Learning Style to Dashboard AI Suggestions & Settings Options
+**Learning:** `learning_style` was collected in Onboarding Step 3 ("How do you learn best?"), stored in `profiles.learning_style`, and passed to the AI Tutor system prompt, but Dashboard AI Suggestions rendered only generic string lowercasing, and Settings choice options ("Analogy-based") were misaligned with Onboarding choices ("Practice first", "Conversation").
+**Action:** Create `getLearningStyleSuggestion` in `src/lib/learningStyle.js` with tests in `test/learningStyle.test.js`, connect it to `AISuggestions.jsx` to render tailored learning strategy advice, and align `styles` in `Settings.jsx` with onboarding options so preferences can be edited with instant UI propagation via `ProfileContext`.
+
+## 2026-10-24 - Connecting Education Level to Dashboard AI Suggestions & Settings Options
+**Learning:** `education_level` was collected in Onboarding Step 0 ("Where are you learning right now?"), stored in `profiles.education_level`, and passed to the AI Tutor system prompt, but was omitted from Dashboard recommendations and Settings `levels` options lacked onboarding choices ("High school", "College / university", "Working professional", "Independent learner"), displaying empty selection.
+**Action:** Create `getEducationLevelSuggestion` in `src/lib/educationLevel.js` with tests in `test/educationLevel.test.js`, connect it to `AISuggestions.jsx` to render tailored academic study context notes, and update `levels` in `Settings.jsx` to include onboarding choices for instant UI propagation via `ProfileContext`.
+
+## 2026-10-28 - Connecting Accessibility Needs to Document Root Classes & Aligning Settings Options
+**Learning:** `accessibility_needs` was collected in Onboarding Step 3 ("Would any accessibility support help?"), stored in `profiles.accessibility_needs`, and sent to the AI Tutor prompt, but option casing in Settings ("Screen Reader", "High Contrast", "Larger Text") was misaligned with Onboarding ("Screen reader", "High contrast", "Larger text"), breaking option pre-filling and selection. Furthermore, selecting "High contrast" or "Larger text" did not toggle root UI accessibility classes on the document element.
+**Action:** Create `hasAccessibilityNeed` and `getAccessibilityClasses` in `src/lib/accessibility.js` with tests in `test/accessibility.test.js`, connect `ProfileContext.jsx` to dynamically toggle `.high-contrast` and `.accessibility-large-text` on `document.documentElement`, and align options in `Settings.jsx` with case-insensitive matching.
+
+## 2026-11-02 - Connecting Onboarding Subjects to Settings Options & Profile Sync
+**Learning:** `subjects` was collected in Onboarding Step 1 ("What would you like to study?"), stored in `profiles.subjects` as an array, but Settings subject options used "Mathematics" instead of onboarding choice "Math", leaving the Settings dropdown unselected for onboarding users. Saving in Settings updated only `settings_subject` without updating `profiles.subjects`, causing target subjects across Dashboard and AISuggestions to remain stale.
+**Action:** Create `getUserSubjectsFormatted` and `getSubjectOptions` in `src/lib/userSubjects.js` with tests in `test/userSubjects.test.js`, update `AISuggestions.jsx` to format user subjects cleanly with safe defaults, align `Settings.jsx` subject options with onboarding choices, and update both `settings_subject` and `subjects` in Supabase `profiles` on save for instant UI propagation via `ProfileContext`.
+
+## 2026-11-06 - Connecting Primary Goal to Dashboard AI Suggestions
+**Learning:** `primary_goal` was collected in Onboarding Step 1 ("What is your primary goal?"), stored in `profiles.primary_goal`, and displayed in the header, but was omitted from Dashboard recommendations on the `AISuggestions` card.
+**Action:** Create `getPrimaryGoalNote` in `src/lib/primaryGoal.js` with tests in `test/primaryGoal.test.js`, and connect it to `AISuggestions.jsx` so primary goal preferences ("Improve my grades", "Prepare for an exam", "Learn a new skill", "Advance my career") directly personalize AI recommendation copy on the Dashboard with immediate propagation via `ProfileContext`.
+
+## 2026-11-10 - Connecting Preferred Time to Planner Activity Modal Defaults
+**Learning:** `preferred_time` was collected in Onboarding Step 2 ("When do you focus best?"), stored in `profiles.preferred_time`, and rendered as a recommendation note in `AISuggestions.jsx`, but `getPlannerDefaults` in `src/lib/plannerUtils.js` ignored `preferred_time` when creating new study sessions, time blocks, or recurring sessions, defaulting to `getNextHalfHour()`.
+**Action:** Update `getPlannerDefaults` in `src/lib/plannerUtils.js` to derive default start times from `preferredTime` ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening, or `getNextHalfHour()` for Flexible / missing inputs) and pass `preferredTime={profile?.preferred_time}` from `Planner.jsx` to `PlannerActivityModal.jsx`.
+
+## 2026-11-14 - Connecting Profile Name & Onboarding Subjects to Lumo AI Tutor Prompts & Greeting
+**Learning:** `full_name` and `subjects` were collected in Onboarding, but Global Lumo AI Tutor (`GlobalAITutorFab.jsx` and `AITutorChat.jsx`) did not receive `profile` or `user` details, showing generic "Hi, I'm Lumo. What are we studying?" and unfilled prompt placeholders (`[topic]`, `[subject]`), and rendering user chat avatars with a hardcoded fallback initial ("U").
+**Action:** Create `getLumoGreeting` and `formatPromptForProfile` in `src/lib/lumoPrompts.js` with tests in `test/lumoPrompts.test.js`, pass `profile` and user info from `GlobalAITutorFab.jsx` to `AITutorChat.jsx`, and personalize empty-state greetings, prompt placeholder completions, and user message avatar initials.
+
+## 2026-11-18 - Pre-filling Study Session Defaults from Onboarding Subjects & Focus Time
+**Learning:** When creating a new study session on the Study page (`/Study`), the subject and start time fields defaulted to empty string `""`, ignoring what the student indicated during onboarding ("What would you like to study?" and "When do you focus best?").
+**Action:** Create `getStudySessionDefaults` in `src/lib/plannerUtils.js` with unit tests in `test/plannerUtils.test.js`, consume `useProfile()` in `StudyHome.jsx`, and pre-fill the "New Session" creation modal with the student's priority subject and preferred focus start time ("09:00" for Morning, "14:00" for Afternoon, "19:00" for Evening).
+
+## 2026-11-22 - Pre-filling Study Group Subject Defaults from Onboarding Subjects
+**Learning:** When creating a new study group in Community (`CreateGroupModal`), the subject field defaulted to empty string `""`, ignoring the student's onboarding subjects (`profiles.subjects`) and forcing manual text entry.
+**Action:** Create `getUserSubjectsList` in `src/lib/userSubjects.js` with unit tests in `test/userSubjects.test.js`, update `community.jsx` to pass `userSubjects` to `CreateGroupModal`, pre-fill the group subject field with the student's priority subject when opening, and render interactive subject recommendation chips for instant selection.
+
+## 2026-11-26 - Pre-filling Planner Activity Modal Start Time from Preferred Time
+**Learning:** `PlannerActivityModal.jsx` computes `defaults = getPlannerDefaults(preferredTime)` but hardcoded `startTime: getNextHalfHour()` in the state initializer for new activities instead of using `defaults.startTime`, overriding the student's onboarding focus preference ("Morning", "Afternoon", "Evening").
+**Action:** Update `PlannerActivityModal.jsx` state initializer to use `defaults.startTime`, so new study activities, time blocks, and recurring sessions automatically default to the student's preferred focus time slot.
+
+## 2026-11-30 - Connecting Onboarding Study Time Preferences to Progress Study Trend Chart Goal
+**Learning:** `Progress.jsx` made an ad-hoc query `supabase.from("profiles").select("daily_goal_minutes").eq("id", user.id)` which failed because primary key is `user_id` and `daily_goal_minutes` is not a database column, leaving `dailyGoalHours` as `0` on the `StudyTrendChart`.
+**Action:** Consume `useProfile()` in `Progress.jsx` and derive daily study goal target via `getDailyGoalMinutes(profile) / 60` from `weekly_hours` and `study_days`, displaying the student's onboarding study goal reference line on the trend chart without extra network calls.
+
+## 2026-12-04 - Connecting Onboarding Level Choices (Beginner, Intermediate, Advanced) to AI Suggestions & Settings Options
+**Learning:** Onboarding Step 3 asks "What's your current level?" with choices "Beginner", "Intermediate", and "Advanced", stored in `profiles.education_level`. However, `EDUCATION_LEVEL_SUGGESTIONS` in `src/lib/educationLevel.js` lacked entries for "Beginner", "Intermediate", and "Advanced", causing `getEducationLevelSuggestion` to fall back to generic copy ("tailored for your academic goals"). Additionally, Settings `levels` options omitted "Beginner", "Intermediate", and "Advanced", leaving the Student Level dropdown unselected for onboarded users.
+**Action:** Update `src/lib/educationLevel.js` with explicit entries and regex fallbacks for "Beginner", "Intermediate", and "Advanced" to render tailored study context notes on the Dashboard `AISuggestions` card, and add "Beginner", "Intermediate", and "Advanced" to `levels` in `Settings.jsx` so student level preferences are accurately pre-filled and editable with immediate propagation via `ProfileContext`.

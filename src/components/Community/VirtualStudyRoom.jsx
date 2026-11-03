@@ -25,80 +25,8 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import Avatar from "../common/Avatar";
-
-function FriendPicker({ currentUserId, onSelectFriend }) {
-  const [friends, setFriends] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    if (!currentUserId) {
-      setLoading(false);
-      return undefined;
-    }
-
-    let alive = true;
-    const loadFriends = async () => {
-      setLoading(true);
-      try {
-        const { data, error } = await supabase
-          .from("community_profiles")
-          .select("user_id, full_name, username, user_img")
-          .neq("user_id", currentUserId)
-          .limit(10);
-
-        if (!alive) return;
-        if (error) {
-          console.error("Error loading friends list:", error);
-          setFriends([]);
-        } else {
-          setFriends(data || []);
-        }
-      } catch (err) {
-        console.error("FriendPicker failed:", err);
-        if (alive) setFriends([]);
-      } finally {
-        if (alive) setLoading(false);
-      }
-    };
-
-    loadFriends();
-    return () => {
-      alive = false;
-    };
-  }, [currentUserId]);
-
-  if (loading) {
-    return <div className="text-sm text-slate-400">Loading invite suggestions…</div>;
-  }
-
-  if (!friends.length) {
-    return <p className="text-sm text-slate-400">No friends to invite yet.</p>;
-  }
-
-  return (
-    <div className="space-y-2">
-      {friends.map((friend) => (
-        <button
-          key={friend.user_id}
-          type="button"
-          onClick={() => onSelectFriend?.(friend)}
-          className="flex w-full items-center justify-between gap-3 rounded-2xl border border-slate-700 bg-slate-900 p-3 text-left transition hover:border-emerald-500 hover:bg-slate-800"
-        >
-          <div className="flex items-center gap-3">
-            <Avatar userId={friend.user_id} size="sm" className="h-9 w-9" />
-            <div>
-              <p className="text-sm font-semibold text-white">{friend.full_name || friend.username || "Friend"}</p>
-              <p className="text-[11px] text-slate-400">{friend.username ? `@${friend.username}` : "Study buddy"}</p>
-            </div>
-          </div>
-          <span className="rounded-full bg-emerald-500/15 px-2 py-1 text-[10px] font-bold uppercase tracking-[0.12em] text-emerald-300">
-            Invite
-          </span>
-        </button>
-      ))}
-    </div>
-  );
-}
+import FriendPicker from "./FriendPicker";
+import { sanitizeUrl } from "../../lib/communityChat";
 
 export default function VirtualStudyRoom() {
   const { roomId } = useParams();
@@ -126,9 +54,7 @@ export default function VirtualStudyRoom() {
   // Chat state (broadcast)
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
-  const [typingUsers, setTypingUsers] = useState({});
   const broadcastChannelRef = useRef(null);
-  const presenceChannelRef = useRef(null);
 
   // Share resource modal / Friend invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -196,7 +122,7 @@ export default function VirtualStudyRoom() {
           .from("study_rooms")
           .select("*, host:created_by(id, username, full_name, user_img)")
           .eq("id", roomId)
-          .single();
+          .maybeSingle();
 
         const endMs = Date.now();
         const estimatedServerMs = startMs + Math.round((endMs - startMs) / 2);
@@ -224,11 +150,15 @@ export default function VirtualStudyRoom() {
         });
 
         if (joinErr) {
-          if (
-            joinErr.message?.toLowerCase().includes("full") ||
-            joinErr.message?.toLowerCase().includes("closed")
-          ) {
+          const errMsg = joinErr.message?.toLowerCase() || "";
+          if (errMsg.includes("full") || errMsg.includes("closed")) {
             throw new Error("This study room is full or closed.");
+          } else if (errMsg.includes("private") || errMsg.includes("approval")) {
+            throw new Error("This study room is private and requires host approval.");
+          } else if (errMsg.includes("already") || errMsg.includes("member")) {
+            // Already a member - proceed smoothly into room
+          } else {
+            console.warn("join_study_room notice:", joinErr.message);
           }
         }
 
@@ -269,7 +199,11 @@ export default function VirtualStudyRoom() {
     }, 45000);
 
     const handleLeave = () => {
-      supabase.rpc("leave_study_room", { p_room_id: roomId }).catch(() => {});
+      try {
+        void supabase.rpc("leave_study_room", { p_room_id: roomId });
+      } catch (e) {
+        console.warn("leave_study_room warning:", e);
+      }
     };
 
     window.addEventListener("pagehide", handleLeave);
@@ -285,8 +219,10 @@ export default function VirtualStudyRoom() {
   useEffect(() => {
     if (!roomId) return;
 
-    const roomSub = supabase
-      .channel(`room_db:${roomId}`)
+    const channelName = `room_db:${roomId}:${crypto.randomUUID()}`;
+    const roomSub = supabase.channel(channelName);
+
+    roomSub
       .on(
         "postgres_changes",
         {
@@ -315,8 +251,9 @@ export default function VirtualStudyRoom() {
         () => {
           fetchRoster();
         }
-      )
-      .subscribe();
+      );
+
+    roomSub.subscribe();
 
     const rosterInterval = setInterval(fetchRoster, 30000);
 
@@ -330,7 +267,8 @@ export default function VirtualStudyRoom() {
   useEffect(() => {
     if (!roomId || !currentUserId) return;
 
-    const bChannel = supabase.channel(`room:${roomId}`, {
+    const channelName = `room:${roomId}:${crypto.randomUUID()}`;
+    const bChannel = supabase.channel(channelName, {
       config: { broadcast: { self: true } },
     });
 
@@ -350,14 +288,16 @@ export default function VirtualStudyRoom() {
             created_at: new Date().toISOString(),
           },
         ]);
-      })
-      .subscribe();
+      });
+
+    bChannel.subscribe();
 
     broadcastChannelRef.current = bChannel;
 
     return () => {
       if (broadcastChannelRef.current) {
         supabase.removeChannel(broadcastChannelRef.current);
+        broadcastChannelRef.current = null;
       }
     };
   }, [roomId, currentUserId]);
@@ -835,7 +775,7 @@ export default function VirtualStudyRoom() {
                     <div className="rounded-xl border border-emerald-800/60 bg-emerald-950/30 p-2.5 text-xs text-emerald-200">
                       <span className="font-bold block text-emerald-400">{msg.name}</span>
                       <a
-                        href={msg.link}
+                        href={sanitizeUrl(msg.link)}
                         target="_blank"
                         rel="noreferrer"
                         className="underline break-all text-xs text-sky-400"

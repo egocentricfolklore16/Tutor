@@ -13,8 +13,11 @@ import AchievementsCard from "./AchievementsCard";
 import { ArrowRight, Bot, CalendarCheck2, Flame, MessageSquare, Sun } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
+import { useGamification, DailyGoalRing, QuestList } from "../../features/gamification";
 import PageContainer from "../common/PageContainer";
 import supabase from "../../lib/supabase";
+import FeedbackDialog from "../common/FeedbackDialog";
+import { getDailyGoalMinutes } from "../../lib/weeklyHours";
 
 // Typing Animation Component
 const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
@@ -53,23 +56,40 @@ const TypingText = ({ text, typingSpeed = 75, showCursor = true }) => {
 
 function Overview() {
   const navigate = useNavigate();
-  const { profile, isLoading: isProfileLoading, streak } = useProfile();
+  const { profile, isLoading: isProfileLoading } = useProfile();
+  const { streak } = useGamification();
+  const { currentStreak, todayCompleted, freezeTokens, loading: streakLoading, error: streakError, refreshStreak } = streak;
   const [userName, setUserName] = useState("");
-  const [userId, setUserId] = useState(null);
+  const [_userId, setUserId] = useState(null);
+  const [todayMinutes, setTodayMinutes] = useState(0);
   const [greeting, setGreeting] = useState({ heading: "", paragraph: "" });
   const [feedbackVisible, setFeedbackVisible] = useState(true);
+  const [feedbackOpen, setFeedbackOpen] = useState(false);
   const knowledgeGaps = Array.isArray(profile?.knowledge_gaps) ? profile.knowledge_gaps : [];
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
+  const targetMinutes = getDailyGoalMinutes(profile);
+
   useEffect(() => {
-    const getUser = async () => {
+    const getUserAndMinutes = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setUserId(user.id);
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const { data: tracking } = await supabase
+          .from("daily_session_tracking")
+          .select("total_duration_seconds")
+          .eq("user_id", user.id)
+          .eq("activity_date", todayStr)
+          .maybeSingle();
+
+        if (tracking?.total_duration_seconds) {
+          setTodayMinutes(Math.round(tracking.total_duration_seconds / 60));
+        }
       }
     };
-    getUser();
+    getUserAndMinutes();
   }, []);
 
   useEffect(() => {
@@ -94,75 +114,67 @@ function Overview() {
     }
   }, [isProfileLoading, profile]);
 
+  const streakDisplayLabel = streakLoading || currentStreak === null || streakError ? "–d Streak" : `${currentStreak}d Streak`;
+
   return (
     <PageContainer maxWidth="max-w-7xl">
-      <div className="space-y-5">
-        <section
-          className="rounded-2xl bg-white p-4 shadow-sm dark:bg-slate-900"
-          aria-labelledby="dashboard-greeting-title"
-        >
-          <div className="flex flex-wrap items-center gap-2 text-[11px] font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700 dark:bg-sky-500/15 dark:text-sky-300">
-              <Sun className="h-4 w-4" />
-              {timeOfDay}
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700 dark:bg-orange-500/15 dark:text-orange-300">
-              <Flame className="h-4 w-4" />
-              {streak?.display_current_streak || 0}d streak
-            </span>
-          </div>
+      <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2 2xl:grid-cols-12">
+          <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"><Flame className="h-3.5 w-3.5" />{streakDisplayLabel}</span>
+            </div>
 
-          <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-500/10">
-                <img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" />
+            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div className="flex min-w-0 items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
+                <h1 id="dashboard-greeting-title" className="min-w-0 truncate text-2xl font-bold text-slate-950 dark:text-white md:text-3xl"><span className="block truncate"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></span></h1>
               </div>
               <h1 id="dashboard-greeting-title" className="min-w-0 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50 md:text-3xl">
                 <TypingText text={greeting.heading} typingSpeed={75} showCursor={true} />
               </h1>
             </div>
 
-            <button
-              type="button"
-              onClick={() => navigate("/Study")}
-              className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:bg-emerald-500 dark:hover:bg-emerald-400 sm:w-auto"
-            >
-              <Bot className="h-4 w-4" />
-              Start studying
-            </button>
+            <p className="mt-2 truncate pl-14 text-sm text-slate-600 dark:text-slate-400">{greeting.paragraph}</p>
+            {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500 dark:text-slate-400">Focus: <span className="font-semibold text-slate-700 dark:text-slate-300">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
+
+           <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
+  <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+    <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500 dark:bg-amber-500" />
+    <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-500" />
+    <strong className="truncate text-slate-800 dark:text-amber-400">
+      {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
+    </strong>
+    <span className="hidden truncate text-slate-500 dark:text-amber-500/70 sm:inline">
+      {knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}
+    </span>
+  </div>
+  <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-amber-400 dark:hover:text-amber-300 sm:ml-auto">
+    Review now <ArrowRight className="h-4 w-4" />
+  </button>
+</div>
+          </section>
+
+          {/* Keeps Slipping section placed directly below greeting banner */}
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <KeepsSlipping />
           </div>
 
-          <p className="mt-3 text-sm leading-6 text-slate-600 dark:text-slate-300">{greeting.paragraph}</p>
-          {profile?.primary_goal && (
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Focus: <span className="font-semibold text-slate-700 dark:text-slate-200">{profile.primary_goal}</span>
-              {profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}
-            </p>
-          )}
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <DashboardStatsBar />
+          </div>
 
-          <div className="mt-4 flex min-w-0 flex-col gap-3 rounded-2xl bg-slate-50 p-3 dark:bg-slate-800/80 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex min-w-0 items-center gap-2 text-sm">
-              <span className="h-2.5 w-2.5 shrink-0 rounded-full bg-orange-500 dark:bg-amber-400" />
-              <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-400" />
-              <strong className="truncate text-slate-800 dark:text-slate-100">
-                {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
-              </strong>
+          {/* Daily Goal & Quests Suite */}
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12 grid gap-5 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <DailyGoalRing currentMinutes={todayMinutes} targetMinutes={targetMinutes} />
             </div>
-            <button
-              type="button"
-              onClick={() => navigate("/Study")}
-              className="inline-flex items-center gap-1 text-sm font-semibold text-orange-600 transition hover:text-orange-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-orange-300 dark:hover:text-orange-200"
-            >
-              Review now
-              <ArrowRight className="h-4 w-4" />
-            </button>
+            <div className="lg:col-span-8">
+              <QuestList />
+            </div>
           </div>
-        </section>
 
-        <DashboardStatsBar />
-
-        <div className="grid grid-cols-1 gap-5 xl:grid-cols-12">
-          <div className="xl:col-span-8">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <QuickShortcuts />
             <div className="mt-5">
               <PerformanceDashboard />
@@ -185,12 +197,15 @@ function Overview() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
-          <div className="min-w-0">
-            <StudyStreak streak={streak} />
-          </div>
-          <div className="min-w-0">
-            <KeepsSlipping userId={userId} />
+          <div className="min-w-0 2xl:col-span-12">
+            <StudyStreak
+              currentStreak={currentStreak}
+              todayCompleted={todayCompleted}
+              freezeTokens={freezeTokens}
+              loading={streakLoading}
+              error={streakError}
+              onRetry={refreshStreak}
+            />
           </div>
         </div>
 
@@ -200,12 +215,19 @@ function Overview() {
       {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
-        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-900 dark:text-slate-100 dark:ring-slate-700">
-          <span>Give us feedback!</span>
-          <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
-          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950">×</button>
+        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
+          <button
+            type="button"
+            onClick={() => setFeedbackOpen(true)}
+            className="flex items-center gap-2 cursor-pointer text-left focus:outline-none"
+          >
+            <span>Give us feedback!</span>
+            <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
+          </button>
+          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950 dark:bg-slate-700 dark:hover:bg-slate-600">×</button>
         </div>
       </div>}
+      <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />
     </PageContainer>
   );
 }

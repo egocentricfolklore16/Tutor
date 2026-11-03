@@ -1,11 +1,12 @@
 import React from "react";
 import { createPortal } from "react-dom";
+import { useLocation } from "react-router-dom";
 import LumoAvatar from "./LumoAvatar";
 import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
-const GlobalAITutorFab = ({ session }) => {
+const GlobalAITutorFab = ({ session: _session }) => {
   const {
     mode,
     setMode,
@@ -22,8 +23,15 @@ const GlobalAITutorFab = ({ session }) => {
     setRequestedQuizId,
   } = useAITutor();
 
+  const location = useLocation();
   const { profile } = useProfile();
   const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
+
+  const pathLower = location.pathname.toLowerCase();
+  const isThreadPage = pathLower.includes("/chat/") && pathLower.split("/chat/")[1]?.trim().length > 0;
+  if (isThreadPage) {
+    return null;
+  }
 
   const handleSendMessage = () => {
     sendMessage();
@@ -38,7 +46,7 @@ const GlobalAITutorFab = ({ session }) => {
 
   return (
     <>
-      <div className="fixed bottom-20 right-4 z-[90] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] md:bottom-6 md:right-6">
+      <div className="fixed bottom-20 right-4 z-[2000] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] md:bottom-6 md:right-6">
         <button
           type="button"
           onClick={handleToggle}
@@ -63,10 +71,10 @@ const GlobalAITutorFab = ({ session }) => {
         <div
           className={
             mode === "closed"
-              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[100] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[3000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
               : mode === "fullpage"
-              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[100] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
-              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[100] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
           }
         >
           <AITutorChat
@@ -80,6 +88,8 @@ const GlobalAITutorFab = ({ session }) => {
             onSendMessage={handleSendMessage}
             onClear={clearMessages}
             isTyping={isTyping}
+            user={{ name: profile?.full_name, avatar: profile?.user_img }}
+            profile={profile}
             onActionExecute={handleActionExecute}
             width={mode === "fullpage" ? "100%" : 380}
             theme={{ accentButton: "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600", accentBg: "bg-violet-100 dark:bg-violet-900/40" }}

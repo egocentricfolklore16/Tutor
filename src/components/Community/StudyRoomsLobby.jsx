@@ -35,7 +35,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const [createName, setCreateName] = useState("");
   const [createSubject, setCreateSubject] = useState("");
   const [createDesc, setCreateDesc] = useState("");
-  const [createIsPublic, setCreateIsPublic] = useState(true);
+  const [createIsPublic] = useState(true);
   const [createCapacity, setCreateCapacity] = useState(10);
   const [createFocusMinutes, setCreateFocusMinutes] = useState(25);
   const [createBreakMinutes, setCreateBreakMinutes] = useState(5);
@@ -47,6 +47,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const [joiningRoom, setJoiningRoom] = useState(null);
   const [userGoal, setUserGoal] = useState("");
   const [joinError, setJoinError] = useState(null);
+  const [joining, setJoining] = useState(false);
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -68,16 +69,22 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
     }
   }, [selectedSubject]);
 
-  // Fetch my groups for create room group assignment
+  // Fetch my groups for create room group assignment (handled gracefully if study_groups is missing in live DB)
   useEffect(() => {
     if (!user) return;
     async function loadMyGroups() {
-      const { data } = await supabase
-        .from("study_group_members")
-        .select("group_id, group:study_groups(id, name)")
-        .eq("user_id", user.id);
-      if (data) {
-        setMyGroups(data.map((d) => d.group).filter(Boolean));
+      try {
+        const { data, error } = await supabase
+          .from("study_group_members")
+          .select("group_id, group:study_groups(id, name)")
+          .eq("user_id", user.id);
+        if (!error && data) {
+          setMyGroups(data.map((d) => d.group).filter(Boolean));
+        } else {
+          setMyGroups([]);
+        }
+      } catch {
+        setMyGroups([]);
       }
     }
     loadMyGroups();
@@ -86,17 +93,18 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   useEffect(() => {
     fetchRooms();
 
-    // Subscribe to Realtime UPDATE/INSERT on study_rooms
-    const channel = supabase
-      .channel("public:study_rooms")
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "study_rooms" },
-        () => {
-          fetchRooms();
-        }
-      )
-      .subscribe();
+    const channelName = `public:study_rooms:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "study_rooms" },
+      () => {
+        fetchRooms();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
@@ -142,18 +150,28 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
 
   const handleConfirmJoin = async (e) => {
     e.preventDefault();
-    if (!joiningRoom) return;
+    if (!joiningRoom || joining) return;
     setJoinError(null);
+    setJoining(true);
 
     try {
-      const { data: success, error } = await supabase.rpc("join_study_room", {
+      const { error } = await supabase.rpc("join_study_room", {
         p_room_id: joiningRoom.id,
         p_goal: userGoal.trim() || "Studying",
       });
 
       if (error) {
-        if (error.message?.includes("full") || error.message?.includes("closed")) {
+        const errMsg = error.message?.toLowerCase() || "";
+        if (errMsg.includes("full") || errMsg.includes("closed")) {
           setJoinError("This room is full or has been closed.");
+          return;
+        }
+        if (errMsg.includes("private") || errMsg.includes("approval")) {
+          setJoinError("This room is private and requires host approval.");
+          return;
+        }
+        if (errMsg.includes("already") || errMsg.includes("member")) {
+          navigate(`/community/rooms/${joiningRoom.id}`);
           return;
         }
         throw error;
@@ -163,6 +181,8 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
     } catch (err) {
       console.error("Error joining room:", err);
       setJoinError(err.message || "Failed to join room.");
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -596,9 +616,11 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
                 </button>
                 <button
                   type="submit"
-                  className="rounded-2xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700"
+                  disabled={joining}
+                  className="inline-flex items-center gap-1.5 rounded-2xl bg-emerald-600 px-5 py-2 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50"
                 >
-                  Enter Room
+                  {joining && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <span>Enter Room</span>
                 </button>
               </div>
             </form>

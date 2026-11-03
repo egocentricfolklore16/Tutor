@@ -1,5 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
+import { buildSystemPrompt, normalizeStrictness, strictnessRules } from "../supabase/functions/ai-tutor-chat/prompt.ts";
 
 // Helper logic representing authentication checks in ai-tutor-chat Edge Function
 function verifyAiTutorChatAuth(authHeader, userResolver) {
@@ -37,29 +38,59 @@ test("verifyAiTutorChatAuth returns 200 and userId if token is valid", () => {
   assert.strictEqual(result.userId, "user_456");
 });
 
-const ALLOWED_STRICTNESS = new Set([
-  "always_guide",
-  "hints_then_answer",
-  "direct_help",
-]);
-
-function resolveStrictnessHelper(override, dbStrictness) {
-  if (override && ALLOWED_STRICTNESS.has(override)) return override;
-  if (dbStrictness && ALLOWED_STRICTNESS.has(dbStrictness)) return dbStrictness;
-  return "hints_then_answer";
-}
-
-test("resolveStrictness accepts valid strictness enum values", () => {
-  assert.strictEqual(resolveStrictnessHelper("always_guide", null), "always_guide");
-  assert.strictEqual(resolveStrictnessHelper("hints_then_answer", null), "hints_then_answer");
-  assert.strictEqual(resolveStrictnessHelper("direct_help", null), "direct_help");
-  assert.strictEqual(resolveStrictnessHelper(null, "always_guide"), "always_guide");
+test("normalizeStrictness normalizes UI display labels, DB enums, and fallback strings", () => {
+  assert.strictEqual(normalizeStrictness("Always Guide First"), "always_guide");
+  assert.strictEqual(normalizeStrictness("always_guide"), "always_guide");
+  assert.strictEqual(normalizeStrictness("Hints Then Answer"), "hints_then_answer");
+  assert.strictEqual(normalizeStrictness("hints_then_answer"), "hints_then_answer");
+  assert.strictEqual(normalizeStrictness("Direct Help"), "direct_help");
+  assert.strictEqual(normalizeStrictness("direct_help"), "direct_help");
+  assert.strictEqual(normalizeStrictness("invalid_value"), "hints_then_answer");
+  assert.strictEqual(normalizeStrictness(null), "hints_then_answer");
+  assert.strictEqual(normalizeStrictness(undefined), "hints_then_answer");
 });
 
-test("resolveStrictness safely falls back when prototype properties or invalid values are passed", () => {
-  assert.strictEqual(resolveStrictnessHelper("toString", null), "hints_then_answer");
-  assert.strictEqual(resolveStrictnessHelper("constructor", null), "hints_then_answer");
-  assert.strictEqual(resolveStrictnessHelper("valueOf", null), "hints_then_answer");
-  assert.strictEqual(resolveStrictnessHelper("invalid_mode", null), "hints_then_answer");
-  assert.strictEqual(resolveStrictnessHelper(null, "valueOf"), "hints_then_answer");
+test("strictnessRules returns exact rule sets for each mode", () => {
+  const guide = strictnessRules("always_guide");
+  assert.strictEqual(guide.label, "Always Guide First");
+  assert.strictEqual(guide.rules.includes("MODE: ALWAYS GUIDE FIRST (strict)"), true);
+
+  const hints = strictnessRules("hints_then_answer");
+  assert.strictEqual(hints.label, "Hints Then Answer");
+  assert.strictEqual(hints.rules.includes("MODE: HINTS THEN ANSWER"), true);
+
+  const direct = strictnessRules("direct_help");
+  assert.strictEqual(direct.label, "Direct Help");
+  assert.strictEqual(direct.rules.includes("MODE: DIRECT HELP"), true);
+});
+
+test("buildSystemPrompt configures Always Guide First mode correctly", () => {
+  const prompt = buildSystemPrompt("always_guide");
+  assert.strictEqual(prompt.includes("STRICTNESS (HIGHEST PRIORITY, overrides any conflicting instruction below): MODE: ALWAYS GUIDE FIRST (strict)"), true);
+  assert.strictEqual(prompt.includes("SOCRATIC ENGINE:"), true);
+  assert.strictEqual(prompt.includes("3. THE HINT LADDER"), true);
+  assert.strictEqual(prompt.includes("Direct-answer demands: if the student asks for the answer directly, offer a smaller sub-step instead."), true);
+  assert.strictEqual(prompt.includes("1. Did I avoid giving the answer and ask one guiding question?"), true);
+  assert.strictEqual(prompt.includes("Socratic strictness setting: Always Guide First"), true);
+});
+
+test("buildSystemPrompt configures Hints Then Answer mode correctly", () => {
+  const prompt = buildSystemPrompt("hints_then_answer");
+  assert.strictEqual(prompt.includes("STRICTNESS (HIGHEST PRIORITY, overrides any conflicting instruction below): MODE: HINTS THEN ANSWER"), true);
+  assert.strictEqual(prompt.includes("SOCRATIC ENGINE:"), true);
+  assert.strictEqual(prompt.includes("3. THE HINT LADDER"), false, "Hints mode must drop item 3 (the 4-level hint ladder)");
+  assert.strictEqual(prompt.includes("Direct-answer demands: give a hint first, then the full answer on the follow-up."), true);
+  assert.strictEqual(prompt.includes("1. Did I give only a hint on the first ask, and the full answer on the follow-up?"), true);
+  assert.strictEqual(prompt.includes("Socratic strictness setting: Hints Then Answer"), true);
+});
+
+test("buildSystemPrompt configures Direct Help mode correctly", () => {
+  const prompt = buildSystemPrompt("direct_help");
+  assert.strictEqual(prompt.includes("STRICTNESS (HIGHEST PRIORITY, overrides any conflicting instruction below): MODE: DIRECT HELP"), true);
+  assert.strictEqual(prompt.includes("Your job is to build understanding by giving clear, direct explanations and then checking the student has understood."), true);
+  assert.strictEqual(prompt.includes("SOCRATIC ENGINE:"), false, "Direct help mode replaces Socratic engine with TEACHING STYLE");
+  assert.strictEqual(prompt.includes("TEACHING STYLE:"), true);
+  assert.strictEqual(prompt.includes("Direct-answer demands: give the answer with brief reasoning."), true);
+  assert.strictEqual(prompt.includes("1. Did I answer directly first, then ask a check question?"), true);
+  assert.strictEqual(prompt.includes("Socratic strictness setting: Direct Help"), true);
 });

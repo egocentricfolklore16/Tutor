@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { ExternalLink, FileUp, Link2, Loader2, Plus, Trash2, Youtube, FileText } from "lucide-react";
 import supabase from "../../../lib/supabase";
+import { sanitizeUrl } from "../../../lib/communityChat";
 import ResourcePreviewModal from "../../common/ResourcePreviewModal";
 
 const STORAGE_BUCKET = "resources";
@@ -57,14 +58,16 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
 
     if (!studyId || !userId) return undefined;
 
-    const channel = supabase
-      .channel(`session_resources-${studyId}-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
-        fetchResources
-      )
-      .subscribe();
+    const channelName = `session_resources-${studyId}-${userId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "*", schema: "public", table: "session_resources", filter: `session_id=eq.${studyId}` },
+      fetchResources
+    );
+
+    channel.subscribe();
 
     window.addEventListener("focus", fetchResources);
 
@@ -252,7 +255,12 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
       }
       window.open(data.signedUrl, "_blank", "noopener,noreferrer");
     } else if (resource.url) {
-      window.open(resource.url, "_blank", "noopener,noreferrer");
+      const safeUrl = sanitizeUrl(resource.url);
+      if (safeUrl !== "#") {
+        window.open(safeUrl, "_blank", "noopener,noreferrer");
+      } else {
+        setError("Invalid or unsafe resource URL.");
+      }
     }
   };
 

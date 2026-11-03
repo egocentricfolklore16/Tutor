@@ -15,3 +15,75 @@
 **Learning:** Prompt injection attempts ("ignore previous instructions", "system prompt", "you are now") in student messages can spoof genuine attempts and prematurely unlock answers if not filtered server-side by `countGenuineAttempts`. However, demand filters must be specifically bounded to injection/bypass phrases rather than generic verb-object patterns like `(?:give|tell|show)\s*me` to avoid misclassifying valid questions ("Can you tell me if x = 5?") as non-attempts.
 
 **Action:** Ensure demand/injection filters in server-side turn counters target explicit bypass phrases and answer demands without matching standard conversational student queries.
+
+## 2026-10-05 - Auditing Auxiliary Chat Endpoints for Server-Side State Injection
+
+**Learning:** When multiple Edge Functions serve AI chat features (e.g., `ai-tutor` vs `ai-tutor-chat`), prompt-only strictness rules in lightweight endpoints (such as `STRICTNESS_PROMPTS` instructing "or explicitly ask you to just tell them") create bypass holes where answer locking is skipped on attempt 0. Sharing server-side attempt counting (`countGenuineAttempts`) and state formatting (`getStrictnessRules`) across all AI endpoints ensures uniform lock enforcement.
+
+**Action:** Whenever introducing or updating AI prompt edge functions, ensure every chat endpoint computes turn history attempts server-side and injects `SERVER-ENFORCED STATE: LOCKED/UNLOCKED` rules rather than relying on static inline text.
+
+## 2026-10-06 - Closing Answer-Unlock Demand Phrase Bypass Holes in Turn Counting
+
+**Learning:** Students can bypass answer-locking logic by introducing mild modifier adjectives (e.g., "tell me the final answer", "give me the correct answer", "what is the right answer") or phrasing variations ("solve this for me", "i do not know", "i do not understand") that match neither exact string matches nor rigid demand regexes. Expanding regexes to handle optional descriptive adjectives and alternate pronouns ensures students cannot trick the turn counter into unlocking answers without genuine effort.
+
+**Action:** Maintain regex patterns in `countGenuineAttempts` that accommodate optional adjectives (`(?:final|correct|exact|right|actual|complete|full|real)\s*`) and verb target variations (`this` vs `it`) while maintaining strict boundaries so valid student queries remain recognized as genuine attempts.
+
+## 2026-10-07 - Filtering Bare Problem-Solving Demands in Turn Counting
+
+**Learning:** Bare problem-solving demands (e.g., "solve this", "can you solve this", "work it out", "calculate this", "figure it out") previously bypassed `countGenuineAttempts` because the demand regex required specific tail pronouns/modifiers ("for me") or "answer/solution" keywords. Expanding `nonAttemptDemandRegex` to capture verbs (`solve`, `calculate`, `figure out`, `work out`) with target nouns (`this`, `it`, `the problem`, `the question`) ensures zero-effort problem submissions do not unlock answers prematurely while allowing genuine reasoning statements containing keywords like `because`, `tried`, or `think`.
+
+**Action:** Test bare problem-solving command phrasing against `countGenuineAttempts` and ensure non-attempt regexes match problem submission verbs with target objects (`this`, `it`, `problem`) while preserving genuine reasoning statements.
+
+## 2026-10-08 - Explicit Non-Academic Boundary Instructions for Crisis Guardrails
+
+**Learning:** When system prompts instruct tutors to pause tutoring mode for student distress, models may still attempt to ask check questions or pivot back to academic subjects unless explicitly forbidden from asking follow-up check questions, providing medical/diagnostic advice, or re-routing back to study topics.
+
+**Action:** In wellbeing guardrails across all AI endpoints, explicitly append instructions to pause tutoring mode immediately, express care and warmth, provide crisis helpline resources (988 / trusted adult), omit check questions, avoid medical advice, and refrain from re-routing to academic topics.
+
+## 2026-10-09 - Propagating Genuine Attempt Counts to Prompt Builder Rules
+
+**Learning:** Unused attempt count parameters (`_attemptCount: number = 0`) in prompt builder functions cause strictness modes to render static prompt text without explicit `[SERVER-ENFORCED STATE: LOCKED/UNLOCKED]` markers. Ensuring all chat edge functions (`ai-tutor`, `ai-tutor-chat`) pass full conversation history to `countGenuineAttempts` and propagate `attemptCount` into `strictnessRules` guarantees explicit state injection on every turn.
+
+**Action:** Whenever updating prompt strictness or state handlers, verify that attempt counts flow from request turn history all the way into `strictnessRules` and generated system prompt strings.
+
+## 2026-10-10 - Filtering Step and Worked-Solution Demands in Turn Counting
+
+**Learning:** Demands for worked steps ("show me the steps", "give me step by step", "show your work", "explain how to solve it", "what are the steps") can bypass Socratic answer locking if `nonAttemptDemandRegex` only matches keywords like "answer" or "solution". Expanding demand regexes to include `steps`, `step by step`, `work`, and phrases like `explain how to solve` ensures students cannot bypass Socratic mode by asking the tutor to generate the full step-by-step solution on turn 1.
+
+**Action:** Include step and work demand variations in `nonAttemptDemandRegex` while continuing to allow genuine student reasoning containing keywords like `because`, `tried`, or `think`.
+
+## 2026-10-11 - Matching Interrogative Answer Demands in Turn Counting
+
+**Learning:** Interrogative phrasing of answer demands (such as "what is the answer", "what is the solution", "whats the answer", "what's the answer?") previously bypassed `nonAttemptDemandRegex` because `(?:is|are\s*)?` required any trailing whitespace to be bound inside the optional `is|are` group, preventing `"what is the answer"` from matching. Unbinding whitespace (`(?:is|are)?\s*`) allows interrogative answer demands to match properly and filter out as zero genuine attempts while allowing genuine topic questions (e.g., "what is photosynthesis?") to pass through.
+
+**Action:** Ensure regex groups for optional verbs (`is|are`) leave whitespace separation (`\s*`) outside the verb group so matching applies consistently whether the verb is present or omitted.
+
+## 2026-10-12 - Catching Compound Target Nouns in Non-Attempt Demand Turn Counting
+
+**Learning:** Students can combine target demand nouns ("give me the answer and solution", "show me the steps and answer", "give me the code and explanation") using conjunctions or punctuation to bypass single-noun demand regexes. Constructing `compoundTargetNouns` regexes with optional joined target nouns (`(?:answer|solution|result|steps?|work|code|explanation|summary)`) ensures multi-phrase demands do not count as genuine attempts and unlock answers prematurely.
+
+**Action:** When matching non-attempt demands, support compound target nouns joined by conjunctions (`and`, `&`, `+`, `,`) so compound answer/solution demands are filtered server-side.
+
+## 2026-10-13 - Catching Direct Answer Demands and Indefinite Article Variations in Turn Counting
+
+**Learning:** Direct answer demands using the verb "answer" (e.g., "can you answer this", "just answer this", "answer this for me") or indefinite article "an" (e.g., "give me an answer") previously bypassed `countGenuineAttempts` because `nonAttemptDemandRegex` missing `an` in article matchers and `answer` in verb lists. Including `an` in article groups (`(?:the\s*|a\s*|an\s*|your\s*)`), `answer` in verb lists, and `that` in target pronoun lists ensures zero-effort answer requests are filtered server-side.
+
+**Action:** Include `an` in article lists and `answer` in demand verb regexes so answer requests with indefinite articles or direct verb phrasing do not prematurely increment attempt counts.
+
+## 2026-10-14 - Catching Desire-Based and Supply Verb Demands in Turn Counting
+
+**Learning:** Students can express answer demands using desire-based statements ("i need the answer", "i want the solution", "i would like the steps") or supply verbs ("provide the solution", "provide me with the solution") that bypassed `nonAttemptDemandRegex` because the regex verb list only included imperative actions like `give`, `tell`, `show`, `send`, `write`. Expanding verb groups to include desire-based phrases (`i\s*(?:need|want|would\s+like)`) and supply verbs (`provide`) with optional prepositions (`with`) ensures zero-effort desire statements are filtered server-side while preserving legitimate hint requests ("i need a hint").
+
+**Action:** Include desire-based phrases (`i need`, `i want`, `i would like`) and supply verbs (`provide`) in `nonAttemptDemandRegex` while verifying that hint requests remain recognized as genuine interactions.
+
+## 2026-10-15 - Filtering Output Verbs, Concept Targets, and Exact Non-Attempts in Turn Counting
+
+**Learning:** Students can bypass Socratic answer locking by phrasing answer demands with output/display/generation verbs (`output`, `generate`, `return`, `display`, `print`, `share`, `reveal`), concept target nouns (`formula`, `definition`, `proof`, `equation`, `derivation`), computation verbs (`compute`, `evaluate`, `resolve`), or short non-attempt inputs (`help me`, `skip`, `n/a`, `nothing`). Expanding `targetNoun`, demand verbs, problem-solving command verbs, and exact non-attempt regexes in `countGenuineAttempts` ensures these zero-effort submissions do not prematurely increment attempt counts and unlock answers on turn 1.
+
+**Action:** Maintain comprehensive coverage of generation verbs, concept target nouns, math problem-solving verbs, and exact non-attempt phrases in `countGenuineAttempts` while verifying that genuine subject queries, hint requests, and reasoning statements pass through.
+
+## 2026-10-16 - Filtering Answer Key, Solution Key, and Rubric Demands in Turn Counting
+
+**Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
+
+**Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.

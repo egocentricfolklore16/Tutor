@@ -4,6 +4,8 @@
  * @param {Array<string>|null|undefined} preferredDays - List of preferred days from profile (e.g. ["Mon", "Wed"])
  * @returns {boolean}
  */
+import { toDate } from "./dates.js";
+
 export function isPreferredStudyDay(day, preferredDays) {
   if (!day || !Array.isArray(preferredDays) || preferredDays.length === 0) {
     return false;
@@ -12,8 +14,9 @@ export function isPreferredStudyDay(day, preferredDays) {
   let shortDay = "";
 
   if (day instanceof Date) {
-    if (isNaN(day.getTime())) return false;
-    shortDay = day.toLocaleDateString("en-US", { weekday: "short" });
+    const validDay = toDate(day);
+    if (!validDay) return false;
+    shortDay = validDay.toLocaleDateString("en-US", { weekday: "short" });
   } else if (typeof day === "string") {
     const trimmed = day.trim();
     if (!trimmed) return false;

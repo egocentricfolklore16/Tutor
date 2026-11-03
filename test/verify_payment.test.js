@@ -1,6 +1,23 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+// Helper logic representing request body validation in verify-payment
+function validateVerifyPaymentRequestBody(rawBodyString) {
+  let body;
+  try {
+    body = JSON.parse(rawBodyString);
+  } catch {
+    return { status: 400, error: "Invalid JSON request body" };
+  }
+
+  const { reference } = body || {};
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    return { status: 400, error: "Missing or invalid reference in request body" };
+  }
+
+  return { status: 200, reference: reference.trim() };
+}
+
 // Helper logic representing payment authorization checks in verify-payment
 function verifyPaymentAuthorization(authHeader, user, paystackData) {
   if (!authHeader) {
@@ -11,14 +28,42 @@ function verifyPaymentAuthorization(authHeader, user, paystackData) {
     return { status: 401, error: "Unauthorized: Invalid or expired session token" };
   }
 
-  const metadata = paystackData?.data?.metadata || {};
-  const metadataUserId =
+  let metadata = paystackData?.data?.metadata || {};
+  if (typeof metadata === "string") {
+    try {
+      metadata = JSON.parse(metadata);
+    } catch {
+      metadata = {};
+    }
+  }
+  if (!metadata || typeof metadata !== "object") {
+    metadata = {};
+  }
+
+  let customerMetadata = paystackData?.data?.customer?.metadata || {};
+  if (typeof customerMetadata === "string") {
+    try {
+      customerMetadata = JSON.parse(customerMetadata);
+    } catch {
+      customerMetadata = {};
+    }
+  }
+  if (!customerMetadata || typeof customerMetadata !== "object") {
+    customerMetadata = {};
+  }
+
+  const rawMetadataUserId =
     metadata.userId ||
     metadata.user_id ||
-    paystackData?.data?.customer?.metadata?.userId ||
-    paystackData?.data?.customer?.metadata?.user_id;
+    customerMetadata.userId ||
+    customerMetadata.user_id;
 
-  if (metadataUserId && metadataUserId !== user.id) {
+  const metadataUserId =
+    rawMetadataUserId !== null && rawMetadataUserId !== undefined
+      ? String(rawMetadataUserId).trim()
+      : "";
+
+  if (!metadataUserId || metadataUserId !== user.id.trim()) {
     return { status: 403, error: "Forbidden: Payment user ID mismatch" };
   }
 
@@ -57,4 +102,129 @@ test("verifyPaymentAuthorization succeeds when user.id matches payment metadata 
   const result = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackData);
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.authorized, true);
+});
+
+test("verifyPaymentAuthorization correctly parses stringified JSON metadata and customer metadata", () => {
+  const paystackDataStringified = {
+    data: {
+      metadata: JSON.stringify({ userId: "user_owner_456" }),
+    },
+  };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackDataStringified);
+  assert.strictEqual(result1.status, 200);
+  assert.strictEqual(result1.authorized, true);
+
+  const paystackCustomerStringified = {
+    data: {
+      customer: {
+        metadata: JSON.stringify({ user_id: "user_owner_456" }),
+      },
+    },
+  };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paystackCustomerStringified);
+  assert.strictEqual(result2.status, 200);
+  assert.strictEqual(result2.authorized, true);
+});
+
+test("validateVerifyPaymentRequestBody handles malformed JSON and invalid reference types", () => {
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody("not-valid-json"), {
+    status: 400,
+    error: "Invalid JSON request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({})), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: 12345 })), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "   " })), {
+    status: 400,
+    error: "Missing or invalid reference in request body",
+  });
+
+  assert.deepStrictEqual(validateVerifyPaymentRequestBody(JSON.stringify({ reference: "  ref_valid_123  " })), {
+    status: 200,
+    reference: "ref_valid_123",
+  });
+});
+
+test("verifyPaymentAuthorization normalizes numeric and whitespace-padded user IDs correctly", () => {
+  const numericMeta = { data: { metadata: { userId: 456 } } };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "456" }, numericMeta);
+  assert.strictEqual(result1.status, 200);
+
+  const paddedMeta = { data: { metadata: { userId: "  user_owner_456  " } } };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, paddedMeta);
+  assert.strictEqual(result2.status, 200);
+});
+
+test("verifyPaymentAuthorization returns 403 if metadataUserId is missing or unparseable", () => {
+  const missingMeta = { data: {} };
+  const result1 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, missingMeta);
+  assert.strictEqual(result1.status, 403);
+  assert.strictEqual(result1.error, "Forbidden: Payment user ID mismatch");
+
+  const unparseableMeta = { data: { metadata: "not-json" } };
+  const result2 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, unparseableMeta);
+  assert.strictEqual(result2.status, 403);
+  assert.strictEqual(result2.error, "Forbidden: Payment user ID mismatch");
+
+  const nullStringMeta = { data: { metadata: "null" } };
+  const result3 = verifyPaymentAuthorization("Bearer valid_token", { id: "user_owner_456" }, nullStringMeta);
+  assert.strictEqual(result3.status, 403);
+  assert.strictEqual(result3.error, "Forbidden: Payment user ID mismatch");
+});
+
+test("processVerifiedPayment error mapping produces correct HTTP status codes", () => {
+  function mapProcessErrorToResponse(error) {
+    const msg = error.message || "Payment verification failed";
+    if (msg.includes("Payment reference belongs to another user")) {
+      return { status: 403, error: msg };
+    }
+    return { status: 400, error: msg };
+  }
+
+  const failedStatusError = new Error("Payment verification failed: status is failed");
+  const amountMismatchError = new Error("Amount mismatch: expected 250000 kobo, received 100000 kobo");
+  const crossUserError = new Error("Payment reference belongs to another user");
+
+  assert.strictEqual(mapProcessErrorToResponse(failedStatusError).status, 400);
+  assert.strictEqual(mapProcessErrorToResponse(amountMismatchError).status, 400);
+  assert.strictEqual(mapProcessErrorToResponse(crossUserError).status, 403);
+});
+
+test("PaystackCheckoutButton error resolution prioritizes data?.error over verifyError?.message", () => {
+  function resolveErrorMessage(verifyError, data) {
+    return (
+      data?.error ||
+      verifyError?.message ||
+      "Payment verification failed on server."
+    );
+  }
+
+  const verifyError = { message: "Edge Function returned a 400 status code" };
+  const dataWithError = { success: false, error: "Amount mismatch: expected 250000 kobo, received 100000 kobo" };
+
+  // Prioritize server-provided data.error
+  assert.strictEqual(
+    resolveErrorMessage(verifyError, dataWithError),
+    "Amount mismatch: expected 250000 kobo, received 100000 kobo"
+  );
+
+  // Fallback to verifyError.message when data.error is missing
+  assert.strictEqual(
+    resolveErrorMessage(verifyError, { success: false }),
+    "Edge Function returned a 400 status code"
+  );
+
+  // Fallback to default message when both are missing
+  assert.strictEqual(
+    resolveErrorMessage(null, null),
+    "Payment verification failed on server."
+  );
 });

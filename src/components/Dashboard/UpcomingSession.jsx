@@ -10,6 +10,8 @@ import {
 } from "lucide-react";
 import React, { useState, useEffect } from "react";
 import supabase from "../../lib/supabase";
+import { toDate, toTime } from "../../lib/dates";
+import { isSlipping } from "../../lib/plannerUtils";
 
 const UpcomingSessions = () => {
   const [sessions, setSessions] = useState([]);
@@ -52,24 +54,28 @@ const UpcomingSessions = () => {
           setError("Failed to load upcoming sessions");
           console.error("Supabase fetch error:", error);
         } else {
-          const transformedSessions = data.map((session) => {
-            const sessionDate = new Date(session.Date);
+          // Filter out slipping sessions so they don't appear in normal upcoming list
+          const activeSessions = (data || []).filter((session) => !isSlipping(session, now));
+          const transformedSessions = activeSessions.map((session) => {
+            const sessionDate = toDate(session.Date);
 
-            const isToday = sessionDate.toDateString() === now.toDateString();
-            const isTomorrow =
+            const isToday = sessionDate ? sessionDate.toDateString() === now.toDateString() : false;
+            const isTomorrow = sessionDate ?
               sessionDate.toDateString() ===
-              new Date(now.getTime() + 24 * 60 * 60 * 1000).toDateString();
+              new Date(toTime(now) + 24 * 60 * 60 * 1000).toDateString() : false;
 
             let timeDisplay;
             if (isToday) {
               timeDisplay = `Today at ${session.Start || "09:00"}`;
             } else if (isTomorrow) {
               timeDisplay = `Tomorrow at ${session.Start || "09:00"}`;
-            } else {
+            } else if (sessionDate) {
               timeDisplay = `${sessionDate.toLocaleDateString("en-US", {
                 month: "short",
                 day: "numeric",
               })} at ${session.Start || "09:00"}`;
+            } else {
+              timeDisplay = `At ${session.Start || "09:00"}`;
             }
 
             let priority = "medium";

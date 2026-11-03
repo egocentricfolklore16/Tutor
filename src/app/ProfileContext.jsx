@@ -1,6 +1,8 @@
-import { createContext, useContext, useEffect, useState, useRef } from "react";
+import { createContext, useContext, useEffect, useState, useRef, useCallback } from "react";
 import supabase from "../lib/supabase.js";
-import { getDisplayStreak, getUserStreak, getUserTimeZone, checkAndLogStreakSlip, getWeekActivity } from "../lib/streaks";
+import { getUserTimeZone } from "../lib/streaks";
+import { getAccessibilityClasses } from "../lib/accessibility.js";
+import { gamificationService } from "../features/gamification/services/gamificationService.js";
 
 const ProfileContext = createContext(null);
 
@@ -15,7 +17,6 @@ export function ProfileProvider({ user, children }) {
       return false;
     }
   });
-  const [streak, setStreak] = useState(null);
   const lastTouchTimeRef = useRef(0);
 
   useEffect(() => {
@@ -23,22 +24,28 @@ export function ProfileProvider({ user, children }) {
     localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
   }, [darkMode]);
 
-  const touchLastSeenThrottled = async () => {
+  useEffect(() => {
+    const root = document.documentElement;
+    const classes = getAccessibilityClasses(profile);
+    root.classList.toggle("high-contrast", classes.includes("high-contrast"));
+    root.classList.toggle("accessibility-large-text", classes.includes("accessibility-large-text"));
+  }, [profile]);
+
+  const touchLastSeenThrottled = useCallback(async () => {
     if (!user?.id) return;
     const now = Date.now();
     if (now - lastTouchTimeRef.current < 5 * 60 * 1000) return;
     lastTouchTimeRef.current = now;
     try {
       await supabase.rpc("touch_last_seen");
-    } catch (err) {
+    } catch {
       // Fail silently
     }
-  };
+  }, [user?.id]);
 
-  const loadProfile = async () => {
+  const loadProfile = useCallback(async () => {
     if (!user?.id) {
       setProfile(null);
-      setStreak(null);
       setIsLoading(false);
       return;
     }
@@ -61,33 +68,10 @@ export function ProfileProvider({ user, children }) {
 
     // Touch last seen throttled
     touchLastSeenThrottled();
-
-    try {
-      await supabase.rpc("check_stale_streak", {
-        p_user_timezone: getUserTimeZone(),
-        p_cutoff_hour: 3,
-      }).catch(() => null);
-    } catch (e) {
-      // Ignore RPC availability issues
-    }
-
-    const { data: streakData } = await getUserStreak(user.id);
-    if (streakData) {
-      const displayStreak = getDisplayStreak(streakData, new Date(), getUserTimeZone());
-      const weekActivity = await getWeekActivity(user.id, { ...streakData, display_current_streak: displayStreak });
-      setStreak({ ...streakData, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: streakData.freeze_tokens ?? streakData.freeze_tokens_available ?? 0 });
-    } else {
-      setStreak(null);
-    }
-    
-    // Check for streak slips
-    if (streakData) {
-      await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
-    }
     
     setDarkMode(Boolean(nextProfile?.dark_mode));
     setIsLoading(false);
-  };
+  }, [user?.id, touchLastSeenThrottled]);
 
   useEffect(() => {
     let active = true;
@@ -97,7 +81,7 @@ export function ProfileProvider({ user, children }) {
     return () => {
       active = false;
     };
-  }, [user?.id]);
+  }, [user?.id, loadProfile]);
 
   useEffect(() => {
     if (!user?.id) return undefined;
@@ -109,17 +93,6 @@ export function ProfileProvider({ user, children }) {
     };
 
     document.addEventListener("visibilitychange", handleVisibilityChange);
-
-    const refreshStreak = async () => {
-      const { data } = await getUserStreak(user.id);
-      if (data) {
-        const displayStreak = getDisplayStreak(data, new Date(), getUserTimeZone());
-        const weekActivity = await getWeekActivity(user.id, { ...data, display_current_streak: displayStreak });
-        setStreak({ ...data, display_current_streak: displayStreak, week_activity: weekActivity, freeze_tokens: data.freeze_tokens ?? data.freeze_tokens_available ?? 0 });
-        // Check for slip when streak is refreshed
-        await checkAndLogStreakSlip(user.id, { timeZone: getUserTimeZone() });
-      }
-    };
 
     const handleRewardsUpdated = (event) => {
       const { xp = 0, gems = 0 } = event.detail || {};
@@ -135,8 +108,10 @@ export function ProfileProvider({ user, children }) {
     };
 
     // Realtime channel for profile changes
-    const channel = supabase
-      .channel(`profile-updates-${user.id}`)
+    const channelName = `profile-updates-${user.id}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel
       .on(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
@@ -145,26 +120,24 @@ export function ProfileProvider({ user, children }) {
             setProfile((prev) => ({ ...prev, ...payload.new }));
           }
         }
-      )
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "users_streaks", filter: `user_id=eq.${user.id}` },
-        () => {
-          refreshStreak();
-        }
-      )
-      .subscribe();
+      );
 
-    window.addEventListener("hyper-tutor-streak-updated", refreshStreak);
+    channel.subscribe();
+
+    const handleSessionCompleted = () => {
+      gamificationService.checkAndClaimQuests(loadProfile);
+    };
+
     window.addEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+    window.addEventListener("hyper-tutor-session-completed", handleSessionCompleted);
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       supabase.removeChannel(channel);
-      window.removeEventListener("hyper-tutor-streak-updated", refreshStreak);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
+      window.removeEventListener("hyper-tutor-session-completed", handleSessionCompleted);
     };
-  }, [user?.id]);
+  }, [user?.id, loadProfile, touchLastSeenThrottled]);
 
   const toggleDarkMode = async (enabled) => {
     const nextValue = Boolean(enabled);
@@ -174,7 +147,7 @@ export function ProfileProvider({ user, children }) {
     if (error) console.error("Unable to save dark mode preference:", error);
   };
 
-  return <ProfileContext.Provider value={{ profile, isLoading, refreshProfile: loadProfile, darkMode, toggleDarkMode, streak }}>{children}</ProfileContext.Provider>;
+  return <ProfileContext.Provider value={{ profile, isLoading, refreshProfile: loadProfile, darkMode, toggleDarkMode }}>{children}</ProfileContext.Provider>;
 }
 
 export function useProfile() {

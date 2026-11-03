@@ -3,7 +3,7 @@ import { Search, Paperclip, FileText, Link, Video, Image, Code, Loader2, X } fro
 import supabase from "../../lib/supabase";
 import ResponsiveSheet from "../common/ResponsiveSheet";
 
-export function getResourceIcon(kind) {
+function getResourceIcon(kind) {
   const k = (kind || "").toLowerCase();
   if (k.includes("pdf") || k.includes("doc") || k.includes("text") || k.includes("file")) {
     return <FileText className="h-5 w-5 text-sky-600 dark:text-sky-400" />;

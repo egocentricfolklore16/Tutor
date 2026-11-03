@@ -15,3 +15,27 @@
 ## 2026-10-09 - System Prompt Guardrails & Template Termination Syntax
 **Learning:** Unterminated template strings in Edge Function prompt modules break test runner parsing with `ERR_INVALID_TYPESCRIPT_SYNTAX`. Truncated system prompt templates miss `<guardrails>` and `{{strictness_rules}}` blocks, leading to prompt leakage and integrity policy test failures.
 **Action:** When updating system prompts or AI templates, always verify template syntax termination and ensure guardrail blocks required by `ai_tutor.test.js` remain intact.
+
+## 2026-10-12 - Streak Slip Reason Preservation & Module ESM Extension
+**Learning:** `checkAndLogStreakSlip` in `src/lib/streaks.js` calculated `slipReason` as `"missed_day"` vs `"streak_broken"` depending on freeze token availability, but hardcoded `"streak_broken"` in its return payload. Additionally, dynamic ESM imports in `src/lib/` require explicit `.js` extensions (e.g., `import("./streaksCore.js")`) for Node's native test runner.
+**Action:** When testing streak slip detection, verify both the persisted database payload and returned result object match `slipReason`, and ensure all dynamic imports specify `.js` file extensions.
+
+## 2026-10-14 - Gamification ESM Import Specifiers & RPC Fallbacks
+**Learning:** `src/lib/gamification.js` imported `supabase` without an explicit `.js` file extension (`import supabase from "./supabase"`), which caused `ERR_MODULE_NOT_FOUND` in Node's native test runner. Explicit `.js` extension specifiers are required across `src/lib/` modules.
+**Action:** When testing library utilities or RPC fallbacks in `src/lib/`, ensure relative imports include explicit `.js` extensions.
+
+## 2026-10-18 - Group Session Reminders & Timer Handle Lifecycle Tracking
+**Learning:** `scheduleGroupSessionReminders` computes multi-offset delays (30m, 15m, 0m) relative to session start time. When testing functions that schedule future `setTimeout` timers, test runners like Node's native runner (`node --test`) will block process termination waiting for open event loop handles unless timer handles are explicitly captured and cleared via `clearTimeout`. `scheduleGroupSessionReminders` now returns `scheduledTimers`, enabling callers and test suites to cleanly manage active timer handles and prevent test timeouts.
+**Action:** When scheduling in-tab offset timers, ensure timer scheduling functions return created timer handles, and explicitly clear them in test `finally` blocks.
+
+## 2026-10-20 - Streak Week State Derivation & Cutoff Boundary Isolation
+**Learning:** React hook streak logic in `useStreak.js` computed 7-day Sunday-Saturday visual states (`completed`, `frozen`, `today-pending`, `future`, `missed`) inside an unexported `fetchStreakData` pipeline, making week rendering edge cases untestable without full React environment mounts. Extracting the pure `computeWeekDays` helper function allows direct unit testing of week status transitions, `activeOrCompleted` fallback strings, year-end 3am local cutoff rollovers, and multi-timezone travel boundaries without side effects.
+**Action:** When testing React hooks that manage complex date/time state transformations, extract pure calculation logic as exported helpers in the hook module so unit tests can execute deterministic assertions against time boundaries and state maps.
+
+## 2026-10-22 - Freeze Token Protection in Streak Display Calculations
+**Learning:** `getDisplayStreak` in `src/lib/streaksCore.js` evaluated `daysSinceActivity > 1` as a stale streak returning 0 without checking freeze token availability. On the day following a missed day (`daysSinceActivity === 2`), users with available freeze tokens (`freeze_tokens_available` or `freeze_tokens` > 0) still had active streaks, but UI components using `getDisplayStreak` rendered `0d`.
+**Action:** When calculating display streak counts, check freeze token availability (`freeze_tokens_available` or `freeze_tokens`) so 1-day gaps (`daysSinceActivity === 2`) preserve active streak numbers while gaps exceeding freeze coverage (`daysSinceActivity > 2` or 0 freeze tokens) return 0.
+
+## 2026-10-24 - Stale Streak Resolution for Multi-Day Gaps with Freeze Tokens
+**Learning:** `useStreak.js` checked `diffDays > 1 && freezes === 0` to identify stale streaks. When `diffDays` was 3 (2 missed days) and `freezes` was 1, `freezes === 0` evaluated to false, preventing stale streak reset to 0 even though 1 freeze token cannot protect a 2-day gap. Updating the condition to `diffDays > 2 || (diffDays === 2 && freezes === 0)` (and exporting `resolveStaleDisplayStreak`) aligns `useStreak.js` with `getDisplayStreak` in `streaksCore.js`.
+**Action:** When testing stale streak resolution, verify multi-day gap boundaries (`diffDays > 2`) explicitly with non-zero freeze token balances to ensure display streaks reset to 0 when gaps exceed freeze token protection.

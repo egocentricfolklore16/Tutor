@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 
 // Helper logic representing push notification authorization checks in send-push Edge Function
-function verifySendPushAuthorization(authHeader, user, requestBody) {
+function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow) {
   if (!authHeader) {
     return { status: 401, success: false, message: "Missing Authorization header" };
   }
@@ -19,7 +19,15 @@ function verifySendPushAuthorization(authHeader, user, requestBody) {
     };
   }
 
-  return { status: 200, success: true, targetUserId: user.id };
+  if (notificationRow && notificationRow.user_id !== user.id) {
+    return {
+      status: 403,
+      success: false,
+      message: "Forbidden: Cannot access another user's notification",
+    };
+  }
+
+  return { status: 200, success: true, targetUserId: notificationRow?.user_id || user.id };
 }
 
 test("verifySendPushAuthorization returns 401 if Authorization header is missing", () => {
@@ -56,6 +64,80 @@ test("verifySendPushAuthorization succeeds when requestBody.userId matches user.
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.targetUserId, "user_legit_123");
+});
+
+test("verifySendPushAuthorization returns 403 if notificationId belongs to another user", () => {
+  const result = verifySendPushAuthorization(
+    "Bearer valid_token",
+    { id: "user_attacker_123" },
+    { notificationId: "notif_456" },
+    { id: "notif_456", user_id: "user_victim_789" }
+  );
+  assert.strictEqual(result.status, 403);
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.message, "Forbidden: Cannot access another user's notification");
+});
+
+test("verifySendPushAuthorization succeeds when notificationId belongs to calling user", () => {
+  const result = verifySendPushAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    { notificationId: "notif_123" },
+    { id: "notif_123", user_id: "user_legit_123" }
+  );
+  assert.strictEqual(result.status, 200);
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.targetUserId, "user_legit_123");
+});
+
+// Helper logic representing test notification authorization checks in send-test-notification Edge Function
+function verifySendTestNotificationAuthorization(authHeader, user, requestBody) {
+  if (!authHeader) {
+    return { status: 401, success: false, message: "Missing Authorization header" };
+  }
+
+  if (!user) {
+    return { status: 401, success: false, message: "Unauthorized user" };
+  }
+
+  if (requestBody?.userId && requestBody.userId !== user.id) {
+    return {
+      status: 403,
+      success: false,
+      message: "Forbidden: Cannot send test notification to another user",
+    };
+  }
+
+  return { status: 200, success: true, targetUserId: user.id };
+}
+
+test("verifySendTestNotificationAuthorization returns 403 if requestBody.userId does not match user.id", () => {
+  const result = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_attacker_123" },
+    { userId: "user_victim_456" }
+  );
+  assert.strictEqual(result.status, 403);
+  assert.strictEqual(result.success, false);
+  assert.strictEqual(result.message, "Forbidden: Cannot send test notification to another user");
+});
+
+test("verifySendTestNotificationAuthorization succeeds when requestBody.userId matches user.id or is omitted", () => {
+  const resultWithMatchingId = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    { userId: "user_legit_123" }
+  );
+  assert.strictEqual(resultWithMatchingId.status, 200);
+  assert.strictEqual(resultWithMatchingId.success, true);
+
+  const resultOmitted = verifySendTestNotificationAuthorization(
+    "Bearer valid_token",
+    { id: "user_legit_123" },
+    {}
+  );
+  assert.strictEqual(resultOmitted.status, 200);
+  assert.strictEqual(resultOmitted.success, true);
 });
 
 test("verifySendPushAuthorization succeeds when requestBody.userId is omitted", () => {

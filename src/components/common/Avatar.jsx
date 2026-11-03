@@ -52,17 +52,17 @@ export default function Avatar({
           src={src}
           alt={displayName}
           onError={() => setImgError(true)}
-          className="h-full w-full rounded-full object-cover ring-2 ring-emerald-500/30"
+          className="h-full w-full rounded-full object-cover shadow-surface"
         />
       ) : (
-        <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-xs">
+        <div className="flex h-full w-full items-center justify-center rounded-full bg-gradient-to-br from-emerald-400 to-teal-600 text-white shadow-surface">
           <span>{initial}</span>
         </div>
       )}
 
       {level !== undefined && level !== null && (
         <span
-          className="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-slate-950 ring-2 ring-white dark:ring-slate-900 px-1 py-0.2 min-w-[16px] h-[16px]"
+          className="absolute -bottom-1 -right-1 flex items-center justify-center rounded-full bg-amber-500 text-[9px] font-black text-slate-950 shadow-surface px-1 py-0.2 min-w-[16px] h-[16px]"
           title={`Level ${level}`}
         >
           {level}

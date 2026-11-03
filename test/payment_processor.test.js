@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   processVerifiedPayment,
+  processRefundedPayment,
   timingSafeEqualStrings,
   addMonths,
   addYears,
@@ -96,27 +97,91 @@ function createMockSupabaseClient({
       }
 
       if (tableName === "payments") {
+        const createQueryBuilder = (filters = []) => {
+          const filterFn = (items) => {
+            return items.filter((row) => {
+              for (const f of filters) {
+                if (f.type === "eq" && row[f.col] !== f.val) return false;
+                if (f.type === "neq" && row[f.col] === f.val) return false;
+                if (f.type === "gte" && row[f.col] < f.val) return false;
+                if (f.type === "gt" && row[f.col] <= f.val) return false;
+              }
+              return true;
+            });
+          };
+
+          return {
+            eq(col, val) {
+              return createQueryBuilder([...filters, { type: "eq", col, val }]);
+            },
+            neq(col, val) {
+              return createQueryBuilder([...filters, { type: "neq", col, val }]);
+            },
+            gte(col, val) {
+              return createQueryBuilder([...filters, { type: "gte", col, val }]);
+            },
+            gt(col, val) {
+              return createQueryBuilder([...filters, { type: "gt", col, val }]);
+            },
+            limit(count) {
+              return createQueryBuilder([...filters, { type: "limit", count }]);
+            },
+            async maybeSingle() {
+              const matches = filterFn(paymentsStore);
+              return { data: matches[0] || null, error: null };
+            },
+            then(resolve) {
+              let matches = filterFn(paymentsStore);
+              const limitFilter = filters.find((f) => f.type === "limit");
+              if (limitFilter) {
+                matches = matches.slice(0, limitFilter.count);
+              }
+              return Promise.resolve({ data: matches, error: null }).then(resolve);
+            },
+          };
+        };
+
         return {
           select() {
-            return {
-              eq(col, val) {
-                return {
-                  async maybeSingle() {
-                    const row = paymentsStore.find((p) => p[col] === val);
-                    return { data: row || null, error: null };
-                  },
-                };
-              },
-            };
+            return createQueryBuilder();
           },
           upsert(payload) {
+            const existingIdx = paymentsStore.findIndex((p) => p.reference === payload.reference);
+            const newRow = { id: payload.id || `payment-uuid-${payload.reference}`, ...payload };
+            if (existingIdx >= 0) {
+              paymentsStore[existingIdx] = { ...paymentsStore[existingIdx], ...newRow };
+            } else {
+              paymentsStore.push(newRow);
+            }
             return {
               select() {
                 return {
                   async single() {
-                    const newRow = { id: "payment-uuid-123", ...payload };
-                    paymentsStore.push(newRow);
                     return { data: newRow, error: null };
+                  },
+                };
+              },
+              then(resolve) {
+                return Promise.resolve({ data: newRow, error: null }).then(resolve);
+              },
+            };
+          },
+          update(payload) {
+            return {
+              eq(col, val) {
+                const idx = paymentsStore.findIndex((p) => p[col] === val);
+                if (idx >= 0) {
+                  paymentsStore[idx] = { ...paymentsStore[idx], ...payload };
+                }
+                const updatedRow = idx >= 0 ? paymentsStore[idx] : null;
+                return {
+                  select() {
+                    return {
+                      async single() {
+                        if (updatedRow) return { data: updatedRow, error: null };
+                        return { data: null, error: { message: "Payment not found" } };
+                      },
+                    };
                   },
                 };
               },
@@ -152,6 +217,27 @@ function createMockSupabaseClient({
               },
             };
           },
+          update(payload) {
+            return {
+              eq(col, val) {
+                const idx = subsStore.findIndex((s) => s[col] === val);
+                if (idx >= 0) {
+                  subsStore[idx] = { ...subsStore[idx], ...payload };
+                }
+                const updatedRow = idx >= 0 ? subsStore[idx] : null;
+                return {
+                  select() {
+                    return {
+                      async single() {
+                        if (updatedRow) return { data: updatedRow, error: null };
+                        return { data: null, error: { message: "Subscription not found" } };
+                      },
+                    };
+                  },
+                };
+              },
+            };
+          },
         };
       }
 
@@ -159,6 +245,109 @@ function createMockSupabaseClient({
     },
   };
 }
+
+test("processRefundedPayment revokes linked subscription and sets payment status to refunded", async () => {
+  const existingPayment = {
+    id: "payment-uuid-refund-101",
+    user_id: "user-uuid-111",
+    reference: "ref_to_be_refunded_101",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-refund-101",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-refund-101",
+    current_period_start: "2025-05-01T00:00:00.000Z",
+    current_period_end: "2025-06-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  const result = await processRefundedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_to_be_refunded_101",
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.status, "refunded");
+  assert.strictEqual(result.subscription.status, "cancelled");
+});
+
+test("processRefundedPayment is idempotent when processing duplicate refund webhook events", async () => {
+  const refundedPayment = {
+    id: "payment-uuid-refund-102",
+    user_id: "user-uuid-111",
+    reference: "ref_already_refunded_102",
+    amount: 250000,
+    currency: "NGN",
+    status: "refunded",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const cancelledSub = {
+    id: "sub-uuid-refund-102",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "cancelled",
+    payment_id: "payment-uuid-refund-102",
+  };
+
+  const mockClient = createMockSupabaseClient({
+    existingPayment: refundedPayment,
+    existingSub: cancelledSub,
+  });
+
+  const result = await processRefundedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_already_refunded_102",
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.status, "refunded");
+  assert.strictEqual(result.subscription.status, "cancelled");
+});
+
+test("processVerifiedPayment rejects verification attempts on refunded payment references", async () => {
+  const refundedPayment = {
+    id: "payment-uuid-refund-103",
+    user_id: "user-uuid-111",
+    reference: "ref_refunded_attempt_103",
+    amount: 250000,
+    currency: "NGN",
+    status: "refunded",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment: refundedPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_refunded_attempt_103",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: { planId: "pro", userId: "user-uuid-111" },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment reference has been refunded and cannot be processed",
+    }
+  );
+});
 
 test("processVerifiedPayment processes a valid payment and updates subscription", async () => {
   const mockClient = createMockSupabaseClient();
@@ -182,6 +371,41 @@ test("processVerifiedPayment processes a valid payment and updates subscription"
   assert.strictEqual(result.payment.currency, "NGN");
   assert.strictEqual(result.subscription.plan_id, "pro");
   assert.strictEqual(result.subscription.status, "active");
+});
+
+test("processVerifiedPayment records failed or abandoned payment in database before rejecting", async () => {
+  const mockClient = createMockSupabaseClient();
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_failed_1002",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "failed",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment verification failed: status is failed",
+    }
+  );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_failed_1002")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.user_id, "user-uuid-111");
 });
 
 test("processVerifiedPayment rejects currency mismatch", async () => {
@@ -209,7 +433,276 @@ test("processVerifiedPayment rejects currency mismatch", async () => {
   );
 });
 
-test("processVerifiedPayment rejects amount mismatch", async () => {
+test("processVerifiedPayment returns alreadyProcessed when replaying an older superseded subscription payment", async () => {
+  const oldPayment = {
+    id: "payment-uuid-old-101",
+    user_id: "user-uuid-111",
+    reference: "ref_superseded_old_101",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-01-01T00:00:00.000Z",
+    verified_at: "2025-01-01T00:00:05.000Z",
+  };
+
+  const newPayment = {
+    id: "payment-uuid-new-102",
+    user_id: "user-uuid-111",
+    reference: "ref_newer_payment_102",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-02-01T00:00:00.000Z",
+    verified_at: "2025-02-01T00:00:05.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-111",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-new-102",
+    current_period_start: "2025-02-01T00:00:00.000Z",
+    current_period_end: "2025-03-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({
+    existingPayment: oldPayment,
+    existingSub,
+  });
+
+  // Inject newer payment into payments store
+  mockClient.from("payments").upsert(newPayment);
+
+  // Replay old payment ref
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_superseded_old_101",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.reference, "ref_superseded_old_101");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-new-102");
+  assert.strictEqual(result.subscription.current_period_end, "2025-03-01T00:00:00.000Z");
+});
+
+test("processVerifiedPayment converts numeric and whitespace-padded metadata IDs correctly", async () => {
+  const mockClient = createMockSupabaseClient({
+    plan: { id: "101", price_kobo: 250000, price_naira: 2500, billing_interval: "month" },
+  });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_numeric_meta_9003",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: 101,
+        userId: "  user-uuid-padded-444  ",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.user_id, "user-uuid-padded-444");
+  assert.strictEqual(result.subscription.plan_id, "101");
+});
+
+test("processVerifiedPayment trims whitespace from reference", async () => {
+  const mockClient = createMockSupabaseClient();
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "  ref_padded_1001  ",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_padded_1001");
+});
+
+test("processVerifiedPayment throws clean error when paystackData is null or invalid", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  for (const invalidData of [null, undefined, "invalid", 123]) {
+    await assert.rejects(
+      async () => {
+        await processVerifiedPayment({
+          supabaseClient: mockClient,
+          reference: "ref_valid_1002",
+          paystackData: invalidData,
+        });
+      },
+      {
+        name: "Error",
+        message: "Missing or invalid Paystack payment data",
+      }
+    );
+  }
+});
+
+test("processVerifiedPayment does not overwrite existing success payment status with failed on out-of-order unlinked failure", async () => {
+  const existingPayment = {
+    id: "payment-uuid-unlinked-success",
+    user_id: "user-uuid-111",
+    reference: "ref_unlinked_out_of_order",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub: null });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_unlinked_out_of_order",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "failed",
+          metadata: {
+            planId: "pro",
+            userId: "user-uuid-111",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment verification failed: status is failed",
+    }
+  );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_unlinked_out_of_order")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "success");
+});
+
+test("processVerifiedPayment returns alreadyProcessed for non-subscription payments when replayed", async () => {
+  const existingPayment = {
+    id: "payment-uuid-gems-1002",
+    user_id: "user-uuid-111",
+    reference: "ref_gems_pack_1002",
+    amount: 50000,
+    currency: "NGN",
+    status: "success",
+    purpose: "gems_500",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_gems_pack_1002",
+    paystackData: {
+      amount: 50000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.reference, "ref_gems_pack_1002");
+});
+
+test("processVerifiedPayment rejects missing or invalid payment reference", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  for (const invalidRef of ["", "   ", null, undefined]) {
+    await assert.rejects(
+      async () => {
+        await processVerifiedPayment({
+          supabaseClient: mockClient,
+          reference: invalidRef,
+          paystackData: {
+            amount: 250000,
+            currency: "NGN",
+            status: "success",
+            metadata: { planId: "pro", userId: "user-uuid-111" },
+          },
+        });
+      },
+      {
+        name: "Error",
+        message: "Missing or invalid payment reference",
+      }
+    );
+  }
+});
+
+test("processVerifiedPayment handles stringified numeric amounts and floating-point imprecision safely", async () => {
+  const mockClient = createMockSupabaseClient({
+    plan: { id: "pro", price_kobo: null, price_naira: 25.99, billing_interval: "month" },
+  });
+
+  // 25.99 * 100 is 2599.0000000000005 in JS float math. Paystack sends 2599 kobo.
+  const resultFloat = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_float_amount_9003",
+    paystackData: {
+      amount: 2599,
+      currency: "NGN",
+      status: "success",
+      metadata: { planId: "pro", userId: "user-uuid-111" },
+    },
+  });
+
+  assert.strictEqual(resultFloat.alreadyProcessed, false);
+  assert.strictEqual(resultFloat.payment.amount, 2599);
+
+  // Test stringified numeric amount e.g. "2599"
+  const resultString = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_string_amount_9004",
+    paystackData: {
+      amount: "2599",
+      currency: "NGN",
+      status: "success",
+      metadata: { planId: "pro", userId: "user-uuid-111" },
+    },
+  });
+
+  assert.strictEqual(resultString.alreadyProcessed, false);
+  assert.strictEqual(resultString.payment.amount, 2599);
+});
+
+test("processVerifiedPayment rejects amount mismatch and records status as failed in payments table", async () => {
   const mockClient = createMockSupabaseClient();
   await assert.rejects(
     async () => {
@@ -232,6 +725,16 @@ test("processVerifiedPayment rejects amount mismatch", async () => {
       message: "Amount mismatch: expected 250000 kobo, received 100000 kobo",
     }
   );
+
+  const { data: recordedPayment } = await mockClient
+    .from("payments")
+    .select()
+    .eq("reference", "ref_test_1003")
+    .maybeSingle();
+
+  assert.ok(recordedPayment);
+  assert.strictEqual(recordedPayment.status, "failed");
+  assert.strictEqual(recordedPayment.amount, 100000);
 });
 
 test("processVerifiedPayment is idempotent when replaying duplicate reference", async () => {
@@ -252,6 +755,7 @@ test("processVerifiedPayment is idempotent when replaying duplicate reference", 
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
+    payment_id: "payment-uuid-999",
     current_period_start: "2025-05-01T00:00:05.000Z",
     current_period_end: "2025-06-01T00:00:05.000Z",
   };
@@ -345,8 +849,7 @@ test("processVerifiedPayment extends current_period_end when renewing active sam
   assert.strictEqual(result.alreadyProcessed, false);
   assert.strictEqual(result.subscription.current_period_start, "2025-01-01T00:00:00.000Z");
 
-  const expectedEnd = new Date(futureEnd);
-  expectedEnd.setMonth(expectedEnd.getMonth() + 1);
+  const expectedEnd = addMonths(new Date(futureEnd), 1);
   assert.strictEqual(
     new Date(result.subscription.current_period_end).toISOString(),
     expectedEnd.toISOString()
@@ -393,7 +896,7 @@ test("processVerifiedPayment is idempotent when existing subscription already re
     user_id: "user-uuid-111",
     plan_id: "pro",
     status: "active",
-    payment_id: "payment-uuid-123",
+    payment_id: "payment-uuid-ref_concurrent_race_4001",
     current_period_start: "2025-05-01T00:00:00.000Z",
     current_period_end: "2025-06-01T00:00:00.000Z",
   };
@@ -415,7 +918,7 @@ test("processVerifiedPayment is idempotent when existing subscription already re
   });
 
   assert.strictEqual(result.alreadyProcessed, true);
-  assert.strictEqual(result.subscription.payment_id, "payment-uuid-123");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-ref_concurrent_race_4001");
   assert.strictEqual(result.subscription.current_period_end, "2025-06-01T00:00:00.000Z");
 });
 
@@ -504,4 +1007,145 @@ test("processVerifiedPayment correctly parses stringified JSON metadata", async 
   assert.strictEqual(result.alreadyProcessed, false);
   assert.strictEqual(result.payment.user_id, "user-uuid-333");
   assert.strictEqual(result.subscription.plan_id, "pro");
+});
+
+test("processVerifiedPayment completes subscription grant when retried after payment row exists but subscription is unlinked", async () => {
+  const existingPayment = {
+    id: "payment-uuid-unlinked-1001",
+    user_id: "user-uuid-111",
+    reference: "ref_unlinked_sub_1001",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  // No linked subscription existing yet (e.g. prior attempt recorded payment but failed before updating subscription)
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub: null });
+
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_unlinked_sub_1001",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "success",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, false);
+  assert.strictEqual(result.payment.reference, "ref_unlinked_sub_1001");
+  assert.strictEqual(result.subscription.payment_id, "payment-uuid-ref_unlinked_sub_1001");
+  assert.strictEqual(result.subscription.status, "active");
+});
+
+test("processVerifiedPayment returns alreadyProcessed when out-of-order charge.failed arrives after success", async () => {
+  const existingPayment = {
+    id: "payment-uuid-111",
+    user_id: "user-uuid-111",
+    reference: "ref_out_of_order_failed_8001",
+    amount: 250000,
+    currency: "NGN",
+    status: "success",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+    verified_at: "2025-05-01T00:00:05.000Z",
+  };
+
+  const existingSub = {
+    id: "sub-uuid-111",
+    user_id: "user-uuid-111",
+    plan_id: "pro",
+    status: "active",
+    payment_id: "payment-uuid-111",
+    current_period_start: "2025-05-01T00:00:05.000Z",
+    current_period_end: "2025-06-01T00:00:05.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment, existingSub });
+
+  // Simulate an out-of-order webhook or retry sending status: "failed" for an already successful payment
+  const result = await processVerifiedPayment({
+    supabaseClient: mockClient,
+    reference: "ref_out_of_order_failed_8001",
+    paystackData: {
+      amount: 250000,
+      currency: "NGN",
+      status: "failed",
+      metadata: {
+        planId: "pro",
+        userId: "user-uuid-111",
+      },
+    },
+  });
+
+  assert.strictEqual(result.alreadyProcessed, true);
+  assert.strictEqual(result.payment.status, "success");
+  assert.strictEqual(result.subscription.status, "active");
+});
+
+test("processVerifiedPayment rejects cross-user reference hijacking on failed or pending payments", async () => {
+  const existingFailedPayment = {
+    id: "payment-uuid-999",
+    user_id: "user-original-owner-111",
+    reference: "ref_failed_hijack_9001",
+    amount: 250000,
+    currency: "NGN",
+    status: "failed",
+    purpose: "subscription:pro",
+    created_at: "2025-05-01T00:00:00.000Z",
+  };
+
+  const mockClient = createMockSupabaseClient({ existingPayment: existingFailedPayment });
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_failed_hijack_9001",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: {
+            planId: "pro",
+            userId: "user-attacker-222",
+          },
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Payment reference belongs to another user",
+    }
+  );
+});
+
+test("processVerifiedPayment handles stringified null metadata without TypeError", async () => {
+  const mockClient = createMockSupabaseClient();
+
+  await assert.rejects(
+    async () => {
+      await processVerifiedPayment({
+        supabaseClient: mockClient,
+        reference: "ref_null_metadata_9002",
+        paystackData: {
+          amount: 250000,
+          currency: "NGN",
+          status: "success",
+          metadata: "null",
+        },
+      });
+    },
+    {
+      name: "Error",
+      message: "Missing planId in Paystack metadata",
+    }
+  );
 });

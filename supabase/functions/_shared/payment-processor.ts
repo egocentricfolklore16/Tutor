@@ -73,7 +73,17 @@ export async function processVerifiedPayment({
   reference,
   paystackData,
 }: ProcessPaymentParams) {
-  let metadata: any = paystackData.metadata || {};
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    throw new Error("Missing or invalid payment reference");
+  }
+
+  const cleanReference = reference.trim();
+
+  if (!paystackData || typeof paystackData !== "object") {
+    throw new Error("Missing or invalid Paystack payment data");
+  }
+
+  let metadata: any = paystackData?.metadata || {};
   if (typeof metadata === "string") {
     try {
       metadata = JSON.parse(metadata);
@@ -81,8 +91,11 @@ export async function processVerifiedPayment({
       metadata = {};
     }
   }
+  if (!metadata || typeof metadata !== "object") {
+    metadata = {};
+  }
 
-  let customerMetadata: any = paystackData.customer?.metadata || {};
+  let customerMetadata: any = paystackData?.customer?.metadata || {};
   if (typeof customerMetadata === "string") {
     try {
       customerMetadata = JSON.parse(customerMetadata);
@@ -90,13 +103,21 @@ export async function processVerifiedPayment({
       customerMetadata = {};
     }
   }
+  if (!customerMetadata || typeof customerMetadata !== "object") {
+    customerMetadata = {};
+  }
 
-  const planId = metadata.planId || metadata.plan_id;
-  const userId =
+  const rawPlanId = metadata.planId || metadata.plan_id;
+  const rawUserId =
     metadata.userId ||
     metadata.user_id ||
     customerMetadata.userId ||
     customerMetadata.user_id;
+
+  const planId =
+    rawPlanId !== null && rawPlanId !== undefined ? String(rawPlanId).trim() : "";
+  const userId =
+    rawUserId !== null && rawUserId !== undefined ? String(rawUserId).trim() : "";
 
   if (!planId) {
     throw new Error("Missing planId in Paystack metadata");
@@ -121,54 +142,117 @@ export async function processVerifiedPayment({
     throw new Error(`Plan is not active: ${planId}`);
   }
 
-  // 2. Re-verify transaction status, currency, and amount against server-side plan.price_kobo
-  if (paystackData.status !== "success") {
-    throw new Error(`Payment verification failed: status is ${paystackData.status}`);
+  let rawAmount = paystackData?.amount;
+  let receivedAmountKobo = 0;
+  if (typeof rawAmount === "number" && Number.isFinite(rawAmount)) {
+    receivedAmountKobo = Math.round(rawAmount);
+  } else if (typeof rawAmount === "string" && rawAmount.trim() !== "") {
+    const parsed = Number(rawAmount);
+    if (Number.isFinite(parsed)) {
+      receivedAmountKobo = Math.round(parsed);
+    }
   }
 
-  const receivedCurrency = (paystackData.currency || "NGN").toUpperCase();
+  const receivedCurrency = (paystackData?.currency || "NGN").toUpperCase();
   const expectedCurrency = "NGN";
-  if (receivedCurrency !== expectedCurrency) {
-    throw new Error(
-      `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
-    );
-  }
-
   const expectedAmountKobo =
-    typeof plan.price_kobo === "number"
-      ? plan.price_kobo
-      : plan.price_naira * 100;
+    typeof plan.price_kobo === "number" && Number.isFinite(plan.price_kobo)
+      ? Math.round(plan.price_kobo)
+      : Math.round((plan.price_naira || 0) * 100);
 
-  if (paystackData.amount !== expectedAmountKobo) {
-    throw new Error(
-      `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${paystackData.amount} kobo`
-    );
-  }
-
-  // 3. Idempotency check: return existing record if payment with this reference was already processed
+  // 2. Idempotency check: validate user ownership on existing reference & return existing record if already successful
   const { data: existingPayment } = await supabaseClient
     .from("payments")
     .select("*")
-    .eq("reference", reference)
+    .eq("reference", cleanReference)
     .maybeSingle();
 
-  if (existingPayment && existingPayment.status === "success") {
+  if (existingPayment) {
     if (existingPayment.user_id !== userId) {
       throw new Error("Payment reference belongs to another user");
     }
 
-    const { data: existingSub } = await supabaseClient
-      .from("subscriptions")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
+    if (existingPayment.status === "refunded") {
+      throw new Error("Payment reference has been refunded and cannot be processed");
+    }
 
-    return {
-      payment: existingPayment,
-      subscription: existingSub,
-      plan,
-      alreadyProcessed: true,
-    };
+    if (existingPayment.status === "success") {
+      const { data: existingSub } = await supabaseClient
+        .from("subscriptions")
+        .select("*")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      const isSubPayment = (existingPayment.purpose || "").startsWith("subscription:");
+
+      if (!isSubPayment || (existingSub && existingSub.payment_id === existingPayment.id)) {
+        return {
+          payment: existingPayment,
+          subscription: existingSub,
+          plan,
+          alreadyProcessed: true,
+        };
+      }
+
+      if (isSubPayment && existingSub && existingPayment.created_at) {
+        const { data: newerPayments } = await supabaseClient
+          .from("payments")
+          .select("id, created_at")
+          .eq("user_id", userId)
+          .eq("status", "success")
+          .neq("id", existingPayment.id)
+          .gt("created_at", existingPayment.created_at)
+          .limit(1);
+
+        if (newerPayments && newerPayments.length > 0) {
+          return {
+            payment: existingPayment,
+            subscription: existingSub,
+            plan,
+            alreadyProcessed: true,
+          };
+        }
+      }
+    }
+  }
+
+  // 3. Audit non-success or mismatched payment attempts in `payments` table without granting subscriptions
+  if (
+    paystackData.status !== "success" ||
+    receivedCurrency !== expectedCurrency ||
+    receivedAmountKobo !== expectedAmountKobo
+  ) {
+    // Prevent overwriting an already successful payment status with failed state on out-of-order payloads
+    if (!existingPayment || existingPayment.status !== "success") {
+      await supabaseClient.from("payments").upsert(
+        {
+          user_id: userId,
+          reference: cleanReference,
+          amount: receivedAmountKobo,
+          currency: receivedCurrency,
+          status: "failed",
+          purpose: `subscription:${planId}`,
+          verified_at: new Date().toISOString(),
+        },
+        { onConflict: "reference" }
+      );
+    }
+
+    if (paystackData.status !== "success") {
+      throw new Error(`Payment verification failed: status is ${paystackData.status}`);
+    }
+
+    if (receivedCurrency !== expectedCurrency) {
+      throw new Error(
+        `Currency mismatch: expected ${expectedCurrency}, received ${receivedCurrency}`
+      );
+    }
+
+    if (receivedAmountKobo !== expectedAmountKobo) {
+      throw new Error(
+        `Amount mismatch: expected ${expectedAmountKobo} kobo, received ${receivedAmountKobo} kobo`
+      );
+    }
   }
 
   // 4. Upsert into `payments` table keyed on unique reference (idempotent)
@@ -177,8 +261,8 @@ export async function processVerifiedPayment({
     .upsert(
       {
         user_id: userId,
-        reference: reference,
-        amount: paystackData.amount,
+        reference: cleanReference,
+        amount: receivedAmountKobo,
         currency: receivedCurrency,
         status: paystackData.status,
         purpose: `subscription:${planId}`,
@@ -258,4 +342,95 @@ export async function processVerifiedPayment({
   }
 
   return { payment: paymentRow, subscription: subRow, plan, alreadyProcessed: false };
+}
+
+export interface ProcessRefundParams {
+  supabaseClient: any;
+  reference: string;
+  paystackData?: any;
+}
+
+export async function processRefundedPayment({
+  supabaseClient,
+  reference,
+}: ProcessRefundParams) {
+  if (!reference || typeof reference !== "string" || !reference.trim()) {
+    throw new Error("Missing or invalid payment reference");
+  }
+
+  const cleanReference = reference.trim();
+
+  // 1. Fetch existing payment record
+  const { data: existingPayment } = await supabaseClient
+    .from("payments")
+    .select("*")
+    .eq("reference", cleanReference)
+    .maybeSingle();
+
+  if (!existingPayment) {
+    throw new Error(`Payment reference not found for refund: ${cleanReference}`);
+  }
+
+  if (existingPayment.status === "refunded") {
+    // Idempotent return: already marked refunded
+    const { data: existingSub } = await supabaseClient
+      .from("subscriptions")
+      .select("*")
+      .eq("user_id", existingPayment.user_id)
+      .maybeSingle();
+
+    return {
+      payment: existingPayment,
+      subscription: existingSub,
+      alreadyProcessed: true,
+    };
+  }
+
+  // 2. Mark payment status as "refunded"
+  const { data: updatedPayment, error: updatePaymentError } = await supabaseClient
+    .from("payments")
+    .update({
+      status: "refunded",
+      verified_at: new Date().toISOString(),
+    })
+    .eq("id", existingPayment.id)
+    .select()
+    .single();
+
+  if (updatePaymentError) {
+    throw new Error(`Failed to update payment status to refunded: ${updatePaymentError.message}`);
+  }
+
+  // 3. Revoke/cancel linked subscription if this payment was linked
+  const { data: linkedSub } = await supabaseClient
+    .from("subscriptions")
+    .select("*")
+    .eq("payment_id", existingPayment.id)
+    .maybeSingle();
+
+  let updatedSub = null;
+
+  if (linkedSub) {
+    const { data: cancelledSub, error: cancelSubError } = await supabaseClient
+      .from("subscriptions")
+      .update({
+        status: "cancelled",
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", linkedSub.id)
+      .select()
+      .single();
+
+    if (cancelSubError) {
+      throw new Error(`Failed to cancel subscription on refund: ${cancelSubError.message}`);
+    }
+
+    updatedSub = cancelledSub;
+  }
+
+  return {
+    payment: updatedPayment,
+    subscription: updatedSub,
+    alreadyProcessed: false,
+  };
 }

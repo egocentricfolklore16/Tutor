@@ -18,7 +18,7 @@ export function getLocalCutoffDate(date = new Date(), timeZone = getUserTimeZone
     const month = String(localDate.getMonth() + 1).padStart(2, "0");
     const day = String(localDate.getDate()).padStart(2, "0");
     return `${year}-${month}-${day}`;
-  } catch (err) {
+  } catch {
     const year = date.getUTCFullYear();
     const month = String(date.getUTCMonth() + 1).padStart(2, "0");
     const day = String(date.getUTCDate()).padStart(2, "0");
@@ -58,11 +58,59 @@ export function getCurrentWeekDays(todayCutoffStr) {
   return weekDays;
 }
 
+/**
+ * Resolves whether a streak is stale given last active/completed date, today's cutoff date, and freeze tokens.
+ */
+export function resolveStaleDisplayStreak(curStreak, activeOrCompleted, todayCutoffStr, freezes) {
+  if (!activeOrCompleted) return 0;
+  let displayStreak = curStreak;
+  const anchorParts = activeOrCompleted.split("-").map(Number);
+  const anchorUtc = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+  const todayParts = todayCutoffStr.split("-").map(Number);
+  const todayUtc = new Date(Date.UTC(todayParts[0], todayParts[1] - 1, todayParts[2]));
+  const diffDays = Math.round((todayUtc - anchorUtc) / 86400000);
+  if (diffDays > 2 || (diffDays === 2 && freezes === 0)) {
+    displayStreak = 0;
+  }
+  return displayStreak;
+}
+
+/**
+ * Computes status and visual state for each day in baseWeek.
+ */
+export function computeWeekDays(baseWeek, statusByDate = {}, todayCutoffStr, activeOrCompleted) {
+  const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || activeOrCompleted === todayCutoffStr;
+
+  return baseWeek.map((day) => {
+    let state = "missed";
+    const dayStatus = statusByDate[day.dateStr];
+
+    if (dayStatus === "completed") {
+      state = "completed";
+    } else if (dayStatus === "frozen") {
+      state = "frozen";
+    } else if (day.isToday) {
+      state = isTodayCompleted ? "completed" : "today-pending";
+    } else if (day.isFuture) {
+      state = "future";
+    } else {
+      state = "missed";
+    }
+
+    return {
+      ...day,
+      state,
+      status: dayStatus || (state === "completed" ? "completed" : null),
+    };
+  });
+}
+
 export function useStreak() {
-  const [currentStreak, setCurrentStreak] = useState(0);
-  const [longestStreak, setLongestStreak] = useState(0);
+  const [currentStreak, setCurrentStreak] = useState(null);
+  const [longestStreak, setLongestStreak] = useState(null);
   const [freezeTokens, setFreezeTokens] = useState(0);
   const [lastCompletedDate, setLastCompletedDate] = useState(null);
+  const [lastActiveDate, setLastActiveDate] = useState(null);
   const [weekDays, setWeekDays] = useState([]);
   const [todayCompleted, setTodayCompleted] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -72,6 +120,8 @@ export function useStreak() {
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
+        setCurrentStreak(null);
+        setLongestStreak(null);
         setLoading(false);
         return;
       }
@@ -81,15 +131,19 @@ export function useStreak() {
       const todayCutoffStr = getLocalCutoffDate(new Date(), userTz, 3);
 
       // Check stale streak on mount/fetch
-      await supabase.rpc("check_stale_streak", {
-        p_user_timezone: userTz,
-        p_cutoff_hour: 3,
-      }).catch(() => null);
+      try {
+        await supabase.rpc("check_stale_streak", {
+          p_user_timezone: userTz,
+          p_cutoff_hour: 3,
+        });
+      } catch (err) {
+        console.warn("check_stale_streak warning:", err);
+      }
 
       // Fetch user_streaks record
       const { data: streakRow, error: streakErr } = await supabase
         .from("users_streaks")
-        .select("current_streak, longest_streak, freeze_tokens, freeze_tokens_available, last_completed_date, last_active_date")
+        .select("current_streak, longest_streak, freeze_tokens_available, freeze_tokens, last_active_date, last_completed_date")
         .eq("user_id", userId)
         .maybeSingle();
 
@@ -99,13 +153,17 @@ export function useStreak() {
 
       const curStreak = streakRow?.current_streak ?? 0;
       const longStreak = streakRow?.longest_streak ?? 0;
-      const freezes = streakRow?.freeze_tokens ?? streakRow?.freeze_tokens_available ?? 0;
-      const lastCompleted = streakRow?.last_completed_date || streakRow?.last_active_date || null;
+      const freezes = streakRow?.freeze_tokens_available ?? streakRow?.freeze_tokens ?? 0;
+      const lastActive = streakRow?.last_completed_date || streakRow?.last_active_date || null;
 
-      setCurrentStreak(curStreak);
+      // Stale streak resolution check
+      const displayStreak = resolveStaleDisplayStreak(curStreak, lastActive, todayCutoffStr, freezes);
+
+      setCurrentStreak(displayStreak);
       setLongestStreak(longStreak);
       setFreezeTokens(freezes);
-      setLastCompletedDate(lastCompleted);
+      setLastCompletedDate(lastActive);
+      setLastActiveDate(lastActive);
 
       // Fetch week activity from streak_days and daily_session_tracking
       const baseWeek = getCurrentWeekDays(todayCutoffStr, userTz);
@@ -139,41 +197,39 @@ export function useStreak() {
         }
       });
 
-      // If last_completed_date is in range, mark it completed as well
-      if (lastCompleted && statusByDate[lastCompleted] !== "frozen") {
-        statusByDate[lastCompleted] = "completed";
+      // If last_active_date is in range, mark it completed as well
+      if (lastActive && statusByDate[lastActive] !== "frozen") {
+        statusByDate[lastActive] = "completed";
       }
 
-      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || lastCompleted === todayCutoffStr;
+      // Backfill active streak dates contiguous from lastActive backwards for displayStreak days
+      if (displayStreak > 0 && lastActive) {
+        const anchorParts = lastActive.split("-").map(Number);
+        const anchorDate = new Date(Date.UTC(anchorParts[0], anchorParts[1] - 1, anchorParts[2]));
+        for (let i = 0; i < displayStreak; i++) {
+          const d = new Date(anchorDate);
+          d.setUTCDate(anchorDate.getUTCDate() - i);
+          const year = d.getUTCFullYear();
+          const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+          const day = String(d.getUTCDate()).padStart(2, "0");
+          const streakDateStr = `${year}-${month}-${day}`;
+          if (statusByDate[streakDateStr] !== "frozen") {
+            statusByDate[streakDateStr] = "completed";
+          }
+        }
+      }
+
+      const isTodayCompleted = statusByDate[todayCutoffStr] === "completed" || lastActive === todayCutoffStr;
       setTodayCompleted(Boolean(isTodayCompleted));
 
-      const computedWeekDays = baseWeek.map((day) => {
-        let state = "missed";
-        const dayStatus = statusByDate[day.dateStr];
-
-        if (dayStatus === "completed") {
-          state = "completed";
-        } else if (dayStatus === "frozen") {
-          state = "frozen";
-        } else if (day.isToday) {
-          state = isTodayCompleted ? "completed" : "today-pending";
-        } else if (day.isFuture) {
-          state = "future";
-        } else {
-          state = "missed";
-        }
-
-        return {
-          ...day,
-          state,
-          status: dayStatus || (state === "completed" ? "completed" : null),
-        };
-      });
+      const computedWeekDays = computeWeekDays(baseWeek, statusByDate, todayCutoffStr, lastActive);
 
       setWeekDays(computedWeekDays);
       setError(null);
     } catch (err) {
       console.error("Error fetching streak data:", err);
+      setCurrentStreak(null);
+      setLongestStreak(null);
       setError(err);
     } finally {
       setLoading(false);
@@ -187,7 +243,15 @@ export function useStreak() {
       fetchStreakData();
     };
 
+    const handleFocusOrVisibility = () => {
+      if (document.visibilityState === "visible") {
+        fetchStreakData();
+      }
+    };
+
     window.addEventListener("hyper-tutor-streak-updated", handleUpdateEvent);
+    window.addEventListener("focus", handleFocusOrVisibility);
+    document.addEventListener("visibilitychange", handleFocusOrVisibility);
 
     // Supabase Realtime subscription on users_streaks
     let channel;
@@ -195,27 +259,31 @@ export function useStreak() {
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user && isMounted) {
-        channel = supabase
-          .channel(`streak_changes_${session.user.id}`)
-          .on(
-            "postgres_changes",
-            {
-              event: "*",
-              schema: "public",
-              table: "users_streaks",
-              filter: `user_id=eq.${session.user.id}`,
-            },
-            () => {
-              if (isMounted) fetchStreakData();
-            }
-          )
-          .subscribe();
+        const channelName = `streak_changes_${session.user.id}:${crypto.randomUUID()}`;
+        channel = supabase.channel(channelName);
+
+        channel.on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "users_streaks",
+            filter: `user_id=eq.${session.user.id}`,
+          },
+          () => {
+            if (isMounted) fetchStreakData();
+          }
+        );
+
+        channel.subscribe();
       }
     });
 
     return () => {
       isMounted = false;
       window.removeEventListener("hyper-tutor-streak-updated", handleUpdateEvent);
+      window.removeEventListener("focus", handleFocusOrVisibility);
+      document.removeEventListener("visibilitychange", handleFocusOrVisibility);
       if (channel) {
         supabase.removeChannel(channel);
       }
@@ -246,6 +314,7 @@ export function useStreak() {
     longestStreak,
     freezeTokens,
     lastCompletedDate,
+    lastActiveDate,
     weekDays,
     todayCompleted,
     loading,

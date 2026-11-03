@@ -9,8 +9,8 @@ Hyper Tutor is an Hyper intelligent learning companion designed to boost student
 - **Personalized Study Planner**  
   AI-driven schedules, calendar integration, smart reminders, and adaptive plans.  
 
-- **AI Tutoring Assistant**  
-  Natural language Q&A, step-by-step explanations, and curriculum-based practice questions.  
+- **AI Tutoring Assistant**
+  Natural language Q&A, step-by-step explanations, and curriculum-based practice questions.
 
 ### AI Tutor Provider
 

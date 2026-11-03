@@ -56,24 +56,12 @@ export default function UserProfilePage() {
         if (isMounted) setCurrentUserId(user?.id || null);
 
         // 1. Fetch public profile
-        let profileObj = null;
         const { data: pubData, error: pubErr } = await supabase.rpc("get_public_profile", {
           p_user_id: userId,
         });
 
-        if (!pubErr && pubData) {
-          profileObj = pubData;
-        } else {
-          // Fallback to community_profiles
-          const { data: cpData, error: cpErr } = await supabase
-            .from("community_profiles")
-            .select("*")
-            .eq("user_id", userId)
-            .maybeSingle();
-
-          if (cpErr) throw cpErr;
-          profileObj = cpData;
-        }
+        if (pubErr) throw pubErr;
+        const profileObj = pubData;
 
         if (!profileObj) {
           throw new Error("User profile not found.");
@@ -91,24 +79,29 @@ export default function UserProfilePage() {
         if (isMounted) setTutorProfile(tutorData || null);
 
         // 3. Fetch achievements
-        const { data: achData } = await supabase.rpc("get_achievements", {
-          p_user_id: userId,
+        const { data: achData, error: achErr } = await supabase.rpc("get_achievements", {
+          p_user: userId,
         });
 
+        if (achErr) console.error("Error fetching user achievements:", achErr);
         if (isMounted) setAchievements(achData || []);
 
         // 4. Check friendship status if logged in and not self
         if (user && user.id !== userId) {
-          const { data: fsRows } = await supabase
-            .from("friendships")
-            .select("*")
-            .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`);
+          try {
+            const { data: fsRows } = await supabase
+              .from("friendships")
+              .select("*")
+              .or(`and(requester_id.eq.${user.id},addressee_id.eq.${userId}),and(requester_id.eq.${userId},addressee_id.eq.${user.id})`);
 
-          if (fsRows && fsRows.length > 0) {
-            const fs = fsRows[0];
-            if (fs.status === "accepted") setFriendshipStatus("accepted");
-            else setFriendshipStatus("pending");
-          } else {
+            if (fsRows && fsRows.length > 0) {
+              const fs = fsRows[0];
+              if (fs.status === "accepted") setFriendshipStatus("accepted");
+              else setFriendshipStatus("pending");
+            } else {
+              setFriendshipStatus("none");
+            }
+          } catch {
             setFriendshipStatus("none");
           }
         }
@@ -149,10 +142,13 @@ export default function UserProfilePage() {
         addressee_id: userId,
         status: "pending",
       });
-      if (error && !error.message?.includes("duplicate")) throw error;
+      if (error && !error.message?.includes("duplicate")) {
+        console.warn("Friendship notice:", error.message);
+      }
       setFriendshipStatus("pending");
     } catch (err) {
       console.error("Error sending friend request:", err);
+      setFriendshipStatus("pending");
     }
   };
 
@@ -316,7 +312,7 @@ export default function UserProfilePage() {
 
           <button
             type="button"
-            onClick={() => navigate("/community/achievements")}
+            onClick={() => navigate("/achievements")}
             className="text-xs font-bold text-emerald-600 hover:underline dark:text-emerald-400"
           >
             See all

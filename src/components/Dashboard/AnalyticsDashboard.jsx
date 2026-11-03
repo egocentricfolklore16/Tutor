@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import supabase from "../../lib/supabase";
+import { toDate } from "../../lib/dates";
 import LoadingCompanion from "../common/LoadingCompanion";
 
 const dateKey = (value) => {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? "" : date.toISOString().slice(0, 10);
+  const date = toDate(value);
+  return date ? date.toISOString().slice(0, 10) : "";
 };
 
 const AnalyticsDashboard = () => {
@@ -49,7 +50,10 @@ const AnalyticsDashboard = () => {
     }, {});
     const subjects = Object.entries(subjectTotals).map(([name, hours]) => ({ name, hours })).sort((a, b) => b.hours - a.hours).slice(0, 5);
     const plannedHours = sessions.reduce((total, session) => total + (Number.parseFloat(session.Duration) || 0), 0);
-    const pastSessions = sessions.filter((session) => new Date(session.Date) <= today).length;
+    const pastSessions = sessions.filter((session) => {
+      const d = toDate(session.Date);
+      return d && d <= today;
+    }).length;
     return { chart, subjects, plannedHours, pastSessions, weekHours: chart.reduce((total, item) => total + item.hours, 0) };
   }, [sessions]);
 

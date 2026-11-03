@@ -48,12 +48,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const body = await req.json();
+    let body: any;
+    try {
+      body = await req.json();
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON request body" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { reference } = body || {};
 
-    if (!reference) {
+    if (!reference || typeof reference !== "string" || !reference.trim()) {
       return new Response(
-        JSON.stringify({ error: "Missing reference in request body" }),
+        JSON.stringify({ error: "Missing or invalid reference in request body" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -82,14 +91,42 @@ Deno.serve(async (req) => {
     }
 
     // Security: Validate that authenticated user matches the payment transaction metadata
-    const metadata = paystackData?.data?.metadata || {};
-    const metadataUserId =
+    let metadata = paystackData?.data?.metadata || {};
+    if (typeof metadata === "string") {
+      try {
+        metadata = JSON.parse(metadata);
+      } catch {
+        metadata = {};
+      }
+    }
+    if (!metadata || typeof metadata !== "object") {
+      metadata = {};
+    }
+
+    let customerMetadata = paystackData?.data?.customer?.metadata || {};
+    if (typeof customerMetadata === "string") {
+      try {
+        customerMetadata = JSON.parse(customerMetadata);
+      } catch {
+        customerMetadata = {};
+      }
+    }
+    if (!customerMetadata || typeof customerMetadata !== "object") {
+      customerMetadata = {};
+    }
+
+    const rawMetadataUserId =
       metadata.userId ||
       metadata.user_id ||
-      paystackData?.data?.customer?.metadata?.userId ||
-      paystackData?.data?.customer?.metadata?.user_id;
+      customerMetadata.userId ||
+      customerMetadata.user_id;
 
-    if (metadataUserId && metadataUserId !== user.id) {
+    const metadataUserId =
+      rawMetadataUserId !== null && rawMetadataUserId !== undefined
+        ? String(rawMetadataUserId).trim()
+        : "";
+
+    if (!metadataUserId || metadataUserId !== user.id.trim()) {
       return new Response(
         JSON.stringify({ error: "Forbidden: Payment user ID mismatch" }),
         { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -100,21 +137,35 @@ Deno.serve(async (req) => {
     const supabaseClient = createClient(supabaseUrl, supabaseServiceRoleKey);
 
     // 3. Process payment: re-verify expected amount server-side from DB and upsert into `payments` table
-    const result = await processVerifiedPayment({
-      supabaseClient,
-      reference,
-      paystackData: paystackData.data,
-    });
+    try {
+      const result = await processVerifiedPayment({
+        supabaseClient,
+        reference,
+        paystackData: paystackData.data,
+      });
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        payment: result.payment,
-        subscription: result.subscription,
-        plan: result.plan,
-      }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          payment: result.payment,
+          subscription: result.subscription,
+          plan: result.plan,
+        }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (procError: any) {
+      const msg = procError.message || "Payment verification failed";
+      if (msg.includes("Payment reference belongs to another user")) {
+        return new Response(
+          JSON.stringify({ error: msg }),
+          { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      return new Response(
+        JSON.stringify({ error: msg }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   } catch (error: any) {
     console.error("Error in verify-payment Edge Function:", error);
     return new Response(

@@ -1,12 +1,17 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { MessageSquare, Search, Users, Loader2 } from "lucide-react";
+import { MessageSquare, Search, Users, Loader2, Plus, UserPlus } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { toTime } from "../../lib/dates";
 import { formatRelativeTime, calculateUnreadCount } from "../../lib/communityChat";
+import FriendPicker from "./FriendPicker";
 
-export default function ChatInbox({ currentUserId, onSelectConversation }) {
+export default function ChatInbox({ currentUserId, onSelectConversation, onFindFriends, headerAction }) {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterTab, setFilterTab] = useState("all"); // 'all' | 'friends' | 'groups'
+  const [showFriendPicker, setShowFriendPicker] = useState(false);
+  const [imgErrors, setImgErrors] = useState({});
 
   const fetchInboxData = useCallback(async () => {
     if (!currentUserId) return;
@@ -61,14 +66,19 @@ export default function ChatInbox({ currentUserId, onSelectConversation }) {
         );
 
         if (peerUserIds.length > 0) {
-          const { data: profs } = await supabase
-            .from("community_profiles")
-            .select("*")
-            .in("user_id", peerUserIds);
+          const profsList = await Promise.all(
+            peerUserIds.map(async (uid) => {
+              const { data, error } = await supabase.rpc("get_public_profile", {
+                p_user_id: uid,
+              });
+              if (error) return null;
+              return { user_id: uid, ...data };
+            })
+          );
 
           const profMap = {};
-          (profs || []).forEach((p) => {
-            profMap[p.user_id] = p;
+          profsList.forEach((p) => {
+            if (p) profMap[p.user_id] = p;
           });
 
           (allParts || []).forEach((p) => {
@@ -86,62 +96,110 @@ export default function ChatInbox({ currentUserId, onSelectConversation }) {
 
       let groupMap = {};
       if (groupIds.length > 0) {
-        const { data: grps } = await supabase
-          .from("study_groups")
-          .select("*")
-          .in("id", groupIds);
+        try {
+          const { data: grps, error: grpErr } = await supabase
+            .from("study_groups")
+            .select("*")
+            .in("id", groupIds);
 
-        (grps || []).forEach((g) => {
-          groupMap[g.id] = g;
-        });
+          if (!grpErr && grps) {
+            grps.forEach((g) => {
+              groupMap[g.id] = g;
+            });
+          }
+        } catch {
+          // ignore if study_groups table missing in live DB
+        }
       }
 
-      // 5. Fetch latest messages & calculate unread
-      const convList = await Promise.all(
-        (convRows || []).map(async (conv) => {
-          const partInfo = participantMap[conv.id];
+      // 5. Fetch recent messages in a single batched query with upper limit to eliminate N+1 queries safely
+      let allMsgs = [];
+      if (convIds.length > 0) {
+        const messageLimit = Math.max(convIds.length * 20, 100);
+        const { data: msgData } = await supabase
+          .from("messages")
+          .select("*")
+          .in("conversation_id", convIds)
+          .order("created_at", { ascending: false })
+          .limit(messageLimit);
+        allMsgs = msgData || [];
+      }
 
-          const { data: msgs } = await supabase
-            .from("messages")
-            .select("*")
-            .eq("conversation_id", conv.id)
-            .order("created_at", { ascending: false })
-            .limit(20);
+      // Group messages by conversation ID
+      const messagesByConv = new Map();
+      (allMsgs || []).forEach((msg) => {
+        let group = messagesByConv.get(msg.conversation_id);
+        if (!group) {
+          group = [];
+          messagesByConv.set(msg.conversation_id, group);
+        }
+        group.push(msg);
+      });
 
-          const latestMsg = msgs && msgs.length > 0 ? msgs[0] : null;
-          const unreadCount = calculateUnreadCount(
-            msgs || [],
-            partInfo?.last_read_at,
-            currentUserId
-          );
-
-          let name = "Chat";
-          let avatarUrl = null;
-
-          if (conv.type === "direct") {
-            const peer = directPeersMap[conv.id];
-            name = peer?.full_name || peer?.username || "Direct Message";
-            avatarUrl = peer?.user_img || null;
-          } else if (conv.type === "group") {
-            const grp = groupMap[conv.study_group_id];
-            name = grp?.name || "Study Group";
-          }
-
-          return {
-            ...conv,
-            name,
-            avatarUrl,
-            latestMsg,
-            unreadCount,
-            lastReadAt: partInfo?.last_read_at,
-            updatedAt: latestMsg ? latestMsg.created_at : conv.created_at,
-          };
-        })
+      // Gather distinct resource IDs attached to latest messages across conversations
+      const resourceIds = Array.from(
+        new Set(
+          (convRows || [])
+            .map((c) => messagesByConv.get(c.id)?.[0]?.resource_id)
+            .filter(Boolean)
+        )
       );
+
+      let resourceTitleMap = {};
+      if (resourceIds.length > 0) {
+        try {
+          const { data: resRows } = await supabase
+            .from("resources")
+            .select("id, title")
+            .in("id", resourceIds);
+
+          (resRows || []).forEach((r) => {
+            resourceTitleMap[r.id] = r.title;
+          });
+        } catch {
+          // ignore if resource query fails
+        }
+      }
+
+      // Build final conversation objects synchronously in memory
+      const convList = (convRows || []).map((conv) => {
+        const partInfo = participantMap[conv.id];
+        const msgs = messagesByConv.get(conv.id) || [];
+        const latestMsg = msgs.length > 0 ? msgs[0] : null;
+        const unreadCount = calculateUnreadCount(
+          msgs,
+          partInfo?.last_read_at,
+          currentUserId
+        );
+
+        let name = "Chat";
+        let avatarUrl = null;
+        let resourceTitle = latestMsg?.resource_id ? resourceTitleMap[latestMsg.resource_id] || null : null;
+
+        if (conv.type === "direct") {
+          const peer = directPeersMap[conv.id];
+          name = peer?.full_name || peer?.username || "Direct Message";
+          avatarUrl = peer?.user_img || null;
+        } else if (conv.type === "group") {
+          const grp = groupMap[conv.study_group_id];
+          name = grp?.name || "Study Group";
+        }
+
+        return {
+          ...conv,
+          name,
+          avatarUrl,
+          latestMsg,
+          resourceTitle,
+          unreadCount,
+          lastReadAt: partInfo?.last_read_at,
+          updatedAt: latestMsg ? latestMsg.created_at : conv.created_at,
+        };
+      });
 
       // Sort by latest message time
       convList.sort(
-        (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        (a, b) => toTime(b.updatedAt) - toTime(a.updatedAt)
       );
 
       setConversations(convList);
@@ -156,127 +214,207 @@ export default function ChatInbox({ currentUserId, onSelectConversation }) {
     fetchInboxData();
   }, [fetchInboxData]);
 
-  // Realtime listener for message changes to update inbox previews
+  // Realtime listener for message changes
   useEffect(() => {
     if (!currentUserId) return;
 
-    const channel = supabase
-      .channel(`inbox_messages:${currentUserId}`)
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "messages" },
-        () => {
-          fetchInboxData();
-        }
-      )
-      .subscribe();
+    const channelName = `inbox_messages:${currentUserId}:${crypto.randomUUID()}`;
+    const channel = supabase.channel(channelName);
+
+    channel.on(
+      "postgres_changes",
+      { event: "INSERT", schema: "public", table: "messages" },
+      () => {
+        fetchInboxData();
+      }
+    );
+
+    channel.subscribe();
 
     return () => {
       supabase.removeChannel(channel);
     };
   }, [currentUserId, fetchInboxData]);
 
-  const filteredConversations = conversations.filter((c) =>
-    c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
-    c.latestMsg?.content?.toLowerCase().includes(searchQuery.trim().toLowerCase())
-  );
+  const filteredConversations = conversations
+    .filter((c) => {
+      if (filterTab === "friends") return c.type === "direct";
+      if (filterTab === "groups") return c.type === "group";
+      return true;
+    })
+    .filter(
+      (c) =>
+        c.name.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        c.latestMsg?.content?.toLowerCase().includes(searchQuery.trim().toLowerCase()) ||
+        c.resourceTitle?.toLowerCase().includes(searchQuery.trim().toLowerCase())
+    );
 
   return (
-    <div className="space-y-4">
-      {/* Header & Search */}
-      <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm dark:border-slate-800 dark:bg-[#14171c]">
-        <div className="flex items-center justify-between gap-4 mb-3">
+    <div className="flex flex-col h-full w-full min-w-0 bg-white dark:bg-[#14171c] overflow-hidden">
+      {/* Slim, Clean Header */}
+      <div className="shrink-0 p-3 sm:p-3.5 border-b border-slate-100 dark:border-slate-800 space-y-2.5">
+        <div className="flex items-center justify-between gap-2">
           <div>
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white">
-              Messages & Conversations
+            <h2 className="text-sm font-medium text-slate-900 dark:text-white">
+              Messages
             </h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Direct chats with friends and active study group discussions
-            </p>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowFriendPicker(true)}
+              className="inline-flex min-h-[34px] items-center gap-1.5 rounded-xl bg-emerald-600 px-2.5 py-1 text-[12px] font-medium text-white shadow-xs hover:bg-emerald-700 transition"
+              title="New Chat"
+              aria-label="New Chat"
+            >
+              <Plus className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">New Chat</span>
+            </button>
+            {headerAction}
           </div>
         </div>
 
+        {/* Slim Search Input */}
         <div className="relative">
-          <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-400" />
+          <Search className="absolute left-3 top-2.5 h-3.5 w-3.5 text-slate-400" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             placeholder="Search conversations..."
-            className="w-full rounded-2xl border border-slate-200 bg-slate-50 py-2.5 pl-10 pr-4 text-xs text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-700 dark:bg-[#18211f] dark:text-white"
+            className="w-full min-h-[36px] rounded-xl border border-slate-200/80 bg-slate-50 py-1 pl-8 pr-3 text-[13px] font-normal text-slate-900 outline-none focus:border-emerald-500 dark:border-slate-800 dark:bg-[#18211f] dark:text-white"
           />
+        </div>
+
+        {/* Minimal Segmented Controls */}
+        <div className="flex rounded-xl bg-slate-100/80 p-1 dark:bg-[#18211f]">
+          {[
+            { id: "all", label: "All" },
+            { id: "friends", label: "Friends" },
+            { id: "groups", label: "Groups" },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setFilterTab(tab.id)}
+              className={`flex-1 min-h-[28px] rounded-lg text-[11px] font-medium transition ${
+                filterTab === tab.id
+                  ? "bg-white text-slate-900 shadow-xs dark:bg-[#14171c] dark:text-white"
+                  : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white"
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 
+      <FriendPicker
+        isOpen={showFriendPicker}
+        onClose={() => setShowFriendPicker(false)}
+        currentUserId={currentUserId}
+        onSelectFriend={(convId) => onSelectConversation(convId)}
+      />
+
       {/* Inbox List */}
-      {loading ? (
-        <div className="flex min-h-[300px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 dark:border-slate-800 dark:bg-[#14171c]">
-          <Loader2 className="h-8 w-8 animate-spin text-emerald-600" />
-          <p className="mt-3 text-sm text-slate-500 dark:text-slate-400">Loading inbox...</p>
-        </div>
-      ) : filteredConversations.length === 0 ? (
-        <div className="flex min-h-[250px] flex-col items-center justify-center rounded-2xl border border-slate-200 bg-white p-8 text-center dark:border-slate-800 dark:bg-[#14171c]">
-          <MessageSquare className="h-10 w-10 text-slate-300 dark:text-slate-700" />
-          <p className="mt-3 text-base font-bold text-slate-800 dark:text-slate-200">
-            No active conversations
-          </p>
-          <p className="mt-1 text-xs text-slate-500 dark:text-slate-400 max-w-xs">
-            Start a chat with a friend from the Friends tab or join a Study Group!
-          </p>
-        </div>
-      ) : (
-        <div className="divide-y divide-slate-100 rounded-2xl border border-slate-200 bg-white shadow-sm dark:divide-slate-800 dark:border-slate-800 dark:bg-[#14171c] overflow-hidden">
-          {filteredConversations.map((conv) => {
+      <div className="flex-1 min-h-0 overflow-y-auto divide-y divide-slate-100 dark:divide-slate-800/60">
+        {loading ? (
+          <div className="p-3 space-y-3">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-2.5 animate-pulse">
+                <div className="h-9 w-9 rounded-full bg-slate-200 dark:bg-slate-800 shrink-0" />
+                <div className="flex-1 space-y-2 min-w-0">
+                  <div className="h-3 w-1/3 rounded bg-slate-200 dark:bg-slate-800" />
+                  <div className="h-2.5 w-2/3 rounded bg-slate-200 dark:bg-slate-800" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : filteredConversations.length === 0 ? (
+          <div className="flex flex-col items-center justify-center p-6 text-center h-64">
+            <MessageSquare className="h-7 w-7 text-slate-300 dark:text-slate-700" />
+            <p className="mt-2 text-[13px] font-medium text-slate-800 dark:text-slate-200">
+              No conversations found
+            </p>
+            <p className="mt-1 text-[12px] font-normal text-slate-500 dark:text-slate-400 max-w-xs">
+              Select a conversation or start a new chat to begin studying together!
+            </p>
+            <button
+              type="button"
+              onClick={onFindFriends || (() => setShowFriendPicker(true))}
+              className="mt-3 inline-flex min-h-[36px] items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-1.5 text-[12px] font-medium text-white shadow-xs hover:bg-emerald-700"
+            >
+              <UserPlus className="h-3.5 w-3.5" />
+              <span>Find friends</span>
+            </button>
+          </div>
+        ) : (
+          filteredConversations.map((conv) => {
             const hasUnread = conv.unreadCount > 0;
             const previewText = conv.latestMsg?.content
               ? conv.latestMsg.content
+              : conv.resourceTitle
+              ? `Shared a file: ${conv.resourceTitle}`
               : conv.latestMsg?.resource_id
-              ? "📎 Shared a resource"
+              ? "Shared a resource"
               : "No messages yet";
+
+            const showFallback = !conv.avatarUrl || imgErrors[conv.id];
 
             return (
               <div
                 key={conv.id}
                 onClick={() => onSelectConversation(conv.id)}
-                className={`flex cursor-pointer items-center justify-between p-4 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
-                  hasUnread
-                    ? "bg-emerald-50/50 dark:bg-emerald-950/20"
-                    : ""
+                className={`flex min-h-[52px] cursor-pointer items-center justify-between px-3 py-2.5 transition hover:bg-slate-50 dark:hover:bg-white/5 ${
+                  hasUnread ? "bg-emerald-50/50 dark:bg-emerald-950/20" : ""
                 }`}
               >
-                <div className="flex items-center gap-3.5 min-w-0 flex-1 pr-3">
-                  {conv.type === "direct" ? (
-                    conv.avatarUrl ? (
-                      <img
-                        src={conv.avatarUrl}
-                        alt={conv.name}
-                        className="h-11 w-11 rounded-full object-cover shrink-0"
-                      />
+                <div className="flex items-center gap-2.5 min-w-0 flex-1 pr-2">
+                  <div className="relative shrink-0">
+                    {conv.type === "direct" ? (
+                      !showFallback ? (
+                        <img
+                          src={conv.avatarUrl}
+                          alt={conv.name}
+                          onError={() => setImgErrors((prev) => ({ ...prev, [conv.id]: true }))}
+                          className="h-9 w-9 rounded-full object-cover"
+                        />
+                      ) : (
+                        <div className="flex h-9 w-9 items-center justify-center rounded-full bg-emerald-200 font-medium text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100 text-xs">
+                          {conv.name.charAt(0).toUpperCase()}
+                        </div>
+                      )
                     ) : (
-                      <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-200 text-sm font-bold text-emerald-900 dark:bg-emerald-900 dark:text-emerald-100">
-                        {conv.name.charAt(0).toUpperCase()}
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-cyan-200 font-medium text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                        <Users className="h-4 w-4" />
                       </div>
-                    )
-                  ) : (
-                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-cyan-200 font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
-                      <Users className="h-5 w-5" />
-                    </div>
-                  )}
+                    )}
+                    {conv.type === "direct" && (
+                      <span className="absolute bottom-0 right-0 h-2 w-2 rounded-full bg-emerald-500 ring-2 ring-white dark:ring-[#14171c]" />
+                    )}
+                  </div>
 
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="truncate text-sm font-bold text-slate-900 dark:text-white">
+                      <p
+                        className={`truncate text-[13px] font-medium ${
+                          hasUnread
+                            ? "text-slate-900 dark:text-white"
+                            : "text-slate-800 dark:text-slate-200"
+                        }`}
+                      >
                         {conv.name}
                       </p>
-                      <span className="text-[11px] text-slate-400 font-medium shrink-0">
+                      <span className="text-[10px] text-slate-400 font-normal shrink-0">
                         {formatRelativeTime(conv.updatedAt)}
                       </span>
                     </div>
 
                     <p
-                      className={`truncate text-xs mt-0.5 ${
+                      className={`truncate text-[12px] font-normal mt-0.5 ${
                         hasUnread
-                          ? "font-bold text-slate-900 dark:text-white"
+                          ? "text-slate-900 dark:text-white font-medium"
                           : "text-slate-500 dark:text-slate-400"
                       }`}
                     >
@@ -286,15 +424,15 @@ export default function ChatInbox({ currentUserId, onSelectConversation }) {
                 </div>
 
                 {hasUnread && (
-                  <span className="flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1.5 text-[10px] font-bold text-white shadow-xs">
+                  <span className="flex h-4 min-w-4 shrink-0 items-center justify-center rounded-full bg-emerald-600 px-1 text-[10px] font-medium text-white shadow-xs">
                     {conv.unreadCount}
                   </span>
                 )}
               </div>
             );
-          })}
-        </div>
-      )}
+          })
+        )}
+      </div>
     </div>
   );
 }

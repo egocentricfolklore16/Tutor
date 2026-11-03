@@ -23,16 +23,16 @@ import {
 import supabase from "../../../lib/supabase";
 import { useAITutor } from "../../../app/AITutorContext";
 import { useStudySession } from "../../../hooks/useStudySession";
-import { useStreak } from "../../../hooks/useStreak";
+import { useGamification } from "../../../features/gamification";
 import Flashcards from "./Flashcards";
 import NoteEditor from "./NoteEditor";
 import PracticeQuestions from "./PracticeQuestions";
 import ResourceAttachments from "./ResourceAttachments";
 import LoadingCompanion from "../../common/LoadingCompanion";
 
-const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
+const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => {
   const {
-    isOpen: isAIOpen,
+    isOpen: _isAIOpen,
     sendTutorEvent,
     setActiveSessionId,
     setFocusMode: setContextFocusMode,
@@ -44,14 +44,15 @@ const StudyEnvironment = ({ session: incomingSession, user: incomingUser }) => {
     setRequestedQuizId,
   } = useAITutor();
 
-  const { currentStreak } = useStreak();
+  const { streak } = useGamification();
+  const { currentStreak } = streak;
 
   const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
   const [isLoading, setIsLoading] = useState(!incomingSession);
   const [error, setError] = useState("");
-  const [profile, setProfile] = useState(null);
+  const [_profile, setProfile] = useState(null);
   const [userId, setUserId] = useState(null);
   const [timeline, setTimeline] = useState([]);
 

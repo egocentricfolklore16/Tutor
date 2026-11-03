@@ -5,6 +5,12 @@ import {
   formatDateSectionLabel,
   groupMessagesByDateAndSender,
   calculateUnreadCount,
+  sanitizeUrl,
+  parseLinksInText,
+  toggleMessageReaction,
+  filterMessagesBySearchQuery,
+  formatReplyReference,
+  togglePinnedMessage,
 } from "../src/lib/communityChat.js";
 
 test("formatRelativeTime returns 'just now' for null or invalid inputs", () => {
@@ -85,4 +91,94 @@ test("calculateUnreadCount counts messages newer than last_read_at sent by other
 
   const count = calculateUnreadCount(messages, lastReadAt, currentUserId);
   assert.equal(count, 2);
+});
+
+test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", () => {
+  assert.equal(sanitizeUrl("https://example.com/study"), "https://example.com/study");
+  assert.equal(sanitizeUrl("http://localhost:3000"), "http://localhost:3000");
+  assert.equal(sanitizeUrl("mailto:support@example.com"), "mailto:support@example.com");
+  assert.equal(sanitizeUrl("/community/chat"), "/community/chat");
+  assert.equal(sanitizeUrl("#section"), "#section");
+
+  // XSS payloads
+  assert.equal(sanitizeUrl("javascript:alert(1)"), "#");
+  assert.equal(sanitizeUrl("  javascript:alert(1)  "), "#");
+  assert.equal(sanitizeUrl("JAVASCRIPT:alert('xss')"), "#");
+  assert.equal(sanitizeUrl("javascript:document.cookie"), "#");
+  assert.equal(sanitizeUrl("data:text/html;base64,PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg=="), "#");
+  assert.equal(sanitizeUrl("vbscript:msgbox(1)"), "#");
+
+  // ASCII control character obfuscation payloads
+  assert.equal(sanitizeUrl("java\x00script:alert(1)"), "#");
+  assert.equal(sanitizeUrl("java\r\nscript:alert(1)"), "#");
+  assert.equal(sanitizeUrl("https://example.com/path\x07"), "https://example.com/path");
+
+  // Edge cases
+  assert.equal(sanitizeUrl(null), "#");
+  assert.equal(sanitizeUrl(undefined), "#");
+  assert.equal(sanitizeUrl(""), "#");
+});
+
+test("parseLinksInText extracts and sanitizes links from message text", () => {
+  const text = "Check out https://hypertutor.app for study tools";
+  const parts = parseLinksInText(text);
+
+  assert.equal(parts.length, 3);
+  assert.equal(parts[0].type, "text");
+  assert.equal(parts[0].value, "Check out ");
+  assert.equal(parts[1].type, "link");
+  assert.equal(parts[1].value, "https://hypertutor.app");
+  assert.equal(parts[2].type, "text");
+  assert.equal(parts[2].value, " for study tools");
+});
+
+test("toggleMessageReaction adds and removes reactions correctly", () => {
+  const initial = {};
+  const step1 = toggleMessageReaction(initial, "user-1", "👍");
+  assert.deepEqual(step1, { "👍": ["user-1"] });
+
+  const step2 = toggleMessageReaction(step1, "user-2", "👍");
+  assert.deepEqual(step2, { "👍": ["user-1", "user-2"] });
+
+  const step3 = toggleMessageReaction(step2, "user-1", "👍");
+  assert.deepEqual(step3, { "👍": ["user-2"] });
+
+  const step4 = toggleMessageReaction(step3, "user-2", "👍");
+  assert.deepEqual(step4, {});
+});
+
+test("filterMessagesBySearchQuery filters messages by text content or resource title", () => {
+  const messages = [
+    { id: "1", content: "Let's study Calculus" },
+    { id: "2", content: "Physics notes", resourceTitle: "Mechanics Ch 1" },
+    { id: "3", content: "Where is the room link?" },
+  ];
+
+  assert.equal(filterMessagesBySearchQuery(messages, "calculus").length, 1);
+  assert.equal(filterMessagesBySearchQuery(messages, "mechanics").length, 1);
+  assert.equal(filterMessagesBySearchQuery(messages, "").length, 3);
+  assert.equal(filterMessagesBySearchQuery(messages, "biology").length, 0);
+});
+
+test("formatReplyReference formats target message preview for reply quote", () => {
+  const messages = [
+    { id: "msg-10", sender_id: "u-1", content: "What time is our group study session?" },
+  ];
+  const profiles = {
+    "u-1": { full_name: "Alice Newton" },
+  };
+
+  const ref = formatReplyReference(messages, "msg-10", profiles);
+  assert.equal(ref.id, "msg-10");
+  assert.equal(ref.senderName, "Alice Newton");
+  assert.equal(ref.snippet, "What time is our group study session?");
+});
+
+test("togglePinnedMessage adds and removes message ID from pinned list", () => {
+  const pinned = ["msg-1"];
+  const added = togglePinnedMessage(pinned, "msg-2");
+  assert.deepEqual(added, ["msg-1", "msg-2"]);
+
+  const removed = togglePinnedMessage(added, "msg-1");
+  assert.deepEqual(removed, ["msg-2"]);
 });

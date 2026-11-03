@@ -120,8 +120,10 @@ export default function InstallPrompt({ userId }: InstallPromptProps) {
     }
   };
 
-  // Guard conditions: do not show if not visible, no user, standalone, active study session, or AI chat open
-  if (!visible || !userId || isStandalone || isStudySession || isAiChatOpen) {
+  const isChatThread = location.pathname.toLowerCase().includes("/chat/") && location.pathname.toLowerCase().split("/chat/")[1]?.trim().length > 0;
+
+  // Guard conditions: do not show if not visible, no user, standalone, active study session, AI chat open, or in chat thread
+  if (!visible || !userId || isStandalone || isStudySession || isAiChatOpen || isChatThread) {
     return null;
   }
 

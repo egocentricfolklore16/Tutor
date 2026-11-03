@@ -1,3 +1,5 @@
+import { toDate, toTime } from "./dates.js";
+
 export const defaultNotificationPreferences = {
   browserPush: true,
   inApp: true,
@@ -9,6 +11,10 @@ export const defaultNotificationPreferences = {
   systemAlerts: true,
   digest: "normal",
   autoPrompt: true,
+  group_reminders_enabled: true,
+  group_reminder_30m: true,
+  group_reminder_15m: true,
+  group_reminder_0m: true,
   quietHours: {
     enabled: true,
     start: "22:00",
@@ -17,34 +23,71 @@ export const defaultNotificationPreferences = {
 };
 
 const reminderTimers = new Map();
+const FIRED_REMINDERS_KEY = "hyper-tutor-fired-group-reminders";
+
+function getFiredGroupReminders() {
+  try {
+    const raw = localStorage.getItem(FIRED_REMINDERS_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+function setFiredGroupReminder(tagKey, expiresAt) {
+  try {
+    const fired = getFiredGroupReminders();
+    fired[tagKey] = expiresAt;
+
+    // Prune expired tags
+    const now = Date.now();
+    const clean = {};
+    for (const [k, exp] of Object.entries(fired)) {
+      if (exp > now) clean[k] = exp;
+    }
+    clean[tagKey] = expiresAt;
+    localStorage.setItem(FIRED_REMINDERS_KEY, JSON.stringify(clean));
+  } catch {
+    // ignore
+  }
+}
 
 export function resolveSessionDateTime(session) {
   if (!session) return null;
 
-  const rawDate = session.Date ?? session.date;
+  if (session.type === "deadline" || session.due_date || session.deadline) {
+    const rawDueDate = session.due_date || session.deadline || session.date;
+    if (!rawDueDate) return null;
+    const baseDate = toDate(`${rawDueDate}T09:00:00`);
+    return baseDate;
+  }
+
+  const rawDate = session.Date ?? session.date ?? session.scheduled_start;
   let baseDate;
 
   if (rawDate instanceof Date) {
-    baseDate = new Date(rawDate);
+    baseDate = toDate(rawDate);
   } else if (typeof rawDate === "string") {
     if (/^\d{4}-\d{2}-\d{2}$/.test(rawDate)) {
       const [year, month, day] = rawDate.split("-").map(Number);
-      baseDate = new Date(year, month - 1, day);
+      baseDate = toDate(new Date(year, month - 1, day));
     } else {
-      baseDate = new Date(rawDate);
+      baseDate = toDate(rawDate);
     }
   } else if (rawDate) {
-    baseDate = new Date(rawDate);
+    baseDate = toDate(rawDate);
   }
 
-  if (Number.isNaN(baseDate?.getTime?.())) {
+  if (!baseDate) {
     return null;
   }
 
-  const timeValue = session.Start ?? session.startTime ?? "09:00";
+  const timeValue = session.Start ?? session.startTime ?? session.start_time ?? "09:00";
   const [hours = 0, minutes = 0] = String(timeValue).split(":").map(Number);
   const scheduledAt = new Date(baseDate);
-  scheduledAt.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  if (!session.scheduled_start) {
+    scheduledAt.setHours(Number.isFinite(hours) ? hours : 0, Number.isFinite(minutes) ? minutes : 0, 0, 0);
+  }
 
   return scheduledAt;
 }
@@ -143,7 +186,7 @@ export function recordNotification(notification, preferences = null, date = new 
   if (quietHoursActive) {
     const muted = { ...notificationRecord, muted: true };
     saveStoredNotifications(getStoredNotifications().map((item) => item.id === muted.id ? muted : item));
-    return notificationRecord;
+    return muted;
   }
 
   return notificationRecord;
@@ -163,6 +206,11 @@ export async function hasActivePushSubscription() {
 export async function scheduleStudyReminder(session, preferences = null, now = Date.now()) {
   if (!session || !session.id) return null;
 
+  // Do not fire study session starting notifications for time blocks
+  if (session.type === "time_block" || session.activityType === "time_block") {
+    return null;
+  }
+
   // In-tab fallback ONLY when permission is granted BUT there is NO active push subscription
   if (typeof window === "undefined" || !("Notification" in window) || Notification.permission !== "granted") {
     return null;
@@ -175,34 +223,44 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
   }
 
   const mergedPreferences = normalizeNotificationPreferences(preferences || getNotificationPreferences());
-  if (!mergedPreferences.studyReminders) return null;
+
+  if (session.type === "deadline" || session.activityType === "deadline") {
+    if (!mergedPreferences.deadlineReminders) return null;
+  } else {
+    if (!mergedPreferences.studyReminders) return null;
+  }
 
   const scheduledAt = resolveSessionDateTime(session);
   if (!scheduledAt) return null;
 
   const reminderMins = Number(session.reminder ?? session.reminder_minutes ?? 15);
-  const reminderTime = new Date(scheduledAt.getTime() - reminderMins * 60 * 1000);
-  const currentTime = now instanceof Date ? now.getTime() : (typeof now === "number" ? now : Date.now());
-  const delayMs = reminderTime.getTime() - currentTime;
+  const reminderTime = new Date(toTime(scheduledAt) - reminderMins * 60 * 1000);
+  const currentTime = typeof now === "number" ? now : toTime(now);
+  const delayMs = toTime(reminderTime) - currentTime;
 
   if (delayMs <= 0) return null;
 
-  if (reminderTimers.has(session.id)) {
-    clearTimeout(reminderTimers.get(session.id));
+  const timerKey = session.isRecurring ? `${session.activityId || session.id}-${scheduledAt.toISOString().slice(0, 10)}-${reminderMins}` : session.id;
+
+  if (reminderTimers.has(timerKey)) {
+    clearTimeout(reminderTimers.get(timerKey));
   }
 
   const timer = setTimeout(async () => {
-    const title = "Study session starting soon";
-    const sessionTopic = session.Topic || session.title || "Session";
-    const sessionSubject = session.Subject || session.subject || "Study";
-    const body = reminderMins === 0 ? `${sessionSubject} - ${sessionTopic} starts now` : `${sessionSubject} - ${sessionTopic} starts in ${reminderMins} minutes`;
+    const isDl = session.type === "deadline" || session.activityType === "deadline";
+    const title = isDl ? "Upcoming deadline reminder" : "Study session starting soon";
+    const sessionTopic = session.Topic || session.title || session.purpose || "Session";
+    const sessionSubject = session.Subject || session.subject || (isDl ? "Deadline" : "Study");
+    const body = reminderMins === 0
+      ? `${sessionSubject} - ${sessionTopic} starts now`
+      : `${sessionSubject} - ${sessionTopic} in ${reminderMins} minutes`;
     const dateStr = scheduledAt.toISOString().slice(0, 10);
-    const tagStr = `session-${session.id}-${dateStr}`;
+    const tagStr = `${session.type || "session"}-${session.id}-${dateStr}`;
 
     recordNotification({
       title,
       body,
-      type: "studyReminders",
+      type: isDl ? "deadlineReminders" : "studyReminders",
       context: "study",
     }, mergedPreferences);
 
@@ -213,15 +271,101 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
         icon: "/icons/icon-192.png",
         badge: "/icons/badge-72.png",
         tag: tagStr,
-        data: { url: `/Study/${session.id}` },
+        data: { url: isDl ? "/Planner" : `/Study/${session.id}` },
       });
     }
 
-    reminderTimers.delete(session.id);
+    reminderTimers.delete(timerKey);
   }, delayMs);
 
-  reminderTimers.set(session.id, timer);
+  reminderTimers.set(timerKey, timer);
   return timer;
+}
+
+export function scheduleGroupSessionReminders(groupSessions, preferences = null, now = Date.now()) {
+  const prefs = normalizeNotificationPreferences(preferences || getNotificationPreferences());
+  if (!prefs.group_reminders_enabled) return [];
+
+  const currentTime = typeof now === "number" ? now : toTime(now);
+  const firedMap = getFiredGroupReminders();
+  const scheduledTimers = [];
+
+  const offsets = [
+    { key: "group_reminder_30m", offsetMins: 30, text: (t, g) => `Starts in 30 minutes: ${t} · ${g}` },
+    { key: "group_reminder_15m", offsetMins: 15, text: (t, g) => `Starts in 15 minutes: ${t} · ${g}` },
+    { key: "group_reminder_0m", offsetMins: 0, text: (t, g) => `Starting now: ${t} · ${g}` },
+  ];
+
+  (groupSessions || []).forEach((sess) => {
+    if (!sess || sess.user_rsvp === "declined") return;
+
+    const startMs = toTime(sess.scheduled_start);
+    if (!startMs) return;
+
+    const durationMins = sess.duration_minutes || 60;
+    const expiresAt = startMs + durationMins * 60 * 1000;
+
+    offsets.forEach(({ key, offsetMins, text }) => {
+      if (!prefs[key]) return;
+
+      const tagKey = `${sess.id}-${offsetMins}`;
+      if (firedMap[tagKey]) return; // Already fired
+
+      const fireTimeMs = startMs - offsetMins * 60 * 1000;
+      const timeDiff = fireTimeMs - currentTime;
+
+      // Tolerance window: if fire time is past by less than 2 minutes, fire immediately
+      if (timeDiff <= 0 && timeDiff >= -120000) {
+        // Fire now
+        const bodyText = text(sess.title || "Study Session", sess.group_name || "Group");
+        recordNotification({
+          title: "Group Study Session",
+          body: bodyText,
+          type: "community",
+          context: "community",
+        }, prefs);
+
+        if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+          new Notification("Group Study Session", {
+            body: bodyText,
+            tag: tagKey,
+          });
+        }
+
+        setFiredGroupReminder(tagKey, expiresAt);
+      } else if (timeDiff > 0) {
+        // Set in-tab timer
+        if (reminderTimers.has(tagKey)) {
+          clearTimeout(reminderTimers.get(tagKey));
+        }
+
+        const timer = setTimeout(() => {
+          const bodyText = text(sess.title || "Study Session", sess.group_name || "Group");
+          recordNotification({
+            title: "Group Study Session",
+            body: bodyText,
+            type: "community",
+            context: "community",
+          }, prefs);
+
+          if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+            new Notification("Group Study Session", {
+              body: bodyText,
+              tag: tagKey,
+            });
+          }
+
+          setFiredGroupReminder(tagKey, expiresAt);
+          reminderTimers.delete(tagKey);
+        }, timeDiff);
+
+        reminderTimers.set(tagKey, timer);
+        scheduledTimers.push(timer);
+      }
+    });
+  });
+
+  return scheduledTimers;
 }
 
 export async function scheduleSessionRemindersFromSessions(sessions, preferences = null, now = Date.now()) {

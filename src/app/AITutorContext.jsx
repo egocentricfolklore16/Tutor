@@ -5,7 +5,7 @@ import supabase from "../lib/supabase";
 
 const AITutorContext = createContext(null);
 
-export function mapPathToScreen(pathname) {
+function mapPathToScreen(pathname) {
   if (!pathname || pathname === "/" || pathname.startsWith("/Dashboard")) return "dashboard";
   if (pathname.startsWith("/Study")) return "study_session";
   if (pathname.startsWith("/Planner")) return "calendar";
@@ -95,6 +95,11 @@ export function AITutorProvider({ children, session }) {
   const [currentMessage, setCurrentMessage] = useState("");
   const [isTyping, setIsTyping] = useState(false);
 
+  // Socratic strictness preference state
+  const [strictness, setStrictness] = useState("hints_then_answer");
+  const [strictnessSaveStatus, setStrictnessSaveStatus] = useState("idle");
+  const [strictnessError, setStrictnessError] = useState("");
+
   // Live client state pieces
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [focusMode, setFocusMode] = useState("Deep work");
@@ -114,6 +119,70 @@ export function AITutorProvider({ children, session }) {
   }, [activeSessionId]);
 
   const user = session?.user || null;
+
+  useEffect(() => {
+    let isMounted = true;
+    async function loadStrictness() {
+      if (!user?.id) return;
+      const { data, error } = await supabase
+        .from("user_preferences")
+        .select("socratic_strictness")
+        .eq("user_id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.warn("Failed to fetch user_preferences.socratic_strictness:", error);
+        return;
+      }
+
+      if (isMounted && data?.socratic_strictness) {
+        setStrictness(data.socratic_strictness);
+      }
+    }
+
+    loadStrictness();
+    return () => {
+      isMounted = false;
+    };
+  }, [user?.id]);
+
+  const updateStrictness = async (newValue) => {
+    if (!newValue || newValue === strictness) return;
+    const previousValue = strictness;
+    setStrictness(newValue);
+    setStrictnessSaveStatus("saving");
+    setStrictnessError("");
+
+    const { error: rpcError } = await supabase.rpc("set_socratic_strictness", {
+      p_strictness: newValue,
+    });
+
+    let saveError = rpcError;
+    if (saveError) {
+      const { data: currentUserData } = await supabase.auth.getUser();
+      const currentUid = currentUserData?.user?.id || user?.id;
+      if (currentUid) {
+        const { error: upsertError } = await supabase
+          .from("user_preferences")
+          .upsert(
+            { user_id: currentUid, socratic_strictness: newValue, updated_at: new Date().toISOString() },
+            { onConflict: "user_id" }
+          );
+        saveError = upsertError;
+      }
+    }
+
+    if (saveError) {
+      setStrictness(previousValue);
+      setStrictnessSaveStatus("error");
+      setStrictnessError(saveError.message || "Failed to update Socratic strictness preference.");
+    } else {
+      setStrictnessSaveStatus("saved");
+      setTimeout(() => {
+        setStrictnessSaveStatus("idle");
+      }, 2000);
+    }
+  };
 
   const getTutorClientState = (customPath = location.pathname) => {
     const clientState = {
@@ -153,7 +222,11 @@ export function AITutorProvider({ children, session }) {
     const text = (customText !== null ? customText : currentMessage).trim();
     if (!text || isTyping || !user) return;
 
-    const userMsg = { sender: "user", text };
+    const userMsg = {
+      id: `user-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      sender: "user",
+      text,
+    };
     const updatedMessages = [...messages, userMsg];
 
     setMessages(updatedMessages);
@@ -173,6 +246,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((msgs) => [
           ...msgs,
           {
+            id: `ai-err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.error.message || "Failed to reach Lumo. Please try again.",
             actions: [],
@@ -183,6 +257,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((msgs) => [
           ...msgs,
           {
+            id: `ai-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.reply || "",
             actions: res.actions || [],
@@ -197,6 +272,7 @@ export function AITutorProvider({ children, session }) {
       setMessages((msgs) => [
         ...msgs,
         {
+          id: `ai-err-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
           sender: "ai",
           text: `Error: ${err.message || "Failed to reach Lumo. Please try again."}`,
           actions: [],
@@ -249,6 +325,7 @@ export function AITutorProvider({ children, session }) {
         setMessages((prev) => [
           ...prev,
           {
+            id: `ai-event-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
             sender: "ai",
             text: res.reply,
             actions: res.actions || [],
@@ -264,7 +341,7 @@ export function AITutorProvider({ children, session }) {
           refreshSessionMaterials(activeSessionId);
         }
       }
-    } catch (err) {
+    } catch {
       // Ignore failures silently without showing error toast/message
     } finally {
       setIsTyping(false);
@@ -308,6 +385,10 @@ export function AITutorProvider({ children, session }) {
         panel,
         quizInProgress,
         requestedQuizId,
+        strictness,
+        strictnessSaveStatus,
+        strictnessError,
+        updateStrictness,
       }}
     >
       {children}
@@ -340,6 +421,10 @@ export function useAITutor() {
       setRequestedQuizId: () => {},
       requestedQuizId: null,
       panel: "none",
+      strictness: "hints_then_answer",
+      strictnessSaveStatus: "idle",
+      strictnessError: "",
+      updateStrictness: () => {},
     }
   );
 }

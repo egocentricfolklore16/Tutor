@@ -82,10 +82,11 @@ export default function PaystackCheckoutButton({
       }
 
       const amountKobo =
-        typeof planData.price_kobo === "number"
-          ? planData.price_kobo
-          : planData.price_naira * 100;
-      const reference = `pstk_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+        typeof planData.price_kobo === "number" && Number.isFinite(planData.price_kobo)
+          ? Math.round(planData.price_kobo)
+          : Math.round((planData.price_naira || 0) * 100);
+      // Use cryptographically secure random values for payment transaction references
+      const reference = `pstk_${Date.now()}_${crypto.randomUUID().replace(/-/g, "")}`;
 
       // Async callback handler for server-side verification
       async function handlePaystackCallback(response) {
@@ -102,8 +103,8 @@ export default function PaystackCheckoutButton({
 
           if (verifyError || !data?.success) {
             const message =
-              verifyError?.message ||
               data?.error ||
+              verifyError?.message ||
               "Payment verification failed on server.";
             setError(message);
             setLoading(false);

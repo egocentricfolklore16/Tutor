@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-03 - Expanding Ledger Scope to Gamification & Study Analytics Modules
+**Learning:** Verified all 210 frontend source files under `src/` against backend schemas, RPCs, and Edge Functions. Identified 4 recently added modular files (`InviteDialog.jsx`, `BadgeGrid.jsx`, `badgeUtils.js`, `studyStatsUtils.js`) that required explicit individual accounting in the coverage ledger. Confirmed that gamification badge and study analytics rendering hook directly into existing verified RPCs (`get_achievements`) and DB queries (`Study`, `study_history`) without introducing new backend gaps.
+**Action:** Audit all git file changes across recent PRs to identify newly introduced component modules or utilities and register them immediately into the coverage ledger.

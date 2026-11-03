@@ -117,7 +117,27 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
-  const exactNonAttempts = ["help me", "skip", "n/a", "nothing"];
+  const exactNonAttempts = [
+    "help me",
+    "skip",
+    "n/a",
+    "nothing",
+    "i have no clue",
+    "no clue",
+    "i have no idea",
+    "i am confused",
+    "im confused",
+    "i'm confused",
+    "i am lost",
+    "im lost",
+    "i'm lost",
+    "i'm not sure",
+    "i don't get it",
+    "i dont get it",
+    "i do not get it",
+    "i'm clueless",
+    "clueless",
+  ];
   for (const nonAttempt of exactNonAttempts) {
     const nonAttemptHistory = [
       { role: "user", content: "How do I solve 3x + 5 = 20?" },
@@ -178,6 +198,23 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "give me the solution key",
     "what is the rubric",
     "give me the grading scheme",
+    "complete this assignment",
+    "finish my assignment",
+    "complete this essay",
+    "finish this task",
+    "complete this project",
+    "finish this paper",
+    "complete this worksheet",
+    "just complete it",
+    "just finish it",
+    "give me the entire solution",
+    "give me the whole solution",
+    "give me the direct solution",
+    "provide the overall solution",
+    "give me the walkthrough",
+    "give me the cheat sheet",
+    "give me the response",
+    "give me the outline and solution",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -222,6 +259,20 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
       { role: "user", content: hintReq },
     ];
     assert.strictEqual(countGenuineAttempts(hintHistory), 1, `Hint request '${hintReq}' should count as a genuine interaction/attempt`);
+  }
+
+  const genuineReasoningAttempts = [
+    "I am confused because I thought x had to be positive",
+    "I think it is 5 because 3 * 5 = 15 and 15 + 5 = 20",
+    "I tried subtracting 5 first to get 15",
+  ];
+  for (const reasoning of genuineReasoningAttempts) {
+    const reasoningHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: reasoning },
+    ];
+    assert.strictEqual(countGenuineAttempts(reasoningHistory), 1, `Reasoning statement '${reasoning}' should count as a genuine attempt`);
   }
 
   const genuineConversation = [

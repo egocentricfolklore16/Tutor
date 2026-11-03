@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-10-17 - Filtering Assignment Deliverable Demands and Bare Confusion Statements in Turn Counting
+
+**Learning:** Academic deliverable completion demands ("complete this assignment", "finish my essay", "complete this task", "finish this worksheet") and full-solution variations ("give me the entire solution", "give me the walkthrough", "give me the cheat sheet") previously bypassed `countGenuineAttempts` because problem verbs only matched solving math problems/questions rather than completing academic tasks. Additionally, bare declarations of confusion ("i am confused", "im lost", "i have no clue", "i don't get it", "clueless") lack reasoning and should not count as genuine attempts unless accompanied by reasoning words (`because`, `think`).
+
+**Action:** Capture academic deliverable nouns (`assignment`, `essay`, `homework`, `task`, `project`, `paper`, `worksheet`) with completion verbs (`complete`, `finish`), full solution targets (`whole`, `entire`, `direct`, `overall`, `walkthrough`, `cheat sheet`, `outline`), and bare confusion phrases in `countGenuineAttempts` server-side filters.

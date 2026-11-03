@@ -102,34 +102,17 @@ export function getXpRequiredForLevel(targetLevel) {
 }
 
 /**
- * Generates the array of map nodes to display based on the user's current level.
- * Rule: Show EVERY level as a node from Level 1 up to the next two milestones beyond user's level.
- * Beyond that, if Level 20 is not reached/rendered, show a single "Keep climbing" teaser node pointing to Level 20.
+ * Generates the roadmap from Level 1 through the complete Level 20 journey.
+ * Learners beyond Level 20 can still see every level they've reached.
  */
 export function generateMapNodes(userLevel = 1) {
   const safeUserLevel = Math.max(1, Number.isFinite(Number(userLevel)) ? Number(userLevel) : 1);
-
-  // Find milestones beyond user's level
-  const futureMilestones = LEVEL_MILESTONES.filter((m) => m.level > safeUserLevel);
-
-  let maxRenderLevel = safeUserLevel;
-
-  if (futureMilestones.length === 0) {
-    // User is at or beyond max milestone (L20+)
-    maxRenderLevel = Math.max(20, safeUserLevel);
-  } else if (futureMilestones.length === 1) {
-    // e.g. L10 < userLevel < L20, only L20 is remaining
-    maxRenderLevel = futureMilestones[0].level;
-  } else {
-    // Take the 2nd future milestone
-    maxRenderLevel = futureMilestones[1].level;
-  }
-
+  const maxRenderLevel = Math.max(20, Math.floor(safeUserLevel));
   const nodes = [];
+
   for (let lvl = 1; lvl <= maxRenderLevel; lvl++) {
-    const milestone = LEVEL_MILESTONES.find((m) => m.level === lvl) || null;
+    const milestone = LEVEL_MILESTONES.find((item) => item.level === lvl) || null;
     const zone = getZoneForLevel(lvl);
-    const xpRequired = getXpRequiredForLevel(lvl);
 
     nodes.push({
       level: lvl,
@@ -137,26 +120,9 @@ export function generateMapNodes(userLevel = 1) {
       milestoneTitle: milestone?.title || null,
       milestoneDesc: milestone?.desc || milestone?.perk || null,
       milestoneIcon: milestone?.icon || null,
-      xpRequired,
+      xpRequired: getXpRequiredForLevel(lvl),
       zone,
       isTeaser: false,
-    });
-  }
-
-  // If final milestone (Level 20) is not rendered, add a single teaser node
-  if (maxRenderLevel < 20) {
-    const finalMilestone = LEVEL_MILESTONES.find((m) => m.level === 20);
-    const finalZone = getZoneForLevel(20);
-    nodes.push({
-      level: 20,
-      isMilestone: true,
-      milestoneTitle: finalMilestone?.title || "Hyper Tutor Legend",
-      milestoneDesc: finalMilestone?.desc || "Unlock exclusive profile frames & legendary avatar badges",
-      milestoneIcon: finalMilestone?.icon || "crown",
-      xpRequired: getXpRequiredForLevel(20),
-      zone: finalZone,
-      isTeaser: true,
-      teaserText: "Keep climbing to reach Level 20!",
     });
   }
 

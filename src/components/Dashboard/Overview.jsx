@@ -119,103 +119,101 @@ function Overview() {
   return (
     <PageContainer maxWidth="max-w-7xl">
       <div className="grid grid-cols-1 items-start gap-5 xl:grid-cols-2 2xl:grid-cols-12">
-          <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
-            <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"><Flame className="h-3.5 w-3.5" />{streakDisplayLabel}</span>
-            </div>
-
-            <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div className="flex min-w-0 items-center gap-3">
-                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
-                <h1 id="dashboard-greeting-title" className="min-w-0 truncate text-2xl font-bold text-slate-950 dark:text-white md:text-3xl"><span className="block truncate"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></span></h1>
-              </div>
-              <h1 id="dashboard-greeting-title" className="min-w-0 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50 md:text-3xl">
-                <TypingText text={greeting.heading} typingSpeed={75} showCursor={true} />
-              </h1>
-            </div>
-
-            <p className="mt-2 truncate pl-14 text-sm text-slate-600 dark:text-slate-400">{greeting.paragraph}</p>
-            {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500 dark:text-slate-400">Focus: <span className="font-semibold text-slate-700 dark:text-slate-300">{profile.primary_goal}</span>{profile.subjects?.length ? ` | ${profile.subjects.join(", ")}` : ""}</p>}
-
-           <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
-  <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
-    <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500 dark:bg-amber-500" />
-    <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-500" />
-    <strong className="truncate text-slate-800 dark:text-amber-400">
-      {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
-    </strong>
-    <span className="hidden truncate text-slate-500 dark:text-amber-500/70 sm:inline">
-      {knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}
-    </span>
-  </div>
-  <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-amber-400 dark:hover:text-amber-300 sm:ml-auto">
-    Review now <ArrowRight className="h-4 w-4" />
-  </button>
-</div>
-          </section>
-
-          {/* Keeps Slipping section placed directly below greeting banner */}
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <KeepsSlipping />
+        <section className="min-w-0 rounded-2xl bg-transparent py-2 xl:col-span-2 2xl:col-span-12" aria-labelledby="dashboard-greeting-title">
+          <div className="flex flex-wrap items-center gap-2 text-xs font-semibold text-slate-600 dark:text-slate-300">
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-sky-50 px-3 py-1.5 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"><Sun className="h-3.5 w-3.5" />{timeOfDay}</span>
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-orange-50 px-3 py-1.5 text-orange-700 dark:bg-orange-950/40 dark:text-orange-300"><Flame className="h-3.5 w-3.5" />{streakDisplayLabel}</span>
           </div>
 
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <DashboardStatsBar />
+          <div className="mt-3 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex min-w-0 items-center gap-3">
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
+              <h1 id="dashboard-greeting-title" className="min-w-0 truncate text-2xl font-bold text-slate-950 dark:text-white md:text-3xl"><span className="block truncate"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></span></h1>
+            </div>
+            <h1 id="dashboard-greeting-title" className="min-w-0 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50 md:text-3xl">
+              <TypingText text={greeting.heading} typingSpeed={75} showCursor={true} />
+            </h1>
           </div>
 
-          {/* Daily Goal & Quests Suite */}
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12 grid gap-5 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <DailyGoalRing currentMinutes={todayMinutes} targetMinutes={targetMinutes} />
-            </div>
-            <div className="lg:col-span-8">
-              <QuestList />
-            </div>
-          </div>
+          <p className="mt-2 truncate pl-14 text-sm text-slate-600 dark:text-slate-400">{greeting.paragraph}</p>
+          {profile?.primary_goal && <p className="mt-1 pl-14 text-xs text-slate-500 dark:text-slate-400">Focus: <span className="font-semibold text-slate-700 dark:text-slate-300">{profile.primary_goal}</span></p>}
 
-          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
-            <QuickShortcuts />
-            <div className="mt-5">
-              <PerformanceDashboard />
+          <div className="mt-4 flex min-w-0 flex-row items-center gap-2 rounded-full border border-transparent bg-slate-50 px-3 py-2.5 dark:border-amber-600/80 dark:bg-amber-950/40">
+            <div className="flex min-w-0 flex-1 items-center gap-2 text-sm">
+              <span className="h-2 w-2 shrink-0 rounded-full bg-orange-500 dark:bg-amber-500" />
+              <CalendarCheck2 className="h-4 w-4 shrink-0 text-orange-500 dark:text-amber-500" />
+              <strong className="truncate text-slate-800 dark:text-amber-400">
+                {knowledgeGaps.length ? `Review ${knowledgeGaps.length} concept${knowledgeGaps.length === 1 ? "" : "s"}` : "Keep your learning momentum"}
+              </strong>
+              <span className="hidden truncate text-slate-500 dark:text-amber-500/70 sm:inline">
+                {knowledgeGaps.length ? "before your next session" : "Your next focused session is ready"}
+              </span>
             </div>
+            <button type="button" onClick={() => navigate("/Study")} className="inline-flex shrink-0 items-center gap-1 text-sm font-semibold text-orange-600 hover:text-orange-700 dark:text-amber-400 dark:hover:text-amber-300 sm:ml-auto">
+              Review now <ArrowRight className="h-4 w-4" />
+            </button>
           </div>
-          <div className="xl:col-span-4">
-            <StudyCompanion topic={profile?.current_topic || "your studies"} />
+        </section>
+
+        {/* Keeps Slipping section placed directly below greeting banner */}
+        <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+          <KeepsSlipping />
+        </div>
+
+        <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+          <DashboardStatsBar />
+        </div>
+
+        {/* Daily Goal & Quests Suite */}
+        <div className="min-w-0 xl:col-span-2 2xl:col-span-12 grid gap-5 lg:grid-cols-12">
+          <div className="lg:col-span-4">
+            <DailyGoalRing currentMinutes={todayMinutes} targetMinutes={targetMinutes} />
+          </div>
+          <div className="lg:col-span-8">
+            <QuestList />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-3">
-          <div className="min-w-0">
-            <CommunitySpotlight />
-          </div>
-          <div className="min-w-0">
-            <AchievementsCard />
-          </div>
-          <div className="min-w-0">
-            <Leaderboard />
+        <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+          <QuickShortcuts />
+          <div className="mt-5">
+            <PerformanceDashboard />
           </div>
         </div>
-
-          <div className="min-w-0 2xl:col-span-12">
-            <StudyStreak
-              currentStreak={currentStreak}
-              todayCompleted={todayCompleted}
-              freezeTokens={freezeTokens}
-              loading={streakLoading}
-              error={streakError}
-              onRetry={refreshStreak}
-            />
-          </div>
+        <div className="xl:col-span-4">
+          <StudyCompanion topic={profile?.current_topic || "your studies"} />
         </div>
-
-        <AISuggestions />
       </div>
+
+      <div className="grid grid-cols-1 gap-5 2xl:grid-cols-3">
+        <div className="min-w-0">
+          <CommunitySpotlight />
+        </div>
+        <div className="min-w-0">
+          <AchievementsCard />
+        </div>
+        <div className="min-w-0">
+          <Leaderboard />
+        </div>
+      </div>
+
+      <div className="min-w-0 2xl:col-span-12">
+        <StudyStreak
+          currentStreak={currentStreak}
+          todayCompleted={todayCompleted}
+          freezeTokens={freezeTokens}
+          loading={streakLoading}
+          error={streakError}
+          onRetry={refreshStreak}
+        />
+      </div>
+
+      <AISuggestions />
 
       {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />
-        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:ring-slate-700">
+        <div className="relative flex items-center gap-3 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-800 shadow-xl shadow-slate-900/10 ring-1 ring-slate-100 dark:bg-slate-800 dark:text-slate-100 dark:shadow-slate-950/30 dark:ring-slate-700">
           <button
             type="button"
             onClick={() => setFeedbackOpen(true)}
@@ -224,7 +222,7 @@ function Overview() {
             <span>Give us feedback!</span>
             <MessageSquare className="h-4 w-4 text-emerald-600 dark:text-emerald-400" aria-hidden="true" />
           </button>
-          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-800 text-xs font-bold text-white shadow-md transition hover:bg-slate-950 dark:bg-slate-700 dark:hover:bg-slate-600">×</button>
+          <button type="button" title="Close feedback" aria-label="Close feedback" onClick={() => setFeedbackVisible(false)} className="absolute -right-2 -top-2 flex h-6 w-6 items-center justify-center rounded-full bg-slate-200 text-xs text-slate-600 shadow-md transition hover:bg-slate-300 dark:bg-slate-700 dark:text-slate-200 dark:hover:bg-slate-600">×</button>
         </div>
       </div>}
       <FeedbackDialog open={feedbackOpen} onClose={() => setFeedbackOpen(false)} />

@@ -24,10 +24,49 @@ import FAQ from "./components/FAQ/FAQ.jsx";
 import StudyHistoryDetail from "./components/Study/StudyHistoryDetail.jsx";
 import LoadingCompanion from "./components/common/LoadingCompanion.jsx";
 import SplashScreen from "./components/common/SplashScreen.jsx";
+import NotificationsPage from "./components/Notifications/NotificationsPage.jsx";
 import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 import Shop from "./components/Shop/Shop.jsx";
 import { syncAndCheckAchievements } from "./lib/achievementSync.js";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
+
+// Some older onboarding runs saved all answers before the profile completion flag
+// was persisted. Treat a complete set of saved responses as completed as well.
+const REQUIRED_ONBOARDING_ANSWERS = [
+  "display_name",
+  "subjects",
+  "primary_goal",
+  "education_level",
+  "learning_style",
+  "daily_time",
+];
+
+async function checkOnboardingCompletion(userId) {
+  const [profileResult, answersResult] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("onboarding_completed")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    supabase
+      .from("onboarding_answers")
+      .select("question_key")
+      .eq("user_id", userId),
+  ]);
+
+  if (profileResult.error) {
+    console.error("Error fetching user profile during onboarding check:", profileResult.error);
+  }
+  if (answersResult.error) {
+    console.error("Error fetching onboarding answers during onboarding check:", answersResult.error);
+  }
+
+  if (profileResult.data?.onboarding_completed) return true;
+  if (answersResult.error || !answersResult.data) return false;
+
+  const savedAnswers = new Set(answersResult.data.map(({ question_key }) => question_key));
+  return REQUIRED_ONBOARDING_ANSWERS.every((key) => savedAnswers.has(key));
+}
 
 function App() {
   const [session, setSession] = useState(null);
@@ -91,33 +130,13 @@ function App() {
           syncAndCheckAchievements({ quiet: false });
 
           setOnboardingLoading(true);
-          let completedLocally = false;
           try {
-            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${currentSession.user.id}`) === "true";
-          } catch (e) {
-            console.error("Error reading onboarding completion state from sessionStorage:", e);
-          }
-
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from("profiles")
-              .select("onboarding_completed")
-              .eq("user_id", currentSession.user.id)
-              .maybeSingle();
-
-            if (profileError) {
-              console.error("Error fetching user profile during auth bootstrap:", profileError);
-            }
-
-            if (mounted) {
-              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
-            }
+            const completed = await checkOnboardingCompletion(currentSession.user.id);
+            if (mounted) setNeedsOnboarding(!completed);
           } catch (profileErr) {
-            console.error("Failed to query user profile:", profileErr);
+            console.error("Failed to check onboarding completion:", profileErr);
           } finally {
-            if (mounted) {
-              setOnboardingLoading(false);
-            }
+            if (mounted) setOnboardingLoading(false);
           }
         }
       } catch (err) {
@@ -150,28 +169,14 @@ function App() {
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
         setSession(nextSession);
         if (nextSession?.user) {
-          let completedLocally = false;
+          setOnboardingLoading(true);
           try {
-            completedLocally = sessionStorage.getItem(`hyper-tutor-onboarding-complete:${nextSession.user.id}`) === "true";
-          } catch (e) {
-            console.error("Error reading onboarding completion state from sessionStorage:", e);
-          }
-          try {
-            const { data: profile, error: profileError } = await supabase
-              .from("profiles")
-              .select("onboarding_completed")
-              .eq("user_id", nextSession.user.id)
-              .maybeSingle();
-
-            if (profileError) {
-              console.error("Error fetching profile on auth state change:", profileError);
-            }
-
-            if (mounted) {
-              setNeedsOnboarding(!completedLocally && (Boolean(profileError) || !profile?.onboarding_completed));
-            }
+            const completed = await checkOnboardingCompletion(nextSession.user.id);
+            if (mounted) setNeedsOnboarding(!completed);
           } catch (profileErr) {
-            console.error("Unhandled exception fetching profile on auth state change:", profileErr);
+            console.error("Failed to check onboarding completion after auth change:", profileErr);
+          } finally {
+            if (mounted) setOnboardingLoading(false);
           }
         }
       }

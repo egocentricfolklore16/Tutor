@@ -130,9 +130,7 @@ function Overview() {
                 <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-emerald-50 dark:bg-emerald-950/50"><img src="/logo3.png" alt="Lumo mascot" className="h-9 w-9 object-contain" /></div>
                 <h1 id="dashboard-greeting-title" className="min-w-0 truncate text-2xl font-bold text-slate-950 dark:text-white md:text-3xl"><span className="block truncate"><TypingText text={greeting.heading} typingSpeed={75} showCursor={true} /></span></h1>
               </div>
-              <h1 id="dashboard-greeting-title" className="min-w-0 text-2xl font-black tracking-tight text-slate-950 dark:text-slate-50 md:text-3xl">
-                <TypingText text={greeting.heading} typingSpeed={75} showCursor={true} />
-              </h1>
+              <button type="button" onClick={() => navigate("/Study")} className="inline-flex min-h-11 w-full shrink-0 items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-orange-600 sm:w-auto"><Bot className="h-4 w-4" />Ask AI &amp; Study</button>
             </div>
 
             <p className="mt-2 truncate pl-14 text-sm text-slate-600 dark:text-slate-400">{greeting.paragraph}</p>
@@ -176,26 +174,23 @@ function Overview() {
 
           <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
             <QuickShortcuts />
-            <div className="mt-5">
-              <PerformanceDashboard />
-            </div>
           </div>
-          <div className="xl:col-span-4">
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-8">
+            <PerformanceDashboard />
+          </div>
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-4">
             <StudyCompanion topic={profile?.current_topic || "your studies"} />
           </div>
-        </div>
 
-        <div className="grid grid-cols-1 gap-5 2xl:grid-cols-3">
-          <div className="min-w-0">
+          <div className="min-w-0 2xl:col-span-4">
             <CommunitySpotlight />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 2xl:col-span-4">
             <AchievementsCard />
           </div>
-          <div className="min-w-0">
+          <div className="min-w-0 2xl:col-span-4">
             <Leaderboard />
           </div>
-        </div>
 
           <div className="min-w-0 2xl:col-span-12">
             <StudyStreak
@@ -207,11 +202,10 @@ function Overview() {
               onRetry={refreshStreak}
             />
           </div>
-        </div>
-
-        <AISuggestions />
+          <div className="min-w-0 xl:col-span-2 2xl:col-span-12">
+            <AISuggestions />
+          </div>
       </div>
-
       {feedbackVisible && <div className="fixed bottom-24 right-6 z-50 hidden sm:block">
         <span className="absolute -bottom-3 right-1 h-5 w-5 rounded-full bg-white shadow-md" aria-hidden="true" />
         <span className="absolute -bottom-6 right-0 h-3 w-3 rounded-full bg-white shadow-sm" aria-hidden="true" />

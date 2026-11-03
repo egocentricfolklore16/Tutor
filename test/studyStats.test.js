@@ -63,3 +63,24 @@ test('computeStudyStatsAnalytics evaluates performance tiers correctly (bad < 1.
   assert.equal(biologySub.performance, 'excellent');
   assert.equal(biologySub.color, 'bg-green-500');
 });
+
+test('computeStudyStatsAnalytics correctly groups chart hours using fast ISO date keys and non-ISO Date objects', () => {
+  const today = new Date();
+  const todayIso = today.toISOString();
+  const todayKey = todayIso.slice(0, 10);
+
+  const sessions = [
+    { Date: todayIso, Duration: '1.5', Subject: 'Math' },
+    { Date: today, Duration: '2.0', Subject: 'Science' },
+  ];
+  const history = [
+    { completed_at: todayIso, duration_minutes: 30, subject: 'Literature' },
+  ];
+
+  const result = computeStudyStatsAnalytics(sessions, history);
+  const todayChartEntry = result.chart.find((c) => c.key === todayKey);
+  assert.ok(todayChartEntry);
+  assert.equal(todayChartEntry.hours, 4.0); // 1.5 + 2.0 + 0.5
+  assert.equal(result.weekHours, 4.0);
+  assert.equal(result.totalHours, 4.0);
+});

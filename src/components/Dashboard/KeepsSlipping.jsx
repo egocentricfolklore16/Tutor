@@ -149,16 +149,25 @@ function KeepsSlipping() {
   };
 
   return (
-    <div className="rounded-2xl bg-white dark:bg-slate-900 shadow-lg border border-gray-100 dark:border-slate-800 overflow-hidden transition-colors">
+    <section
+      aria-labelledby="keeps-slipping-title"
+      className="rounded-2xl border border-amber-200/80 bg-gradient-to-r from-amber-50/90 via-orange-50/60 to-amber-50/90 p-4 sm:p-6 shadow-surface transition-colors dark:border-amber-600/30 dark:bg-gradient-to-r dark:from-[#1d2222] dark:via-[#18211f] dark:to-[#1d2222]"
+    >
       {/* Header */}
-      <div className="bg-gradient-to-r from-slate-50 to-slate-100 dark:from-slate-800/80 dark:to-slate-900 px-4 sm:px-6 py-4 sm:py-5 border-b border-gray-200 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-lg ${hasSlips ? "bg-red-100 dark:bg-red-950/50" : "bg-emerald-100 dark:bg-emerald-950/50"}`}>
-              {hasSlips ? (
-                <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-              ) : (
-                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-orange-500/15 text-orange-600 dark:bg-amber-500/20 dark:text-amber-400">
+            <Clock className="h-5 w-5" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h2 id="keeps-slipping-title" className="text-xl font-bold text-slate-900 dark:text-white">
+                Keeps slipping
+              </h2>
+              {!loading && !error && (
+                <span className="inline-flex items-center rounded-full bg-orange-100 px-2.5 py-0.5 text-xs font-bold text-orange-800 dark:bg-amber-950/80 dark:text-amber-300">
+                  Keeps slipping · {slipping.length}
+                </span>
               )}
             </div>
             <p className="mt-0.5 text-xs text-slate-600 dark:text-slate-300">

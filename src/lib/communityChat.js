@@ -233,6 +233,12 @@ export function sanitizeUrl(urlInput) {
   const clean = urlInput.replace(/[\x00-\x1F\x7F]/g, "").trim();
   if (!clean) return "#";
 
+  // Security: Reject protocol-relative URLs (e.g. "//evil.com") and backslash evasions (e.g. "/\evil.com")
+  // which browsers treat as cross-origin absolute URLs, leading to open redirects and phishing.
+  if (/^\/[/\\]/.test(clean)) {
+    return "#";
+  }
+
   // Allow safe absolute and relative URL protocols (http, https, mailto, tel, relative path / or #)
   if (/^(?:https?:\/\/|mailto:|tel:|\/|#)/i.test(clean)) {
     return clean;

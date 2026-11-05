@@ -39,3 +39,7 @@
 ## 2026-10-24 - Stale Streak Resolution for Multi-Day Gaps with Freeze Tokens
 **Learning:** `useStreak.js` checked `diffDays > 1 && freezes === 0` to identify stale streaks. When `diffDays` was 3 (2 missed days) and `freezes` was 1, `freezes === 0` evaluated to false, preventing stale streak reset to 0 even though 1 freeze token cannot protect a 2-day gap. Updating the condition to `diffDays > 2 || (diffDays === 2 && freezes === 0)` (and exporting `resolveStaleDisplayStreak`) aligns `useStreak.js` with `getDisplayStreak` in `streaksCore.js`.
 **Action:** When testing stale streak resolution, verify multi-day gap boundaries (`diffDays > 2`) explicitly with non-zero freeze token balances to ensure display streaks reset to 0 when gaps exceed freeze token protection.
+
+## 2026-11-05 - Zero-Streak Freeze Token Preservation & Column Convention Fallbacks
+**Learning:** `calculateStreakUpdate` evaluated `canUseFreeze` without checking `currentStreak > 0`, which caused 1-day gaps following a zero streak to consume a freeze token even though no active streak existed to protect. Furthermore, differences between legacy schemas and migration 032 resulted in queries or calculations looking only for `freeze_tokens_available` or `last_active_date`, ignoring `freeze_tokens` and `last_completed_date`.
+**Action:** When testing streak updates and display logic, verify that freeze tokens are never consumed when `currentStreak === 0`, and always test fallback resolution across both `freeze_tokens_available`/`freeze_tokens` and `last_active_date`/`last_completed_date`.

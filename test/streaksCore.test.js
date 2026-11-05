@@ -177,3 +177,71 @@ test("getDisplayStreak preserves active streak display when freeze tokens protec
     0
   );
 });
+
+test("calculateStreakUpdate does not consume freeze tokens when currentStreak is 0 on a 1-day gap", () => {
+  // User had 0 current streak, missed 1 day (gap of 2 days between Aug 30 and Sept 1), and holds 2 freeze tokens
+  const previous = {
+    currentStreak: 0,
+    longestStreak: 5,
+    lastActiveDate: "2026-08-30",
+    freezeTokensAvailable: 2,
+  };
+
+  const result = calculateStreakUpdate(previous, "2026-09-01");
+
+  // Streak becomes 1 (starts fresh), and tokens must NOT be consumed (must remain 2)
+  assert.equal(result.currentStreak, 1);
+  assert.equal(result.longestStreak, 5);
+  assert.equal(result.freezeTokensAvailable, 2, "Freeze token must not be consumed when current streak is 0");
+  assert.equal(result.lastActiveDate, "2026-09-01");
+});
+
+test("calculateStreakUpdate supports migration 032 database column conventions", () => {
+  // Using last_completed_date instead of lastActiveDate, and freeze_tokens instead of freezeTokensAvailable
+  const previous = {
+    current_streak: 6,
+    longest_streak: 10,
+    last_completed_date: "2026-08-31",
+    freeze_tokens: 2,
+  };
+
+  // Activity on 2026-09-02 is a 2-day gap (1 missed day: Sept 1) protected by 1 freeze token
+  const result = calculateStreakUpdate(previous, "2026-09-02");
+
+  assert.equal(result.currentStreak, 7);
+  assert.equal(result.longestStreak, 10);
+  assert.equal(result.freezeTokensAvailable, 1);
+  assert.equal(result.lastActiveDate, "2026-09-02");
+});
+
+test("getDisplayStreak supports last_completed_date and migration 032 freeze_tokens", () => {
+  // 1. When last_active_date is null/missing, fallback to last_completed_date
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 8, last_completed_date: "2026-09-02" },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    8
+  );
+
+  // 2. 1-day gap protected by freeze_tokens column (without freeze_tokens_available)
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 8, last_completed_date: "2026-08-31", freeze_tokens: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    8
+  );
+
+  // 3. camelCase currentStreak and freezeTokens support
+  assert.equal(
+    getDisplayStreak(
+      { currentStreak: 12, lastActiveDate: "2026-08-31", freezeTokens: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    12
+  );
+});

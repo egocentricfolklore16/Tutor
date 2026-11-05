@@ -365,7 +365,7 @@ test("requestBrowserNotificationPermission handles unsupported, granted, denied,
 test("scheduleStudyReminder checks permissions, push subscription status, preferences, and delay offset", async () => {
   const originalLocalStorage = globalThis.localStorage;
   globalThis.localStorage = createMockLocalStorage();
-  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+  const fixedNow = new Date(2026, 5, 15, 9, 0, 0).getTime();
 
   try {
     const session = {
@@ -421,7 +421,7 @@ test("scheduleStudyReminder checks permissions, push subscription status, prefer
 test("scheduleSessionRemindersFromSessions processes batch sessions cleanly", async () => {
   const originalLocalStorage = globalThis.localStorage;
   globalThis.localStorage = createMockLocalStorage();
-  const fixedNow = new Date("2026-06-15T09:00:00Z").getTime();
+  const fixedNow = new Date(2026, 5, 15, 9, 0, 0).getTime();
 
   const cleanup = mockBrowserGlobals({ permission: "granted", pushSubscription: null });
 

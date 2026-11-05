@@ -71,7 +71,7 @@ export async function updateStreakForActivity(userId, options = {}) {
 
 export async function getUserStreak(userId) {
   if (!userId) return { data: null, error: new Error("Missing user id") };
-  const { data, error } = await supabase.from("users_streaks").select("current_streak,longest_streak,last_active_date,freeze_tokens_available").eq("user_id", userId).maybeSingle();
+  const { data, error } = await supabase.from("users_streaks").select("current_streak,longest_streak,last_active_date,last_completed_date,freeze_tokens_available,freeze_tokens").eq("user_id", userId).maybeSingle();
   return { data, error };
 }
 
@@ -94,7 +94,7 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
   if (streakError || !streakData) return { data: null, error: streakError || new Error("No streak data found") };
   
   // Calculate if streak was just broken
-  const lastActiveDate = streakData.last_active_date;
+  const lastActiveDate = streakData.last_completed_date || streakData.last_active_date;
   if (!lastActiveDate) return { data: null, wasSlipping: false };
   
   const lastDate = new Date(`${lastActiveDate}T00:00:00Z`);
@@ -103,8 +103,9 @@ export async function checkAndLogStreakSlip(userId, options = {}) {
   
   // If more than 1 day since last activity, user is slipping
   if (daysSinceActivity > 1) {
+    const freezes = streakData.freeze_tokens_available ?? streakData.freeze_tokens ?? 0;
     const slipReason =
-      daysSinceActivity === 2 && streakData.freeze_tokens_available === 0
+      daysSinceActivity === 2 && freezes === 0
         ? "streak_broken"
         : "missed_day";
 

@@ -59,6 +59,55 @@ test("checkAndLogStreakSlip handles missing streak record or missing last_active
   }
 });
 
+test("checkAndLogStreakSlip falls back to last_completed_date and freeze_tokens column conventions", async () => {
+  const originalFrom = supabase.from;
+  let loggedSlip = null;
+
+  supabase.from = (table) => {
+    if (table === "users_streaks") {
+      return {
+        select: () => ({
+          eq: () => ({
+            maybeSingle: () =>
+              Promise.resolve({
+                data: {
+                  user_id: "user_migrated_032",
+                  current_streak: 8,
+                  last_active_date: null,
+                  last_completed_date: "2026-05-08",
+                  freeze_tokens: 1, // Only freeze_tokens is set (migration 032)
+                },
+                error: null,
+              }),
+          }),
+        }),
+      };
+    }
+    if (table === "streak_slipping") {
+      return {
+        upsert: (payload) => {
+          loggedSlip = payload;
+          return Promise.resolve({ error: null });
+        },
+      };
+    }
+    return originalFrom(table);
+  };
+
+  try {
+    const res = await checkAndLogStreakSlip("user_migrated_032", {
+      now: new Date("2026-05-10T12:00:00Z"),
+      timeZone: "UTC",
+    });
+
+    assert.equal(res.wasSlipping, true);
+    assert.equal(res.data.reason, "missed_day", "Must recognize freeze_tokens and log missed_day");
+    assert.equal(loggedSlip.slip_date, "2026-05-08");
+  } finally {
+    supabase.from = originalFrom;
+  }
+});
+
 test("checkAndLogStreakSlip recognizes consecutive activity as non-slipping", async () => {
   const originalFrom = supabase.from;
 

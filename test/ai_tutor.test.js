@@ -117,7 +117,25 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
-  const exactNonAttempts = ["help me", "skip", "n/a", "nothing"];
+  const exactNonAttempts = [
+    "help me",
+    "skip",
+    "n/a",
+    "nothing",
+    "i am confused",
+    "im confused",
+    "i'm confused",
+    "i am lost",
+    "im lost",
+    "i'm lost",
+    "i'm not sure",
+    "i am not sure",
+    "im not sure",
+    "i have no idea",
+    "i have no clue",
+    "i'm clueless",
+    "clueless",
+  ];
   for (const nonAttempt of exactNonAttempts) {
     const nonAttemptHistory = [
       { role: "user", content: "How do I solve 3x + 5 = 20?" },
@@ -209,6 +227,13 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     { role: "user", content: "Can you tell me if x = 5 is correct?" },
   ];
   assert.strictEqual(countGenuineAttempts(genuineQuestionsWithTell), 1);
+
+  const genuineReasoningWithConfusion = [
+    { role: "user", content: "How do I solve 3x + 5 = 20?" },
+    { role: "assistant", content: "What step can we try first?" },
+    { role: "user", content: "I am confused because subtracting 5 gives 15, so do we divide next?" },
+  ];
+  assert.strictEqual(countGenuineAttempts(genuineReasoningWithConfusion), 1, "Reasoning statements explaining why student is confused should count as a genuine attempt");
 
   const genuineHintRequests = [
     "i need a hint",

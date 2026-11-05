@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-10-17 - Filtering Zero-Effort Confusion and Lost Declarations in Turn Counting
+
+**Learning:** Students can prematurely unlock Socratic answers by sending passive declarations of confusion, disorientation, or cluelessness (e.g., "i am confused", "im confused", "i'm confused", "i am lost", "im lost", "i'm lost", "i'm not sure", "i have no idea", "i have no clue", "i'm clueless", "clueless") without attempting the problem or explaining their reasoning. Expanding `nonAttemptExactRegex` and the leading non-attempt phrase filters in `countGenuineAttempts` to catch these zero-effort confusion statements prevents premature answer unlock while still recognizing genuine reasoning that explains confusion (containing keywords like `because` or `think`).
+
+**Action:** Filter passive confusion, lost, and cluelessness declarations in `countGenuineAttempts` while allowing genuine student explanations containing `because` or `think` to count as genuine attempts.

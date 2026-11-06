@@ -117,7 +117,28 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
-  const exactNonAttempts = ["help me", "skip", "n/a", "nothing"];
+  const exactNonAttempts = [
+    "help me",
+    "skip",
+    "n/a",
+    "nothing",
+    "i am confused",
+    "im confused",
+    "i'm confused",
+    "i am lost",
+    "im lost",
+    "i'm lost",
+    "i'm not sure",
+    "i am not sure",
+    "im not sure",
+    "i have no idea",
+    "i have no clue",
+    "i'm clueless",
+    "clueless",
+    "i don't get it",
+    "i dont get it",
+    "i do not get it",
+  ];
   for (const nonAttempt of exactNonAttempts) {
     const nonAttemptHistory = [
       { role: "user", content: "How do I solve 3x + 5 = 20?" },
@@ -125,6 +146,40 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
       { role: "user", content: nonAttempt },
     ];
     assert.strictEqual(countGenuineAttempts(nonAttemptHistory), 0, `Exact non-attempt '${nonAttempt}' must be filtered as 0 genuine attempts`);
+  }
+
+  const shortConfusionPhrases = [
+    "I am confused about this",
+    "I'm confused right here",
+    "im confused on this step",
+    "I am lost right now",
+    "I'm lost on how to start",
+    "I am not sure what to do",
+    "I have no clue what this is",
+    "I'm clueless on this part",
+  ];
+  for (const phrase of shortConfusionPhrases) {
+    const history = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: phrase },
+    ];
+    assert.strictEqual(countGenuineAttempts(history), 0, `Short confusion phrase '${phrase}' must be filtered as 0 genuine attempts`);
+  }
+
+  const confusionWithReasoning = [
+    "I am confused because step 2 divides by 3 instead of 2",
+    "I am lost because I think the negative sign should distribute",
+    "I am not sure but I think x is 5",
+    "I think it might be 15 because 3 times 5 is 15",
+  ];
+  for (const reasoning of confusionWithReasoning) {
+    const history = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: reasoning },
+    ];
+    assert.strictEqual(countGenuineAttempts(history), 1, `Reasoning statement '${reasoning}' must count as a genuine attempt`);
   }
 
   const stepAndWorkDemands = [

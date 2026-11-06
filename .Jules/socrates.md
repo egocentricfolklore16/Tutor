@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-11-06 - Filtering Confusion and Loss Declarations in Server-Side Turn Counting
+
+**Learning:** Short student messages declaring confusion or ignorance without reasoning (e.g., "i am confused", "im lost", "i am not sure", "i have no idea", "i'm clueless", "clueless") previously bypassed `countGenuineAttempts` if they were not prefixed by "i don't know" or "i don't understand". This allowed students to prematurely unlock full answers without genuine pedagogical effort. Expanding `nonAttemptExactRegex` and the short-message prefix filters to include confusion, cluelessness, and loss declarations ensures these zero-effort inputs evaluate to 0 genuine attempts, while preserving substantive reasoning phrases containing keywords like `because` or `think`.
+
+**Action:** Include confusion and loss phrasing in exact and prefix non-attempt filters in `strictnessRules.ts` while maintaining `because` and `think` exclusions so reasoning attempts are recognized.

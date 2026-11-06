@@ -3,7 +3,7 @@ import { normalizeStrictness, strictnessRules } from "../ai-tutor-chat/prompt.ts
 export function countGenuineAttempts(messages: any[]): number {
   if (!Array.isArray(messages)) return 0;
 
-  const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand)|no\s*idea|no\s*clue|pass|help|help\s*me|skip|n\/?a|nothing|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|\?+|\.+|hi|hello|hey|\[.*\])$/i;
+  const nonAttemptExactRegex = /^(?:idk|i\s*(?:don'?t|do\s*not)\s*(?:know|understand|get\s*it)|no\s*idea|no\s*clue|i\s*(?:have\s*no|have\s*not\s*got\s*a)\s*(?:idea|clue)|pass|help|help\s*me|skip|n\/?a|nothing|dunno|i'?m\s*stuck|i\s*am\s*stuck|im\s*stuck|not\s*sure|i'?m\s*not\s*sure|i\s*am\s*not\s*sure|im\s*not\s*sure|i'?m\s*confused|i\s*am\s*confused|im\s*confused|i'?m\s*lost|i\s*am\s*lost|im\s*lost|clueless|i'?m\s*clueless|i\s*am\s*clueless|im\s*clueless|\?+|\.+|hi|hello|hey|\[.*\])$/i;
 
   const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary|formula|formulas|definition|definitions|proof|proofs|equation|equations|derivation|derivations|key|answer\\s*key|solution\\s*key|rubric|grading\\s*scheme)`;
   const compoundTargetNouns = `${targetNoun}(?:\\s*(?:and|&|\\+|,)\\s*(?:the\\s*|a\\s*|an\\s*|your\\s*)?${targetNoun})*`;
@@ -43,9 +43,27 @@ export function countGenuineAttempts(messages: any[]): number {
         cleanLower.startsWith("i don't understand") ||
         cleanLower.startsWith("i dont understand") ||
         cleanLower.startsWith("i do not understand") ||
+        cleanLower.startsWith("i don't get it") ||
+        cleanLower.startsWith("i dont get it") ||
+        cleanLower.startsWith("i do not get it") ||
         cleanLower.startsWith("idk") ||
         cleanLower.startsWith("i am stuck") ||
-        cleanLower.startsWith("i'm stuck")
+        cleanLower.startsWith("i'm stuck") ||
+        cleanLower.startsWith("im stuck") ||
+        cleanLower.startsWith("i am confused") ||
+        cleanLower.startsWith("i'm confused") ||
+        cleanLower.startsWith("im confused") ||
+        cleanLower.startsWith("i am lost") ||
+        cleanLower.startsWith("i'm lost") ||
+        cleanLower.startsWith("im lost") ||
+        cleanLower.startsWith("i am not sure") ||
+        cleanLower.startsWith("i'm not sure") ||
+        cleanLower.startsWith("im not sure") ||
+        cleanLower.startsWith("i have no idea") ||
+        cleanLower.startsWith("i have no clue") ||
+        cleanLower.startsWith("i'm clueless") ||
+        cleanLower.startsWith("i am clueless") ||
+        cleanLower.startsWith("im clueless")
       ) {
         if (clean.length < 50 && !cleanLower.includes("because") && !cleanLower.includes("think")) continue;
       }

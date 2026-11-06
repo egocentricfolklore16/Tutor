@@ -113,6 +113,16 @@ test("sanitizeUrl allows safe protocols and neutralizes dangerous protocols", ()
   assert.equal(sanitizeUrl("java\r\nscript:alert(1)"), "#");
   assert.equal(sanitizeUrl("https://example.com/path\x07"), "https://example.com/path");
 
+  // Open redirect & protocol-relative URL bypass payloads
+  assert.equal(sanitizeUrl("//evil.com"), "#");
+  assert.equal(sanitizeUrl("//attacker.org/phishing"), "#");
+  assert.equal(sanitizeUrl("/\\evil.com"), "#");
+  assert.equal(sanitizeUrl("///evil.com"), "#");
+
+  // Safe relative paths should remain intact
+  assert.equal(sanitizeUrl("/study/session-123"), "/study/session-123");
+  assert.equal(sanitizeUrl("/?tab=notes"), "/?tab=notes");
+
   // Edge cases
   assert.equal(sanitizeUrl(null), "#");
   assert.equal(sanitizeUrl(undefined), "#");

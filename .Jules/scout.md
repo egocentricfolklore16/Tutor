@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-06 - Auditing Feature Sub-Components Against Underlying Migrations
+**Learning:** Newly introduced UI components such as `InviteDialog.jsx` and `BadgeGrid.jsx` (with utility `badgeUtils.js`) initially appeared as candidates for unbacked features. Cross-referencing against SQL migrations revealed that `study_group_invites` was already created in `20250530000000_study_group_invites.sql` and achievement queries hook into `get_achievements` RPC. Verifying both service functions and schema migrations prevented reporting false gaps.
+**Action:** Before logging a new UI dialog or feature card as a gap, verify if dedicated database migrations or RPCs already exist to support the feature contract.

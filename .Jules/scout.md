@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-08 - Modular Sub-component Expansion & Verified Ledger Reconciliation
+**Learning:** Re-auditing the complete codebase identified 4 newly added modular source files (`InviteDialog.jsx`, `BadgeGrid.jsx`, `badgeUtils.js`, and `studyStatsUtils.js`), bringing total frontend sources to 210. While `InviteDialog.jsx` and `studyStatsUtils.js` properly integrate with existing Postgres tables and pure utility transforms, `BadgeGrid.jsx` surfaces gamification achievements via fallback RPC mocks in `AchievementsCard.jsx`. Reconciling newly added files against existing backend gaps ensures no auxiliary subcomponents escape ledger tracking.
+**Action:** Programmatically diff filesystem inventories against prior audit ledgers on each run to capture new modular additions immediately.

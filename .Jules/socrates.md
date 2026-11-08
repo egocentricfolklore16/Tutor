@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-11-08 - Filtering Academic Deliverable Completion Demands and Unreasoned Confusion Declarations
+
+**Learning:** Students can attempt to bypass Socratic answer locking by framing demands around finishing/completing assignments ("finish my assignment", "complete this assignment", "complete this essay", "just finish it", "complete this for me") or expressing unreasoned confusion/loss ("i am confused", "im confused", "i am lost", "i have no idea", "i have no clue", "clueless"). Expanding command verbs (`finish`, `complete`), deliverable target nouns (`assignment`, `project`, `task`, `paper`, `essay`), and prefix-based confusion matches in `countGenuineAttempts` prevents zero-effort responses from incrementing attempt counts while preserving reasoned statements containing `because` or `think`.
+
+**Action:** Include deliverable completion verbs and unreasoned confusion prefixes in `countGenuineAttempts` while allowing reasoned confusion statements to pass through.

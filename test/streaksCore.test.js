@@ -28,6 +28,31 @@ test("a freeze token preserves a one-day gap", () => {
   assert.deepEqual(result, { currentStreak: 5, longestStreak: 5, lastActiveDate: "2026-09-02", freezeTokensAvailable: 0 });
 });
 
+test("freeze tokens are NOT consumed when current streak is 0 on a 1-day gap", () => {
+  // If the user's current streak was already broken/reset to 0, spending a freeze token is wasteful
+  const result = calculateStreakUpdate(
+    { currentStreak: 0, longestStreak: 10, lastActiveDate: "2026-08-31", freezeTokensAvailable: 2 },
+    "2026-09-02"
+  );
+  assert.equal(result.currentStreak, 1);
+  assert.equal(result.freezeTokensAvailable, 2, "Freeze token must not be consumed when streak is 0");
+});
+
+test("calculateStreakUpdate supports migration 032 and snake_case property variations", () => {
+  // Uses last_completed_date / last_active_date and freeze_tokens / freeze_tokens_available
+  const migration032State = {
+    current_streak: 4,
+    currentStreak: 4,
+    longest_streak: 7,
+    last_completed_date: "2026-08-31",
+    freeze_tokens: 1,
+  };
+  const result = calculateStreakUpdate(migration032State, "2026-09-02");
+  assert.equal(result.currentStreak, 5);
+  assert.equal(result.freezeTokensAvailable, 0);
+  assert.equal(result.lastActiveDate, "2026-09-02");
+});
+
 test("activity before the 3am cutoff belongs to the prior local day", () => {
   assert.equal(getActivityDate(new Date("2026-09-02T06:30:00Z"), "America/New_York", 3), "2026-09-01");
   assert.equal(getActivityDate(new Date("2026-09-02T06:59:00Z"), "America/New_York", 3), "2026-09-01");
@@ -175,5 +200,15 @@ test("getDisplayStreak preserves active streak display when freeze tokens protec
       "UTC"
     ),
     0
+  );
+
+  // getDisplayStreak supports last_completed_date and freeze_tokens (migration 032)
+  assert.equal(
+    getDisplayStreak(
+      { current_streak: 12, last_completed_date: "2026-08-31", freeze_tokens: 1 },
+      new Date("2026-09-02T12:00:00Z"),
+      "UTC"
+    ),
+    12
   );
 });

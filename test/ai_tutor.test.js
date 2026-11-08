@@ -117,7 +117,7 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
   ];
   assert.strictEqual(countGenuineAttempts(nonAttempts), 0);
 
-  const exactNonAttempts = ["help me", "skip", "n/a", "nothing"];
+  const exactNonAttempts = ["help me", "skip", "n/a", "nothing", "clueless", "i'm clueless", "im clueless"];
   for (const nonAttempt of exactNonAttempts) {
     const nonAttemptHistory = [
       { role: "user", content: "How do I solve 3x + 5 = 20?" },
@@ -125,6 +125,43 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
       { role: "user", content: nonAttempt },
     ];
     assert.strictEqual(countGenuineAttempts(nonAttemptHistory), 0, `Exact non-attempt '${nonAttempt}' must be filtered as 0 genuine attempts`);
+  }
+
+  const unreasonedConfusionDeclarations = [
+    "i am confused",
+    "i'm confused",
+    "im confused",
+    "i am lost",
+    "i'm lost",
+    "im lost",
+    "i am not sure",
+    "i'm not sure",
+    "im not sure",
+    "i have no idea",
+    "i have no clue",
+  ];
+  for (const statement of unreasonedConfusionDeclarations) {
+    const confusionHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: statement },
+    ];
+    assert.strictEqual(countGenuineAttempts(confusionHistory), 0, `Unreasoned confusion '${statement}' must be filtered as 0 genuine attempts`);
+  }
+
+  const reasonedConfusionStatements = [
+    "i am confused because both sides cancel out",
+    "i'm lost because the square root is negative",
+    "i have no idea because there are two unknown variables",
+    "i am not sure but i think we subtract 5 first",
+  ];
+  for (const statement of reasonedConfusionStatements) {
+    const reasonedHistory = [
+      { role: "user", content: "How do I solve 3x + 5 = 20?" },
+      { role: "assistant", content: "What step can we try first?" },
+      { role: "user", content: statement },
+    ];
+    assert.strictEqual(countGenuineAttempts(reasonedHistory), 1, `Reasoned statement '${statement}' should count as a genuine attempt`);
   }
 
   const stepAndWorkDemands = [
@@ -178,6 +215,20 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "give me the solution key",
     "what is the rubric",
     "give me the grading scheme",
+    "finish my assignment",
+    "finish this assignment",
+    "complete this assignment",
+    "complete my project",
+    "finish this task",
+    "complete this essay",
+    "complete this paper",
+    "just finish it",
+    "just complete it",
+    "finish this for me",
+    "complete this for me",
+    "can you finish this for me",
+    "please finish it",
+    "can you complete it",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [

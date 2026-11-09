@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-11-04 - Filtering Deliverable Completion and Walkthrough Demands in Turn Counting
+
+**Learning:** Students can attempt to bypass Socratic answer locking and academic integrity guardrails by asking the tutor to finish or complete assignments, essays, projects, worksheets, or papers (e.g., "complete this assignment", "finish my assignment", "finish this task", "finish this for me", "just complete it"), or by asking for complete walkthroughs or cheat sheets (e.g., "give me the walkthrough", "give me a cheat sheet", "give me the direct solution"). Including completion verbs (`complete`, `finish`), deliverable target nouns (`assignment`, `essay`, `project`, `paper`, `worksheet`, `task`, `walkthrough`, `cheat sheet`), and solution modifiers (`direct`, `overall`) in `strictnessRules.ts` ensures these zero-effort demands are filtered server-side by `countGenuineAttempts` and cannot prematurely unlock answers on turn 1.
+
+**Action:** Include completion verbs (`complete`, `finish`), deliverable target nouns, and resource cheat/walkthrough patterns in `countGenuineAttempts` regexes to prevent premature unlock bypasses.

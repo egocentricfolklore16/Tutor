@@ -1,10 +1,35 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+// Constant time string comparison to prevent timing attacks on service role key evaluation
+function timingSafeEqualStr(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 // Helper logic representing push notification authorization checks in send-push Edge Function
-function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow) {
+function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow, serviceRoleKey = "secret_service_role_key") {
   if (!authHeader) {
     return { status: 401, success: false, message: "Missing Authorization header" };
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const isServiceRole = Boolean(
+    serviceRoleKey && token && timingSafeEqualStr(token, serviceRoleKey)
+  );
+
+  if (isServiceRole) {
+    return {
+      status: 200,
+      success: true,
+      isServiceRole: true,
+      targetUserId: requestBody?.userId || notificationRow?.user_id || "service_role_caller",
+    };
   }
 
   if (!user) {
@@ -64,6 +89,30 @@ test("verifySendPushAuthorization succeeds when requestBody.userId matches user.
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.targetUserId, "user_legit_123");
+});
+
+test("timingSafeEqualStr compares strings in constant time safely", () => {
+  assert.strictEqual(timingSafeEqualStr("service_key_xyz", "service_key_xyz"), true);
+  assert.strictEqual(timingSafeEqualStr("service_key_xyz", "service_key_xyw"), false);
+  assert.strictEqual(timingSafeEqualStr("service_key_xyz", "service_key"), false);
+  assert.strictEqual(timingSafeEqualStr("", ""), true);
+  assert.strictEqual(timingSafeEqualStr(null, "service_key"), false);
+  assert.strictEqual(timingSafeEqualStr("service_key", undefined), false);
+});
+
+test("verifySendPushAuthorization authenticates service role caller with constant-time equality and trimming", () => {
+  const serviceKey = "super_secret_service_role_key_98765";
+  const result = verifySendPushAuthorization(
+    `Bearer   ${serviceKey}   `,
+    null,
+    { userId: "target_user_456" },
+    null,
+    serviceKey
+  );
+  assert.strictEqual(result.status, 200);
+  assert.strictEqual(result.success, true);
+  assert.strictEqual(result.isServiceRole, true);
+  assert.strictEqual(result.targetUserId, "target_user_456");
 });
 
 test("verifySendPushAuthorization returns 403 if notificationId belongs to another user", () => {

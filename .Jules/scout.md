@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-11 - Verifying Edge-Case Utilities and Dialogs in Subtrees
+**Learning:** Verified 4 newly tracked source files (`InviteDialog.jsx`, `BadgeGrid.jsx`, `badgeUtils.js`, `studyStatsUtils.js`) bringing total audited frontend files to 210. Confirmed that utilities and dialogs leveraging existing backend models (`public.study_group_invites`, Supabase RPC `get_achievements`) operate without introducing unbacked state, while core gaps B-01 through B-08 remain consistent across merges.
+**Action:** Continuously cross-reference all newly introduced sub-components and pure utilities against existing database migrations to verify whether they consume established backend contracts or introduce new unbacked data paths.

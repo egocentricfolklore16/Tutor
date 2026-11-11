@@ -1,10 +1,28 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 
+// Constant time string comparison matching send-push Edge Function implementation
+function timingSafeEqualStr(a, b) {
+  if (typeof a !== "string" || typeof b !== "string") return false;
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 // Helper logic representing push notification authorization checks in send-push Edge Function
-function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow) {
+function verifySendPushAuthorization(authHeader, user, requestBody, notificationRow, serviceRoleKey) {
   if (!authHeader) {
     return { status: 401, success: false, message: "Missing Authorization header" };
+  }
+
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const isServiceRole = Boolean(serviceRoleKey && timingSafeEqualStr(token, serviceRoleKey));
+
+  if (isServiceRole) {
+    return { status: 200, success: true, isServiceRole: true, targetUserId: requestBody?.userId || notificationRow?.user_id };
   }
 
   if (!user) {
@@ -64,6 +82,34 @@ test("verifySendPushAuthorization succeeds when requestBody.userId matches user.
   assert.strictEqual(result.status, 200);
   assert.strictEqual(result.success, true);
   assert.strictEqual(result.targetUserId, "user_legit_123");
+});
+
+test("verifySendPushAuthorization validates service role key using constant-time comparison and whitespace trimming", () => {
+  const serviceKey = "super_secret_service_role_key_987";
+
+  // Service role with Bearer prefix and trailing/leading whitespace
+  const serviceResult = verifySendPushAuthorization(
+    "Bearer   super_secret_service_role_key_987  ",
+    null,
+    { userId: "target_user_any" },
+    null,
+    serviceKey
+  );
+  assert.strictEqual(serviceResult.status, 200);
+  assert.strictEqual(serviceResult.success, true);
+  assert.strictEqual(serviceResult.isServiceRole, true);
+  assert.strictEqual(serviceResult.targetUserId, "target_user_any");
+
+  // Invalid service role token falls back to user client auth check (and fails if no user)
+  const invalidResult = verifySendPushAuthorization(
+    "Bearer wrong_key",
+    null,
+    { userId: "target_user_any" },
+    null,
+    serviceKey
+  );
+  assert.strictEqual(invalidResult.status, 401);
+  assert.strictEqual(invalidResult.success, false);
 });
 
 test("verifySendPushAuthorization returns 403 if notificationId belongs to another user", () => {

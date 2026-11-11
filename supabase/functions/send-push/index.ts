@@ -16,6 +16,16 @@ interface SendPushRequest {
   };
 }
 
+// Constant time string comparison to prevent timing attacks on service role key evaluation
+function timingSafeEqualStr(a: string, b: string): boolean {
+  if (a.length !== b.length) return false;
+  let result = 0;
+  for (let i = 0; i < a.length; i++) {
+    result |= a.charCodeAt(i) ^ b.charCodeAt(i);
+  }
+  return result === 0;
+}
+
 function isQuietHours(startStr: string | null, endStr: string | null): boolean {
   if (!startStr || !endStr) return false;
   try {
@@ -75,7 +85,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    const token = authHeader.replace(/^Bearer\s+/i, "");
+    const token = authHeader.replace(/^Bearer\s+/i, "").trim();
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
 
     const adminClient = createClient(supabaseUrl, serviceRoleKey);
@@ -90,7 +100,10 @@ Deno.serve(async (req: Request) => {
     let targetUserId = body.userId;
     let callingUser: { id: string } | null = null;
 
-    if (token !== serviceRoleKey) {
+    // Security: Use constant-time comparison to prevent timing attacks when checking service role token
+    const isServiceRole = Boolean(serviceRoleKey && timingSafeEqualStr(token, serviceRoleKey));
+
+    if (!isServiceRole) {
       const userClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });

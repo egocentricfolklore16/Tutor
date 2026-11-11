@@ -2,3 +2,8 @@
 **Vulnerability:** Edge Functions that execute elevated operations via `SUPABASE_SERVICE_ROLE_KEY` (such as payment or subscription fulfillment) did not check the `Authorization` header or verify that the calling user matched the transaction's target `user_id`.
 **Learning:** Service role client invocations bypass Row Level Security (RLS). Any Edge Function performing write actions with service role credentials must explicitly validate the caller's JWT with `supabaseUserClient.auth.getUser()` and verify that `user.id` matches the domain object/metadata ownership before processing.
 **Prevention:** Always extract `Authorization` header, validate `auth.getUser()`, and assert `user.id === targetUserId` in Edge Functions using service role keys.
+
+## 2026-11-11 - Constant-Time Service Role Token Evaluation in Edge Functions
+**Vulnerability:** In Edge Functions accepting either user JWTs or internal service role keys (such as `send-push`), comparing incoming bearer tokens directly using strict equality (`token !== serviceRoleKey`) without constant-time comparison or whitespace trimming exposes service role secrets to side-channel timing attacks and potential formatting mismatches.
+**Learning:** Standard string equality (`===` / `!==`) in JavaScript/TypeScript short-circuits on the first mismatched byte, creating measurable timing discrepancies that attackers can exploit to recover secret keys byte-by-byte over repeated requests.
+**Prevention:** Always extract bearer tokens with trimming (`authHeader.replace(/^Bearer\s+/i, "").trim()`) and compare against server secret keys using constant-time string comparison (`timingSafeEqualStr`).

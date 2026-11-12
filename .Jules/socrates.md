@@ -87,3 +87,9 @@
 **Learning:** Students can attempt to bypass Socratic answer locking by phrasing demands for complete solution sets using assessment terms such as "answer key", "solution key", "rubric", or "grading scheme" (e.g., "give me the answer key", "show me the key", "tell me the rubric"). Including `key`, `answer key`, `solution key`, `rubric`, and `grading scheme` in `targetNoun` ensures these zero-effort submissions are filtered server-side by `countGenuineAttempts` and do not prematurely unlock answers on turn 1.
 
 **Action:** Include assessment and solution key target nouns (`key`, `answer key`, `solution key`, `rubric`, `grading scheme`) in `targetNoun` regexes in `strictnessRules.ts`.
+
+## 2026-10-17 - Filtering Deliverable Completion Demands and Scoping Auxiliary Verb Matching
+
+**Learning:** Demands for academic deliverables or task completion ("complete this for me", "finish this for me", "finish it", "complete this assignment", "finish my paper") bypass `countGenuineAttempts` unless completion verbs (`finish`, `complete`) and deliverable nouns (`homework`, `assignment`, `paper`, `essay`, `worksheet`, `project`) are captured. Furthermore, unanchored problem-solving regex branches with optional targets cause auxiliary verbs (`do` in "How do plants make food?", "How do cells divide?", "Where do I start?") to match anywhere, incorrectly freezing genuine student inquiries at 0 attempts. Requiring explicit target nouns/modifiers for problem-solving verbs and deliverable targets for `do`/`write` resolves both bypasses and false positives.
+
+**Action:** Include deliverable nouns and completion verbs in demand matchers while strictly requiring target objects or completion modifiers so auxiliary verbs in natural student questions are never misclassified as non-attempt demands.

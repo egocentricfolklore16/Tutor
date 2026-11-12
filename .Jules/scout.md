@@ -23,3 +23,7 @@
 ## 2026-10-27 - Differentiating Fully-Backed Subsystems vs Isolated Component Stubs
 **Learning:** Comprehensive auditing revealed that while main user feedback pathways (`FeedbackModal.jsx`, `lib/feedback.js`) are fully wired to Supabase feedback tables and RPCs, standalone dialog components (`FeedbackDialog.jsx`) still use `localStorage` trapping. Distinguishing module-level backing from isolated component stubs prevents declaring entire domains missing while accurately pinpointing remaining gaps.
 **Action:** Inspect every component instance in a feature domain individually rather than inferring coverage from central service libraries alone.
+
+## 2026-11-12 - Verifying Extracted Utility Modules and Dialog Layer Extensions
+**Learning:** Growth of the frontend code inventory to 210 files included extracted helper utilities (`badgeUtils.js`, `studyStatsUtils.js`) and UI subcomponents (`BadgeGrid.jsx`, `InviteDialog.jsx`). When modularizing components and extracting sorting/aggregation algorithms, trace the data back to its server authority (`get_achievements` RPC, `Study` / `study_history` tables, `study_group_invites` table) to confirm that modularization does not detach the UI from backend backing.
+**Action:** Re-verify all newly added modular sub-components and extracted pure utilities against the schema layer on each audit run to prevent assuming pure utilities imply missing backend backing.

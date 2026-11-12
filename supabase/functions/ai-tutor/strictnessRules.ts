@@ -7,13 +7,21 @@ export function countGenuineAttempts(messages: any[]): number {
 
   const targetNoun = `(?:(?:final|correct|exact|right|actual|complete|full|real)\\s*)?(?:answer|solution|result|steps?|step\\s*by\\s*step|work|code|explanation|summary|formula|formulas|definition|definitions|proof|proofs|equation|equations|derivation|derivations|key|answer\\s*key|solution\\s*key|rubric|grading\\s*scheme)`;
   const compoundTargetNouns = `${targetNoun}(?:\\s*(?:and|&|\\+|,)\\s*(?:the\\s*|a\\s*|an\\s*|your\\s*)?${targetNoun})*`;
+  const deliverableNoun = `(?:homework|assignment|assignments|task|tasks|paper|papers|essay|essays|worksheet|worksheets|project|projects)`;
+
+  const problemSolvingVerbs = `(?:solve|calculate|compute|evaluate|resolve|answer|generate|output|finish|complete)`;
+  const problemSolvingBranch =
+    `(?:can\\s+you\\s+|could\\s+you\\s+|would\\s+you\\s+|please\\s+)?(?:` +
+    `${problemSolvingVerbs}\\s+(?:(?:for\\s+me|now|please)|(?:it|this|that|all\\s+of\\s+(?:this|these)|the\\s+(?:problem|question|equation|formula|integral|expression|${deliverableNoun})|my\\s+${deliverableNoun})(?:\\s+(?:for\\s+me|now|please))?)|` +
+    `(?:do|write)\\s+(?:(?:it|this|that)\\s+(?:for\\s+me|now)|the\\s+${deliverableNoun}|my\\s+${deliverableNoun}|(?:for\\s+me))|` +
+    `(?:figure|work)\\s*(?:out\\s*(?:it|this|that|the\\s+problem)?|(?:it|this|that)\\s*out)(?:\\s+(?:for\\s+me|now|please))?)`;
 
   const nonAttemptDemandRegex = new RegExp(
     `(?:i\\s*(?:need|want|would\\s+like)|give|tell|show|send|write|solve|explain|provide|output|generate|return|display|print|share|reveal)\\s*(?:me\\s*)?(?:with\\s*)?(?:the\\s*|a\\s*|an\\s*|your\\s*)?${compoundTargetNouns}|` +
       `(?:what|whats|what's)\\s*(?:is|are)?\\s*(?:the\\s*|a\\s*|an\\s*)?${compoundTargetNouns}|` +
       `(?:answer|solution|result|steps?|formula|definition)\\s*(?:please|pls)|` +
-      `(?:can\\s+you\\s+|could\\s+you\\s+|would\\s+you\\s+|please\\s+)?(?:solve|do|write|calculate|compute|evaluate|resolve|figure\\s*(?:out)?|work\\s*(?:out)?|answer|generate|output)\\s*(?:it|this|that|the\\s*(?:problem|question|equation|formula|integral|expression))?\\s*(?:for\\s*me|now|please)?|` +
-      `just\\s*(?:solve|do|write|give|tell|show|calculate|answer|output|generate|return|display|print|share|reveal|provide)\\s*(?:it|this|that|me|how|answer|solution|result|steps?)*|` +
+      `${problemSolvingBranch}|` +
+      `just\\s*(?:solve|do|write|give|tell|show|calculate|answer|output|generate|return|display|print|share|reveal|provide|finish|complete)\\s*(?:it|this|that|me|how|answer|solution|result|steps?)*|` +
       `(?:show|tell|explain)\\s*(?:me\\s*)?how\\s*(?:to\\s*)?(?:solve|do|work)\\s*(?:it|this|that|the\\s*(?:problem|question|equation))?|` +
       `show\\s*(?:your\\s*)?work|` +
       `ignore\\s*(?:all\\s*)?(?:previous\\s*|your\\s*)?instructions|system\\s*prompt|you\\s*are\\s*now|pretend\\s*(?:you\\s*are|to\\s*be)`,

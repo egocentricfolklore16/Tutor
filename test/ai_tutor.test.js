@@ -178,6 +178,24 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "give me the solution key",
     "what is the rubric",
     "give me the grading scheme",
+    "complete this for me",
+    "finish this for me",
+    "finish it",
+    "can you finish this",
+    "please complete this",
+    "complete this assignment",
+    "finish my paper",
+    "can you finish this for me",
+    "do this for me",
+    "write this for me",
+    "do my homework",
+    "write my essay",
+    "complete my homework",
+    "finish my assignment",
+    "work this out for me",
+    "figure this out",
+    "just finish it",
+    "just complete it",
   ];
   for (const demand of stepAndWorkDemands) {
     const demandHistory = [
@@ -193,6 +211,16 @@ test("countGenuineAttempts filters non-attempts and demands server-side", () => 
     "what is gravity?",
     "what is friction?",
     "what is momentum?",
+    "How do cells divide?",
+    "Why do metals conduct electricity?",
+    "How do vaccines work?",
+    "What do catalysts do?",
+    "Where do chloroplasts store chlorophyll?",
+    "What should we do next?",
+    "Where do I start?",
+    "How do plants make food?",
+    "What do you write for the introduction?",
+    "How can I do this?",
   ];
   for (const question of genuineSubjectQuestions) {
     const questionHistory = [

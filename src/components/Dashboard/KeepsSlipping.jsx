@@ -57,7 +57,7 @@ function KeepsSlipping() {
   }
 
   const handleStartNow = (session) => {
-    navigate(`/Study/${encodeURIComponent(session.id)}`);
+    navigate(`/courses/${encodeURIComponent(session.id)}`);
   };
 
   const openRescheduleModal = (session) => {

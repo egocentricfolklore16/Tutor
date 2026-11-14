@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
-import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Plus } from "lucide-react";
 import Sidebar from "../components/Layout/Sidebar";
 import StudyCompanion from "../components/Study/studyEnviron/StudyCompanion";
 import DashboardHeader from "../components/Dashboard/DashboardHeader";
@@ -16,6 +17,7 @@ function GlobalStudyCompanion() {
 }
 
 function Layout({ session, needsOnboarding }) {
+  const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(true);
   const [isDesktop, setIsDesktop] = useState(() => {
     if (typeof window === "undefined") return true;
@@ -31,7 +33,8 @@ function Layout({ session, needsOnboarding }) {
   }, []);
 
   const location = useLocation();
-  const isStudyEnvironment = location.pathname.startsWith("/Study/");
+  const isCoursesHome = location.pathname.toLowerCase() === "/courses";
+  const isStudyEnvironment = location.pathname.startsWith("/courses/");
   const isSidebarExpanded = isDesktop && !isStudyEnvironment && !isOpen;
   const toggleSidebar = () => {
     setIsOpen((prev) => !prev);
@@ -39,7 +42,7 @@ function Layout({ session, needsOnboarding }) {
 
   const pageTitle = (() => {
     const p = location.pathname.toLowerCase();
-    if (p.startsWith("/study")) return "Study";
+    if (p.startsWith("/courses")) return "Courses";
     if (p.startsWith("/planner")) return "Planner";
     if (p.startsWith("/progress")) return "Progress";
     if (p.startsWith("/library")) return "Library";
@@ -109,11 +112,20 @@ function Layout({ session, needsOnboarding }) {
         {/* Mobile Navigation Tab Bar */}
         <BottomNavBar />
 
-        {/* Global Persistent AI Tutor FAB & Portal Drawer */}
-        <GlobalAITutorFab session={session} />
-
-        {/* Install Hyper Tutor Prompt Card */}
-        <InstallPrompt userId={user?.id} />
+        <div className="fixed bottom-20 left-4 right-4 z-[2000] flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] motion-reduce:transition-none md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:px-0">
+          <GlobalAITutorFab session={session} />
+          {!isCoursesHome && (
+            <button
+              type="button"
+              onClick={() => navigate("/courses", { state: { openCreateSession: true } })}
+              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
+            >
+              <Plus className="h-4 w-4" aria-hidden="true" />
+              New Session
+            </button>
+          )}
+          <InstallPrompt userId={user?.id} />
+        </div>
         </div>
       </AITutorProvider>
     </ProfileProvider>

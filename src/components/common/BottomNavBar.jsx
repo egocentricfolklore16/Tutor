@@ -13,7 +13,7 @@ export function BottomNavBar() {
 
   const primaryItems = [
     { name: "Dashboard", path: "/Dashboard", icon: LayoutDashboard },
-    { name: "Study", path: "/Study", icon: BookOpen },
+    { name: "Courses", path: "/courses", icon: BookOpen },
     { name: "Planner", path: "/Planner", icon: Calendar },
     { name: "Progress", path: "/Progress", icon: TrendingUp },
   ];
@@ -41,7 +41,7 @@ export function BottomNavBar() {
   return (
     <>
       <nav
-        className="fixed bottom-0 left-0 right-0 z-[95] flex h-16 items-center justify-around bg-white/95 px-2 backdrop-blur-md md:hidden dark:bg-[#14171c]/95 shadow-overlay"
+        className="fixed bottom-0 left-0 right-0 z-[95] flex h-[calc(4rem+env(safe-area-inset-bottom))] items-center justify-around bg-white/95 px-2 pb-[env(safe-area-inset-bottom)] backdrop-blur-md md:hidden dark:bg-[#14171c]/95 shadow-overlay"
         aria-label="Mobile navigation"
       >
         {primaryItems.map((item) => {
@@ -51,7 +51,7 @@ export function BottomNavBar() {
             <Link
               key={item.name}
               to={item.path}
-              className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
+              className={`flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${
                 active
                   ? "text-emerald-600 dark:text-emerald-400 font-semibold"
                   : "text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-200"
@@ -66,7 +66,7 @@ export function BottomNavBar() {
         <button
           type="button"
           onClick={() => setMoreOpen(true)}
-          className={`flex min-h-[44px] min-w-[44px] flex-1 flex-col items-center justify-center gap-1 text-xs font-medium transition-colors ${
+          className={`flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${
             moreOpen ? "text-emerald-600 dark:text-emerald-400 font-semibold" : "text-slate-500 dark:text-slate-400"
           }`}
           aria-label="Open more menu"

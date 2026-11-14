@@ -43,24 +43,26 @@ const RecurringSetup = ({
   }, [recurringRules, sessions]);
 
   return (
-    <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5 shadow-surface dark:bg-slate-900">
+    <section className="group relative w-full rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-purple-600 dark:text-purple-400">Routine view</p>
-          <h3 className="mt-1 text-lg font-bold text-purple-950 dark:text-purple-100">Recurring Sessions</h3>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Routine view</p>
+          <h3 className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Recurring Sessions</h3>
         </div>
         <button
           type="button"
           onClick={onAddActivity}
           title="Add recurring session"
           aria-label="Add recurring session"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-purple-300 bg-white text-purple-600 opacity-100 shadow-sm transition-all duration-300 ease-out hover:scale-110 hover:bg-purple-600 hover:text-white dark:border-purple-700 dark:bg-slate-800 dark:text-purple-300 dark:hover:bg-purple-600 dark:hover:text-white md:scale-75 md:opacity-0 md:group-hover:scale-100 md:group-hover:opacity-100"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white motion-reduce:transition-none"
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
       {recurringSessions.length === 0 ? (
-        <p className="text-sm text-purple-800 dark:text-purple-300">No recurring sessions yet</p>
+        <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-900/80">
+          <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">No recurring sessions yet</p>
+        </div>
       ) : (
         <ul className="flex flex-row flex-wrap gap-3">
           {recurringSessions.map((session) => {
@@ -69,10 +71,10 @@ const RecurringSetup = ({
             return (
               <li
                 key={key}
-                className="relative min-w-[220px] flex-1 rounded-2xl border border-purple-100 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-purple-900/40 dark:bg-slate-800/80"
+                className="relative min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900"
               >
                 <span
-                  className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-purple-500 shadow-sm shadow-purple-500/40"
+                  className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-emerald-500"
                   aria-hidden="true"
                 />
                 <div className="pr-5">
@@ -88,7 +90,7 @@ const RecurringSetup = ({
                     value={freq}
                     onChange={(e) => onUpdateRecurring && onUpdateRecurring(key, e.target.value)}
                     aria-label={`Repeat frequency for ${session.title}`}
-                    className="rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs text-slate-700 outline-none focus:ring-2 focus:ring-purple-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                    className="min-h-11 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 focus:border-emerald-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100"
                   >
                     <option value="daily">Daily</option>
                     <option value="weekdays">Weekdays</option>
@@ -99,7 +101,7 @@ const RecurringSetup = ({
                     type="button"
                     onClick={() => onRequestRemove && onRequestRemove(session)}
                     aria-label={`Remove recurring session ${session.title}`}
-                    className="rounded text-left text-xs font-semibold text-red-500 transition-colors hover:text-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-1 sm:text-right dark:text-red-400 dark:hover:text-red-300"
+                    className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 text-left text-sm font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:text-right dark:text-rose-300 dark:hover:bg-rose-950/50 dark:hover:text-rose-200 motion-reduce:transition-none"
                   >
                     Remove
                   </button>

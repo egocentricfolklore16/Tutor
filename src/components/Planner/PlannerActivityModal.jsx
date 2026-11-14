@@ -225,7 +225,7 @@ function PlannerActivityModal({
   const isEditing = Boolean(form.id);
 
   const titles = {
-    session: [isEditing ? "Edit study session" : "Add study session", "Plan a focused learning block."],
+    session: [isEditing ? "Edit course" : "Add course", "Plan a focused learning block."],
     recurring: [isEditing ? "Edit recurring session" : "Add recurring session", "Create a rhythm you can return to."],
     deadline: [isEditing ? "Edit deadline" : "Add upcoming deadline", "Keep an important due date visible."],
     timeblock: [isEditing ? "Edit time block" : "Add time block", "Reserve time for focused work."],

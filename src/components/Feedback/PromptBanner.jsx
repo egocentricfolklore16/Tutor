@@ -52,7 +52,7 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
   };
 
   return (
-    <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:max-w-md z-40 animate-in fade-in slide-in-from-bottom-5 duration-300">
+    <div className="fixed bottom-20 md:bottom-6 right-4 left-4 md:left-auto md:max-w-md z-40 pb-[env(safe-area-inset-bottom)] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-5 motion-reduce:transition-none">
       <div className="p-4 rounded-2xl bg-slate-900/95 border border-slate-800 backdrop-blur-md shadow-2xl text-slate-100">
         {thankYou ? (
           <div className="flex items-center gap-3 py-2 text-emerald-400">
@@ -69,7 +69,8 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
               </div>
               <button
                 onClick={onDismiss}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                aria-label="Dismiss feedback prompt"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                 title="Dismiss"
               >
                 <X className="w-4 h-4" />
@@ -79,12 +80,14 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
             {isNps ? (
               /* NPS 0-10 Scale */
               <div className="space-y-1.5">
-                <div className="flex justify-between gap-1">
+                <div className="grid grid-cols-5 gap-1">
                   {Array.from({ length: 11 }, (_, i) => i).map((score) => (
                     <button
                       key={score}
                       onClick={() => handleNpsSelect(score)}
-                      className="flex-1 py-1.5 text-xs font-bold rounded-lg bg-slate-800/80 hover:bg-emerald-500/30 hover:text-emerald-300 border border-slate-700/60 transition-all"
+                      aria-label={`${score} out of 10`}
+                      aria-pressed={selectedNps === score}
+                      className="min-h-11 min-w-11 rounded-xl border border-slate-700/60 bg-slate-800/80 text-xs font-bold transition hover:bg-emerald-500/30 hover:text-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                     >
                       {score}
                     </button>
@@ -102,7 +105,9 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
                   <button
                     key={item.value}
                     onClick={() => handleRatingSelect(item.value)}
-                    className="p-2 text-2xl rounded-xl bg-slate-800/60 hover:bg-emerald-500/20 hover:scale-110 border border-slate-700/50 transition-all"
+                    aria-label={`Rate ${item.value} out of 5`}
+                    aria-pressed={selectedRating === item.value}
+                    className="inline-flex h-11 w-11 items-center justify-center rounded-xl border border-slate-700/50 bg-slate-800/60 text-2xl transition hover:bg-emerald-500/20 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
                   >
                     {item.emoji}
                   </button>
@@ -113,7 +118,7 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
             <div className="flex justify-end gap-3 pt-1 border-t border-slate-800/60 text-[11px]">
               <button
                 onClick={onSnooze}
-                className="flex items-center gap-1 text-slate-400 hover:text-slate-200 transition-colors"
+                className="flex min-h-11 items-center gap-1 rounded-xl px-2 text-slate-400 transition-colors hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
               >
                 <Clock className="w-3 h-3" />
                 <span>Maybe later</span>
@@ -128,7 +133,8 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
               <button
                 type="button"
                 onClick={onDismiss}
-                className="p-1 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                aria-label="Dismiss feedback prompt"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-800 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
               >
                 <X className="w-4 h-4" />
               </button>
@@ -140,14 +146,14 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
               rows={3}
               maxLength={1000}
               placeholder="Tell us a bit more (optional)..."
-              className="w-full px-3 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-200 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500 text-xs resize-none"
+              className="min-h-11 w-full rounded-xl border border-slate-800 bg-slate-900 px-3 py-2 text-xs text-slate-200 placeholder-slate-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 resize-none"
             />
 
             <div className="flex justify-between items-center pt-1">
               <button
                 type="button"
                 onClick={onSnooze}
-                className="text-[11px] text-slate-400 hover:text-slate-200"
+                className="min-h-11 rounded-xl px-2 text-[11px] text-slate-400 hover:text-slate-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70"
               >
                 Skip note
               </button>
@@ -155,7 +161,7 @@ export default function PromptBanner({ prompt, onSubmit, onSnooze, onDismiss }) 
               <button
                 type="submit"
                 disabled={submitting}
-                className="py-1.5 px-3 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white font-medium text-xs flex items-center gap-1.5 disabled:opacity-50 transition-colors"
+                className="inline-flex min-h-11 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-emerald-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {submitting ? (
                   <div className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />

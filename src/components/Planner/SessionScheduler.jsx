@@ -30,7 +30,7 @@ const SessionScheduler = ({
     if (newSession.date && newSession.startTime) {
       const selectedDateTime = new Date(`${dateValue}T${newSession.startTime}:00`);
       if (selectedDateTime < new Date()) {
-        setValidationError("Cannot schedule a study session in the past.");
+        setValidationError("Cannot schedule a course in the past.");
         return;
       }
     }
@@ -48,7 +48,7 @@ const SessionScheduler = ({
     <Modal
       isOpen={showCreateModal}
       onClose={() => setShowCreateModal(false)}
-      title="Schedule Study Session"
+      title="Schedule Course"
       maxWidth="max-w-xl"
       closeOnOverlayClick={false}
     >

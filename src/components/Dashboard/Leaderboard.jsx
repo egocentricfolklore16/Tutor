@@ -131,7 +131,7 @@ export default function Leaderboard() {
             <p className="text-xs text-slate-400 mt-1 mb-4">Complete a study session to get on the board!</p>
             <button
               type="button"
-              onClick={() => navigate("/study")}
+              onClick={() => navigate("/courses")}
               className="rounded-xl bg-emerald-500 px-4 py-2 text-xs font-bold text-slate-950 hover:bg-emerald-400 transition"
             >
               Start Studying

@@ -80,7 +80,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const saveFileUpload = async (event) => {
     event.preventDefault();
     if (!studyId) {
-      setError("Active study session required to upload resources.");
+      setError("An active course is required to upload resources.");
       return;
     }
     if (!selectedFile) return;
@@ -162,7 +162,7 @@ const ResourceAttachments = ({ studyId, userId, theme, onTimelineEvent }) => {
   const saveLinkResource = async (event) => {
     event.preventDefault();
     if (!studyId) {
-      setError("Active study session required to attach links.");
+      setError("An active course is required to attach links.");
       return;
     }
     if (!linkTitle.trim() || !linkUrl.trim()) {

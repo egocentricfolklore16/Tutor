@@ -11,7 +11,7 @@ import {
   getSessionDurationMinutes,
 } from '../../lib/plannerUtils.js';
 
-const GRID_BORDER_COLOR = 'border-white/[0.06]';
+const GRID_BORDER_COLOR = 'border-slate-200 dark:border-slate-800';
 
 const Calendar = ({
   currentDate,
@@ -87,7 +87,7 @@ const Calendar = ({
     const isPaused = session.status === "paused";
     const isCompleted = session.status === "completed" || session.completed;
 
-    const title = session.title || session.Topic || session.purpose || "Study Session";
+    const title = session.title || session.Topic || session.purpose || "Course";
     const subject = session.subject || session.Subject || (timeBlock ? "Time Block" : deadline ? "Deadline" : "General");
     const parsedTime = parseTime(session.startTime || session.Start || session.start_time || session.time);
     const timeLabel = formatTimeDisplay(parsedTime);
@@ -104,11 +104,11 @@ const Calendar = ({
             event.stopPropagation();
             setSelectedSession?.(isOpen ? null : session);
           }}
-          className={`w-full h-full cursor-pointer rounded-md p-1.5 text-left text-xs text-white transition hover:brightness-95 shadow-xs overflow-hidden flex flex-col justify-between ${
+          className={`w-full h-full cursor-pointer rounded-xl p-2 text-left text-xs text-white transition hover:brightness-95 shadow-sm overflow-hidden flex flex-col justify-between focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
             deadline
-              ? "bg-red-600"
+              ? "bg-rose-500"
               : timeBlock
-              ? "bg-slate-700/80 border border-slate-500/40 text-slate-200"
+              ? "bg-slate-700 border border-slate-500 text-slate-100"
               : session.color || "bg-blue-600"
           } ${isCompleted ? "opacity-60 line-through" : ""}`}
         >
@@ -127,7 +127,7 @@ const Calendar = ({
             </div>
             {isCompleted && <Check className="h-3 w-3 shrink-0 text-emerald-200" />}
             {!deadline && !timeBlock && isPaused && (
-              <span className="shrink-0 rounded bg-black/40 px-1 py-0.2 text-[9px] font-bold text-amber-200">
+              <span className="shrink-0 rounded-full bg-black/40 px-2 py-1 text-[9px] font-bold text-amber-200">
                 Paused
               </span>
             )}
@@ -172,7 +172,7 @@ const Calendar = ({
     return (
       <div className="md:hidden space-y-4">
         {/* Mobile Day Selector Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
           {weekDays.map((day) => {
             const dayKey = getLocalDateKey(day);
             const isSelected = dayKey === currentDateKey;
@@ -184,12 +184,12 @@ const Calendar = ({
                 type="button"
                 onClick={() => onAddActivity(new Date(day))}
                 title={isTargetDay ? "Target study day" : undefined}
-                className={`relative flex min-w-[48px] flex-col items-center rounded-2xl p-2.5 transition ${
+                className={`relative flex min-h-11 min-w-[48px] flex-col items-center rounded-xl p-3 transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
                   isSelected
-                    ? "bg-blue-600 text-white shadow-md font-bold"
+                    ? "bg-emerald-600 text-white shadow-sm font-bold"
                     : isToday
-                    ? "bg-blue-950/50 text-blue-300 font-bold border border-blue-800/50"
-                    : "bg-slate-800/50 text-slate-300 hover:bg-slate-800"
+                    ? "border border-emerald-200 bg-emerald-50 font-bold text-emerald-800 dark:border-emerald-800 dark:bg-emerald-500/15 dark:text-emerald-200"
+                    : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
                 }`}
               >
                 <span className="text-[10px] uppercase">{day.toLocaleDateString("en-US", { weekday: "short" })}</span>
@@ -197,7 +197,7 @@ const Calendar = ({
                 {isTargetDay && (
                   <span
                     aria-label="Target study day"
-                    className={`mt-0.5 h-1.5 w-1.5 rounded-full ${isSelected ? "bg-emerald-300" : "bg-emerald-500"}`}
+                    className={`mt-1 h-1.5 w-1.5 rounded-full ${isSelected ? "bg-emerald-300" : "bg-emerald-500"}`}
                   />
                 )}
               </button>
@@ -206,23 +206,23 @@ const Calendar = ({
         </div>
 
         {/* Selected Day Agenda */}
-        <div className="rounded-2xl border border-white/[0.08] bg-slate-900/60 p-4 space-y-3">
+        <div className="space-y-4 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80">
           <div className="flex items-center justify-between">
-            <h3 className="text-sm font-bold text-white">
+            <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">
               {currentDate.toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" })}
             </h3>
             <button
               type="button"
               onClick={() => onAddActivity(new Date(currentDate))}
-              className="inline-flex items-center gap-1 rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-bold text-white hover:bg-blue-700"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
             >
-              <Plus className="h-3.5 w-3.5" />
+              <Plus className="h-4 w-4" />
               Add Activity
             </button>
           </div>
 
           {selectedDaySessions.length === 0 ? (
-            <p className="py-6 text-center text-xs text-slate-400">
+            <p className="py-6 text-center text-sm leading-6 text-slate-600 dark:text-slate-300">
               No sessions scheduled for this day. Tap "Add Activity" to plan one.
             </p>
           ) : (
@@ -239,9 +239,9 @@ const Calendar = ({
     const todayKey = getLocalDateKey(new Date());
 
     return (
-      <div className="hidden md:grid w-full min-w-[720px] md:min-w-0 grid-cols-[56px_repeat(7,minmax(0,1fr))]">
+      <div className="hidden w-full min-w-[720px] grid-cols-[56px_repeat(7,minmax(0,1fr))] md:grid md:min-w-0">
         {/* Header Row */}
-        <div className="pb-3 text-[11px] font-normal text-white/40 flex items-end">Time</div>
+        <div className="flex items-end pb-3 text-[11px] font-normal text-slate-500 dark:text-slate-400">Time</div>
         {weekDays.map((day) => {
           const dayKey = getLocalDateKey(day);
           const isTargetDay = isPreferredStudyDay(day, profile?.study_days);
@@ -249,9 +249,9 @@ const Calendar = ({
           return (
             <div
               key={dayKey}
-              className={`pb-3 px-1 text-center border-l ${GRID_BORDER_COLOR} ${isToday ? 'bg-emerald-500/[0.04]' : ''}`}
+              className={`border-l px-1 pb-3 text-center ${GRID_BORDER_COLOR} ${isToday ? "bg-emerald-50/70 dark:bg-emerald-500/5" : ""}`}
             >
-              <div className="flex items-center justify-center gap-1 text-[11px] font-medium text-white/60 uppercase tracking-wider">
+              <div className="flex items-center justify-center gap-1 text-[11px] font-medium uppercase tracking-wider text-slate-500 dark:text-slate-400">
                 <span>{day.toLocaleDateString("en-US", { weekday: "short" })}</span>
                 {isTargetDay && (
                   <span
@@ -262,7 +262,7 @@ const Calendar = ({
               </div>
               <div
                 className={`mt-0.5 text-lg font-bold ${
-                  isToday ? "text-emerald-400" : "text-white/90"
+                  isToday ? "text-emerald-700 dark:text-emerald-300" : "text-slate-900 dark:text-slate-100"
                 }`}
               >
                 {day.getDate()}
@@ -270,9 +270,9 @@ const Calendar = ({
               <button
                 type="button"
                 onClick={() => onAddActivity(new Date(day))}
-                className="mt-2 inline-flex w-full items-center justify-center gap-1 bg-white/[0.05] hover:bg-white/10 text-[12px] font-medium text-white/80 rounded-lg py-1.5 transition"
+                className="mt-2 inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-slate-50 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-4 w-4" />
                 Add
               </button>
             </div>
@@ -284,7 +284,7 @@ const Calendar = ({
           const time = `${slotHour.toString().padStart(2, "0")}:00`;
           return (
             <React.Fragment key={time}>
-              <div className={`text-[11px] font-normal text-white/40 pt-1.5 pr-2 text-right border-t ${GRID_BORDER_COLOR}`}>
+              <div className={`border-t pt-2 pr-2 text-right text-[11px] font-normal text-slate-500 dark:text-slate-400 ${GRID_BORDER_COLOR}`}>
                 {time}
               </div>
               {weekDays.map((day) => {
@@ -296,8 +296,8 @@ const Calendar = ({
                 return (
                   <div
                     key={`${dayKey}-${time}`}
-                    className={`group relative border-t border-l ${GRID_BORDER_COLOR} h-16 hover:bg-white/[0.04] cursor-pointer transition-colors duration-150 ${
-                      isToday ? 'bg-emerald-500/[0.04]' : 'bg-transparent'
+                    className={`group relative h-16 cursor-pointer border-t border-l transition-colors duration-150 hover:bg-slate-50 dark:hover:bg-slate-800/60 ${GRID_BORDER_COLOR} ${
+                      isToday ? "bg-emerald-50/70 dark:bg-emerald-500/5" : "bg-white dark:bg-slate-900/40"
                     }`}
                     onClick={() => {
                       const slotDate = new Date(day);
@@ -331,7 +331,7 @@ const Calendar = ({
                     })}
                     {daySession.length === 0 && (
                       <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                        <Plus className="h-3.5 w-3.5 text-white/30" />
+                        <Plus className="h-4 w-4 text-slate-300 dark:text-slate-600" />
                       </div>
                     )}
                   </div>
@@ -344,7 +344,7 @@ const Calendar = ({
     );
   };
 
-  const selectedSessionTitle = selectedSession?.purpose || selectedSession?.Topic || selectedSession?.title || "Study Session";
+  const selectedSessionTitle = selectedSession?.purpose || selectedSession?.Topic || selectedSession?.title || "Course";
   const selectedSessionSubject = selectedSession?.Subject || selectedSession?.subject || "-";
   const selectedSessionDateStr = selectedSession
     ? getLocalDateKey(selectedSession.date || selectedSession.Date || selectedSession.block_date || selectedSession.due_date)
@@ -356,10 +356,9 @@ const Calendar = ({
   const selectedSessionDurMinutes = selectedSession ? getSessionDurationMinutes(selectedSession) : 60;
 
   return (
-    <div className="relative mb-6 overflow-x-auto rounded-2xl bg-slate-900 border border-white/[0.08] overflow-hidden p-3 md:p-6 [scrollbar-width:thin] [::-webkit-scrollbar]:w-1.5 [::-webkit-scrollbar]:h-1.5">
+    <div className="relative mb-6 overflow-x-auto rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80 md:p-6">
       {renderMobileDayView()}
       {renderWeekView()}
-      <img src="/logo3.png" alt="" aria-hidden="true" className="pointer-events-none absolute bottom-3 left-3 h-10 w-10 object-contain opacity-20" />
 
       {/* Selected Session Detail Sheet */}
       <ResponsiveSheet
@@ -378,19 +377,19 @@ const Calendar = ({
             <div className="flex items-start justify-between gap-3">
               <div>
                 {selectedSession.is_group_session && (
-                  <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-cyan-100 px-2 py-0.5 text-[10px] font-bold text-cyan-900 dark:bg-cyan-950 dark:text-cyan-200">
+                  <div className="mb-1 inline-flex items-center gap-1 rounded-full bg-sky-100 px-2 py-1 text-[11px] font-semibold text-sky-800 dark:bg-sky-500/15 dark:text-sky-200">
                     <Users className="h-3 w-3" />
                     <span>{selectedSession.group_name}</span>
                   </div>
                 )}
                 <p className={`text-xs font-bold uppercase tracking-wider ${
                   isDeadline(selectedSession)
-                    ? "text-red-600 dark:text-red-400"
+                    ? "text-rose-600 dark:text-rose-300"
                     : isTimeBlock(selectedSession)
                     ? "text-slate-600 dark:text-slate-400"
                     : selectedSession.is_group_session
-                    ? "text-cyan-600 dark:text-cyan-400"
-                    : "text-blue-600 dark:text-blue-400"
+                    ? "text-sky-600 dark:text-sky-300"
+                    : "text-emerald-600 dark:text-emerald-300"
                 }`}>
                   {isDeadline(selectedSession)
                     ? "Deadline"
@@ -398,7 +397,7 @@ const Calendar = ({
                     ? "Protected Time Block"
                     : selectedSession.is_group_session
                     ? "Group Study Session"
-                    : selectedSession.type || "Study Session"}
+                    : selectedSession.type || "Course"}
                 </p>
                 <h3 className="mt-1 text-lg font-bold">{selectedSessionTitle}</h3>
               </div>
@@ -410,14 +409,15 @@ const Calendar = ({
                     setSelectedSession?.(null);
                     onEditActivity(sessionToEdit);
                   }}
-                  className="rounded-full bg-slate-100 p-2 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-slate-800 motion-reduce:transition-none"
+                  aria-label="Edit activity"
                 >
                   <Edit2 size={16} />
                 </button>
               )}
             </div>
 
-            <dl className="space-y-2.5 text-sm border-t border-slate-100 pt-3 dark:border-slate-800">
+            <dl className="space-y-2 text-sm border-t border-slate-200 pt-3 dark:border-slate-800">
               {!isTimeBlock(selectedSession) && (
                 <div className="flex justify-between gap-3"><dt className="text-slate-500">Subject</dt><dd className="font-semibold text-right">{selectedSessionSubject}</dd></div>
               )}
@@ -434,7 +434,7 @@ const Calendar = ({
               {selectedSession.notes && <div className="border-t border-slate-100 pt-2 text-xs text-slate-600 dark:border-slate-800 dark:text-slate-400"><dt className="font-bold mb-1">Notes</dt><dd>{selectedSession.notes}</dd></div>}
             </dl>
 
-            <div className="pt-2 flex gap-2">
+            <div className="flex gap-2 pt-2">
               {onMarkStatus && !selectedSession.is_group_session && !isDeadline(selectedSession) && !isTimeBlock(selectedSession) && (
                 <button
                   type="button"
@@ -443,7 +443,7 @@ const Calendar = ({
                     onMarkStatus(selectedSession.id, newStatus);
                     setSelectedSession?.(null);
                   }}
-                  className={`flex-1 flex items-center justify-center gap-2 rounded-xl py-2.5 px-3 text-xs font-bold transition ${
+                  className={`inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
                     selectedSession.status === "completed"
                       ? "bg-slate-200 text-slate-800 hover:bg-slate-300 dark:bg-slate-800 dark:text-slate-200"
                       : "bg-emerald-600 text-white hover:bg-emerald-700"
@@ -461,7 +461,7 @@ const Calendar = ({
                     setSelectedSession?.(null);
                     navigate(`/community?tab=groups&groupId=${selectedSession.group_id}`);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-cyan-600 py-2.5 px-3 text-xs font-bold text-white transition hover:bg-cyan-700"
+                  className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
                 >
                   <Users className="h-4 w-4" />
                   View Group
@@ -472,9 +472,9 @@ const Calendar = ({
                     type="button"
                     onClick={() => {
                       setSelectedSession?.(null);
-                      navigate(`/Study/${selectedSession.id}`);
+                      navigate(`/courses/${selectedSession.id}`);
                     }}
-                    className="flex-1 flex items-center justify-center gap-2 rounded-xl bg-blue-600 py-2.5 px-3 text-xs font-bold text-white transition hover:bg-blue-700"
+                    className="inline-flex min-h-11 flex-1 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
                   >
                     {selectedSession.status === "paused" ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 fill-current" />}
                     {selectedSession.status === "paused" ? "Resume" : "Start"}

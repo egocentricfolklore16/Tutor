@@ -78,7 +78,7 @@ export default function NotificationPromptCard({ userId, onDismiss }) {
 
         <div className="flex-1">
           <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-200">
-            Never miss a study session or streak!
+            Never miss a course or streak!
           </h4>
           <p className="mt-1 text-xs text-emerald-700 dark:text-emerald-300">
             Enable web push notifications to get reminders before scheduled sessions and streak alerts even when the tab is closed.

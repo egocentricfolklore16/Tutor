@@ -205,7 +205,7 @@ function NoteDetail() {
     <div className={`min-h-screen ${theme.page}`}>
       <main className="px-5 py-8 md:px-10">
       <div className="mx-auto max-w-3xl">
-        <button type="button" onClick={() => navigate(`/Study/${Studyid}`)} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold ${theme.accent}`}>
+        <button type="button" onClick={() => navigate(`/courses/${Studyid}`)} className={`mb-6 inline-flex items-center gap-2 text-sm font-semibold ${theme.accent}`}>
           <ArrowLeft className="h-4 w-4" /> Back to notes
         </button>
         <article className={`rounded-xl border ${theme.border} bg-white dark:bg-slate-900 p-6 shadow-sm md:p-10`}>

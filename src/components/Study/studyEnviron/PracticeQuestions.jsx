@@ -480,7 +480,7 @@ function PracticeQuestions({ theme, studyId, userId, topic, onTimelineEvent, req
       requestedLookupRef.current = String(requestedQuizId);
       loadQuizzes();
     } else {
-      setError("That practice set could not be found in this study session. Refresh your library and try again.");
+      setError("That practice set could not be found in this course. Refresh your library and try again.");
     }
   }, [requestedQuizId, quizzes, isLoading, startQuiz, onQuizOpened, loadQuizzes]);
 

@@ -9,7 +9,7 @@ function toGoogleEvent(studySession) {
   start.setHours(hours || 9, minutes || 0, 0, 0);
   const end = new Date(toTime(start) + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   return {
-    summary: studySession.title || studySession.subject || "Hyper Tutor Study Session",
+    summary: studySession.title || studySession.subject || "Hyper Tutor Course",
     description: `Planned In Hyper Tutor${studySession.subject ? `\nSubject: ${studySession.subject}` : ""}`,
     start: { dateTime: start.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
     end: { dateTime: end.toISOString(), timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone },
@@ -50,7 +50,7 @@ function ExternalCalendarSync({ sessions = [] }) {
     }).slice(0, 50);
     if (!upcomingSessions.length) {
       setStatus("error");
-      setMessage("Create A Future Study Session Before Syncing.");
+      setMessage("Create A Future Course Before Syncing.");
       return;
     }
     const results = await Promise.all(upcomingSessions.map((item) => fetch("https://www.googleapis.com/calendar/v3/calendars/primary/events", {
@@ -64,7 +64,7 @@ function ExternalCalendarSync({ sessions = [] }) {
       return;
     }
     setStatus("success");
-    setMessage(`${upcomingSessions.length} Study Session${upcomingSessions.length === 1 ? "" : "s"} Added To Google Calendar.`);
+    setMessage(`${upcomingSessions.length} Course${upcomingSessions.length === 1 ? "" : "s"} Added To Google Calendar.`);
   };
 
   return (

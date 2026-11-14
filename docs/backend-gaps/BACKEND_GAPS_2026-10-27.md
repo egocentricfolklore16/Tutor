@@ -53,7 +53,7 @@ You are a senior backend engineer building the missing backend for Hyper Tutor, 
 # PART 1 - EXECUTIVE SUMMARY
 - Total gaps: 8 (🔴 3 critical, 🟠 3 high, 🟡 2 medium)
 - Features fully backed today:
-  - User Authentication, Profile Auto-Creation, and Onboarding Preferences (`auth.users`, `profiles`, `onboarding_answers`)
+  - User Authentication, Profile Auto-Creation, and Onboarding Preferences (`auth.users`, `profiles`)
   - Active Study Session Lifecycle & Session Material Persistence (`Study`, `session_notes`, `session_flashcards`, `session_quizzes`, `session_resources`)
   - Study Planner Management (Time blocks, deadlines, recurring session rules, occurrence overrides, slipping sessions)
   - Community Features (Leaderboard RPC `get_leaderboard`, chat inbox, messaging, study groups, help forum, peer tutor matching, activity feed, safety reports)
@@ -84,7 +84,7 @@ You are a senior backend engineer building the missing backend for Hyper Tutor, 
 | UI feature | Table / function | Called from (file:line) | Notes |
 |---|---|---|---|
 | User Authentication & Profile Creation | `auth.users`, `profiles`, `006_profile_trigger.sql` | `src/components/Auth/LoginForm.jsx:20`, `Onboarding.jsx:110` | Auto-creates profile row on signup; saves preferences |
-| Onboarding & Survey Persistence | `profiles`, `onboarding_answers` | `src/components/Auth/Onboarding.jsx:110` | Per-step answer persistence and goal/subject preferences |
+| Onboarding & Survey Persistence | `profiles` | `src/components/Auth/Onboarding.jsx` | Per-step answer persistence and goal/subject preferences |
 | Active Study Sessions & Timers | `Study`, `study_history`, `study_session_logs` | `src/hooks/useStudySession.js:45`, `src/lib/sessionService.js:30` | Tracks session status ('active', 'paused', 'completed') and logs |
 | Session Materials & Library | `session_notes`, `session_flashcards`, `session_quizzes`, `session_resources` | `src/components/Library/Library.jsx:190`, `NoteEditor.jsx:35` | Materials linked to sessions (`ON DELETE SET NULL` on session drop) |
 | Study Planner & Recurrence | `planner_activities`, `planner_recurrence_rules`, `planner_reminders` | `src/hooks/usePlanner.js:25`, `src/lib/plannerUtils.js:10` | Time blocks, deadlines, recurrence preview, slipping session checks |

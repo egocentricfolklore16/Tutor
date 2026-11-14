@@ -1,5 +1,5 @@
 import { useEffect, useState, useRef } from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import Community from "./components/Community/community.jsx";
 import SignupPage from "./components/Auth/SignupForm.jsx";
 import AuthLayout from "./components/Auth/AuthLayout.jsx";
@@ -30,42 +30,25 @@ import Shop from "./components/Shop/Shop.jsx";
 import { syncAndCheckAchievements } from "./lib/achievementSync.js";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
 
-// Some older onboarding runs saved all answers before the profile completion flag
-// was persisted. Treat a complete set of saved responses as completed as well.
-const REQUIRED_ONBOARDING_ANSWERS = [
-  "display_name",
-  "subjects",
-  "primary_goal",
-  "education_level",
-  "learning_style",
-  "daily_time",
-];
+function LegacyStudyRouteRedirect() {
+  const location = useLocation();
+  const pathname = location.pathname.replace(/^\/study(?=\/|$)/i, "/courses");
+  return <Navigate to={`${pathname}${location.search}${location.hash}`} replace />;
+}
 
 async function checkOnboardingCompletion(userId) {
-  const [profileResult, answersResult] = await Promise.all([
-    supabase
-      .from("profiles")
-      .select("onboarding_completed")
-      .eq("user_id", userId)
-      .maybeSingle(),
-    supabase
-      .from("onboarding_answers")
-      .select("question_key")
-      .eq("user_id", userId),
-  ]);
+  const { data: profile, error } = await supabase
+    .from("profiles")
+    .select("onboarding_completed")
+    .eq("user_id", userId)
+    .maybeSingle();
 
-  if (profileResult.error) {
-    console.error("Error fetching user profile during onboarding check:", profileResult.error);
-  }
-  if (answersResult.error) {
-    console.error("Error fetching onboarding answers during onboarding check:", answersResult.error);
+  if (error) {
+    console.error("onboarding completion check failed:", error);
+    throw error;
   }
 
-  if (profileResult.data?.onboarding_completed) return true;
-  if (answersResult.error || !answersResult.data) return false;
-
-  const savedAnswers = new Set(answersResult.data.map(({ question_key }) => question_key));
-  return REQUIRED_ONBOARDING_ANSWERS.every((key) => savedAnswers.has(key));
+  return Boolean(profile?.onboarding_completed);
 }
 
 function App() {
@@ -73,6 +56,7 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [onboardingLoading, setOnboardingLoading] = useState(false);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [onboardingError, setOnboardingError] = useState("");
 
   const sessionRef = useRef(session);
   useEffect(() => {
@@ -130,11 +114,17 @@ function App() {
           syncAndCheckAchievements({ quiet: false });
 
           setOnboardingLoading(true);
+          setOnboardingError("");
           try {
             const completed = await checkOnboardingCompletion(currentSession.user.id);
             if (mounted) setNeedsOnboarding(!completed);
           } catch (profileErr) {
-            console.error("Failed to check onboarding completion:", profileErr);
+            console.error("Unable to determine onboarding status:", profileErr);
+            if (mounted) {
+              setOnboardingError(
+                "We couldn't verify your onboarding status. Please refresh the page to try again."
+              );
+            }
           } finally {
             if (mounted) setOnboardingLoading(false);
           }
@@ -158,6 +148,7 @@ function App() {
       if (event === "SIGNED_OUT") {
         setSession(null);
         setNeedsOnboarding(false);
+        setOnboardingError("");
         const publicPaths = ["/login", "/signup", "/auth/callback", "/auth/confirm", "/auth/confirmed", "/"];
         const currentPath = window.location.pathname;
         if (!publicPaths.includes(currentPath)) {
@@ -170,11 +161,17 @@ function App() {
         setSession(nextSession);
         if (nextSession?.user) {
           setOnboardingLoading(true);
+          setOnboardingError("");
           try {
             const completed = await checkOnboardingCompletion(nextSession.user.id);
             if (mounted) setNeedsOnboarding(!completed);
           } catch (profileErr) {
-            console.error("Failed to check onboarding completion after auth change:", profileErr);
+            console.error("Unable to determine onboarding status after auth change:", profileErr);
+            if (mounted) {
+              setOnboardingError(
+                "We couldn't verify your onboarding status. Please refresh the page to try again."
+              );
+            }
           } finally {
             if (mounted) setOnboardingLoading(false);
           }
@@ -197,6 +194,13 @@ function App() {
         <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
           <LoadingCompanion message="Loading Hyper Tutor..." />
         </div>
+      ) : onboardingError ? (
+        <div
+          role="alert"
+          className="min-h-screen flex items-center justify-center bg-slate-950 p-6 text-center text-slate-100"
+        >
+          <p>{onboardingError}</p>
+        </div>
       ) : (
         <BrowserRouter>
           <ScrollToTop />
@@ -209,10 +213,11 @@ function App() {
               <Route path="/*" element={<Layout session={session} needsOnboarding={needsOnboarding} />}>
                 <Route index element={<Overview />} />
                 <Route path="Dashboard" element={<Overview />} />
-                <Route path="Study" element={<Study />} />
-                <Route path="Study/history/:historyId" element={<StudyHistoryDetail />} />
-                <Route path="Study/:Studyid" element={<StudyEnvironment />} />
-                <Route path="Study/:Studyid/notes/:noteId" element={<NoteDetail />} />
+                <Route path="courses" element={<Study />} />
+                <Route path="courses/history/:historyId" element={<StudyHistoryDetail />} />
+                <Route path="courses/:Studyid" element={<StudyEnvironment />} />
+                <Route path="courses/:Studyid/notes/:noteId" element={<NoteDetail />} />
+                <Route path="Study/*" element={<LegacyStudyRouteRedirect />} />
                 <Route path="signup" element={<SignupPage />} />
                 <Route path="signin" element={<LoginPage />} />
                 <Route path="Planner" element={<PlannerPage />} />

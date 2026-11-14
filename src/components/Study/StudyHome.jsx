@@ -367,7 +367,7 @@ function StudyHome() {
       refreshSessions();
     } catch (saveError) {
       console.error("Unable to save study session:", saveError);
-      setError(saveError?.message || "Unable to save study session.");
+      setError(saveError?.message || "Unable to save course.");
     } finally {
       setSubmitting(false);
     }
@@ -401,7 +401,7 @@ function StudyHome() {
   };
 
   const startSession = (sessionItem) => {
-    if (sessionItem?.id) navigate(`/Study/${encodeURIComponent(sessionItem.id)}`);
+    if (sessionItem?.id) navigate(`/courses/${encodeURIComponent(sessionItem.id)}`);
   };
 
   const today = localDateString(new Date(clockNow));
@@ -742,7 +742,7 @@ function StudyHome() {
         <header className="mb-6 flex flex-wrap items-center justify-between gap-4">
           <div>
             <p className="text-sm font-semibold text-emerald-700 dark:text-emerald-400">Your learning plan</p>
-            <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Study</h1>
+            <h1 className="mt-1 text-2xl font-bold text-slate-900 dark:text-white">Courses</h1>
           </div>
           <button
             type="button"
@@ -750,7 +750,7 @@ function StudyHome() {
             className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2.5 text-sm font-bold text-white shadow-sm hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 focus-visible:ring-offset-2"
           >
             <Plus className="h-4 w-4" />
-            New Session
+            New Course
           </button>
         </header>
 
@@ -781,7 +781,7 @@ function StudyHome() {
         )}
 
         <section
-          aria-label="Study statistics"
+          aria-label="Course statistics"
           className="grid grid-cols-2 gap-px overflow-hidden rounded-xl border border-slate-200 bg-slate-200 sm:grid-cols-4 dark:border-slate-700 dark:bg-slate-700"
         >
           {[
@@ -801,7 +801,7 @@ function StudyHome() {
         </section>
 
         {combinedLoading ? (
-          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading sessions">
+          <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" aria-label="Loading courses">
             {Array.from({ length: 3 }, (_, index) => (
               <div
                 key={index}
@@ -812,16 +812,16 @@ function StudyHome() {
         ) : !hasAnyActiveSessions ? (
           <div className="mt-8 flex flex-col items-center rounded-2xl border border-dashed border-slate-300 bg-white p-8 text-center dark:border-slate-800 dark:bg-slate-900">
             <BookOpen className="h-10 w-10 text-slate-400 dark:text-slate-600 mb-3" />
-            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No active study sessions</h3>
+            <h3 className="text-lg font-bold text-slate-900 dark:text-white">No active courses</h3>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400 max-w-sm">
-              Schedule your study sessions here to stay organized and achieve your goals.
+              Add your courses here to stay organized and achieve your goals.
             </p>
             <button
               type="button"
               onClick={openCreate}
               className="mt-4 inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-bold text-white hover:bg-emerald-700"
             >
-              <Plus className="h-4 w-4" /> Create First Session
+              <Plus className="h-4 w-4" /> Create First Course
             </button>
           </div>
         ) : (
@@ -928,9 +928,9 @@ function StudyHome() {
                     {group.items.map((item) => (
                       <article
                         key={item.id}
-                        onClick={() => navigate(`/Study/history/${item.id}`)}
+                        onClick={() => navigate(`/courses/history/${item.id}`)}
                         onKeyDown={(event) => {
-                          if (event.key === "Enter") navigate(`/Study/history/${item.id}`);
+                          if (event.key === "Enter") navigate(`/courses/history/${item.id}`);
                         }}
                         role="link"
                         tabIndex={0}
@@ -986,7 +986,7 @@ function StudyHome() {
       <ResponsiveSheet
         isOpen={formOpen}
         onClose={() => setFormOpen(false)}
-        title={formMode === "edit" ? "Edit session" : formMode === "duplicate" ? "Duplicate session" : "New session"}
+        title={formMode === "edit" ? "Edit course" : formMode === "duplicate" ? "Duplicate course" : "New course"}
       >
         <form onSubmit={saveSession} className="space-y-4 text-slate-900 dark:text-slate-100" noValidate>
           <div>
@@ -1117,7 +1117,7 @@ function StudyHome() {
             className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-lg bg-emerald-600 px-4 py-3 font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-50"
           >
             {submitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Check className="h-4 w-4" />}
-            {formMode === "edit" ? "Save changes" : formMode === "duplicate" ? "Create duplicate" : "Create session"}
+            {formMode === "edit" ? "Save changes" : formMode === "duplicate" ? "Create duplicate" : "Create course"}
           </button>
         </form>
       </ResponsiveSheet>

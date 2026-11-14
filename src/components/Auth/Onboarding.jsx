@@ -15,6 +15,7 @@ export default function Onboarding({ session: _session }) {
   const [currentStepIndex, setCurrentStepIndex] = useState(0);
   const [form, setForm] = useState(INITIAL_FORM);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
   const [saving, setSaving] = useState(false);
   const [inlineNotice, setInlineNotice] = useState("");
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
@@ -42,7 +43,13 @@ export default function Onboarding({ session: _session }) {
 
         const {
           data: { user },
+          error: userError,
         } = await supabase.auth.getUser();
+
+        if (userError) {
+          console.error("onboarding user lookup failed:", userError);
+          throw userError;
+        }
 
         if (!user) {
           if (mounted) navigate("/login", { replace: true });
@@ -56,19 +63,23 @@ export default function Onboarding({ session: _session }) {
           "Learner";
         const derivedFirstName = rawName.trim().split(" ")[0] || "Learner";
 
-        const [{ data: profile }, { data: savedAnswers }] = await Promise.all([
-          supabase
-            .from("profiles")
-            .select(
-              "username, full_name, primary_goal, education_level, subjects, learning_style, weekly_hours, onboarding_step, onboarding_completed"
-            )
-            .eq("user_id", user.id)
-            .maybeSingle(),
-          supabase
-            .from("onboarding_answers")
-            .select("question_key, answer")
-            .eq("user_id", user.id),
-        ]);
+        const { data: profile, error: profileError } = await supabase
+          .from("profiles")
+          .select(
+            "username, full_name, primary_goal, education_level, subjects, learning_style, weekly_hours, onboarding_step, onboarding_completed"
+          )
+          .eq("user_id", user.id)
+          .maybeSingle();
+
+        if (profileError) {
+          console.error("onboarding profile load failed:", profileError);
+          throw profileError;
+        }
+        if (!profile) {
+          const error = new Error("No profile row exists for this user.");
+          console.error("onboarding profile load failed:", error);
+          throw error;
+        }
 
         if (!mounted) return;
 
@@ -86,51 +97,42 @@ export default function Onboarding({ session: _session }) {
         if (Array.isArray(profile?.subjects) && profile.subjects.length > 0) {
           updatedForm.subjects = profile.subjects;
         }
-        if (Array.isArray(profile?.learning_style) && profile.learning_style.length > 0) {
+        if (Array.isArray(profile.learning_style) && profile.learning_style.length > 0) {
           updatedForm.learning_style = profile.learning_style;
-        } else if (typeof profile?.learning_style === "string" && profile.learning_style.trim()) {
-          updatedForm.learning_style = [profile.learning_style.trim()];
+        } else if (typeof profile.learning_style === "string" && profile.learning_style.trim()) {
+          updatedForm.learning_style = profile.learning_style
+            .split(",")
+            .map((style) => style.trim())
+            .filter(Boolean);
         }
 
-        if (savedAnswers && savedAnswers.length > 0) {
-          savedAnswers.forEach((item) => {
-            if (item.question_key === "display_name" && item.answer) {
-              updatedForm.display_name = item.answer;
-            }
-            if (item.question_key === "subjects") {
-              if (Array.isArray(item.answer)) {
-                const knownOptions = [
-                  "Math",
-                  "Science",
-                  "Computer Science",
-                  "Languages",
-                  "Humanities",
-                  "Business",
-                  "Exam Prep",
-                ];
-                const selectedKnown = item.answer.filter((s) => knownOptions.includes(s));
-                const custom = item.answer.find((s) => !knownOptions.includes(s));
-                updatedForm.subjects = selectedKnown;
-                if (custom) updatedForm.otherSubject = custom;
-              }
-            }
-            if (item.question_key === "primary_goal" && item.answer) {
-              updatedForm.primary_goal = item.answer;
-            }
-            if (item.question_key === "education_level" && item.answer) {
-              updatedForm.education_level = item.answer;
-            }
-            if (item.question_key === "learning_style" && item.answer) {
-              if (Array.isArray(item.answer)) {
-                updatedForm.learning_style = item.answer;
-              } else if (typeof item.answer === "string") {
-                updatedForm.learning_style = [item.answer];
-              }
-            }
-            if (item.question_key === "daily_time" && item.answer) {
-              updatedForm.daily_time = item.answer;
-            }
-          });
+        if (Array.isArray(profile.subjects)) {
+          const knownOptions = [
+            "Math",
+            "Science",
+            "Computer Science",
+            "Languages",
+            "Humanities",
+            "Business",
+            "Exam Prep",
+          ];
+          updatedForm.subjects = profile.subjects.filter((subject) =>
+            knownOptions.includes(subject)
+          );
+          updatedForm.otherSubject =
+            profile.subjects.find((subject) => !knownOptions.includes(subject)) || "";
+        }
+
+        if (profile.weekly_hours != null) {
+          const weeklyHours = Number(profile.weekly_hours);
+          updatedForm.daily_time =
+            weeklyHours <= 2
+              ? "15 minutes / day"
+              : weeklyHours <= 4
+                ? "30 minutes / day"
+                : weeklyHours <= 7
+                  ? "1 hour / day"
+                  : "2+ hours / day";
         }
 
         setForm(updatedForm);
@@ -145,7 +147,12 @@ export default function Onboarding({ session: _session }) {
         );
         setCurrentStepIndex(clampedStep);
       } catch (err) {
-        console.error("Error loading onboarding state:", err);
+        console.error("onboarding state load failed:", err);
+        if (mounted) {
+          setLoadError(
+            "We couldn't load your onboarding information. Please refresh the page to try again."
+          );
+        }
       } finally {
         if (mounted) setLoading(false);
       }
@@ -201,33 +208,45 @@ export default function Onboarding({ session: _session }) {
 
   const canContinue = validateStepAnswer(currentStep, form);
 
-  const persistStepProgress = async (stepIndex, answerVal, profileUpdates) => {
+  const persistStepProgress = async (stepIndex, profileUpdates, isCompleted = false) => {
     const {
       data: { user },
+      error: userError,
     } = await supabase.auth.getUser();
-    if (!user) return;
-
-    const stepKey = QUESTION_STEPS[stepIndex].key;
-
-    if (stepKey && answerVal !== undefined) {
-      await supabase.from("onboarding_answers").upsert(
-        {
-          user_id: user.id,
-          question_key: stepKey,
-          answer: answerVal,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id, question_key" }
-      );
+    if (userError) {
+      console.error("onboarding save user lookup failed:", userError);
+      throw userError;
+    }
+    if (!user) {
+      const error = new Error("You must be signed in to save onboarding.");
+      console.error("onboarding save failed:", error);
+      throw error;
     }
 
-    const updatePayload = {
-      user_id: user.id,
-      onboarding_step: stepIndex + 1,
-      ...profileUpdates,
-    };
+    const { data, error } = await supabase
+      .from("profiles")
+      .update({
+        ...profileUpdates,
+        onboarding_step: stepIndex + 1,
+        ...(isCompleted ? { onboarding_completed: true } : {}),
+      })
+      .eq("user_id", user.id)
+      .select("user_id")
+      .maybeSingle();
 
-    await supabase.from("profiles").upsert(updatePayload, { onConflict: "user_id" });
+    if (error) {
+      console.error("onboarding save failed:", error);
+      throw error;
+    }
+    if (!data) {
+      const missingProfileError = new Error(
+        "Your profile could not be found, so your onboarding answers were not saved."
+      );
+      console.error("onboarding save failed:", missingProfileError);
+      throw missingProfileError;
+    }
+
+    return user.id;
   };
 
   const handleNextStep = useCallback(async () => {
@@ -250,13 +269,11 @@ export default function Onboarding({ session: _session }) {
     setInlineNotice("");
 
     try {
-      let answerVal;
       let profileUpdates = {};
 
       switch (currentStep.id) {
         case "name": {
           const nameTrimmed = form.display_name.trim();
-          answerVal = nameTrimmed;
           profileUpdates = {
             username: nameTrimmed,
             full_name: nameTrimmed,
@@ -271,25 +288,22 @@ export default function Onboarding({ session: _session }) {
               allSubjects.push(cleanOther);
             }
           }
-          answerVal = allSubjects;
           profileUpdates = { subjects: allSubjects };
           break;
         }
         case "primary_goal":
-          answerVal = form.primary_goal;
           profileUpdates = { primary_goal: form.primary_goal };
           break;
         case "education_level":
-          answerVal = form.education_level;
           profileUpdates = { education_level: form.education_level };
           break;
         case "learning_style":
-          answerVal = form.learning_style;
-          profileUpdates = { learning_style: form.learning_style };
+          profileUpdates = { learning_style: form.learning_style.join(", ") };
           break;
         case "daily_time": {
-          answerVal = form.daily_time;
-          const weeklyHrs = mapDailyTimeToWeeklyHours(form.daily_time);
+          const weeklyHrs = Number(
+            Math.round(mapDailyTimeToWeeklyHours(form.daily_time))
+          );
           profileUpdates = { weekly_hours: weeklyHrs };
           break;
         }
@@ -297,29 +311,20 @@ export default function Onboarding({ session: _session }) {
           break;
       }
 
-      await persistStepProgress(currentStepIndex, answerVal, profileUpdates);
+      const userId = await persistStepProgress(
+        currentStepIndex,
+        profileUpdates,
+        isLastQuestion
+      );
 
       if (isLastQuestion) {
         // Move to calm completion step
         setCurrentStepIndex(QUESTION_STEPS.length - 1);
 
-        // Complete onboarding on server
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (user) {
-          await supabase.from("profiles").upsert(
-            {
-              user_id: user.id,
-              onboarding_completed: true,
-              onboarding_step: QUESTION_STEPS.length,
-            },
-            { onConflict: "user_id" }
-          );
-
+        if (userId) {
           try {
             sessionStorage.setItem(
-              `hyper-tutor-onboarding-complete:${user.id}`,
+              `hyper-tutor-onboarding-complete:${userId}`,
               "true"
             );
           } catch (e) {
@@ -328,7 +333,7 @@ export default function Onboarding({ session: _session }) {
 
           window.dispatchEvent(
             new CustomEvent("hyper-tutor-onboarding-completed", {
-              detail: { userId: user.id },
+              detail: { userId },
             })
           );
         }
@@ -426,6 +431,17 @@ export default function Onboarding({ session: _session }) {
     return (
       <div className="min-h-dvh flex items-center justify-center bg-[#0B0D0C] text-neutral-300 p-6">
         <div className="w-5 h-5 rounded-full border-2 border-emerald-500/30 border-t-emerald-400 animate-spin" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div
+        role="alert"
+        className="min-h-dvh flex items-center justify-center bg-[#0B0D0C] text-neutral-300 p-6 text-center"
+      >
+        <p>{loadError}</p>
       </div>
     );
   }

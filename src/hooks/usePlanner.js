@@ -181,7 +181,7 @@ export function usePlannerActivities(dateRange = {}) {
           activityId: session.id,
           type: 'study',
           activityType: session.activity_type || 'session',
-          title: session.Topic || session.Subject || 'Study Session',
+          title: session.Topic || session.Subject || 'Course',
           subject: session.Subject || '',
           date: sessionDate,
           startTime: startTime,

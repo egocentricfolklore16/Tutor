@@ -11,7 +11,7 @@ export default function YourRankCard({ me, metric }) {
     <div
       role="region"
       aria-label="Your current leaderboard rank"
-      className="sticky bottom-4 z-20 rounded-3xl border-2 border-emerald-500/80 bg-white/95 p-4 shadow-overlay backdrop-blur-md dark:border-emerald-600/80 dark:bg-[#14171c]/95 min-h-[44px] transition-all"
+      className="sticky bottom-[calc(5rem+env(safe-area-inset-bottom))] z-20 rounded-2xl border-2 border-emerald-500/80 bg-white/95 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] shadow-sm backdrop-blur-md dark:border-emerald-600/80 dark:bg-[#14171c]/95 min-h-11 transition-all md:bottom-4"
     >
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-3 min-w-0">

@@ -1,4 +1,4 @@
-import { Bell, BookOpen, Command, FileText, Flame, Layers3, Lock, LogOut, Menu, Moon, Search, Settings, Snowflake, Sun, Trophy, UserRound, Users, X, Zap, CheckCircle2, RefreshCw } from "lucide-react";
+import { Bell, BookOpen, Command, FileText, Layers3, Lock, LogOut, Menu, Moon, Search, Settings, Sun, Trophy, UserRound, X, Zap } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useProfile } from "../../app/ProfileContext";
@@ -23,8 +23,7 @@ function GemIcon({ className }) {
 
 function DashboardHeader({ toggleSidebar }) {
   const { profile, darkMode, toggleDarkMode } = useProfile();
-  const { streak, xp, gems, toast } = useGamification();
-  const { currentStreak, longestStreak, freezeTokens, weekDays, todayCompleted, loading: streakLoading, error: streakError, refreshStreak } = streak;
+  const { xp, gems, toast } = useGamification();
   const { activeCelebration, dismissCelebration } = useCelebrations(xp.level);
   const { unreadCount: inAppUnreadCount } = useInAppNotifications();
 
@@ -35,9 +34,6 @@ function DashboardHeader({ toggleSidebar }) {
   const [searchResults, setSearchResults] = useState([]);
   const [searching, setSearching] = useState(false);
   const [aiSuggestionsOpen, setAiSuggestionsOpen] = useState(false);
-
-  const [streakDropdownOpen, setStreakDropdownOpen] = useState(false);
-  const streakCloseTimer = useRef(null);
 
   const [xpDropdownOpen, setXpDropdownOpen] = useState(false);
   const xpCloseTimer = useRef(null);
@@ -51,22 +47,12 @@ function DashboardHeader({ toggleSidebar }) {
   const hour = new Date().getHours();
   const timeOfDay = hour < 12 ? "Morning" : hour < 18 ? "Afternoon" : "Evening";
 
-  const activeFriendStreaks = profile?.active_friend_streaks ?? 0;
-
   const xpPoints = xp.total;
   const xpLevel = xp.level;
   const xpToNextLevel = xp.xpToNextLevel;
   const xpProgressPercent = xp.xpProgressPercent;
 
   const gemsCount = gems.balance;
-
-  const getMotivationalText = () => {
-    if (streakLoading) return "Loading streak...";
-    if (streakError) return "Unable to load streak";
-    if (todayCompleted) return "Streak safe for today!";
-    if (currentStreak === 0) return "Start a new streak today!";
-    return "Study today to keep it going!";
-  };
 
   useEffect(() => {
     const refreshNotifications = () => setNotifications(getStoredNotifications());
@@ -101,7 +87,6 @@ function DashboardHeader({ toggleSidebar }) {
       );
 
       if (event.key === "Escape") {
-        setStreakDropdownOpen(false);
         setXpDropdownOpen(false);
         setGemsDropdownOpen(false);
         setMenuOpen(false);
@@ -122,7 +107,6 @@ function DashboardHeader({ toggleSidebar }) {
 
   useEffect(() => {
     return () => {
-      clearTimeout(streakCloseTimer.current);
       clearTimeout(xpCloseTimer.current);
       clearTimeout(gemsCloseTimer.current);
     };
@@ -152,26 +136,8 @@ function DashboardHeader({ toggleSidebar }) {
     }
   };
 
-  const openStreakDropdown = () => {
-    clearTimeout(streakCloseTimer.current);
-    setXpDropdownOpen(false);
-    setGemsDropdownOpen(false);
-    setStreakDropdownOpen(true);
-  };
-
-  const closeStreakDropdown = () => {
-    streakCloseTimer.current = setTimeout(() => setStreakDropdownOpen(false), 150);
-  };
-
-  const toggleStreakDropdownMobile = () => {
-    setXpDropdownOpen(false);
-    setGemsDropdownOpen(false);
-    setStreakDropdownOpen((prev) => !prev);
-  };
-
   const openXpDropdown = () => {
     clearTimeout(xpCloseTimer.current);
-    setStreakDropdownOpen(false);
     setGemsDropdownOpen(false);
     setXpDropdownOpen(true);
   };
@@ -182,7 +148,6 @@ function DashboardHeader({ toggleSidebar }) {
 
   const openGemsDropdown = () => {
     clearTimeout(gemsCloseTimer.current);
-    setStreakDropdownOpen(false);
     setXpDropdownOpen(false);
     setGemsDropdownOpen(true);
   };
@@ -213,27 +178,15 @@ function DashboardHeader({ toggleSidebar }) {
   const openSearchResult = (result) => {
     setSearchOpen(false);
     if (result.kind === "Resource") navigate("/Library");
-    else if (result.session_id) navigate(`/Study/${result.session_id}${result.kind === "Note" ? `/notes/${result.id}` : ""}`);
+    else if (result.session_id) navigate(`/courses/${result.session_id}${result.kind === "Note" ? `/notes/${result.id}` : ""}`);
   };
-
-  const isSocietyUnlocked = (currentStreak ?? 0) >= 7;
-
-  const getNextStreakMilestoneInfo = (streakVal) => {
-    const val = Number(streakVal) || 0;
-    if (val < 7) return { target: 7, daysLeft: 7 - val, label: "7-day Streak Society" };
-    if (val < 30) return { target: 30, daysLeft: 30 - val, label: "30-day 2x Gem Multiplier" };
-    if (val < 100) return { target: 100, daysLeft: 100 - val, label: "100-day Centurion Badge" };
-    return { target: 365, daysLeft: Math.max(0, 365 - val), label: "365-day Legend" };
-  };
-
-  const nextMilestone = getNextStreakMilestoneInfo(currentStreak);
 
   return <>
     <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden">
           {typeof toggleSidebar === "function" && (
-            <button type="button" title="Open sidebar" onClick={toggleSidebar} className="flex min-h-11 min-w-11 items-center justify-center rounded-full text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 dark:text-slate-300 dark:hover:bg-emerald-950/40">
+            <button type="button" title="Open sidebar" aria-label="Open sidebar" onClick={toggleSidebar} className="flex min-h-11 min-w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-emerald-950/40">
               <Menu className="h-4 w-4" />
             </button>
           )}
@@ -245,157 +198,19 @@ function DashboardHeader({ toggleSidebar }) {
 
       <div className="flex min-w-0 items-center gap-1.5 text-xs text-slate-900 sm:gap-2 dark:text-slate-100">
         <div className="relative">
-          <button type="button" title="Open AI suggestions" onClick={() => setAiSuggestionsOpen((open) => !open)} className="hidden rounded-full p-2 text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 sm:inline-flex dark:text-slate-300 dark:hover:bg-emerald-950/40">
+          <button type="button" title="Open AI suggestions" aria-label="Toggle AI suggestions" aria-expanded={aiSuggestionsOpen} onClick={() => setAiSuggestionsOpen((open) => !open)} className="hidden h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-emerald-100 hover:text-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:inline-flex dark:text-slate-300 dark:hover:bg-emerald-950/40">
             <Menu className="h-4 w-4" />
           </button>
-          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="rounded-full bg-white p-1.5 text-slate-500 shadow-overlay hover:text-slate-900 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
+          {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" aria-label="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
         </div>
 
-        <button type="button" title="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex items-center rounded-full p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
+        <button type="button" title="Search the app" aria-label="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
           <Search className="h-4 w-4 text-sky-700 dark:text-sky-400" />
           <span className="hidden text-xs font-semibold sm:inline">Search</span>
           <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex dark:bg-slate-800/80 dark:text-sky-300">
             <Command className="h-3 w-3" />K
           </span>
         </button>
-
-        {/* Streak Button & Dropdown */}
-        <div
-          className="relative inline-block"
-          onMouseEnter={openStreakDropdown}
-          onMouseLeave={closeStreakDropdown}
-        >
-          <button
-            type="button"
-            onClick={toggleStreakDropdownMobile}
-            aria-label={`Study streak: ${streakLoading || currentStreak === null ? "loading" : streakError ? "error" : `${currentStreak} days`}`}
-            aria-expanded={streakDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-orange-200 px-3 py-1.5 font-bold text-orange-950 shadow-surface transition hover:bg-orange-300 dark:bg-orange-500/15 dark:text-orange-300 dark:hover:bg-orange-500/25"
-          >
-            <Flame className="animate-streak-pop h-3.5 w-3.5 text-orange-600 dark:text-orange-400" />
-            <span>{streakLoading || currentStreak === null ? "–" : streakError ? "–" : `${currentStreak}d`}</span>
-          </button>
-
-          {streakDropdownOpen && (
-            <div className="motion-dialog absolute right-0 top-11 z-[210] w-80 overflow-hidden rounded-2xl bg-white shadow-overlay dark:bg-[#18211f]">
-              <div className="relative overflow-hidden bg-amber-100 p-5 dark:bg-amber-500/10">
-                <Flame className="absolute -right-3 -top-2 h-24 w-24 text-amber-300/60 dark:text-amber-500/15" />
-                <div className="relative flex items-center justify-between">
-                  <p className="text-2xl font-extrabold text-amber-600 dark:text-amber-300">
-                    {streakLoading ? "– day streak" : streakError ? "– day streak" : `${currentStreak} day streak`}
-                  </p>
-                  {streakError && (
-                    <button
-                      type="button"
-                      onClick={() => refreshStreak()}
-                      className="inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-xs font-bold text-rose-700 hover:bg-rose-200 dark:bg-rose-950/60 dark:text-rose-300"
-                      title="Retry fetching streak"
-                    >
-                      <RefreshCw className="h-3 w-3" /> Retry
-                    </button>
-                  )}
-                  {freezeTokens > 0 && !streakError && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-blue-100 px-2.5 py-1 text-xs font-bold text-blue-700 dark:bg-blue-950/60 dark:text-blue-300" title={`${freezeTokens} Streak Freeze Token(s) available`}>
-                      <Snowflake className="h-3.5 w-3.5 text-blue-500" />
-                      {freezeTokens}
-                    </span>
-                  )}
-                </div>
-                <p className="relative mt-1 text-xs font-medium text-slate-600 dark:text-slate-300">
-                  {getMotivationalText()}
-                </p>
-
-                {/* 7-day Weekday Row */}
-                <div className="relative mt-4 flex items-center justify-between rounded-xl bg-white px-3 py-3 shadow-surface dark:bg-white/5">
-                  {(weekDays || []).map((day, index) => {
-                    return (
-                      <div key={`${day.label}-${index}`} className="flex flex-col items-center gap-1.5">
-                        <span className={`text-[11px] font-bold ${day.isToday ? "text-orange-600 dark:text-orange-400" : "text-slate-400 dark:text-slate-500"}`}>
-                          {day.label}
-                        </span>
-
-                        {day.state === "completed" && (
-                          <div className="relative flex h-7 w-7 items-center justify-center rounded-full bg-orange-100 shadow-surface dark:bg-orange-500/20">
-                            <img src="/streak.svg" alt="Streak completed" className="animate-streak-pop h-5 w-5 object-contain" />
-                          </div>
-                        )}
-
-                        {day.state === "frozen" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/40" title="Streak frozen">
-                            <Snowflake className="h-4 w-4 text-blue-600 dark:text-blue-300" />
-                          </div>
-                        )}
-
-                        {day.state === "today-pending" && (
-                          <div className="animate-streak-pulse flex h-7 w-7 items-center justify-center rounded-full bg-transparent" title="Study today to keep your streak">
-                            <span className="h-2 w-2 rounded-full bg-orange-500 dark:bg-orange-400" />
-                          </div>
-                        )}
-
-                        {day.state === "missed" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800/40" title="Missed day">
-                            <span className="h-1.5 w-1.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                          </div>
-                        )}
-
-                        {day.state === "future" && (
-                          <div className="flex h-7 w-7 items-center justify-center rounded-full" title="Upcoming day">
-                            <span className="h-1 w-1 rounded-full bg-slate-200 dark:bg-slate-700" />
-                          </div>
-                        )}
-
-                        <span className="sr-only">{`Day ${day.label}: ${day.state}`}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-
-                <div className="relative mt-3 flex items-center justify-between text-[11px] font-semibold text-slate-600 dark:text-slate-400">
-                  <span>Longest Streak: <strong className="text-amber-700 dark:text-amber-300">{streakLoading || streakError || longestStreak === null ? "–" : `${longestStreak} days`}</strong></span>
-                  <span>Freezes: <strong className="text-blue-600 dark:text-blue-300">{freezeTokens}</strong></span>
-                </div>
-
-                {!streakLoading && !streakError && currentStreak !== null && (
-                  <div className="relative mt-2 text-center text-[11px] font-bold text-amber-800 dark:text-amber-300 bg-amber-200/60 dark:bg-amber-500/20 py-1.5 px-2.5 rounded-lg">
-                    {nextMilestone.daysLeft > 0
-                      ? `${nextMilestone.daysLeft} day${nextMilestone.daysLeft === 1 ? "" : "s"} away from ${nextMilestone.label}!`
-                      : `Achieved ${nextMilestone.label}! Keep it up!`}
-                  </div>
-                )}
-              </div>
-
-              {/* Friend Streaks Card */}
-              <div className="m-3 flex items-center gap-3 rounded-2xl bg-orange-500 p-4 shadow-surface dark:bg-orange-600/80">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/15">
-                  <Users className="h-5 w-5 text-white" />
-                </span>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-bold text-white">Friend Streaks</p>
-                  <p className="text-xs text-orange-50">{activeFriendStreaks} active Friend Streaks</p>
-                </div>
-                <button type="button" onClick={() => navigate("/Community")} className="shrink-0 rounded-full bg-white px-3 py-1.5 text-[11px] font-bold text-orange-600 shadow-surface transition hover:bg-orange-50">
-                  VIEW LIST
-                </button>
-              </div>
-
-              {/* Streak Society Card */}
-              <div className={`mx-3 mb-3 flex items-start gap-3 rounded-2xl p-4 transition shadow-surface ${isSocietyUnlocked ? "bg-amber-50/80 dark:bg-amber-950/30" : "bg-slate-50 dark:bg-slate-800/40"}`}>
-                <span className={`mt-0.5 rounded-full p-2 ${isSocietyUnlocked ? "bg-amber-200 text-amber-800 dark:bg-amber-500/20 dark:text-amber-300" : "bg-slate-100 text-slate-400 dark:bg-white/10"}`}>
-                  {isSocietyUnlocked ? <CheckCircle2 className="h-4 w-4" /> : <Lock className="h-4 w-4" />}
-                </span>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <p className={`text-sm font-bold ${isSocietyUnlocked ? "text-amber-900 dark:text-amber-200" : "text-slate-900 dark:text-white"}`}>Streak Society</p>
-                    {isSocietyUnlocked && <span className="rounded-full bg-amber-200 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-900 dark:bg-amber-500/30 dark:text-amber-200">Unlocked</span>}
-                  </div>
-                  <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">
-                    {isSocietyUnlocked ? "Congratulations! You are a member of the Streak Society with 2x bonus rewards." : "Reach a 7 day streak to join the Streak Society and earn exclusive rewards."}
-                  </p>
-                </div>
-              </div>
-            </div>
-          )}
-        </div>
 
         {/* XP Button & Dropdown */}
         <div
@@ -408,7 +223,7 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setXpDropdownOpen((prev) => !prev)}
             aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
             aria-expanded={xpDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-surface transition hover:bg-amber-300 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl bg-amber-200 px-3 py-1.5 font-bold text-amber-950 shadow-sm transition hover:bg-amber-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-amber-500/15 dark:text-amber-300 dark:hover:bg-amber-500/25"
           >
             <Zap className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400" />{xpPoints} XP
           </button>
@@ -462,7 +277,7 @@ function DashboardHeader({ toggleSidebar }) {
             onClick={() => setGemsDropdownOpen((prev) => !prev)}
             aria-label={`Gems balance: ${gemsCount}`}
             aria-expanded={gemsDropdownOpen}
-            className="inline-flex cursor-pointer items-center gap-1.5 rounded-2xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-surface transition hover:bg-cyan-300 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
+            className="inline-flex min-h-11 cursor-pointer items-center gap-1.5 rounded-xl bg-cyan-200 px-3 py-1.5 font-bold text-cyan-950 shadow-sm transition hover:bg-cyan-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-cyan-500/15 dark:text-cyan-300 dark:hover:bg-cyan-500/25"
           >
             <GemIcon className="h-3.5 w-3.5 text-cyan-600 dark:text-cyan-400" />{gemsCount}
           </button>
@@ -500,20 +315,21 @@ function DashboardHeader({ toggleSidebar }) {
         <button
           type="button"
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => toggleDarkMode(!darkMode)}
-          className="inline-flex rounded-full p-2 text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 dark:text-slate-300 dark:hover:bg-violet-950/40"
+          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-violet-950/40"
         >
           {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        <button type="button" title="Notifications" onClick={handleNotificationsClick} className="relative rounded-full p-2 text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 dark:text-slate-300 dark:hover:bg-rose-950/40">
+        <button type="button" title="Notifications" aria-label={`Notifications${totalUnreadCount > 0 ? `, ${totalUnreadCount} unread` : ""}`} onClick={handleNotificationsClick} className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-rose-950/40">
           <Bell className="h-4 w-4" />
           {totalUnreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(totalUnreadCount, 9)}</span>}
         </button>
 
         {/* Profile Avatar */}
         <div className="relative">
-          <button type="button" title="Profile menu" onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full bg-emerald-200 text-emerald-900 shadow-surface transition hover:bg-emerald-300 dark:bg-emerald-800 dark:text-emerald-100">
+          <button type="button" title="Profile menu" aria-label="Open profile menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-800 dark:text-emerald-100">
             {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
           </button>
           {menuOpen && (
@@ -556,7 +372,7 @@ function DashboardHeader({ toggleSidebar }) {
           <form onSubmit={runSearch} className="flex items-center gap-3 px-5 py-4 bg-slate-50/50 dark:bg-slate-800/30">
             <Search className="h-5 w-5 text-slate-400" />
             <input autoFocus value={searchTerm} onChange={(event) => setSearchTerm(event.target.value)} placeholder="Search notes, flashcards, and resources" className="min-w-0 flex-1 text-base outline-none dark:bg-slate-900 dark:text-slate-100" />
-            <button type="button" onClick={() => setSearchOpen(false)} title="Close search" className="rounded-full p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700 dark:hover:bg-slate-800 dark:hover:text-slate-200">
+            <button type="button" onClick={() => setSearchOpen(false)} title="Close search" aria-label="Close search" className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:hover:bg-slate-800 dark:hover:text-slate-200">
               <X className="h-4 w-4" />
             </button>
           </form>

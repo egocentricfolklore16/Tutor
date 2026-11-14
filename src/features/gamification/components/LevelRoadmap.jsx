@@ -436,13 +436,15 @@ export function LevelRoadmap({
 
       {/* Floating Jump to My Level Button */}
       {showScrollFab && (
-        <button
-          type="button"
-          onClick={() => scrollToCurrentLevel(true)}
-          className="fixed bottom-6 right-6 z-40 flex items-center gap-2 rounded-full bg-amber-500 px-4 py-2.5 text-xs font-black text-white shadow-2xl hover:bg-amber-600 dark:bg-amber-600 dark:hover:bg-amber-700 transition animate-bounce-gentle"
-        >
-          <ArrowUp className="h-4 w-4" /> Jump to Level {level}
-        </button>
+        <div className="fixed bottom-20 right-4 z-40 pb-[env(safe-area-inset-bottom)] md:bottom-6 md:right-6">
+          <button
+            type="button"
+            onClick={() => scrollToCurrentLevel(true)}
+            className="flex min-h-11 max-w-[calc(100vw-2rem)] items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-xs font-black text-white shadow-sm transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-amber-600 dark:hover:bg-amber-700 motion-safe:animate-bounce-gentle motion-reduce:transition-none"
+          >
+            <ArrowUp className="h-4 w-4 shrink-0" /> Jump to Level {level}
+          </button>
+        </div>
       )}
 
       {/* Node Details Bottom Sheet / Popover Modal */}

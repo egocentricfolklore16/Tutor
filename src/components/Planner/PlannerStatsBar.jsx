@@ -8,27 +8,24 @@ const cards = [
     label: "THIS WEEK",
     subtext: "tasks done",
     icon: CalendarCheck2,
-    color: "blue",
-    background: "bg-blue-50 dark:bg-blue-500/10",
-    iconColor: "text-blue-600 dark:text-blue-400",
+    background: "bg-emerald-50 dark:bg-emerald-500/10",
+    iconColor: "text-emerald-600 dark:text-emerald-400",
   },
   {
     key: "pomodoros",
     label: "THIS WEEK",
     subtext: "pomodoros",
     icon: Flame,
-    color: "pink",
-    background: "bg-pink-50 dark:bg-pink-500/10",
-    iconColor: "text-pink-600 dark:text-pink-400",
+    background: "bg-sky-50 dark:bg-sky-500/10",
+    iconColor: "text-sky-600 dark:text-sky-400",
   },
   {
     key: "exams",
     label: "THIS WEEK",
     subtext: "exams & deadlines",
     icon: GraduationCap,
-    color: "purple",
-    background: "bg-purple-50 dark:bg-purple-500/10",
-    iconColor: "text-purple-600 dark:text-purple-400",
+    background: "bg-amber-50 dark:bg-amber-500/10",
+    iconColor: "text-amber-600 dark:text-amber-400",
   },
 ];
 
@@ -84,13 +81,13 @@ function PlannerStatsBar() {
   };
 
   return (
-    <section className="mb-6 grid grid-cols-3 gap-2 sm:gap-4" aria-label="This week planner statistics">
+    <section className="grid grid-cols-3 gap-2 sm:gap-4" aria-label="This week planner statistics">
       {cards.map(({ key, label, subtext, icon: Icon, background, iconColor }) => (
-        <div key={key} className={`relative min-h-32 min-w-0 rounded-2xl ${background} p-3 sm:p-5`}>
-          <div className={`absolute right-2 top-2 flex h-7 w-7 items-center justify-center rounded-full bg-white sm:right-4 sm:top-4 sm:h-9 sm:w-9 ${iconColor}`}><Icon className="h-3.5 w-3.5 sm:h-4 sm:w-4" /></div>
-          <p className={`text-xs font-bold uppercase tracking-[0.18em] ${iconColor}`}>{label}</p>
-          <p className="mt-8 truncate text-2xl font-bold leading-none text-slate-950 sm:mt-5 sm:text-3xl">{values[key]}</p>
-          <p className="mt-2 truncate text-[11px] font-medium text-slate-600 sm:text-sm">{subtext}</p>
+        <div key={key} className={`relative min-h-32 min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80 sm:p-4`}>
+          <div className={`absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-xl bg-slate-50 sm:right-4 sm:top-4 sm:h-10 sm:w-10 dark:bg-slate-800 ${iconColor}`}><Icon className="h-5 w-5" /></div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{label}</p>
+          <p className="mt-8 truncate text-2xl font-bold leading-none text-slate-900 dark:text-slate-50 sm:mt-6 sm:text-3xl">{values[key]}</p>
+          <p className="mt-2 truncate text-sm leading-6 text-slate-600 dark:text-slate-300">{subtext}</p>
         </div>
       ))}
     </section>

@@ -268,26 +268,28 @@ const PlannerPage = () => {
   return (
     <PageContainer maxWidth="max-w-7xl">
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-[120] flex items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-overlay animate-fade-in dark:bg-white dark:text-slate-900">
-          <CheckCircle className="h-4 w-4 text-emerald-400 dark:text-emerald-600" />
-          <span>{toastMessage}</span>
+        <div className="fixed bottom-20 left-4 right-4 z-[120] pb-[env(safe-area-inset-bottom)] motion-safe:animate-fade-in md:bottom-6 md:left-auto md:right-6 md:max-w-md">
+          <div role="status" className="flex max-w-full items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm dark:bg-white dark:text-slate-900">
+            <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400 dark:text-emerald-600" />
+            <span className="break-words">{toastMessage}</span>
+          </div>
         </div>
       )}
 
       {/* Header */}
       <div className="mb-6 flex items-start justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="flex items-center gap-2 truncate text-2xl font-bold text-gray-900 lg:text-3xl dark:text-white">
-            <CalendarDays className="h-6 w-6 shrink-0 text-blue-600" />
+          <h1 className="flex items-center gap-2 truncate text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">
+            <CalendarDays className="h-6 w-6 shrink-0 text-emerald-600 dark:text-emerald-400" />
             Study Planner
           </h1>
-          <p className="mt-1 truncate text-sm text-gray-600 dark:text-gray-400">
+          <p className="mt-1 truncate text-sm leading-6 text-slate-600 dark:text-slate-300">
             Plan your week and track progress
           </p>
         </div>
         <button
           onClick={() => handleAddActivity(selectedDate)}
-          className="hidden min-h-11 shrink-0 items-center space-x-2 rounded-full bg-orange-500 px-4 py-2 text-sm font-semibold text-white shadow-button-primary hover:bg-orange-600 disabled:opacity-50 lg:inline-flex"
+          className="hidden min-h-11 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none lg:inline-flex"
           disabled={isLoadingSessions}
         >
           <Plus className="w-4 h-4" />
@@ -299,7 +301,7 @@ const PlannerPage = () => {
         type="button"
         onClick={() => handleAddActivity(selectedDate)}
         disabled={isLoadingSessions}
-        className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-orange-500 px-4 py-3 text-sm font-semibold text-white shadow-button-primary hover:bg-orange-600 disabled:opacity-50 lg:hidden"
+        className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none lg:hidden"
       >
         <Plus className="h-4 w-4" />
         Create new
@@ -310,13 +312,13 @@ const PlannerPage = () => {
       </div>
 
       {fetchError && (
-        <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-xl shadow-surface dark:bg-red-950/40 dark:text-red-300">
-          <div className="flex items-center justify-between">
+        <div role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
+          <div className="min-w-0">
             <span>{fetchError}</span>
-            <button onClick={() => refetch()} className="text-red-800 hover:text-red-900 font-bold underline">
-              Retry
-            </button>
           </div>
+          <button type="button" onClick={() => refetch()} className="inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl px-3 text-sm font-semibold text-rose-700 underline underline-offset-2 transition hover:bg-rose-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-rose-200 dark:hover:bg-rose-900/50 motion-reduce:transition-none">
+            Retry
+          </button>
         </div>
       )}
 
@@ -324,13 +326,7 @@ const PlannerPage = () => {
         <LoadingSpinner />
       ) : (
         <>
-          <PlannerStatsBar />
-          <DeadlineManager
-            sessions={visibleActivities}
-            onAddActivity={() => handleAddActivity(selectedDate, "deadline")}
-          />
-
-          <div className="mb-6 rounded-2xl bg-slate-50 p-2 sm:bg-white sm:py-2 dark:bg-slate-900 shadow-surface">
+          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80 sm:p-4">
             <div className="flex min-w-0 items-center gap-1">
               <button
                 type="button"
@@ -339,7 +335,7 @@ const PlannerPage = () => {
                   setCurrentDate(today);
                   setSelectedDate(today);
                 }}
-                className="min-h-11 shrink-0 rounded-full bg-blue-50 px-4 py-2.5 text-xs font-semibold text-blue-700 transition hover:bg-blue-100 dark:bg-blue-950/50 dark:text-blue-300 sm:text-sm"
+                className="min-h-11 shrink-0 rounded-xl bg-emerald-100 px-4 py-2.5 text-xs font-semibold text-emerald-800 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25 motion-reduce:transition-none sm:text-sm"
               >
                 Today
               </button>
@@ -348,7 +344,7 @@ const PlannerPage = () => {
                 onClick={() => navigateWeek(-1)}
                 title="Previous week"
                 aria-label="Previous week"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 transition hover:text-slate-900 shadow-surface dark:bg-slate-900 dark:text-slate-300"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white motion-reduce:transition-none"
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
@@ -357,35 +353,35 @@ const PlannerPage = () => {
                 onClick={() => navigateWeek(1)}
                 title="Next week"
                 aria-label="Next week"
-                className="flex min-h-11 min-w-11 shrink-0 items-center justify-center rounded-full bg-white text-slate-600 transition hover:text-slate-900 shadow-surface dark:bg-slate-900 dark:text-slate-300"
+                className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white motion-reduce:transition-none"
               >
                 <ChevronRight className="h-4 w-4" />
               </button>
-              <h2 className="min-w-0 flex-1 text-center text-sm font-bold text-slate-900 sm:text-xl dark:text-white">
+              <h2 className="min-w-0 flex-1 text-center text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
                 {formatWeekRange()}
               </h2>
             </div>
             <div className="mt-2 grid grid-cols-3 gap-2">
-              <label className="inline-flex min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs text-slate-600 shadow-surface sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300">
-                <CalendarDays className="h-4 w-4 text-slate-500" />
+              <label className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-slate-50 px-2 py-2 text-xs text-slate-600 sm:gap-2 sm:px-4 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">
+                <CalendarDays className="h-4 w-4 shrink-0 text-slate-500" />
                 <span className="sr-only">Select date</span>
                 <input
                   type="date"
                   value={selectedDate.toISOString().slice(0, 10)}
                   onChange={setPlannerDate}
-                  className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-700 outline-none sm:text-xs dark:text-slate-200"
+                  className="min-w-0 w-full bg-transparent text-[10px] font-semibold text-slate-900 outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:text-xs dark:text-slate-100"
                 />
               </label>
               <button
                 type="button"
-                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-surface transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
+                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:gap-2 sm:px-4 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
               >
                 <Filter className="h-4 w-4 text-slate-500" />
                 Filter
               </button>
               <button
                 type="button"
-                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-full bg-white px-2 py-2 text-xs font-semibold text-slate-600 shadow-surface transition hover:bg-slate-50 sm:gap-2 sm:px-4 sm:text-sm dark:bg-slate-800 dark:text-slate-300"
+                className="inline-flex min-h-11 min-w-0 items-center justify-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:gap-2 sm:px-4 sm:text-sm dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
               >
                 <Timer className="h-4 w-4 text-slate-500" />
                 Focus
@@ -407,6 +403,12 @@ const PlannerPage = () => {
               onMarkStatus={handleMarkStatus}
             />
           </div>
+
+            <PlannerStatsBar />
+            <DeadlineManager
+              sessions={visibleActivities}
+              onAddActivity={() => handleAddActivity(selectedDate, "deadline")}
+            />
 
           <div className="mb-6 flex flex-col gap-4">
             <RecurringSetup

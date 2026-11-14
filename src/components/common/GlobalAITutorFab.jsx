@@ -46,19 +46,19 @@ const GlobalAITutorFab = ({ session: _session }) => {
 
   return (
     <>
-      <div className="fixed bottom-20 right-4 z-[2000] pb-[env(safe-area-inset-bottom)] pr-[env(safe-area-inset-right)] md:bottom-6 md:right-6">
+      <div className="flex w-full justify-end">
         <button
           type="button"
           onClick={handleToggle}
           aria-label="Open Lumo"
           title="Open Lumo"
-          className="group relative inline-flex items-center gap-2.5 rounded-full bg-slate-900 px-4 py-2.5 text-white shadow-xl transition-all duration-300 hover:scale-[1.02] hover:shadow-2xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2 dark:bg-slate-800 dark:focus:ring-offset-slate-900"
+          className="group relative inline-flex min-h-11 items-center gap-2.5 rounded-xl bg-slate-900 px-4 py-2.5 text-white shadow-sm transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-slate-800 dark:focus-visible:ring-offset-slate-900 motion-reduce:transition-none"
         >
           <div className="relative flex items-center justify-center">
-            <LumoAvatar size="sm" state={lumoState} className="transition-transform duration-300 group-hover:rotate-6" />
+            <LumoAvatar size="sm" state={lumoState} className="motion-safe:transition-transform motion-safe:duration-300 group-hover:rotate-6" />
             {hasUnread && (
               <span className="absolute -top-1 -right-1 flex h-2.5 w-2.5">
-                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75" />
+                <span className="absolute inline-flex h-full w-full motion-safe:animate-ping rounded-full bg-amber-400 opacity-75" />
                 <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-amber-500" />
               </span>
             )}
@@ -71,10 +71,10 @@ const GlobalAITutorFab = ({ session: _session }) => {
         <div
           className={
             mode === "closed"
-              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[3000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[3000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out motion-reduce:transition-none"
               : mode === "fullpage"
-              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
-              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out"
+              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
+              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
           }
         >
           <AITutorChat
@@ -92,7 +92,6 @@ const GlobalAITutorFab = ({ session: _session }) => {
             profile={profile}
             onActionExecute={handleActionExecute}
             width={mode === "fullpage" ? "100%" : 380}
-            theme={{ accentButton: "bg-gradient-to-r from-violet-500 to-indigo-500 hover:from-violet-600 hover:to-indigo-600", accentBg: "bg-violet-100 dark:bg-violet-900/40" }}
           />
         </div>,
         document.body

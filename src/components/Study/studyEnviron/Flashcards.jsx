@@ -141,7 +141,7 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   const saveCard = async (event) => {
     event.preventDefault();
     if (!studyId) {
-      setError("Active study session required to save flashcards.");
+      setError("An active course is required to save flashcards.");
       return;
     }
     const question = normalizeCardValue(form.question, "question");

@@ -7,7 +7,7 @@ const AITutorContext = createContext(null);
 
 function mapPathToScreen(pathname) {
   if (!pathname || pathname === "/" || pathname.startsWith("/Dashboard")) return "dashboard";
-  if (pathname.startsWith("/Study")) return "study_session";
+  if (pathname.startsWith("/courses")) return "study_session";
   if (pathname.startsWith("/Planner")) return "calendar";
   if (pathname.startsWith("/Library")) return "library";
   if (pathname.startsWith("/Progress")) return "progress";

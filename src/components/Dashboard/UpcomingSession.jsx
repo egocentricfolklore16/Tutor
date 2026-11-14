@@ -165,7 +165,7 @@ const UpcomingSessions = () => {
   };
 
   const handleStartSession = (sessionId) => {
-    window.location.href = `/Study/${sessionId}`;
+    window.location.href = `/courses/${sessionId}`;
   };
 
   if (isLoading) {
@@ -206,7 +206,7 @@ const UpcomingSessions = () => {
         </h2>
         <button
           className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 font-medium cursor-pointer"
-          onClick={() => (window.location.href = "/Study")}
+          onClick={() => (window.location.href = "/courses")}
         >
           View All
         </button>
@@ -217,7 +217,7 @@ const UpcomingSessions = () => {
           <Calendar className="h-12 w-12 text-gray-300 dark:text-slate-600 mx-auto mb-3" />
           <p className="text-gray-500 dark:text-slate-400 font-medium">No upcoming sessions - Schedule one to stay consistent</p>
           <button
-            onClick={() => (window.location.href = "/Study")}
+            onClick={() => (window.location.href = "/courses")}
             className="mt-3 px-4 py-2 bg-blue-600 text-white text-sm rounded-lg hover:bg-blue-700 transition-colors cursor-pointer"
           >
             Create Session

@@ -11,7 +11,7 @@ export function toGoogleEvent(studySession) {
   const end = new Date(toTime(start) + (Number(studySession.duration) || 1) * 60 * 60 * 1000);
   
   return {
-    summary: studySession.title || studySession.subject || "Hyper Tutor Study Session",
+    summary: studySession.title || studySession.subject || "Hyper Tutor Course",
     description: `Planned In Hyper Tutor${studySession.subject ? `\nSubject: ${studySession.subject}` : ""}`,
     start: { 
       dateTime: start.toISOString(), 

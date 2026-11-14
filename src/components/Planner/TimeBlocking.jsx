@@ -4,26 +4,25 @@ import { Plus, Trash2 } from 'lucide-react';
 const TimeBlocking = ({ blockedTimes = [], onAddActivity, onDeleteBlock }) => {
 
   return (
-    <section className="group relative w-full overflow-hidden rounded-3xl bg-white p-5 shadow-surface dark:bg-slate-900">
+    <section className="group relative w-full rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80 sm:p-6">
       <div className="mb-4 flex items-start justify-between gap-4">
         <div>
-          <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-600 dark:text-blue-400">Protected time</p>
-          <h3 className="mt-1 text-lg font-bold text-blue-950 dark:text-blue-100">Time Blocking</h3>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Protected time</p>
+          <h3 className="mt-1 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Time Blocking</h3>
         </div>
         <button
           type="button"
           onClick={onAddActivity}
           title="Add time block"
           aria-label="Add time block"
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-blue-300 bg-white text-blue-600 opacity-100 shadow-sm transition-all duration-300 ease-out hover:scale-110 hover:bg-blue-600 hover:text-white dark:border-blue-800 dark:bg-slate-800 dark:text-blue-300 dark:hover:bg-blue-600 dark:hover:text-white md:scale-75 md:opacity-0 md:group-hover:scale-100 md:group-hover:opacity-100"
+          className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-600 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white motion-reduce:transition-none"
         >
           <Plus className="h-4 w-4" />
         </button>
       </div>
       <div className="flex flex-row flex-wrap gap-3">
         {blockedTimes.map((block) => (
-          <div key={block.id} className="relative min-w-[220px] flex-1 rounded-2xl border border-blue-100 bg-white p-4 shadow-sm transition duration-300 hover:-translate-y-0.5 hover:shadow-md dark:border-blue-900/40 dark:bg-slate-800/80">
-            <span className="absolute right-3 top-3 h-2.5 w-2.5 rounded-full bg-blue-500 shadow-sm shadow-blue-500/40" aria-hidden="true" />
+          <div key={block.id} className="relative min-w-[220px] flex-1 rounded-2xl border border-slate-200 bg-slate-50 p-4 shadow-sm dark:border-slate-800 dark:bg-slate-900">
             <div className="pr-5">
               <div className="text-sm font-bold text-slate-900 dark:text-white">{block.purpose || block.title}</div>
               <div className="mt-2 text-xs text-slate-500 dark:text-slate-400">
@@ -33,14 +32,18 @@ const TimeBlocking = ({ blockedTimes = [], onAddActivity, onDeleteBlock }) => {
             <button
               type="button"
               onClick={() => onDeleteBlock(block.id, 'time_block')}
-              className="mt-3 flex items-center gap-1 text-xs font-semibold text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300"
+              className="mt-3 inline-flex min-h-11 items-center gap-2 rounded-xl px-3 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-rose-300 dark:hover:bg-rose-950/50 dark:hover:text-rose-200 motion-reduce:transition-none"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 className="h-4 w-4" />
               Delete
             </button>
           </div>
         ))}
-        {blockedTimes.length === 0 && <p className="text-sm text-blue-800 dark:text-blue-300">No protected time blocks set up.</p>}
+        {blockedTimes.length === 0 && (
+          <div className="flex min-h-[180px] w-full flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-900/80">
+            <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">No protected time blocks set up.</p>
+          </div>
+        )}
       </div>
     </section>
   );

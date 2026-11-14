@@ -83,10 +83,10 @@ function LibraryItem({
         onKeyDown={handleCardKeyDown}
         tabIndex={onPreview ? 0 : undefined}
         aria-label={onPreview ? `Preview ${title}` : undefined}
-        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl bg-white p-5 shadow-surface hover:shadow-surface-hover transition-all focus-visible:outline-none focus-visible:shadow-focus dark:bg-[#18211f] sm:flex-row sm:items-start ${onPreview ? "cursor-pointer" : ""}`}
+        className={`group relative flex min-h-[140px] w-full min-w-0 flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 transition dark:border-slate-800 dark:bg-slate-900/80 sm:flex-row sm:items-start ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70" : ""}`}
       >
         <div className="flex min-w-0 flex-1 items-start gap-3">
-          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl shadow-surface ${tileClass}`}>
+          <div className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-xl ${tileClass}`}>
             {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
           </div>
           <div className="min-w-0 flex-1">
@@ -99,7 +99,7 @@ function LibraryItem({
             {children && <div className="mt-3 min-w-0">{children}</div>}
           </div>
         </div>
-        <div className="flex shrink-0 items-center justify-end gap-1 pt-2 sm:pt-0">{actions}</div>
+        <div className="flex shrink-0 items-center justify-end gap-2 pt-2 sm:pt-0">{actions}</div>
       </article>
     );
   }
@@ -110,17 +110,17 @@ function LibraryItem({
       onKeyDown={handleCardKeyDown}
       tabIndex={onPreview ? 0 : undefined}
       aria-label={onPreview ? `Preview ${title}` : undefined}
-      className={`flex h-full min-w-0 flex-col rounded-2xl bg-white p-4 shadow-surface hover:shadow-surface-hover transition-all dark:bg-[#18211f] sm:p-5 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:shadow-focus" : ""}`}
+      className={`flex h-full min-w-0 flex-col rounded-2xl border border-slate-200 bg-white p-4 transition dark:border-slate-800 dark:bg-slate-900/80 ${onPreview ? "cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70" : ""}`}
     >
       <div className="flex min-w-0 items-start gap-3">
-        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl shadow-surface ${tileClass}`}>
+        <div className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-xl ${tileClass}`}>
           {React.createElement(Icon, { className: `h-5 w-5 ${iconClass}`, "aria-hidden": true })}
         </div>
         <div className="min-w-0 flex-1">
           <h3 className="truncate font-bold text-slate-900 dark:text-slate-100" title={title}>{title}</h3>
           <p className="mt-0.5 text-[10px] text-slate-400 dark:text-slate-500">{date}</p>
         </div>
-        <div className="flex shrink-0 items-center gap-1">{actions}</div>
+        <div className="flex shrink-0 items-center gap-2">{actions}</div>
       </div>
       <div className="mt-3 min-w-0">{category}</div>
       <p className="mt-3 min-h-[3.75rem] min-w-0 line-clamp-3 break-words text-xs leading-5 text-slate-600 dark:text-slate-300">
@@ -293,7 +293,7 @@ function Library({ session }) {
   const renderSessionBadge = (sessionId) => {
     if (!sessionId) {
       return (
-        <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+        <span className="inline-flex max-w-full items-center gap-1 truncate rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-600 dark:bg-slate-800 dark:text-slate-300">
           Standalone Library Item
         </span>
       );
@@ -302,14 +302,14 @@ function Library({ session }) {
     const study = studyById.get(sessionId);
     const label = study
       ? `${study.Subject || "Untitled Subject"}${study.Topic ? ` - ${study.Topic}` : ""}`
-      : "Session Material";
+      : "Course Material";
 
     return (
       <Link
-        to={`/Study/${sessionId}`}
+        to={`/courses/${sessionId}`}
         onClick={(event) => event.stopPropagation()}
-        className="inline-flex max-w-full items-center gap-1 rounded-full bg-indigo-50 px-2.5 py-0.5 text-[10px] font-bold text-indigo-700 transition hover:bg-indigo-100 dark:bg-indigo-950/50 dark:text-indigo-300 dark:hover:bg-indigo-900/60 shadow-xs"
-        title="Open Session"
+        className="inline-flex max-w-full items-center gap-1 rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700 transition hover:bg-emerald-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500/15 dark:text-emerald-300 dark:hover:bg-emerald-500/25 motion-reduce:transition-none"
+        title="Open Course"
       >
         <span className="min-w-0 truncate" title={label}>{label}</span>
         <ArrowRight className="h-3 w-3" />
@@ -638,13 +638,13 @@ function Library({ session }) {
 
   return (
     <PageContainer maxWidth="max-w-7xl">
-        <header className="mb-8 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+        <header className="mb-6 flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
           <div>
-            <div className="mb-2 flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-indigo-600">
-              <LibraryIcon className="h-4 w-4" /> Personal Knowledge Base
+            <div className="mb-2 flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              <LibraryIcon className="h-4 w-4 text-emerald-600 dark:text-emerald-400" /> Personal Knowledge Base
             </div>
-            <h1 className="text-3xl font-black text-slate-900 md:text-4xl">My Library</h1>
-            <p className="mt-2 text-slate-500">
+            <h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">My Library</h1>
+            <p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">
               Your comprehensive repository of notes, flashcards, resources, and quizzes.
             </p>
           </div>
@@ -656,13 +656,14 @@ function Library({ session }) {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search all library items..."
-              className="w-full rounded-xl bg-white py-3 pl-10 pr-4 text-sm outline-none transition shadow-inset-field focus:shadow-focus"
+              aria-label="Search all library items"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 pl-10 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
             />
           </label>
         </header>
 
-        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-100 pb-4">
-          <div className="flex flex-wrap gap-1.5">
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-4 border-b border-slate-200 pb-4 dark:border-slate-800">
+          <div className="flex flex-wrap gap-2">
             {[
               { id: "all", label: `All Items (${totalItemsCount})`, icon: LibraryIcon },
               { id: "notes", label: `Notes (${notes.length})`, icon: FileText },
@@ -676,10 +677,10 @@ function Library({ session }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`inline-flex items-center gap-2 rounded-xl px-3.5 py-2 text-xs font-bold transition shadow-surface ${
+                  className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
                     isActive
-                      ? "bg-slate-900 text-white"
-                      : "bg-white text-slate-600 hover:bg-slate-100"
+                      ? "bg-emerald-600 text-white dark:bg-emerald-500"
+                      : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
                   <Icon className="h-4 w-4" />
@@ -692,30 +693,33 @@ function Library({ session }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-xs font-semibold text-slate-400 mr-1 hidden sm:inline">Add standalone:</span>
             <button
+              type="button"
               onClick={() => setCreationType(creationType === "note" ? null : "note")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-emerald-700 transition"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
             >
-              <Plus className="h-3.5 w-3.5" /> Note
+              <Plus className="h-4 w-4" /> Note
             </button>
             <button
+              type="button"
               onClick={() => setCreationType(creationType === "flashcard" ? null : "flashcard")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-amber-700 transition"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-amber-400 dark:hover:bg-amber-300 motion-reduce:transition-none"
             >
-              <Plus className="h-3.5 w-3.5" /> Flashcard
+              <Plus className="h-4 w-4" /> Flashcard
             </button>
             <button
+              type="button"
               onClick={() => setCreationType(creationType === "resource" ? null : "resource")}
-              className="inline-flex items-center gap-1.5 rounded-lg bg-indigo-600 px-3 py-1.5 text-xs font-bold text-white shadow-button-primary hover:bg-indigo-700 transition"
+              className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-sky-500 dark:hover:bg-sky-400 motion-reduce:transition-none"
             >
-              <Plus className="h-3.5 w-3.5" /> Resource
+              <Plus className="h-4 w-4" /> Resource
             </button>
           </div>
         </div>
 
         {error && (
-          <div className="mb-6 flex items-center justify-between rounded-xl bg-red-50 p-4 text-sm font-medium text-red-700 shadow-surface">
+          <div role="alert" className="mb-6 flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm leading-6 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
             <span>{error}</span>
-            <button onClick={() => setError("")}>
+            <button type="button" onClick={() => setError("")} aria-label="Dismiss library error" className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70">
               <X className="h-4 w-4" />
             </button>
           </div>
@@ -733,28 +737,28 @@ function Library({ session }) {
                 value={noteForm.title}
                 onChange={(e) => setNoteForm({ ...noteForm, title: e.target.value })}
                 placeholder="Note Title"
-                className="w-full rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                 required
               />
               <textarea
                 value={noteForm.content}
                 onChange={(e) => setNoteForm({ ...noteForm, content: e.target.value })}
                 placeholder="Write your note content here..."
-                className="min-h-32 w-full rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
+                className="min-h-32 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                 required
               />
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
                   onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:opacity-50 shadow-button-primary"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Note
                 </button>
@@ -769,14 +773,14 @@ function Library({ session }) {
                   value={flashcardForm.question}
                   onChange={(e) => setFlashcardForm({ ...flashcardForm, question: e.target.value })}
                   placeholder="Front / Question"
-                  className="min-h-24 rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
+                  className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   required
                 />
                 <textarea
                   value={flashcardForm.answer}
                   onChange={(e) => setFlashcardForm({ ...flashcardForm, answer: e.target.value })}
                   placeholder="Back / Answer"
-                  className="min-h-24 rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
+                  className="min-h-24 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                   required
                 />
               </div>
@@ -784,14 +788,14 @@ function Library({ session }) {
                 <button
                   type="button"
                   onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-amber-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-amber-700 disabled:opacity-50 shadow-button-primary"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-amber-400 dark:hover:bg-amber-300 motion-reduce:transition-none"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Flashcard
                 </button>
@@ -805,8 +809,8 @@ function Library({ session }) {
                 <button
                   type="button"
                   onClick={() => setResourceMode("file")}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                    resourceMode === "file" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
+                    resourceMode === "file" ? "bg-emerald-600 text-white dark:bg-emerald-500" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
                   Upload File
@@ -814,8 +818,8 @@ function Library({ session }) {
                 <button
                   type="button"
                   onClick={() => setResourceMode("link")}
-                  className={`px-3 py-1.5 text-xs font-bold rounded-lg transition ${
-                    resourceMode === "link" ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                  className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
+                    resourceMode === "link" ? "bg-emerald-600 text-white dark:bg-emerald-500" : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
                   }`}
                 >
                   Add Link / URL
@@ -823,7 +827,7 @@ function Library({ session }) {
               </div>
 
               {resourceMode === "file" ? (
-                <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500 hover:bg-slate-100 shadow-surface">
+                <label className="flex min-h-11 min-w-0 flex-1 cursor-pointer items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 transition hover:bg-slate-100 focus-within:ring-2 focus-within:ring-emerald-500/70 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 motion-reduce:transition-none">
                   <FileUp className="h-5 w-5 shrink-0 text-slate-400" />
                   <span className="truncate">{selectedFile?.name || "Choose a file to upload (PDF, Word .doc/.docx, image, txt, md, csv - max 10MB)"}</span>
                   <input
@@ -840,7 +844,7 @@ function Library({ session }) {
                     value={linkTitle}
                     onChange={(e) => setLinkTitle(e.target.value)}
                     placeholder="Resource Title"
-                    className="rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500"
                     required
                   />
                   <input
@@ -848,7 +852,7 @@ function Library({ session }) {
                     value={linkUrl}
                     onChange={(e) => setLinkUrl(e.target.value)}
                     placeholder="https://..."
-                    className="rounded-xl bg-slate-50 p-3 text-base outline-none shadow-inset-field focus:shadow-focus sm:col-span-2"
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-200 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100 dark:placeholder:text-slate-500 sm:col-span-2"
                     required
                   />
                 </div>
@@ -858,14 +862,14 @@ function Library({ session }) {
                 <button
                   type="button"
                   onClick={() => setCreationType(null)}
-                  className="rounded-xl px-4 py-2.5 text-xs font-semibold text-slate-600 hover:bg-slate-100"
+                  className="inline-flex min-h-11 items-center justify-center rounded-xl px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="inline-flex items-center gap-2 rounded-xl bg-indigo-600 px-5 py-2.5 text-xs font-bold text-white hover:bg-indigo-700 disabled:opacity-50 shadow-button-primary"
+                  className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-sky-500 dark:hover:bg-sky-400 motion-reduce:transition-none"
                 >
                   {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />} Save Resource
                 </button>
@@ -881,7 +885,7 @@ function Library({ session }) {
           <div
             role="group"
             aria-label="Library view"
-            className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-white p-1 dark:bg-[#18211f] shadow-surface"
+            className="inline-flex shrink-0 items-center gap-1 rounded-2xl bg-slate-100 p-1 dark:bg-slate-900"
           >
             {[
               { view: "grid", label: "Grid view", Icon: LayoutGrid },
@@ -896,9 +900,9 @@ function Library({ session }) {
                   aria-label={label}
                   aria-pressed={isActive}
                   onClick={() => setLibraryView(view)}
-                  className={`inline-flex h-9 w-9 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:shadow-focus ${
+                  className={`inline-flex h-11 w-11 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
                     isActive
-                      ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-300"
+                      ? "bg-white text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300"
                       : "text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
                   }`}
                 >
@@ -910,24 +914,24 @@ function Library({ session }) {
         </div>
 
         {isLoading ? (
-          <div className="flex items-center justify-center rounded-2xl bg-white py-20 dark:bg-[#18211f] shadow-surface">
+          <div className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80">
             <LoadingCompanion message="Loading your library..." />
           </div>
         ) : totalItemsCount === 0 ? (
-          <div className="rounded-2xl bg-white p-16 text-center dark:bg-[#18211f] shadow-surface">
-            <BookOpen className="mx-auto mb-3 h-10 w-10 text-slate-300 dark:text-slate-600" />
-            <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Your Library is Empty</h3>
-            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Create standalone materials or complete study sessions to populate your library.
+          <div className="flex min-h-[180px] flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-900/80">
+            <BookOpen className="mb-3 h-6 w-6 text-slate-500 dark:text-slate-400" />
+            <h3 className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Your Library is Empty</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Create standalone materials or add courses to populate your library.
             </p>
           </div>
         ) : (
-          <div key={libraryView} className="page-enter space-y-10">
+          <div key={libraryView} className="page-enter space-y-8">
             {/* 1. NOTES SECTION */}
             {(activeTab === "all" || activeTab === "notes") && filteredNotes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                <div className="flex items-center justify-between gap-3 pb-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
                     <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" /> Notes ({filteredNotes.length})
                   </h2>
                 </div>
@@ -948,7 +952,7 @@ function Library({ session }) {
                           type="button"
                           onClick={() => handleDeleteNote(note.id)}
                           disabled={deletingId === note.id}
-                          className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                          className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 motion-reduce:transition-none"
                           title="Delete note"
                           aria-label="Delete note"
                         >
@@ -964,8 +968,8 @@ function Library({ session }) {
             {/* 2. FLASHCARDS SECTION */}
             {(activeTab === "all" || activeTab === "flashcards") && filteredFlashcards.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
+                <div className="flex items-center justify-between gap-3 pb-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
                     <Layers3 className="h-5 w-5 text-amber-600 dark:text-amber-400" /> Flashcards ({filteredFlashcards.length})
                   </h2>
                 </div>
@@ -982,7 +986,7 @@ function Library({ session }) {
                         title={card.question}
                         date={new Date(card.created_at).toLocaleDateString()}
                         category={(
-                          <div className="flex min-w-0 items-center gap-1.5">
+                          <div className="flex min-w-0 items-center gap-2">
                             <span className="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
                               {isFlipped ? "Answer" : "Question"}
                             </span>
@@ -995,18 +999,18 @@ function Library({ session }) {
                             <button
                               type="button"
                               onClick={() => handleFlipFlashcard(card)}
-                              className="inline-flex items-center gap-1 rounded-lg px-2 py-1.5 text-[10px] font-bold text-amber-700 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:shadow-focus dark:text-amber-300 dark:hover:bg-amber-950/40 sm:text-xs"
+                              className="inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold text-amber-800 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-amber-200 dark:hover:bg-amber-950/40 motion-reduce:transition-none"
                               title={isFlipped ? "Show question" : "Show answer"}
                               aria-label={isFlipped ? "Show question" : "Show answer"}
                             >
-                              <RotateCcw className="h-3.5 w-3.5" aria-hidden="true" />
+                              <RotateCcw className="h-4 w-4" aria-hidden="true" />
                               <span className="hidden sm:inline">{isFlipped ? "Question" : "Answer"}</span>
                             </button>
                             <button
                               type="button"
                               onClick={() => handleDeleteFlashcard(card.id)}
                               disabled={deletingId === card.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 motion-reduce:transition-none"
                               title="Delete flashcard"
                               aria-label="Delete flashcard"
                             >
@@ -1024,9 +1028,9 @@ function Library({ session }) {
             {/* 3. RESOURCES SECTION */}
             {(activeTab === "all" || activeTab === "resources") && filteredResources.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <BookOpen className="h-5 w-5 text-indigo-600 dark:text-indigo-400" /> Resources ({filteredResources.length})
+                <div className="flex items-center justify-between gap-3 pb-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
+                    <BookOpen className="h-5 w-5 text-sky-600 dark:text-sky-400" /> Resources ({filteredResources.length})
                   </h2>
                 </div>
                 <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
@@ -1039,11 +1043,11 @@ function Library({ session }) {
                           ? Link2
                           : FileUp;
                     const resourceIconClass = res.kind === "youtube"
-                      ? "text-red-600 dark:text-red-400"
+                      ? "text-rose-600 dark:text-rose-300"
                       : res.kind === "document"
-                        ? "text-blue-600 dark:text-blue-400"
+                        ? "text-sky-600 dark:text-sky-400"
                         : res.kind === "link"
-                          ? "text-indigo-600 dark:text-indigo-400"
+                          ? "text-emerald-600 dark:text-emerald-400"
                           : "text-emerald-600 dark:text-emerald-400";
 
                     return <LibraryItem
@@ -1058,12 +1062,12 @@ function Library({ session }) {
                         <div className="flex min-w-0 flex-wrap items-center gap-1.5">
                           {renderSessionBadge(res.session_id)}
                           {getResourceDomain(res.url) && (
-                            <span className="max-w-full truncate rounded-full bg-green-50 px-2.5 py-0.5 text-[10px] font-bold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+                            <span className="max-w-full truncate rounded-full bg-emerald-100 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-500/15 dark:text-emerald-300">
                               {getResourceDomain(res.url)}
                             </span>
                           )}
                           {res.extraction_status && (
-                            <span className={`rounded px-2 py-0.5 text-[10px] font-bold uppercase ${
+                            <span className={`rounded-full px-2 py-1 text-[11px] font-semibold uppercase ${
                               res.extraction_status === "done"
                                 ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"
                                 : res.extraction_status === "pending"
@@ -1085,7 +1089,7 @@ function Library({ session }) {
                               event.stopPropagation();
                               handleOpenResource(res);
                             }}
-                            className="rounded-lg p-1.5 text-indigo-600 transition hover:bg-indigo-50 focus-visible:outline-none focus-visible:shadow-focus dark:text-indigo-400 dark:hover:bg-indigo-950/50"
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-sky-700 transition hover:bg-sky-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-sky-300 dark:hover:bg-sky-950/50 motion-reduce:transition-none"
                             title="Open resource"
                             aria-label="Open resource"
                           >
@@ -1098,7 +1102,7 @@ function Library({ session }) {
                               handleDeleteResource(res);
                             }}
                             disabled={deletingId === res.id}
-                            className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                            className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 motion-reduce:transition-none"
                             title="Delete resource"
                             aria-label="Delete resource"
                           >
@@ -1115,9 +1119,9 @@ function Library({ session }) {
             {/* 4. QUIZZES SECTION */}
             {(activeTab === "all" || activeTab === "quizzes") && filteredQuizzes.length > 0 && (
               <section className="space-y-4">
-                <div className="flex items-center justify-between border-b border-slate-100 pb-2 dark:border-slate-800">
-                  <h2 className="flex items-center gap-2 text-lg font-bold text-slate-900 dark:text-slate-100">
-                    <HelpCircle className="h-5 w-5 text-purple-600 dark:text-purple-400" /> Quizzes ({filteredQuizzes.length})
+                <div className="flex items-center justify-between gap-3 pb-3 text-sm font-bold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                  <h2 className="flex items-center gap-2 text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">
+                    <HelpCircle className="h-5 w-5 text-amber-600 dark:text-amber-300" /> Quizzes ({filteredQuizzes.length})
                   </h2>
                 </div>
                 <div className={libraryView === "grid" ? "grid auto-rows-fr grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3" : "flex flex-col gap-2"}>
@@ -1132,15 +1136,15 @@ function Library({ session }) {
                         key={quiz.id}
                         variant={libraryView}
                         icon={HelpCircle}
-                        iconClass="text-purple-600 dark:text-purple-400"
-                        tileClass="bg-purple-50 dark:bg-purple-950/35"
+                        iconClass="text-amber-600 dark:text-amber-300"
+                        tileClass="bg-amber-50 dark:bg-amber-500/10"
                         title={quiz.title}
                         date={new Date(quiz.created_at).toLocaleDateString()}
                         category={(
-                          <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+                          <div className="flex min-w-0 flex-wrap items-center gap-2">
                             {renderSessionBadge(quiz.session_id)}
                             {attemptsList.length > 0 && (
-                              <span className="max-w-full truncate rounded-full bg-slate-100 px-2.5 py-0.5 text-[10px] font-bold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
+                              <span className="max-w-full truncate rounded-full bg-slate-100 px-2 py-1 text-[11px] font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-300">
                                 {attemptsList.length} {attemptsList.length === 1 ? "attempt" : "attempts"} · {latestAttempt.score}/{latestAttempt.total}
                               </span>
                             )}
@@ -1151,27 +1155,27 @@ function Library({ session }) {
                           <>
                             {quiz.session_id ? (
                               <Link
-                                to={`/Study/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
-                                className="inline-flex items-center gap-1 rounded-lg bg-purple-600 px-2 py-1.5 text-[10px] font-bold text-white transition hover:bg-purple-700 focus-visible:outline-none focus-visible:shadow-focus dark:bg-purple-500 dark:hover:bg-purple-400 sm:gap-1.5 sm:px-3 sm:text-xs shadow-button-primary"
+                                to={`/courses/${quiz.session_id}?quizId=${encodeURIComponent(quiz.id)}`}
+                                className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-emerald-600 px-3 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
                                 title="Practice full quiz"
                                 aria-label="Practice full quiz"
                               >
-                                <span className="hidden sm:inline">Practice</span><ArrowRight className="h-3.5 w-3.5" />
+                                <span className="hidden sm:inline">Practice</span><ArrowRight className="h-4 w-4" />
                               </Link>
                             ) : latestAttempt && !isRetaking && (
                               <button
                                 type="button"
                                 onClick={() => setRetakingQuizMap((prev) => ({ ...prev, [quiz.id]: true }))}
-                                className="inline-flex items-center gap-1 rounded-lg bg-slate-50 px-2 py-1.5 text-[10px] font-bold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:shadow-focus dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700 sm:px-2.5 sm:text-xs shadow-surface"
+                                className="inline-flex min-h-11 items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
                               >
-                                <RotateCcw className="h-3.5 w-3.5" /> Retake
+                                <RotateCcw className="h-4 w-4" /> Retake
                               </button>
                             )}
                             <button
                               type="button"
                               onClick={() => handleDeleteQuiz(quiz.id)}
                               disabled={deletingId === quiz.id}
-                              className="rounded-lg p-1.5 text-slate-400 transition hover:bg-red-50 hover:text-red-600 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:text-slate-500 dark:hover:bg-red-950/40 dark:hover:text-red-400"
+                              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-rose-50 hover:text-rose-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:opacity-50 dark:text-slate-400 dark:hover:bg-rose-950/40 dark:hover:text-rose-300 motion-reduce:transition-none"
                               title="Delete quiz"
                               aria-label="Delete quiz"
                             >
@@ -1184,11 +1188,11 @@ function Library({ session }) {
                           <div className="min-w-0 space-y-2">
                             {quiz.session_id ? (
                               <p className="text-xs text-slate-500 dark:text-slate-400">
-                                {quiz.questions?.length || 0} questions · Open the study session to take the complete practice set.
+                                {quiz.questions?.length || 0} questions · Open the course to take the complete practice set.
                               </p>
                             ) : latestAttempt && !isRetaking ? (
-                              <div className="space-y-1.5 rounded-xl bg-slate-50 p-3 text-xs dark:bg-slate-800/70 shadow-surface">
-                                <p className="flex items-center gap-1.5 font-bold text-slate-700 dark:text-slate-200">
+                              <div className="space-y-2 rounded-2xl border border-slate-200 bg-slate-50 p-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+                                <p className="flex items-center gap-2 font-bold text-slate-700 dark:text-slate-200">
                                   {latestAttempt.score === latestAttempt.total
                                     ? <Check className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
                                     : <CircleAlert className="h-4 w-4 text-amber-600 dark:text-amber-400" />}
@@ -1211,7 +1215,7 @@ function Library({ session }) {
                                     type="button"
                                     disabled={quizSavingId === quiz.id}
                                     onClick={() => handleRecordAttempt(quiz, idx)}
-                                    className="min-w-0 rounded-xl bg-slate-50 p-2.5 text-left text-xs font-medium text-slate-800 transition shadow-surface hover:shadow-surface-hover hover:bg-purple-50 focus-visible:outline-none focus-visible:shadow-focus disabled:opacity-50 dark:bg-slate-800/70 dark:text-slate-200 dark:hover:bg-purple-950/40"
+                                    className="min-h-11 min-w-0 rounded-xl border border-slate-200 bg-slate-50 p-3 text-left text-sm font-medium text-slate-800 transition hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:opacity-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none"
                                   >
                                     <strong>{String.fromCharCode(65 + idx)}.</strong> <span className="break-words">{opt}</span>
                                   </button>

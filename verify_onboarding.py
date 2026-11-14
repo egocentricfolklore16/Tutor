@@ -21,16 +21,17 @@ def run_cuj(page):
                 body='{"id":"test-user","email":"caleb@example.com","user_metadata":{"full_name":"Caleb"}}'
             )
         elif "/rest/v1/profiles" in url:
+            if request.method == "PATCH":
+                route.fulfill(
+                    status=200,
+                    content_type="application/json",
+                    body='[{"user_id":"test-user"}]'
+                )
+                return
             route.fulfill(
                 status=200,
                 content_type="application/json",
-                body='[{"username":"Caleb","full_name":"Caleb","onboarding_completed":false,"onboarding_step":0}]'
-            )
-        elif "/rest/v1/onboarding_answers" in url:
-            route.fulfill(
-                status=200,
-                content_type="application/json",
-                body='[]'
+                body='[{"user_id":"test-user","username":"Caleb","full_name":"Caleb","onboarding_completed":false,"onboarding_step":0,"subjects":[],"learning_style":"","weekly_hours":null}]'
             )
         else:
             route.continue_()

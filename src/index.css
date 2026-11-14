@@ -176,22 +176,27 @@ form { animation: form-enter 260ms ease-out both; }
 .dark .notification-pane { background: var(--bg-surface) !important; color: var(--text-primary) !important; border: 0 !important; box-shadow: var(--shadow-overlay) !important; }
 .dark .notification-pane * { color: inherit; }
 
-.settings-page { background: #f8fafc; }
-.dark .settings-page { background: var(--bg-base); }
-.settings-card { border-radius: 1rem; background: #ffffff; padding: 2rem; box-shadow: var(--shadow-surface); }
-.dark .settings-card { background: var(--bg-surface); color: var(--text-primary); }
+.settings-page { background: transparent; }
+.dark .settings-page { background: transparent; color: #f1f5f9; }
+.settings-card { border: 1px solid #e2e8f0; border-radius: 1rem; background: #ffffff; padding: 1rem; }
+.dark .settings-card { border-color: #1e293b; background: #0f172a; color: #f1f5f9; }
 .settings-section { border: 0; background: transparent; }
 .settings-field,
 .settings-card input:not([type="checkbox"]):not([type="file"]),
-.settings-card select { border: 0 !important; border-radius: 9999px; background: #f1f5f9 !important; padding: 0.85rem 1.1rem; color: #1e293b; outline: none; box-shadow: var(--shadow-inset-field); }
+.settings-card select { border: 1px solid #e2e8f0 !important; border-radius: 0.75rem; background: #f8fafc !important; padding: 0.625rem 0.75rem; color: #0f172a; outline: none; box-shadow: none; }
 .dark .settings-field,
 .dark .settings-card input:not([type="checkbox"]):not([type="file"]),
-.dark .settings-card select { background: #18211f !important; color: #e5eee9 !important; border: 0 !important; box-shadow: var(--shadow-inset-field); }
-.settings-card input:focus,
-.settings-card select:focus { box-shadow: var(--shadow-focus); }
+.dark .settings-card select { background: #0f172a !important; color: #f1f5f9 !important; border-color: #334155 !important; box-shadow: none; }
+.settings-page button:focus-visible,
+.settings-page input:focus-visible,
+.settings-page select:focus-visible,
+.settings-page textarea:focus-visible { outline: none; box-shadow: 0 0 0 2px rgb(16 185 129 / 70%); }
+.dark .settings-page .text-slate-900 { color: #f1f5f9; }
+.dark .settings-page .text-slate-700 { color: #cbd5e1; }
+.dark .settings-page .text-slate-600 { color: #cbd5e1; }
 
 @media (max-width: 640px) {
-  .settings-card { padding: 1.25rem; }
+  .settings-card { padding: 1rem; }
   .settings-tabs button { padding-left: 1rem; padding-right: 1rem; }
 }
 

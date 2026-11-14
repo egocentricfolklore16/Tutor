@@ -178,7 +178,7 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
       const content = result.reply?.trim();
       if (!content) throw new Error("The AI returned an empty note. Please try again.");
 
-      const title = `${topic || "Study session"} — Study Notes`;
+      const title = `${topic || "Course"} — Study Notes`;
       await persistNote({ title, content, source: "ai" });
       setError("");
     } catch (generationError) {
@@ -408,7 +408,7 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
               <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-4">
                 <button
                   type="button"
-                  onClick={() => navigate(`/Study/${studyId}/notes/${note.id}`)}
+                  onClick={() => navigate(`/courses/${studyId}/notes/${note.id}`)}
                   className="min-w-0 text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-500 focus-visible:ring-offset-2"
                 >
                   <span className="block break-words font-semibold leading-6 text-slate-900 hover:text-violet-700 dark:text-slate-100 dark:hover:text-violet-300">

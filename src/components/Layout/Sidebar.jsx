@@ -1,4 +1,4 @@
-import { Link, useNavigate, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { LogOut, Settings as SettingsIcon } from "lucide-react";
 import supabase from "../../lib/supabase";
@@ -7,11 +7,10 @@ import FeedbackDialog from "../common/FeedbackDialog";
 
 function Sidebar({ isOpen, toggleSidebar, user }) {
   const { profile } = useProfile();
-  const navigate = useNavigate();
   const location = useLocation();
 
   const getActiveFromPath = (pathname) => {
-    if (pathname.startsWith("/Study")) return "Study";
+    if (pathname.startsWith("/courses")) return "Courses";
     if (pathname.startsWith("/Planner")) return "Planner";
     if (pathname.startsWith("/Progress")) return "Progress";
     if (pathname.startsWith("/Library")) return "Library";
@@ -53,7 +52,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
       ),
     },
     {
-      name: "Study",
+      name: "Courses",
       icon: (
         <svg
           stroke="currentColor"
@@ -317,17 +316,6 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               </h4>
             )}
           </div>
-
-          {/* New Session Button */}
-          <button
-            type="button"
-            onClick={() => navigate("/Study", { state: { openCreateSession: true } })}
-            aria-label="New study session"
-            title="New study session"
-            className="w-full h-8 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold rounded-lg transition-colors duration-300 text-sm shadow-button-primary focus:outline-none focus:shadow-focus"
-          >
-            {isOpen ? "+ New Study Session" : "+"}
-          </button>
 
           <button
             type="button"

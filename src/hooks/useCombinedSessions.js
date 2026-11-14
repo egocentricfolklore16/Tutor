@@ -46,7 +46,7 @@ export function useCombinedSessions() {
         return {
           ...item,
           id: item.id,
-          title: item.Topic || item.Subject || "Study Session",
+          title: item.Topic || item.Subject || "Course",
           subject: item.Subject || "General",
           Date: item.Date,
           Start: item.Start,

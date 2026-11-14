@@ -18,11 +18,25 @@ export default function AuthCallback() {
   const redirectAfterAuth = useCallback(async (session) => {
     if (!session?.user) return;
 
-    const { data: profile } = await supabase
+    const { data: profile, error: profileError } = await supabase
       .from("profiles")
       .select("onboarding_completed")
       .eq("user_id", session.user.id)
       .maybeSingle();
+
+    if (profileError) {
+      console.error("onboarding redirect profile lookup failed:", profileError);
+      setError("We couldn't verify your onboarding status. Please try again.");
+      setStatus("error");
+      return;
+    }
+    if (!profile) {
+      const missingProfileError = new Error("No profile row exists for this user.");
+      console.error("onboarding redirect profile lookup failed:", missingProfileError);
+      setError("We couldn't find your profile. Please contact support for help.");
+      setStatus("error");
+      return;
+    }
 
     navigate(profile?.onboarding_completed ? "/Dashboard" : "/onboarding", { replace: true });
   }, [navigate]);
@@ -65,6 +79,7 @@ export default function AuthCallback() {
           if (!mounted) return;
 
           if (setSessionError) {
+            console.error("auth callback session setup failed:", setSessionError);
             setError("This link has expired or was already used.");
             setStatus("error");
             return;
@@ -86,6 +101,7 @@ export default function AuthCallback() {
         if (!mounted) return;
 
         if (sessionError) {
+          console.error("auth callback session lookup failed:", sessionError);
           setError("This link has expired or was already used.");
           setStatus("error");
           return;
@@ -98,9 +114,10 @@ export default function AuthCallback() {
           setError("This link has expired or was already used.");
           setStatus("error");
         }
-      } catch {
+      } catch (err) {
+        console.error("auth callback failed:", err);
         if (!mounted) return;
-        setError("This link has expired or was already used.");
+        setError("We couldn't complete sign in. Please try again.");
         setStatus("error");
       }
     };
@@ -148,12 +165,14 @@ export default function AuthCallback() {
       });
 
       if (resendErr) {
+        console.error("confirmation email resend failed:", resendErr);
         const mapped = mapAuthError(resendErr);
         setResendErrorMessage(mapped.message);
       } else {
         setResendStatusMessage("Confirmation email has been resent successfully!");
       }
     } catch (err) {
+      console.error("confirmation email resend failed:", err);
       const mapped = mapAuthError(err);
       setResendErrorMessage(mapped.message);
     } finally {
@@ -219,7 +238,7 @@ export default function AuthCallback() {
               </svg>
             </div>
           ),
-          title: "Link Expired",
+          title: "Unable to Continue",
           description: error || "This link has expired or was already used.",
           bgColor: "bg-slate-50",
           textColor: "text-slate-900",

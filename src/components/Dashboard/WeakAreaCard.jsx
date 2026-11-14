@@ -89,7 +89,7 @@ function WeakAreaCard() {
       </div>
       <blockquote className="mt-5 rounded-r-xl border-l-4 border-red-300 bg-white p-4 text-base font-medium leading-7 text-slate-800 dark:border-red-700 dark:bg-slate-900 dark:text-slate-200">“{weakArea.originalQuestion}”</blockquote>
       <p className="mt-3 text-xs text-red-800 dark:text-red-300">Last attempted {new Date(weakArea.lastAttemptedAt).toLocaleDateString()}</p>
-      <button onClick={() => navigate(`/Study/${weakArea.sessionId}`)} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600">
+      <button onClick={() => navigate(`/courses/${weakArea.sessionId}`)} className="mt-5 inline-flex items-center gap-2 rounded-lg bg-red-600 px-4 py-2.5 text-sm font-bold text-white transition hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600">
         Try Again <ArrowRight className="h-4 w-4" />
       </button>
     </section>

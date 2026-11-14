@@ -7,7 +7,6 @@ import {
   FileText,
   HelpCircle,
   Library,
-  ChevronDown,
   Play,
   Pause,
   RotateCcw,
@@ -47,7 +46,6 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
   const { streak } = useGamification();
   const { currentStreak } = streak;
 
-  const [isToolsOpen, setIsToolsOpen] = useState(false);
   const [activeTool, setActiveTool] = useState("pomodoro");
   const [session, setSession] = useState(incomingSession || null);
   const [isLoading, setIsLoading] = useState(!incomingSession);
@@ -90,7 +88,7 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
         .single();
 
       if (fetchError) {
-        setError("Unable to load this study session.");
+        setError("Unable to load this course.");
         console.error("Supabase session fetch error:", fetchError);
       } else {
         setSession(data);
@@ -224,7 +222,7 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
 
   const handleLeaveSession = async () => {
     await pause();
-    navigate("/Study");
+    navigate("/courses");
   };
 
   const duration = session?.Duration || session?.hours || 0;
@@ -235,11 +233,12 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
 
   if (error || !session) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-50 dark:bg-slate-950 px-6 text-center">
-        <p className="text-rose-600 mb-4">{error || "Study session not found."}</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-slate-50 px-6 text-center dark:bg-[#18211f]">
+        <p className="mb-4 text-sm leading-6 text-rose-600 dark:text-rose-400">{error || "Course not found."}</p>
         <button
-          onClick={() => navigate("/Study")}
-          className="inline-flex items-center gap-2 rounded-lg bg-rose-600 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-700"
+          type="button"
+          onClick={() => navigate("/courses")}
+          className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-rose-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none"
         >
           <ArrowLeft className="h-4 w-4" />
           Back to sessions
@@ -251,27 +250,27 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
   if (isCompleted) {
     const elapsedMinutes = Math.round((durationSeconds - timeLeft) / 60) || Math.round((session?.elapsed_seconds || 0) / 60) || 1;
     return (
-      <main className="flex min-h-screen items-center justify-center bg-white dark:bg-slate-950 px-6 py-12 text-center text-slate-900 dark:text-slate-100">
+      <main className="flex min-h-screen items-center justify-center bg-slate-50 px-6 py-8 text-center text-slate-900 dark:bg-[#18211f] dark:text-slate-100">
         <div className="flex w-full max-w-xl flex-col items-center">
           <img src="/logo8-removebg-preview.png" alt="Lumo celebrating session completion" className="h-48 w-48 object-contain sm:h-64 sm:w-64" />
           <p className="mt-4 text-xs font-bold uppercase tracking-[0.2em] text-emerald-600 dark:text-emerald-400">Session complete</p>
-          <h1 className="mt-1 text-3xl font-black tracking-tight sm:text-4xl">Great work staying focused!</h1>
+          <h1 className="mt-1 text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">Great work staying focused!</h1>
 
-          <div className="mt-6 grid grid-cols-3 gap-3 w-full max-w-md">
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+          <div className="mt-6 grid w-full max-w-md grid-cols-3 gap-2 sm:gap-3">
+            <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80">
               <Clock className="mx-auto h-5 w-5 text-emerald-600 dark:text-emerald-400" />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Time Studied</p>
-              <p className="mt-0.5 text-base font-bold">{elapsedMinutes} min</p>
+              <p className="mt-1 text-base font-bold">{elapsedMinutes} min</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+            <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80">
               <Trophy className="mx-auto h-5 w-5 text-amber-500" />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">XP Gained</p>
-              <p className="mt-0.5 text-base font-bold">+50 XP</p>
+              <p className="mt-1 text-base font-bold">+50 XP</p>
             </div>
-            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 dark:border-slate-800 dark:bg-slate-900">
+            <div className="min-w-0 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80">
               <Flame className="mx-auto h-5 w-5 text-orange-500" />
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Streak</p>
-              <p className="mt-0.5 text-base font-bold">{currentStreak} Days</p>
+              <p className="mt-1 text-base font-bold">{currentStreak} Days</p>
             </div>
           </div>
 
@@ -284,7 +283,7 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
                   type="button"
                   onClick={() => setFocusRating(star)}
                   aria-label={`Rate focus ${star} out of 5`}
-                  className="p-1 transition hover:scale-110"
+                  className="inline-flex h-11 w-11 items-center justify-center rounded-xl transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:hover:bg-amber-950/40 motion-reduce:transition-none"
                 >
                   <Star className={`h-7 w-7 ${star <= focusRating ? "fill-amber-400 text-amber-400" : "text-slate-300 dark:text-slate-700"}`} />
                 </button>
@@ -293,14 +292,14 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
           </div>
 
           {completionError && (
-            <div className="mt-4 rounded-xl bg-rose-50 p-3 border border-rose-200 text-xs font-semibold text-rose-700">
+            <div role="alert" className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs font-semibold text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200">
               {completionError}
             </div>
           )}
 
           <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            <button type="button" onClick={() => navigate("/Study")} className="rounded-full bg-emerald-600 px-6 py-3 text-sm font-bold text-white shadow-lg hover:bg-emerald-700">Back to Sessions</button>
-            <button type="button" onClick={() => navigate("/Dashboard")} className="rounded-full bg-slate-100 dark:bg-slate-800 px-6 py-3 text-sm font-bold text-slate-700 dark:text-slate-200 transition hover:bg-slate-200 dark:hover:bg-slate-700">Dashboard</button>
+            <button type="button" onClick={() => navigate("/courses")} className="inline-flex min-h-11 items-center justify-center rounded-xl bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none">Back to Courses</button>
+            <button type="button" onClick={() => navigate("/Dashboard")} className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-6 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800 motion-reduce:transition-none">Dashboard</button>
           </div>
         </div>
       </main>
@@ -322,16 +321,87 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
   const minutesDisplay = Math.floor((currentTimerSeconds % 3600) / 60);
   const secondsDisplay = currentTimerSeconds % 60;
 
+  const toolItems = [
+    { id: "notes", label: "Notes", icon: FileText },
+    { id: "pomodoro", label: "Pomodoro", icon: Clock },
+    { id: "flashcards", label: "Flashcards", icon: Library },
+    { id: "quizzicle", label: "Quizicle", icon: HelpCircle },
+    { id: "resources", label: "Resources", icon: BookOpen },
+  ];
+
   const renderTool = () => {
-    if (activeTool === "flashcards") return <Flashcards studyId={Studyid || session.id} userId={userId} onTimelineEvent={handleTimelineEvent} />;
-    if (activeTool === "quizzicle") return <PracticeQuestions studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} requestedQuizId={requestedQuizId || requestedQuizIdFromRoute} onQuizOpened={handleQuizOpened} />;
-    if (activeTool === "resources") return <ResourceAttachments studyId={Studyid || session.id} userId={userId} onTimelineEvent={handleTimelineEvent} />;
+    if (activeTool === "notes") {
+      return <NoteEditor studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />;
+    }
+    if (activeTool === "flashcards") {
+      return <Flashcards studyId={Studyid || session.id} userId={userId} onTimelineEvent={handleTimelineEvent} />;
+    }
+    if (activeTool === "quizzicle") {
+      return <PracticeQuestions studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} requestedQuizId={requestedQuizId || requestedQuizIdFromRoute} onQuizOpened={handleQuizOpened} />;
+    }
+    if (activeTool === "resources") {
+      return <ResourceAttachments studyId={Studyid || session.id} userId={userId} onTimelineEvent={handleTimelineEvent} />;
+    }
 
     return (
-      <div className="flex flex-col items-center">
-        {/* Large Centered Circular Timer */}
-        <div className="relative my-4 flex h-64 w-64 items-center justify-center sm:h-72 sm:w-72">
-          <svg className="h-full w-full -rotate-90 transform" viewBox="0 0 100 100">
+      <div className="flex flex-col gap-3">
+        <div className="flex items-start gap-3">
+          <Coffee className="mt-1 h-5 w-5 shrink-0 text-emerald-600 dark:text-emerald-400" />
+          <div>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Pomodoro cycles</h3>
+            <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">
+              Alternate 25 minutes of focused work with a 5-minute break.
+            </p>
+          </div>
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-label="Pomodoro mode"
+          aria-checked={isPomodoroMode}
+          onClick={() => setIsPomodoroMode(!isPomodoroMode)}
+          className={`relative inline-flex h-11 w-11 shrink-0 cursor-pointer items-center justify-center rounded-xl border border-slate-200 transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 motion-reduce:transition-none ${isPomodoroMode ? "bg-emerald-600 dark:bg-emerald-500" : "bg-slate-100 dark:bg-slate-800"}`}
+        >
+          <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${isPomodoroMode ? "translate-x-1" : "-translate-x-1"}`} />
+        </button>
+        <p className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {isPomodoroMode ? "Pomodoro mode is on." : "Pomodoro mode is off."}
+        </p>
+      </div>
+    );
+  };
+
+  const renderTimer = () => (
+    <section className="rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80 sm:p-6">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Focus session</p>
+          <h1 className="mt-1 break-words text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">{subject}</h1>
+          <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{topic}</p>
+        </div>
+        <div className="flex flex-wrap gap-2">
+          <button
+            type="button"
+            onClick={handleLeaveSession}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            <ArrowLeft className="h-4 w-4" /> Leave (Pause)
+          </button>
+          <button
+            type="button"
+            aria-pressed={isFocusModeActive}
+            onClick={() => setIsFocusModeActive((active) => !active)}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            {isFocusModeActive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+            {isFocusModeActive ? "Exit focus mode" : "Focus mode"}
+          </button>
+        </div>
+      </div>
+
+      <div className="mt-4 flex flex-col items-center border-t border-slate-200 pt-4 dark:border-slate-800">
+        <div className="relative my-2 aspect-square w-[min(16rem,70vw)] sm:w-72">
+          <svg className="absolute inset-0 h-full w-full -rotate-90 transform" viewBox="0 0 100 100" aria-hidden="true">
             <circle cx="50" cy="50" r="42" stroke="currentColor" strokeWidth="8" className="text-slate-200 dark:text-slate-800" fill="transparent" />
             <circle
               cx="50"
@@ -342,26 +412,28 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
               strokeDasharray={264}
               strokeDashoffset={264 - (264 * progressPercent) / 100}
               strokeLinecap="round"
-              className={`transition-all duration-500 ${isPomodoroMode && pomodoroPhase === "break" ? "text-amber-500" : "text-emerald-500"}`}
+              className={`transition-all duration-500 motion-reduce:transition-none ${isPomodoroMode && pomodoroPhase === "break" ? "text-amber-500" : "text-emerald-500"}`}
               fill="transparent"
             />
           </svg>
-          <div className="absolute flex flex-col items-center text-center">
-            <span className="text-4xl font-black tracking-tight text-slate-900 dark:text-white sm:text-5xl">
+          <div role="timer" aria-live="off" className="absolute inset-0 flex flex-col items-center justify-center text-center">
+            <span className="text-4xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-5xl">
               {hoursDisplay > 0 ? `${formattedTime(hoursDisplay)}:` : ""}{formattedTime(minutesDisplay)}:{formattedTime(secondsDisplay)}
             </span>
-            <span className="mt-1 text-xs font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-              {isPomodoroMode ? (pomodoroPhase === "work" ? "Pomodoro Focus" : "Pomodoro Break") : "Remaining"}
+            <span className="mt-1 text-[11px] uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              {isPomodoroMode ? (pomodoroPhase === "work" ? "Pomodoro focus" : "Pomodoro break") : "Remaining"}
             </span>
           </div>
         </div>
-
-        {/* Timer Control Actions */}
-        <div className="mt-4 flex flex-wrap items-center justify-center gap-3">
+        <p role="status" className="text-sm leading-6 text-slate-600 dark:text-slate-300">
+          {isFocusModeActive ? "Focus mode is on" : isStudying ? "Session in progress" : "Session paused"}
+          {isPomodoroMode ? ` · ${pomodoroPhase === "work" ? "Work phase" : "Break phase"}` : ""}
+        </p>
+        <div className="mt-4 flex w-full flex-wrap items-center justify-center gap-2">
           <button
             type="button"
             onClick={isStudying ? pause : resume}
-            className={`inline-flex items-center gap-2 rounded-xl px-5 py-3 font-semibold text-white shadow-sm transition ${isStudying ? "bg-amber-600 hover:bg-amber-700" : "bg-emerald-600 hover:bg-emerald-700"}`}
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400"
           >
             {isStudying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
             {isStudying ? "Pause" : "Resume"}
@@ -373,7 +445,7 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
               setPomodoroPhaseSeconds(25 * 60);
               resume();
             }}
-            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 py-3 font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
             <RotateCcw className="h-4 w-4" /> Reset
           </button>
@@ -381,216 +453,115 @@ const StudyEnvironment = ({ session: incomingSession, user: _incomingUser }) => 
             type="button"
             onClick={handleExplicitFinish}
             disabled={isCompleting}
-            className="inline-flex items-center gap-2 rounded-xl bg-slate-900 px-5 py-3 font-semibold text-white hover:bg-slate-800 disabled:opacity-50 dark:bg-emerald-600 dark:hover:bg-emerald-700"
+            className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
           >
-            {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-            Finish Session
-          </button>
-        </div>
-
-        {/* Pomodoro Mode Toggle */}
-        <div className="mt-6 flex items-center gap-3 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 dark:border-slate-800 dark:bg-slate-900/60">
-          <Coffee className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
-          <span className="text-sm font-semibold text-slate-700 dark:text-slate-300">Pomodoro Mode (25m work / 5m break)</span>
-          <button
-            type="button"
-            role="switch"
-            aria-checked={isPomodoroMode}
-            onClick={() => setIsPomodoroMode(!isPomodoroMode)}
-            className={`relative ml-auto inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 ${isPomodoroMode ? "bg-emerald-600" : "bg-slate-300 dark:bg-slate-700"}`}
-          >
-            <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${isPomodoroMode ? "translate-x-5" : "translate-x-0"}`} />
+            {isCompleting ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+            Finish session
           </button>
         </div>
       </div>
-    );
-  };
 
-  const toolItems = [
-    { id: "pomodoro", label: "Focus Timer", icon: Clock },
-    { id: "flashcards", label: "Flashcards", icon: Library },
-    { id: "quizzicle", label: "Quizicle", icon: HelpCircle },
-    { id: "resources", label: "Resources", icon: BookOpen },
-  ];
+      {breakNotification && (
+        <div role="status" className="mt-4 flex items-center justify-between gap-3 rounded-xl bg-amber-50 p-3 dark:bg-amber-950/40">
+          <span className="text-sm leading-6 text-amber-900 dark:text-amber-200">{breakNotification}</span>
+          <button
+            type="button"
+            aria-label="Dismiss break notification"
+            onClick={() => setBreakNotification("")}
+            className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-amber-800 hover:bg-amber-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-amber-300 dark:hover:bg-amber-900"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+      )}
 
-  return (
-    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100">
-      <main className="min-w-0 px-3 py-4 sm:px-5 md:px-6 xl:px-10">
-        <div className="mx-auto w-full max-w-7xl">
-          {/* Top Control Bar */}
-          {!isFocusModeActive && (
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-3 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      {isGoalReached && (
+        <div role="status" className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/40">
+          <div className="flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
+            <div>
+              <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Goal reached</h2>
+              <p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">Target study time reached. Continue for 30 minutes or finish this session.</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
               <button
                 type="button"
-                onClick={handleLeaveSession}
-                className="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm hover:bg-slate-100 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700"
+                onClick={() => { setIsGoalReached(false); setTimeLeft(1800); resume(); }}
+                className="inline-flex min-h-11 items-center justify-center rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
               >
-                <ArrowLeft className="h-4 w-4" /> Leave (Pause)
+                Study 30m more
               </button>
-
-              {/* Desktop Tools Bar */}
-              <div className="hidden md:flex items-center gap-1.5">
-                {toolItems.map((item) => {
-                  const isActive = activeTool === item.id;
-                  return (
-                    <button
-                      key={item.id}
-                      type="button"
-                      onClick={() => setActiveTool(item.id)}
-                      className={`inline-flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition ${
-                        isActive
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800"
-                          : "text-slate-600 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                      }`}
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsFocusModeActive(!isFocusModeActive)}
-                  className="inline-flex items-center gap-2 rounded-lg border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-100 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-                >
-                  {isFocusModeActive ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
-                  <span>Focus mode</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleExplicitFinish}
-                  disabled={isCompleting}
-                  className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:opacity-50"
-                >
-                  {isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
-                  <span>Finish</span>
-                </button>
-              </div>
-
-              {/* Mobile Tools Dropdown */}
-              <div className="relative md:hidden w-full pt-2 border-t border-slate-100 dark:border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setIsToolsOpen((prev) => !prev)}
-                  className="inline-flex w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                >
-                  {(() => {
-                    const current = toolItems.find((t) => t.id === activeTool) || toolItems[0];
-                    const ActiveIcon = current.icon;
-                    return (
-                      <>
-                        <span className="flex items-center gap-2">
-                          <ActiveIcon className="h-4 w-4" />
-                          <span>{current.label}</span>
-                        </span>
-                        <ChevronDown className={`h-4 w-4 transition-transform ${isToolsOpen ? "rotate-180" : ""}`} />
-                      </>
-                    );
-                  })()}
-                </button>
-
-                {isToolsOpen && (
-                  <div className="absolute left-0 right-0 top-full mt-2 z-50 rounded-xl border border-slate-200 bg-white p-2 shadow-xl dark:border-slate-700 dark:bg-slate-900">
-                    <div className="flex flex-col gap-1">
-                      {toolItems.map((item) => {
-                        const isActive = activeTool === item.id;
-                        return (
-                          <button
-                            key={item.id}
-                            type="button"
-                            onClick={() => {
-                              setActiveTool(item.id);
-                              setIsToolsOpen(false);
-                            }}
-                            className={`flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left text-sm font-semibold transition ${
-                              isActive
-                                ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300"
-                                : "text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-800"
-                            }`}
-                          >
-                            <item.icon className="h-4 w-4" />
-                            <span>{item.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-              </div>
+              <button
+                type="button"
+                onClick={handleExplicitFinish}
+                disabled={isCompleting}
+                className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+              >
+                {isCompleting ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}
+                Finish now
+              </button>
             </div>
-          )}
+          </div>
+        </div>
+      )}
 
-          {/* Break / Goal Notification Banner */}
-          {breakNotification && (
-            <div role="status" className="mb-6 flex items-center justify-between rounded-xl bg-amber-50 p-4 border border-amber-300 dark:bg-amber-950/40 dark:border-amber-900">
-              <span className="text-sm font-bold text-amber-900 dark:text-amber-200">{breakNotification}</span>
-              <button type="button" onClick={() => setBreakNotification("")} className="rounded p-1 text-amber-800 hover:bg-amber-100 dark:text-amber-300 dark:hover:bg-amber-900"><X className="h-4 w-4" /></button>
-            </div>
-          )}
+      <dl className="mt-4 grid grid-cols-2 gap-3 border-t border-slate-200 pt-4 text-sm dark:border-slate-800 sm:grid-cols-4">
+        <div><dt className="text-slate-500 dark:text-slate-400">Date</dt><dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{date}</dd></div>
+        <div><dt className="text-slate-500 dark:text-slate-400">Starts</dt><dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{start}</dd></div>
+        <div><dt className="text-slate-500 dark:text-slate-400">Duration</dt><dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">{duration} hr(s)</dd></div>
+        <div><dt className="text-slate-500 dark:text-slate-400">Mode</dt><dd className="mt-1 font-semibold text-slate-800 dark:text-slate-200">Active Recall</dd></div>
+      </dl>
+    </section>
+  );
 
-          {isGoalReached && (
-            <div className="mb-6 rounded-2xl bg-emerald-50 border border-emerald-300 p-5 shadow-sm dark:bg-emerald-950/40 dark:border-emerald-900">
-              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-lg font-bold text-emerald-900 dark:text-emerald-200">Goal Reached! 🎉</h3>
-                  <p className="text-sm text-emerald-800 dark:text-emerald-300 mt-1">Target study time reached. Would you like to finish and record this session?</p>
-                </div>
-                <div className="flex gap-3">
-                  <button type="button" onClick={() => { setIsGoalReached(false); setTimeLeft(1800); resume(); }} className="rounded-lg bg-white dark:bg-slate-800 px-4 py-2 text-sm font-semibold text-slate-700 dark:text-slate-200 border border-slate-300 dark:border-slate-700 hover:bg-slate-50">Study 30m More</button>
-                  <button type="button" onClick={handleExplicitFinish} disabled={isCompleting} className="inline-flex items-center gap-2 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-semibold text-white hover:bg-emerald-700">{isCompleting ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />} Finish Now</button>
-                </div>
-              </div>
-            </div>
-          )}
+  return (
+    <div className="min-h-screen bg-slate-50 text-slate-900 dark:bg-[#18211f] dark:text-slate-100">
+      <main className="min-w-0 px-3 py-4 sm:px-6 md:px-6 xl:px-8">
+        <div className="mx-auto flex w-full max-w-7xl flex-col gap-4">
+          {renderTimer()}
 
-          {/* Header Banner */}
-          <section className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400">Study session header</p>
-                <h1 className="mt-1 text-2xl font-black sm:text-3xl text-slate-900 dark:text-white">{subject}</h1>
-                <p className="mt-1 text-base text-slate-600 dark:text-slate-300">{topic}</p>
-              </div>
-              {isFocusModeActive && (
-                <button
-                  type="button"
-                  onClick={() => setIsFocusModeActive(false)}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                >
-                  <Minimize2 className="h-3.5 w-3.5" /> Exit focus mode
-                </button>
-              )}
+          <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900/80 sm:p-6" aria-labelledby="study-tools-title">
+            <h2 id="study-tools-title" className="text-base font-bold text-slate-900 dark:text-slate-100 sm:text-lg">Study tools</h2>
+            <div role="tablist" aria-label="Study tools" className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {toolItems.map((item, index) => {
+                const isActive = activeTool === item.id;
+                const handleTabKeyDown = (event) => {
+                  let nextIndex = index;
+                  if (event.key === "ArrowRight" || event.key === "ArrowDown") nextIndex = (index + 1) % toolItems.length;
+                  else if (event.key === "ArrowLeft" || event.key === "ArrowUp") nextIndex = (index - 1 + toolItems.length) % toolItems.length;
+                  else if (event.key === "Home") nextIndex = 0;
+                  else if (event.key === "End") nextIndex = toolItems.length - 1;
+                  else return;
+                  event.preventDefault();
+                  setActiveTool(toolItems[nextIndex].id);
+                  document.getElementById(`study-tool-tab-${toolItems[nextIndex].id}`)?.focus();
+                };
+                return (
+                  <button
+                    key={item.id}
+                    id={`study-tool-tab-${item.id}`}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-controls="study-tool-panel"
+                    tabIndex={isActive ? 0 : -1}
+                    onKeyDown={handleTabKeyDown}
+                    onClick={() => setActiveTool(item.id)}
+                    className={`inline-flex min-h-11 min-w-0 items-center justify-center gap-2 rounded-xl px-3 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
+                      isActive
+                        ? "bg-emerald-600 text-white dark:bg-emerald-500"
+                        : "border border-slate-200 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+                    }`}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0" />
+                    <span className="truncate">{item.label}</span>
+                  </button>
+                );
+              })}
             </div>
-            <div className="mt-6 grid grid-cols-2 gap-4 border-t border-slate-100 pt-4 text-xs text-slate-500 sm:grid-cols-4 dark:border-slate-800 dark:text-slate-400">
-              <div><span>Date</span><p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">{date}</p></div>
-              <div><span>Starts</span><p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">{start}</p></div>
-              <div><span>Duration</span><p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">{duration} hr(s)</p></div>
-              <div><span>Mode</span><p className="mt-0.5 font-semibold text-slate-800 dark:text-slate-200">Active Recall</p></div>
+            <div id="study-tool-panel" role="tabpanel" aria-labelledby={`study-tool-tab-${activeTool}`} className="mt-4 min-w-0">
+              {renderTool()}
             </div>
           </section>
-
-          {/* Workspace Body */}
-          <div className="mt-6 grid grid-cols-1 items-start gap-6">
-            <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="mb-4 flex items-center gap-2">
-                <Clock className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="text-lg font-bold">{toolItems.find((item) => item.id === activeTool)?.label}</h2>
-              </div>
-              {renderTool()}
-            </section>
-
-            <section className="min-w-0 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="mb-4 flex items-center gap-2">
-                <FileText className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
-                <h2 className="text-lg font-bold">Quick notes</h2>
-              </div>
-              <NoteEditor studyId={Studyid || session.id} userId={userId} topic={topic} onTimelineEvent={handleTimelineEvent} />
-            </section>
-          </div>
         </div>
       </main>
     </div>

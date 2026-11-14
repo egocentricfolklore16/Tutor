@@ -248,7 +248,7 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
 
   const timer = setTimeout(async () => {
     const isDl = session.type === "deadline" || session.activityType === "deadline";
-    const title = isDl ? "Upcoming deadline reminder" : "Study session starting soon";
+    const title = isDl ? "Upcoming deadline reminder" : "Course starting soon";
     const sessionTopic = session.Topic || session.title || session.purpose || "Session";
     const sessionSubject = session.Subject || session.subject || (isDl ? "Deadline" : "Study");
     const body = reminderMins === 0
@@ -271,7 +271,7 @@ export async function scheduleStudyReminder(session, preferences = null, now = D
         icon: "/icons/icon-192.png",
         badge: "/icons/badge-72.png",
         tag: tagStr,
-        data: { url: isDl ? "/Planner" : `/Study/${session.id}` },
+        data: { url: isDl ? "/Planner" : `/courses/${session.id}` },
       });
     }
 

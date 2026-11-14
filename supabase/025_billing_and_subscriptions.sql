@@ -108,8 +108,16 @@ security definer
 set search_path = public
 as $$
 declare
+  next_username text;
   next_full_name text;
 begin
+  next_username := coalesce(
+    nullif(trim(new.raw_user_meta_data->>'userName'), ''),
+    nullif(trim(new.raw_user_meta_data->>'username'), ''),
+    nullif(split_part(new.email, '@', 1), ''),
+    'Learner'
+  );
+
   next_full_name := coalesce(
     nullif(trim(new.raw_user_meta_data->>'full_name'), ''),
     nullif(trim(new.raw_user_meta_data->>'userName'), ''),
@@ -119,8 +127,8 @@ begin
   );
 
   -- Insert profile
-  insert into public.profiles (user_id, full_name)
-  values (new.id, next_full_name)
+  insert into public.profiles (user_id, username, full_name)
+  values (new.id, next_username, next_full_name)
   on conflict (user_id) do nothing;
 
   -- Insert default free subscription

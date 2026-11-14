@@ -138,6 +138,78 @@ body {
   }
 }
 
+.roadmap-shell {
+  background-image:
+    radial-gradient(ellipse at 8% 0%, rgb(16 185 129 / 0.06), transparent 34%),
+    radial-gradient(ellipse at 100% 100%, rgb(245 158 11 / 0.04), transparent 30%);
+}
+
+.dark .roadmap-shell {
+  background-color: #0c1421 !important;
+  background-image:
+    radial-gradient(ellipse at 7% 0%, rgb(16 185 129 / 0.12), transparent 34%),
+    radial-gradient(ellipse at 100% 95%, rgb(245 158 11 / 0.07), transparent 30%);
+}
+
+.roadmap-hero {
+  background-image:
+    radial-gradient(ellipse at 92% 5%, rgb(16 185 129 / 0.22), transparent 35%),
+    linear-gradient(125deg, #0b1220 0%, #111c2c 60%, #102522 100%);
+}
+
+.roadmap-map-surface {
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgb(16 185 129 / 0.07), transparent 45%),
+    radial-gradient(circle, rgb(100 116 139 / 0.12) 1px, transparent 1px);
+  background-size: auto, 24px 24px;
+}
+
+.dark .roadmap-map-surface {
+  background-color: #0a111c !important;
+  background-image:
+    radial-gradient(ellipse at 50% 0%, rgb(16 185 129 / 0.12), transparent 45%),
+    radial-gradient(circle, rgb(148 163 184 / 0.08) 1px, transparent 1px);
+}
+
+.roadmap-mascot-float {
+  animation: roadmap-mascot-float 4.8s ease-in-out infinite;
+}
+
+.roadmap-ambient-float {
+  animation: roadmap-ambient-float 9s ease-in-out infinite;
+}
+
+.roadmap-node-complete {
+  animation: roadmap-node-glow 3.8s ease-in-out infinite;
+}
+
+.roadmap-progress-fill {
+  box-shadow: 0 0 12px rgb(251 191 36 / 0.45);
+}
+
+@keyframes roadmap-mascot-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
+@keyframes roadmap-ambient-float {
+  0%, 100% { transform: translateY(0) rotate(-2deg); }
+  50% { transform: translateY(-7px) rotate(2deg); }
+}
+
+@keyframes roadmap-node-glow {
+  0%, 100% { box-shadow: 0 0 12px rgb(16 185 129 / 0.16); }
+  50% { box-shadow: 0 0 20px rgb(16 185 129 / 0.3); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .roadmap-mascot-float,
+  .roadmap-ambient-float,
+  .roadmap-node-complete {
+    animation: none !important;
+  }
+}
+
 button,
 input,
 select,

@@ -30,7 +30,7 @@ class ErrorBoundary extends React.Component {
       return (
         <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 text-white p-6 text-center">
           <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-3xl p-8 shadow-2xl">
-            <div className="mx-auto w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mb-6 font-mono text-2xl font-bold">
+            <div className="mx-auto w-16 h-16 bg-rose-500/10 text-rose-500 rounded-2xl flex items-center justify-center mb-6 text-2xl font-bold">
               !
             </div>
             <h1 className="text-2xl font-black mb-2 text-white">Something went wrong</h1>

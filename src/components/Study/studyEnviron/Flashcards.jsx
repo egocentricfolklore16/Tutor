@@ -1,7 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Eye,
-  EyeOff,
   Layers3,
   Pencil,
   Plus,
@@ -12,6 +10,7 @@ import {
 } from "lucide-react";
 import supabase from "../../../lib/supabase";
 import { gamificationService } from "../../../features/gamification";
+import { FanGallery } from "../../fan-gallery";
 
 const normalizeCardValue = (value, key, depth = 0) => {
   if (value === null || value === undefined || depth > 3) return "";
@@ -70,6 +69,7 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   const [isAnswerVisible, setIsAnswerVisible] = useState(false);
   const [isReviewComplete, setIsReviewComplete] = useState(false);
   const reviewedCardIdsRef = useRef(new Set());
+  const fanRef = useRef(null);
 
   useEffect(() => {
     let isCurrent = true;
@@ -101,42 +101,6 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
       isCurrent = false;
     };
   }, [studyId]);
-
-  useEffect(() => {
-    const handleKeyDown = (event) => {
-      if (event.code !== "Space" || event.repeat || isLoading || !cards.length || isReviewComplete) return;
-      const target = event.target;
-      const tagName = target?.tagName?.toLowerCase();
-      if (
-        tagName === "input" ||
-        tagName === "textarea" ||
-        tagName === "select" ||
-        tagName === "button" ||
-        target?.isContentEditable
-      ) return;
-
-      event.preventDefault();
-      setIsAnswerVisible((visible) => !visible);
-    };
-
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [cards.length, isLoading, isReviewComplete]);
-
-  // Flashcard review tracking for quests
-  useEffect(() => {
-    if (isAnswerVisible && activeCard?.id) {
-      if (!reviewedCardIdsRef.current.has(activeCard.id)) {
-        reviewedCardIdsRef.current.add(activeCard.id);
-        gamificationService.recordFlashcardReview(activeCard.id).then(({ error: reviewErr }) => {
-          if (reviewErr) {
-            console.error("Flashcard review tracking error:", reviewErr);
-          }
-          gamificationService.checkAndClaimQuests();
-        });
-      }
-    }
-  }, [isAnswerVisible, activeCard?.id]);
 
   const saveCard = async (event) => {
     event.preventDefault();
@@ -205,6 +169,24 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   };
 
   const activeCard = cards[activeIndex];
+  const handleCardFlip = (index, flipped) => {
+    if (!flipped) {
+      if (index === activeIndex) setIsAnswerVisible(false);
+      return;
+    }
+
+    const card = cards[index];
+    if (card?.id && !reviewedCardIdsRef.current.has(card.id)) {
+      reviewedCardIdsRef.current.add(card.id);
+      gamificationService.recordFlashcardReview(card.id).then(({ error: reviewErr }) => {
+        if (reviewErr) {
+          console.error("Flashcard review tracking error:", reviewErr);
+        }
+        gamificationService.checkAndClaimQuests();
+      });
+    }
+    if (index === activeIndex) setIsAnswerVisible(true);
+  };
   const dueCount = isReviewComplete ? 0 : Math.max(0, cards.length - activeIndex);
   const progress = cards.length
     ? isReviewComplete ? 100 : ((activeIndex + 1) / cards.length) * 100
@@ -215,6 +197,7 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
   const accentLabel = "text-orange-700 dark:text-orange-300";
 
   const advanceCard = () => {
+    if (activeCard) fanRef.current?.flipCard(activeIndex, false);
     if (activeIndex >= cards.length - 1) {
       setIsReviewComplete(true);
       setIsAnswerVisible(false);
@@ -305,64 +288,40 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
             )}
           </div>
         ) : (
-          <article
-            tabIndex={0}
-            aria-label={`Flashcard ${activeIndex + 1} of ${cards.length}`}
-            className="rounded-2xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-4 dark:focus-visible:ring-offset-[#18211f]"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <span className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.18em] ${accentSoft} ${accentLabel}`}>
-                {isAnswerVisible ? "Answer" : "Question"}
-              </span>
-              <p className="text-xs text-slate-400 dark:text-slate-500">
-                Press <kbd className="mx-1 rounded-md border border-slate-200 bg-slate-50 px-1.5 py-0.5 font-sans font-semibold text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">Space</kbd> to flip
-              </p>
-            </div>
-
-            <div className="flex min-h-36 items-center py-8 sm:min-h-44">
-              <h3 className="w-full break-words text-center text-xl font-bold leading-relaxed text-slate-900 dark:text-slate-100 sm:text-2xl">
-                {activeCard.question}
-              </h3>
-            </div>
-
-            <div className="border-t border-slate-200 dark:border-slate-700" />
-
-            <div className="mt-6 flex flex-wrap items-center justify-between gap-3">
-              <p className="text-sm font-semibold text-slate-500 dark:text-slate-400">Answer</p>
-              <button
-                type="button"
-                onClick={() => setIsAnswerVisible((visible) => !visible)}
-                className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-3 py-2 text-sm font-semibold transition-colors hover:bg-orange-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 dark:text-orange-300 dark:hover:bg-orange-500/10 ${accentText}`}
-              >
-                {isAnswerVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                {isAnswerVisible ? "Hide" : "Reveal Answer (Space)"}
-              </button>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setIsAnswerVisible((visible) => !visible)}
-              aria-label={isAnswerVisible ? "Hide flashcard answer" : "Reveal flashcard answer"}
-              className={`mt-3 flex min-h-28 w-full items-center justify-center rounded-2xl border border-dashed px-5 py-6 text-center transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-orange-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-[#18211f] ${
-                isAnswerVisible
-                  ? "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800/70"
-                  : "border-slate-300 bg-slate-50/70 hover:border-orange-300 hover:bg-orange-50/50 dark:border-slate-600 dark:bg-slate-800/40 dark:hover:border-orange-500/50 dark:hover:bg-orange-500/5"
-              }`}
-            >
-              <span
-                aria-live="polite"
-                className={`max-w-2xl text-sm leading-6 ${
-                  isAnswerVisible
-                    ? "text-left text-slate-700 dark:text-slate-200 sm:text-base"
-                    : "text-slate-500 dark:text-slate-400"
-                }`}
-              >
-                {isAnswerVisible
-                  ? activeCard.answer
-                  : <>Click here or tap <kbd className="mx-1 rounded-md border border-slate-200 bg-white px-1.5 py-0.5 font-sans text-xs font-semibold text-slate-600 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-300">Space</kbd> to view answer</>}
-              </span>
-            </button>
-
+          <div className="space-y-3">
+            <p className="text-center text-xs text-slate-500 dark:text-slate-400">
+              Click or tap a card to flip. Use Left/Right to move, Enter or Space to flip, and Escape to return to the question.
+            </p>
+            <FanGallery
+              ref={fanRef}
+              key={`${studyId}-${cards.map((card) => card.id).join(",")}`}
+              items={cards.map((card, index) => ({
+                front: card.question,
+                back: card.answer,
+                label: `Card ${index + 1}`,
+              }))}
+              cardWidth={220}
+              aspectRatio={0.8}
+              spacing={0.69}
+              curve={0.14}
+              tilt={14.5}
+              lift={42}
+              spread={0.2}
+              stackFrom="left"
+              speed={0.7}
+              stagger={0.09}
+              bounce={0.35}
+              hoverSpeed={0.28}
+              radius={18}
+              entrance="stack"
+              trigger="scroll"
+              viewportStart={75}
+              once={true}
+              showTitle={false}
+              singleFlip={true}
+              ariaLabel="Flashcard deck"
+              onFlip={handleCardFlip}
+            />
             {isAnswerVisible && (
               <button
                 type="button"
@@ -372,7 +331,7 @@ const Flashcards = ({ studyId, userId, onTimelineEvent }) => {
                 {activeIndex === cards.length - 1 ? "Finish review" : "Next card"}
               </button>
             )}
-          </article>
+          </div>
         )}
       </section>
 

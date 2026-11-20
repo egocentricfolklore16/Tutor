@@ -601,7 +601,7 @@ export default function VirtualStudyRoom() {
                 : "⏸ IDLE"}
             </span>
 
-            <div className="mt-3 text-6xl font-black tracking-tighter sm:text-7xl font-mono">
+            <div className="mt-3 text-6xl font-black tracking-tighter sm:text-7xl">
               {formattedTime}
             </div>
 

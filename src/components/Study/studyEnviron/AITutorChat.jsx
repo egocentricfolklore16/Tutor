@@ -708,7 +708,7 @@ const AITutorChat = ({
 
             <div className="mt-2 flex items-center justify-between gap-2">
               {charCount > 3500 && (
-                <div className="text-[10px] font-mono text-slate-400 dark:text-slate-500">
+                <div className="text-[10px] text-slate-400 dark:text-slate-500">
                   {charCount} / 4000
                 </div>
               )}

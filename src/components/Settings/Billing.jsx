@@ -272,7 +272,7 @@ export default function Billing({ user }) {
               <tbody className="divide-y divide-slate-100">
                 {payments.map((p) => (
                   <tr key={p.id} className="hover:bg-slate-50/50">
-                    <td className="px-4 py-3.5 font-mono text-xs font-semibold text-slate-900">
+                    <td className="px-4 py-3.5 text-xs font-semibold text-slate-900">
                       {p.reference}
                     </td>
                     <td className="px-4 py-3.5 font-medium text-slate-800 capitalize">

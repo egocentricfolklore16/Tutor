@@ -1,7 +1,33 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+}
+
+@layer base {
+  html,
+  body {
+    font-family: "Nunito", sans-serif;
+    font-optical-sizing: auto;
+    font-style: normal;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  button,
+  input,
+  textarea,
+  select,
+  option {
+    font-family: inherit;
+  }
+
+  .recharts-wrapper text {
+    font-family: "Nunito", sans-serif;
+  }
+}
+
 :root {
-  font-family: "Lexend", sans-serif;
   background-color: #ffffff;
   color-scheme: light;
   --bg-base: #0F1115;

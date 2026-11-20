@@ -576,7 +576,7 @@ export default function Onboarding({ session: _session }) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono text-neutral-500 group-hover:text-neutral-400 transition-colors">
+                      <span className="text-xs text-neutral-500 group-hover:text-neutral-400 transition-colors">
                         {idx + 1}
                       </span>
                       <span className="text-base sm:text-lg font-medium">
@@ -615,7 +615,7 @@ export default function Onboarding({ session: _session }) {
                     }`}
                   >
                     <div className="flex items-center gap-3">
-                      <span className="text-xs font-mono text-neutral-500 group-hover:text-neutral-400 transition-colors">
+                      <span className="text-xs text-neutral-500 group-hover:text-neutral-400 transition-colors">
                         {idx + 1}
                       </span>
                       <span className="text-base sm:text-lg font-medium">
@@ -708,7 +708,7 @@ export default function Onboarding({ session: _session }) {
             <span>{saving ? "Saving..." : "Continue"}</span>
             <ArrowRight className="w-4 h-4 text-neutral-400 group-hover:text-emerald-400 group-hover:translate-x-0.5 transition-all" />
           </button>
-          <span className="text-[11px] font-mono text-neutral-500 mt-2">
+          <span className="text-[11px] text-neutral-500 mt-2">
             Press Enter ↵
           </span>
         </footer>

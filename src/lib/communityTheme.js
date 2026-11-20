@@ -10,7 +10,7 @@ export function communityCardTheme(color = "emerald") {
   const themes = {
     emerald: {
       container:
-        "relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-emerald-500/10 dark:via-transparent dark:to-transparent dark:hover:border-emerald-500/30",
+        "relative overflow-hidden rounded-2xl border border-emerald-500/20 bg-emerald-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-linear-to-br dark:from-ht-tint-emerald dark:to-ht-surface dark:hover:border-emerald-500/30",
       faintIcon: "text-white/20 dark:text-emerald-400/20",
       labelIcon: "text-white/90 dark:text-emerald-400",
       labelText: "text-white/90 dark:text-emerald-400",
@@ -25,7 +25,7 @@ export function communityCardTheme(color = "emerald") {
     },
     teal: {
       container:
-        "relative overflow-hidden rounded-2xl border border-teal-500/20 bg-teal-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-teal-500/10 dark:via-transparent dark:to-transparent dark:hover:border-teal-500/30",
+        "relative overflow-hidden rounded-2xl border border-teal-500/20 bg-teal-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-linear-to-br dark:from-ht-tint-teal dark:to-ht-surface dark:hover:border-teal-500/30",
       faintIcon: "text-white/20 dark:text-teal-400/20",
       labelIcon: "text-white/90 dark:text-teal-400",
       labelText: "text-white/90 dark:text-teal-400",
@@ -40,7 +40,7 @@ export function communityCardTheme(color = "emerald") {
     },
     violet: {
       container:
-        "relative overflow-hidden rounded-2xl border border-violet-500/20 bg-violet-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-violet-500/10 dark:via-transparent dark:to-transparent dark:hover:border-violet-500/30",
+        "relative overflow-hidden rounded-2xl border border-violet-500/20 bg-violet-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-linear-to-br dark:from-ht-tint-violet dark:to-ht-surface dark:hover:border-violet-500/30",
       faintIcon: "text-white/20 dark:text-violet-400/20",
       labelIcon: "text-white/90 dark:text-violet-400",
       labelText: "text-white/90 dark:text-violet-400",
@@ -55,7 +55,7 @@ export function communityCardTheme(color = "emerald") {
     },
     amber: {
       container:
-        "relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-[#18211f] dark:bg-gradient-to-br dark:from-amber-500/10 dark:via-transparent dark:to-transparent dark:hover:border-amber-500/30",
+        "relative overflow-hidden rounded-2xl border border-amber-500/20 bg-amber-600 p-4 text-white shadow-surface hover:shadow-surface-hover transition dark:border-white/5 dark:bg-linear-to-br dark:from-ht-tint-amber dark:to-ht-surface dark:hover:border-amber-500/30",
       faintIcon: "text-white/20 dark:text-amber-400/20",
       labelIcon: "text-white/90 dark:text-amber-400",
       labelText: "text-white/90 dark:text-amber-400",

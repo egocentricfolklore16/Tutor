@@ -10,11 +10,16 @@ import {
 } from "recharts";
 import supabase from "../../lib/supabase";
 import { computeStudyStatsAnalytics } from "../../lib/studyStatsUtils";
+import useTheme from "../../hooks/useTheme";
 
 const PerformanceDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [sessions, setSessions] = useState([]);
   const [history, setHistory] = useState([]);
+  const isDark = useTheme() === "dark";
+  const chartColors = isDark
+    ? { series: "var(--color-ht-chart-sky)", gradient: "var(--color-ht-chart-sky)" }
+    : { series: "#3b82f6", gradient: "#3b82f6" };
 
   useEffect(() => {
     let isMounted = true;
@@ -113,17 +118,27 @@ const PerformanceDashboard = () => {
                     <Tooltip
                       formatter={(value) => [`${Number(value).toFixed(1)} hrs`, "Study time"]}
                       contentStyle={{
-                        backgroundColor: "var(--color-tooltip-bg, #1e293b)",
-                        borderColor: "var(--color-tooltip-border, #334155)",
-                        borderRadius: "8px",
-                        boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
-                        color: "#f8fafc",
+                        ...(isDark
+                          ? {
+                              backgroundColor: "var(--color-ht-raised)",
+                              borderColor: "var(--color-ht-border-strong)",
+                              borderRadius: "8px",
+                              boxShadow: "none",
+                              color: "var(--color-ht-text)",
+                            }
+                          : {
+                              backgroundColor: "var(--color-tooltip-bg, #1e293b)",
+                              borderColor: "var(--color-tooltip-border, #334155)",
+                              borderRadius: "8px",
+                              boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                              color: "#f8fafc",
+                            }),
                       }}
                     />
                     <Area
                       type="monotone"
                       dataKey="hours"
-                      stroke="#3b82f6"
+                      stroke={chartColors.series}
                       strokeWidth={2}
                       fill="url(#colorGradient)"
                     />
@@ -137,12 +152,12 @@ const PerformanceDashboard = () => {
                       >
                         <stop
                           offset="5%"
-                          stopColor="#3b82f6"
+                          stopColor={chartColors.gradient}
                           stopOpacity={0.3}
                         />
                         <stop
                           offset="95%"
-                          stopColor="#3b82f6"
+                          stopColor={chartColors.gradient}
                           stopOpacity={0.05}
                         />
                       </linearGradient>

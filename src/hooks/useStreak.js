@@ -117,12 +117,18 @@ export function useStreak() {
   const [error, setError] = useState(null);
 
   const fetchStreakData = useCallback(async () => {
+    setLoading(true);
+    setError(null);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session?.user) {
-        setCurrentStreak(null);
-        setLongestStreak(null);
-        setLoading(false);
+        setCurrentStreak(0);
+        setLongestStreak(0);
+        setFreezeTokens(0);
+        setLastCompletedDate(null);
+        setLastActiveDate(null);
+        setWeekDays([]);
+        setTodayCompleted(false);
         return;
       }
 
@@ -170,7 +176,7 @@ export function useStreak() {
       const startDate = baseWeek[0].dateStr;
       const endDate = baseWeek[6].dateStr;
 
-      const [{ data: streakDaysRows }, { data: trackingRows }] = await Promise.all([
+      const [streakDaysResult, trackingResult] = await Promise.all([
         supabase
           .from("streak_days")
           .select("local_date, status")
@@ -185,13 +191,16 @@ export function useStreak() {
           .lte("activity_date", endDate),
       ]);
 
+      if (streakDaysResult.error) throw streakDaysResult.error;
+      if (trackingResult.error) throw trackingResult.error;
+
       const statusByDate = {};
-      (streakDaysRows || []).forEach((row) => {
+      (streakDaysResult.data || []).forEach((row) => {
         statusByDate[row.local_date] = row.status;
       });
 
       // Daily tracking fallback for completed status if sessions > 0
-      (trackingRows || []).forEach((row) => {
+      (trackingResult.data || []).forEach((row) => {
         if (row.sessions_completed > 0 && !statusByDate[row.activity_date]) {
           statusByDate[row.activity_date] = "completed";
         }

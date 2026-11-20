@@ -6,6 +6,24 @@ import { awardUserRewards } from "../../../lib/gamification.js";
  */
 export const gamificationService = {
   /**
+   * Fetches achievement badges for a user.
+   */
+  async getBadges(userId) {
+    if (!userId) throw new Error("User ID required");
+
+    const { data, error } = await supabase.rpc("get_achievements", {
+      p_user: userId,
+    });
+
+    if (error) throw error;
+    if (!Array.isArray(data)) {
+      throw new Error("Unexpected response while fetching achievement badges.");
+    }
+
+    return data;
+  },
+
+  /**
    * Fetches profile and streak state in one call or structured response.
    */
   async getGamificationState(userId) {

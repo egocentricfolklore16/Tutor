@@ -5,24 +5,49 @@ import { getAccessibilityClasses } from "../lib/accessibility.js";
 import { gamificationService } from "../features/gamification/services/gamificationService.js";
 
 const ProfileContext = createContext(null);
+const THEME_STORAGE_KEY = "hyper-tutor-dark-mode";
+
+function getInitialDarkMode() {
+  try {
+    const preference = localStorage.getItem(THEME_STORAGE_KEY);
+    if (preference === "dark" || preference === "true") return true;
+    if (preference === "light" || preference === "false") return false;
+  } catch (error) {
+    console.error("Error reading theme preference from localStorage:", error);
+  }
+
+  return typeof window !== "undefined" && window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
 
 export function ProfileProvider({ user, children }) {
   const [profile, setProfile] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [darkMode, setDarkMode] = useState(() => {
-    try {
-      return localStorage.getItem("hyper-tutor-dark-mode") === "true";
-    } catch (e) {
-      console.error("Error reading 'hyper-tutor-dark-mode' from localStorage:", e);
-      return false;
-    }
-  });
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
   const lastTouchTimeRef = useRef(0);
+  const themeTransitionTimeoutRef = useRef(null);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("dark", darkMode);
-    localStorage.setItem("hyper-tutor-dark-mode", String(darkMode));
+    const root = document.documentElement;
+    root.classList.toggle("dark", darkMode);
+    root.style.colorScheme = darkMode ? "dark" : "light";
+    const themeColor = document.querySelector('meta[name="theme-color"]');
+    if (themeColor) themeColor.content = darkMode ? "#121a18" : "#059669";
   }, [darkMode]);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
+    const applySystemTheme = () => {
+      try {
+        if (localStorage.getItem(THEME_STORAGE_KEY) === "system") {
+          setDarkMode(mediaQuery.matches);
+        }
+      } catch (error) {
+        console.error("Error reading theme preference from localStorage:", error);
+      }
+    };
+    mediaQuery.addEventListener("change", applySystemTheme);
+    return () => mediaQuery.removeEventListener("change", applySystemTheme);
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -69,7 +94,9 @@ export function ProfileProvider({ user, children }) {
     // Touch last seen throttled
     touchLastSeenThrottled();
     
-    setDarkMode(Boolean(nextProfile?.dark_mode));
+    if (typeof nextProfile?.dark_mode === "boolean") {
+      setDarkMode(nextProfile.dark_mode);
+    }
     setIsLoading(false);
   }, [user?.id, touchLastSeenThrottled]);
 
@@ -141,7 +168,22 @@ export function ProfileProvider({ user, children }) {
 
   const toggleDarkMode = async (enabled) => {
     const nextValue = Boolean(enabled);
+    const root = document.documentElement;
+    root.classList.add("theme-transition");
+    if (themeTransitionTimeoutRef.current) {
+      window.clearTimeout(themeTransitionTimeoutRef.current);
+    }
+    themeTransitionTimeoutRef.current = window.setTimeout(() => {
+      root.classList.remove("theme-transition");
+      themeTransitionTimeoutRef.current = null;
+    }, 200);
+
     setDarkMode(nextValue);
+    try {
+      localStorage.setItem(THEME_STORAGE_KEY, nextValue ? "dark" : "light");
+    } catch (error) {
+      console.error("Error saving theme preference to localStorage:", error);
+    }
     if (!user?.id) return;
     const { error } = await supabase.from("profiles").update({ dark_mode: nextValue }).eq("user_id", user.id);
     if (error) console.error("Unable to save dark mode preference:", error);

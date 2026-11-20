@@ -1,7 +1,37 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   --font-sans: "Nunito", ui-sans-serif, system-ui, sans-serif;
+  --color-ht-base: #121a18;
+  --color-ht-surface: #18211f;
+  --color-ht-raised: #1f2b28;
+  --color-ht-hover: #26342f;
+  --color-ht-border: #2c3b37;
+  --color-ht-border-strong: #3a4c47;
+  --color-ht-text: #e8f1ee;
+  --color-ht-text-soft: #a7b8b2;
+  --color-ht-text-faint: #84968f;
+  --color-ht-accent: #3ecf9a;
+  --color-ht-accent-soft: #6ee7b7;
+  --color-ht-on-accent: #0b1a15;
+  --color-ht-chart-emerald: #3ecf9a;
+  --color-ht-chart-sky: #60a5fa;
+  --color-ht-chart-amber: #fbbf24;
+  --color-ht-chart-violet: #a78bfa;
+  --color-ht-chart-rose: #fb7185;
+  --color-ht-chart-fill: rgb(62 207 154 / 16%);
+  --color-ht-tint-emerald: #1d4a3c;
+  --color-ht-tint-teal: #1b4549;
+  --color-ht-tint-sky: #1e3f55;
+  --color-ht-tint-indigo: #2b3160;
+  --color-ht-tint-violet: #3a2d5c;
+  --color-ht-tint-rose: #55283a;
+  --color-ht-tint-orange: #55391d;
+  --color-ht-tint-amber: #55391d;
+  --color-ht-tint-yellow: #4d4519;
+  --color-ht-tint-red: #532626;
 }
 
 @layer base {
@@ -579,4 +609,628 @@ form { animation: form-enter 260ms ease-out both; }
     animation: splash-bg-enter 0.3s ease-out both !important;
     transform: none !important;
   }
+}
+
+@layer base {
+  html.dark {
+    color-scheme: dark;
+    background-color: var(--color-ht-base);
+  }
+
+  html.dark body {
+    background-color: var(--color-ht-base);
+    color: var(--color-ht-text);
+  }
+
+  html.dark ::selection {
+    background-color: rgb(62 207 154 / 30%);
+    color: var(--color-ht-text);
+  }
+
+  html.dark input:-webkit-autofill,
+  html.dark input:-webkit-autofill:hover,
+  html.dark input:-webkit-autofill:focus,
+  html.dark textarea:-webkit-autofill,
+  html.dark select:-webkit-autofill {
+    -webkit-text-fill-color: var(--color-ht-text);
+    -webkit-box-shadow: 0 0 0 1000px var(--color-ht-raised) inset;
+    caret-color: var(--color-ht-accent);
+  }
+}
+
+html.theme-transition,
+html.theme-transition *,
+html.theme-transition *::before,
+html.theme-transition *::after {
+  transition: color 200ms ease, background-color 200ms ease, border-color 200ms ease,
+    text-decoration-color 200ms ease, fill 200ms ease, stroke 200ms ease !important;
+}
+
+html.dark,
+html.dark * {
+  scrollbar-color: var(--color-ht-border-strong) transparent;
+}
+
+html.dark::-webkit-scrollbar-thumb,
+html.dark *::-webkit-scrollbar-thumb {
+  background-color: var(--color-ht-border-strong);
+}
+
+html.dark::-webkit-scrollbar-thumb:hover,
+html.dark *::-webkit-scrollbar-thumb:hover {
+  background-color: var(--color-ht-accent);
+}
+
+html.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+html.dark [class~="bg-white"],
+html.dark [class~="bg-white/70"],
+html.dark [class*="bg-white/"] {
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="bg-gray-50"],
+html.dark [class~="bg-slate-50"],
+html.dark [class~="bg-zinc-50"],
+html.dark [class~="bg-neutral-50"],
+html.dark [class~="bg-stone-50"],
+html.dark [class*="bg-gray-50/"],
+html.dark [class*="bg-slate-50/"] {
+  background-color: var(--color-ht-base) !important;
+}
+
+html.dark [class~="bg-gray-100"],
+html.dark [class~="bg-slate-100"],
+html.dark [class~="bg-zinc-100"],
+html.dark [class~="bg-neutral-100"],
+html.dark [class~="bg-stone-100"],
+html.dark [class*="bg-gray-100/"],
+html.dark [class*="bg-slate-100/"] {
+  background-color: var(--color-ht-raised) !important;
+}
+
+html.dark [class~="bg-gray-200"],
+html.dark [class~="bg-gray-300"],
+html.dark [class~="bg-slate-200"],
+html.dark [class~="bg-slate-300"],
+html.dark [class~="bg-zinc-200"],
+html.dark [class~="bg-neutral-200"],
+html.dark [class~="bg-stone-200"] {
+  background-color: var(--color-ht-hover) !important;
+}
+
+html.dark [class~="dark:bg-slate-950"],
+html.dark [class~="dark:bg-slate-900"] {
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="dark:bg-slate-950"] {
+  background-color: var(--color-ht-base) !important;
+}
+
+html.dark [class~="dark:bg-slate-800"],
+html.dark [class*="dark:bg-slate-800/"] {
+  background-color: var(--color-ht-raised) !important;
+}
+
+html.dark [class~="dark:bg-slate-700"],
+html.dark [class*="dark:bg-slate-700/"] {
+  background-color: var(--color-ht-hover) !important;
+}
+
+html.dark [class~="dark:bg-[#14171c]"],
+html.dark [class~="dark:bg-[#18211f]"],
+html.dark [class~="dark:bg-[#181c23]"],
+html.dark [class~="dark:bg-[#1f242d]"] {
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="bg-[#14171c]"],
+html.dark [class~="bg-[#18211f]"] {
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="bg-[#0f1f0f]"],
+html.dark [class~="bg-[#1a2f1a]"] {
+  background-color: var(--color-ht-raised) !important;
+}
+
+html.dark [class~="bg-[#0B0D0C]"],
+html.dark [class~="dark:bg-[#0F1115]"] {
+  background-color: var(--color-ht-base) !important;
+}
+
+html.dark [class~="dark:bg-[#0f1514]"],
+html.dark [class~="dark:bg-[#0f172a]"] {
+  background-color: var(--color-ht-base) !important;
+}
+
+html.dark [class*="dark:bg-[#14171c]/"] {
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class*="dark:bg-[#181c23]/"] {
+  background-color: var(--color-ht-raised) !important;
+}
+
+html.dark [class*="dark:bg-emerald-950"],
+html.dark [class*="dark:bg-emerald-900"],
+html.dark [class*="dark:bg-emerald-800"],
+html.dark [class*="dark:bg-green-950"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-emerald) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-teal-950"],
+html.dark [class*="dark:bg-teal-900"],
+html.dark [class*="dark:bg-teal-800"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-teal) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-sky-950"],
+html.dark [class*="dark:bg-blue-950"],
+html.dark [class*="dark:bg-cyan-950"],
+html.dark [class*="dark:bg-blue-900"],
+html.dark [class*="dark:bg-cyan-900"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-sky) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-indigo-950"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-indigo) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-violet-950"],
+html.dark [class*="dark:bg-purple-950"],
+html.dark [class*="dark:bg-violet-900"],
+html.dark [class*="dark:bg-purple-900"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-violet) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-rose-950"],
+html.dark [class*="dark:bg-pink-950"],
+html.dark [class*="dark:bg-red-950"],
+html.dark [class*="dark:bg-rose-900"],
+html.dark [class*="dark:bg-pink-900"],
+html.dark [class*="dark:bg-red-900"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-rose) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-amber-950"],
+html.dark [class*="dark:bg-orange-950"],
+html.dark [class*="dark:bg-yellow-950"],
+html.dark [class*="dark:bg-amber-900"],
+html.dark [class*="dark:bg-orange-900"],
+html.dark [class*="dark:bg-yellow-900"] {
+  background-color: color-mix(in srgb, var(--color-ht-tint-amber) 24%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="dark:bg-emerald-500"],
+html.dark [class~="dark:bg-green-500"] {
+  background-color: var(--color-ht-accent) !important;
+}
+
+html.dark [class~="dark:bg-emerald-600"],
+html.dark [class~="dark:bg-green-600"] {
+  background-color: var(--color-ht-accent) !important;
+}
+
+html.dark button[class~="dark:bg-emerald-500"],
+html.dark button[class~="dark:bg-emerald-600"],
+html.dark button[class~="dark:bg-green-500"],
+html.dark button[class~="dark:bg-green-600"] {
+  color: var(--color-ht-on-accent) !important;
+}
+
+html.dark button[class~="dark:hover:bg-emerald-400"]:hover,
+html.dark button[class~="dark:hover:bg-green-400"]:hover {
+  background-color: var(--color-ht-accent) !important;
+  filter: brightness(1.1);
+}
+
+html.dark [class~="dark:bg-amber-500"],
+html.dark [class~="dark:bg-amber-400"],
+html.dark [class~="dark:bg-orange-500"],
+html.dark [class~="dark:bg-yellow-500"],
+html.dark [class~="dark:bg-amber-600"],
+html.dark [class*="dark:bg-amber-600/"],
+html.dark [class~="dark:bg-orange-600"],
+html.dark [class*="dark:bg-orange-600/"],
+html.dark [class~="dark:bg-yellow-600"],
+html.dark [class*="dark:bg-yellow-600/"] {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-amber), var(--color-ht-surface)) !important;
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="dark:bg-sky-500"],
+html.dark [class~="dark:bg-blue-500"],
+html.dark [class~="dark:bg-cyan-500"],
+html.dark [class~="dark:bg-sky-600"],
+html.dark [class~="dark:bg-blue-600"],
+html.dark [class~="dark:bg-cyan-600"] {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-sky), var(--color-ht-surface)) !important;
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="dark:bg-indigo-500"],
+html.dark [class~="dark:bg-violet-500"],
+html.dark [class~="dark:bg-purple-500"],
+html.dark [class~="dark:bg-indigo-600"],
+html.dark [class~="dark:bg-violet-600"],
+html.dark [class~="dark:bg-purple-600"] {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-violet), var(--color-ht-surface)) !important;
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="dark:bg-rose-500"],
+html.dark [class~="dark:bg-pink-500"],
+html.dark [class~="dark:bg-red-500"],
+html.dark [class~="dark:bg-rose-600"],
+html.dark [class~="dark:bg-pink-600"],
+html.dark [class~="dark:bg-red-600"] {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-rose), var(--color-ht-surface)) !important;
+  background-color: var(--color-ht-surface) !important;
+}
+
+html.dark [class*="dark:bg-emerald-500/"],
+html.dark [class*="dark:bg-green-500/"],
+html.dark [class*="dark:bg-teal-500/"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-emerald) 10%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-sky-500/"],
+html.dark [class*="dark:bg-blue-500/"],
+html.dark [class*="dark:bg-cyan-500/"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-sky) 10%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-indigo-500/"],
+html.dark [class*="dark:bg-violet-500/"],
+html.dark [class*="dark:bg-purple-500/"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-violet) 10%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-rose-500/"],
+html.dark [class*="dark:bg-pink-500/"],
+html.dark [class*="dark:bg-red-500/"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-rose) 10%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class*="dark:bg-orange-500/"],
+html.dark [class*="dark:bg-amber-500/"],
+html.dark [class*="dark:bg-yellow-500/"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-amber) 10%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="dark:border-slate-700"],
+html.dark [class~="dark:border-slate-800"],
+html.dark [class~="dark:border-slate-900"] {
+  border-color: var(--color-ht-border) !important;
+}
+
+html.dark [class~="dark:text-slate-950"] {
+  color: var(--color-ht-on-accent) !important;
+}
+
+html.dark [class~="bg-emerald-50"],
+html.dark [class~="bg-emerald-100"],
+html.dark [class~="bg-green-50"],
+html.dark [class~="bg-green-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-emerald) 12%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="bg-teal-50"],
+html.dark [class~="bg-teal-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-tint-teal) 20%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="bg-sky-50"],
+html.dark [class~="bg-sky-100"],
+html.dark [class~="bg-blue-50"],
+html.dark [class~="bg-blue-100"],
+html.dark [class~="bg-cyan-50"],
+html.dark [class~="bg-cyan-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-sky) 12%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="bg-indigo-50"],
+html.dark [class~="bg-indigo-100"],
+html.dark [class~="bg-violet-50"],
+html.dark [class~="bg-violet-100"],
+html.dark [class~="bg-purple-50"],
+html.dark [class~="bg-purple-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-violet) 12%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="bg-rose-50"],
+html.dark [class~="bg-rose-100"],
+html.dark [class~="bg-pink-50"],
+html.dark [class~="bg-pink-100"],
+html.dark [class~="bg-red-50"],
+html.dark [class~="bg-red-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-rose) 12%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="bg-amber-50"],
+html.dark [class~="bg-amber-100"],
+html.dark [class~="bg-orange-50"],
+html.dark [class~="bg-orange-100"],
+html.dark [class~="bg-yellow-50"],
+html.dark [class~="bg-yellow-100"] {
+  background-image: none !important;
+  background-color: color-mix(in srgb, var(--color-ht-chart-amber) 12%, var(--color-ht-surface)) !important;
+}
+
+html.dark [class~="text-black"],
+html.dark [class~="text-gray-900"],
+html.dark [class~="text-gray-800"],
+html.dark [class~="text-slate-950"],
+html.dark [class~="text-slate-900"],
+html.dark [class~="text-slate-800"],
+html.dark [class~="text-zinc-900"],
+html.dark [class~="text-neutral-900"],
+html.dark [class~="text-stone-900"] {
+  color: var(--color-ht-text) !important;
+}
+
+html.dark [class~="text-gray-700"],
+html.dark [class~="text-gray-600"],
+html.dark [class~="text-slate-700"],
+html.dark [class~="text-slate-600"],
+html.dark [class~="text-zinc-700"],
+html.dark [class~="text-neutral-700"],
+html.dark [class~="text-stone-700"] {
+  color: var(--color-ht-text-soft) !important;
+}
+
+html.dark [class~="text-gray-500"],
+html.dark [class~="text-gray-400"],
+html.dark [class~="text-slate-500"],
+html.dark [class~="text-slate-400"],
+html.dark [class~="text-zinc-500"],
+html.dark [class~="text-neutral-500"],
+html.dark [class~="text-stone-500"] {
+  color: var(--color-ht-text-faint) !important;
+}
+
+html.dark [class~="dark:text-white"],
+html.dark [class~="dark:text-slate-100"],
+html.dark [class~="dark:text-slate-200"],
+html.dark [class~="dark:text-gray-100"],
+html.dark [class~="dark:text-gray-200"] {
+  color: var(--color-ht-text) !important;
+}
+
+html.dark [class~="dark:text-slate-300"],
+html.dark [class~="dark:text-slate-400"],
+html.dark [class~="dark:text-gray-300"],
+html.dark [class~="dark:text-gray-400"] {
+  color: var(--color-ht-text-soft) !important;
+}
+
+html.dark [class~="dark:text-slate-500"],
+html.dark [class~="dark:text-gray-500"] {
+  color: var(--color-ht-text-faint) !important;
+}
+
+html.dark [class~="border-gray-100"],
+html.dark [class~="border-gray-200"],
+html.dark [class~="border-gray-300"],
+html.dark [class~="border-slate-100"],
+html.dark [class~="border-slate-200"],
+html.dark [class~="border-slate-300"],
+html.dark [class~="border-zinc-100"],
+html.dark [class~="border-zinc-200"],
+html.dark [class~="border-neutral-100"],
+html.dark [class~="border-neutral-200"],
+html.dark [class~="border-stone-100"],
+html.dark [class~="border-stone-200"] {
+  border-color: var(--color-ht-border) !important;
+}
+
+html.dark [class~="divide-gray-100"],
+html.dark [class~="divide-gray-200"],
+html.dark [class~="divide-slate-100"],
+html.dark [class~="divide-slate-200"],
+html.dark [class~="divide-slate-300"] {
+  --tw-divide-color: var(--color-ht-border) !important;
+}
+
+html.dark [class~="hover:bg-gray-50"]:hover,
+html.dark [class~="hover:bg-gray-100"]:hover,
+html.dark [class~="hover:bg-slate-50"]:hover,
+html.dark [class~="hover:bg-slate-100"]:hover,
+html.dark [class~="hover:bg-zinc-50"]:hover,
+html.dark [class~="hover:bg-neutral-50"]:hover {
+  background-color: var(--color-ht-hover) !important;
+}
+
+html.dark [class~="ring-offset-white"] {
+  --tw-ring-offset-color: var(--color-ht-base) !important;
+}
+
+html.dark [class~="from-white"] {
+  --tw-gradient-from: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="via-white"] {
+  --tw-gradient-via: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="to-white"],
+html.dark [class~="dark:to-white"],
+html.dark [class~="dark:to-[#14171c]"],
+html.dark [class~="dark:to-[#18211f]"] {
+  --tw-gradient-to: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="dark:via-[#14171c]"],
+html.dark [class~="dark:via-[#18211f]"] {
+  --tw-gradient-via: var(--color-ht-surface) !important;
+}
+
+html.dark [class~="shadow-surface"],
+html.dark [class~="shadow-surface-hover"],
+html.dark [class~="shadow-overlay"],
+html.dark [class*="shadow-"] {
+  box-shadow: none !important;
+}
+
+html.dark [class~="shadow-surface"],
+html.dark [class~="shadow-surface-hover"],
+html.dark [class~="shadow-overlay"] {
+  border-color: var(--color-ht-border) !important;
+}
+
+html.dark {
+  --bg-base: var(--color-ht-base);
+  --bg-surface: var(--color-ht-surface);
+  --card-red-bg: var(--color-ht-raised);
+  --card-green-bg: var(--color-ht-raised);
+  --card-amber-bg: var(--color-ht-raised);
+  --card-purple-bg: var(--color-ht-raised);
+  --text-primary: var(--color-ht-text);
+  --text-secondary: var(--color-ht-text-soft);
+  --text-accent-green: var(--color-ht-accent-soft);
+  --shadow-surface: none;
+  --shadow-surface-hover: none;
+  --shadow-overlay: none;
+}
+
+html.dark header.sticky {
+  background-color: rgb(18 26 24 / 80%) !important;
+  border-bottom: 1px solid var(--color-ht-border);
+  backdrop-filter: blur(12px);
+  box-shadow: none !important;
+}
+
+html.dark .dark-sidebar {
+  background-color: var(--color-ht-base);
+  border-right: 1px solid var(--color-ht-border);
+  color: var(--color-ht-text);
+}
+
+html.dark .dark-sidebar * {
+  color: inherit;
+}
+
+html.dark [role="dialog"],
+html.dark [data-radix-dialog-content] {
+  background-color: var(--color-ht-raised) !important;
+  border-color: var(--color-ht-border-strong) !important;
+}
+
+html.dark input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+html.dark textarea,
+html.dark select {
+  background-color: var(--color-ht-raised) !important;
+  border-color: var(--color-ht-border-strong) !important;
+  color: var(--color-ht-text) !important;
+  caret-color: var(--color-ht-accent);
+  box-shadow: none;
+}
+
+html.dark input::placeholder,
+html.dark textarea::placeholder,
+html.dark [class*="placeholder:"]::placeholder {
+  color: var(--color-ht-text-faint);
+  opacity: 1;
+}
+
+html.dark input[type="checkbox"],
+html.dark input[type="radio"] {
+  accent-color: var(--color-ht-accent);
+}
+
+html.dark pre {
+  background-color: var(--color-ht-base);
+  border: 1px solid var(--color-ht-border);
+  color: var(--color-ht-text-soft);
+}
+
+html.dark :not(pre) > code {
+  background-color: var(--color-ht-hover);
+  color: var(--color-ht-text);
+}
+
+html.dark .prose h1,
+html.dark .prose h2,
+html.dark .prose h3,
+html.dark .prose h4 {
+  color: var(--color-ht-text);
+}
+
+html.dark .prose p,
+html.dark .prose li {
+  color: var(--color-ht-text-soft);
+}
+
+html.dark .prose a {
+  color: var(--color-ht-accent-soft);
+}
+
+html.dark .prose blockquote {
+  border-left-color: var(--color-ht-accent);
+  color: var(--color-ht-text-soft);
+}
+
+html.dark .prose table,
+html.dark .prose th,
+html.dark .prose td {
+  border-color: var(--color-ht-border);
+}
+
+html.dark .accent-card-chat,
+html.dark .accent-card-community,
+html.dark .accent-card-plan,
+html.dark .accent-card-read,
+html.dark .accent-card-track,
+html.dark .accent-card-achievements,
+html.dark .accent-card-note {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-emerald), var(--color-ht-surface)) !important;
+  border: 1px solid rgb(255 255 255 / 5%);
+  box-shadow: none !important;
+}
+
+html.dark .accent-card-chat,
+html.dark .accent-card-community {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-orange), var(--color-ht-surface)) !important;
+}
+
+html.dark .accent-card-plan {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-violet), var(--color-ht-surface)) !important;
+}
+
+html.dark .accent-card-read {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-sky), var(--color-ht-surface)) !important;
+}
+
+html.dark .accent-card-track,
+html.dark .accent-card-achievements {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-amber), var(--color-ht-surface)) !important;
+}
+
+html.dark .accent-card-note {
+  background-image: linear-gradient(to bottom right, var(--color-ht-tint-teal), var(--color-ht-surface)) !important;
+}
+
+html.dark .recharts-cartesian-grid line {
+  stroke: var(--color-ht-border) !important;
+}
+
+html.dark .recharts-cartesian-axis-tick text,
+html.dark .recharts-cartesian-axis-line,
+html.dark .recharts-cartesian-axis-tick line {
+  fill: var(--color-ht-text-faint);
+  stroke: var(--color-ht-text-faint) !important;
 }

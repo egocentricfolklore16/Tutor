@@ -73,6 +73,29 @@ test("gamificationService.getGamificationState requires a valid userId", async (
   assert.ok(res.error instanceof Error);
 });
 
+test("gamificationService.getBadges fetches badges for the requested user", async () => {
+  const supabase = (await import("../src/lib/supabase.js")).default;
+  const originalRpc = supabase.rpc;
+  let rpcCall;
+  const badges = [{ id: "first-session", earned: true }];
+
+  supabase.rpc = (name, params) => {
+    rpcCall = { name, params };
+    return Promise.resolve({ data: badges, error: null });
+  };
+
+  try {
+    assert.deepEqual(await gamificationService.getBadges("user_123"), badges);
+    assert.deepEqual(rpcCall, {
+      name: "get_achievements",
+      params: { p_user: "user_123" },
+    });
+    await assert.rejects(gamificationService.getBadges(null), /User ID required/);
+  } finally {
+    supabase.rpc = originalRpc;
+  }
+});
+
 test("gamificationService.getGamificationState merges profile and streak data and falls back safely", async () => {
   const originalFrom = (await import("../src/lib/supabase.js")).default.from;
   const supabase = (await import("../src/lib/supabase.js")).default;

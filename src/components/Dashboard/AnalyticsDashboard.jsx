@@ -3,6 +3,7 @@ import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YA
 import supabase from "../../lib/supabase";
 import { toDate } from "../../lib/dates";
 import LoadingCompanion from "../common/LoadingCompanion";
+import useTheme from "../../hooks/useTheme";
 
 const dateKey = (value) => {
   const date = toDate(value);
@@ -12,6 +13,15 @@ const dateKey = (value) => {
 const AnalyticsDashboard = () => {
   const [sessions, setSessions] = useState([]);
   const [status, setStatus] = useState("loading");
+  const isDark = useTheme() === "dark";
+  const chartColors = isDark
+    ? {
+        grid: "var(--color-ht-border)",
+        axis: "var(--color-ht-text-faint)",
+        series: "var(--color-ht-chart-emerald)",
+        fill: "var(--color-ht-chart-fill)",
+      }
+    : { grid: "#f0f0f0", axis: "#6b7280", series: "#ef4444", fill: "#fee2e2" };
 
   useEffect(() => {
     const loadSessions = async () => {
@@ -63,7 +73,7 @@ const AnalyticsDashboard = () => {
 
   return <div className="rounded-lg border border-gray-200/60 bg-white p-4 shadow-sm dark:border-slate-700/50 lg:p-5">
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
-      <div className="lg:col-span-2 rounded-lg border border-gray-200/60 p-5 dark:border-slate-700/50"><div className="mb-6 flex items-start justify-between"><div><h2 className="text-xl font-semibold text-gray-900">Weekly Progress</h2><p className="mt-1 text-sm text-gray-500">Planned study time over the last 7 days</p></div><span className="text-sm font-semibold text-gray-600">{analytics.weekHours.toFixed(1)} hrs</span></div><div className="h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={analytics.chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" /><XAxis dataKey="day" stroke="#6b7280" fontSize={12} /><YAxis stroke="#6b7280" fontSize={12} allowDecimals={false} /><Tooltip formatter={(value) => [`${value} hrs`, "Study time"]} /><Area type="monotone" dataKey="hours" stroke="#ef4444" strokeWidth={2} fill="#fee2e2" /></AreaChart></ResponsiveContainer></div></div>
+      <div className="lg:col-span-2 rounded-lg border border-gray-200/60 p-5 dark:border-slate-700/50"><div className="mb-6 flex items-start justify-between"><div><h2 className="text-xl font-semibold text-gray-900">Weekly Progress</h2><p className="mt-1 text-sm text-gray-500">Planned study time over the last 7 days</p></div><span className="text-sm font-semibold text-gray-600">{analytics.weekHours.toFixed(1)} hrs</span></div><div className="h-72"><ResponsiveContainer width="100%" height="100%"><AreaChart data={analytics.chart} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}><CartesianGrid strokeDasharray="3 3" stroke={chartColors.grid} /><XAxis dataKey="day" stroke={chartColors.axis} fontSize={12} /><YAxis stroke={chartColors.axis} fontSize={12} allowDecimals={false} /><Tooltip formatter={(value) => [`${value} hrs`, "Study time"]} contentStyle={isDark ? { backgroundColor: "var(--color-ht-raised)", borderColor: "var(--color-ht-border-strong)", borderRadius: "8px", color: "var(--color-ht-text)", boxShadow: "none" } : undefined} /><Area type="monotone" dataKey="hours" stroke={chartColors.series} strokeWidth={2} fill={chartColors.fill} /></AreaChart></ResponsiveContainer></div></div>
       <div className="rounded-lg border border-gray-200/60 p-5 dark:border-slate-700/50"><h2 className="mb-4 text-lg font-semibold text-gray-900">Time by subject</h2>{analytics.subjects.length === 0 ? <p className="text-sm text-gray-500">Create a session to see subject trends.</p> : <div className="space-y-4">{analytics.subjects.map((subject, index) => { const percentage = analytics.plannedHours ? Math.round(subject.hours / analytics.plannedHours * 100) : 0; return <div key={subject.name}><div className="mb-1 flex justify-between text-sm"><span className="font-medium text-gray-700">{subject.name}</span><span className="text-gray-500">{subject.hours.toFixed(1)}h</span></div><div className="h-2 rounded-full bg-gray-100"><div className={`h-2 rounded-full ${index === 0 ? "bg-red-400" : index === 1 ? "bg-orange-400" : "bg-green-400"}`} style={{ width: `${percentage}%` }} /></div></div>; })}</div>}</div>
     </div>
     <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">{[[sessions.length, "Sessions", "total", "accent-card-chat"], [`${analytics.plannedHours.toFixed(1)}h`, "Planned time", "all", "accent-card-plan"], [analytics.pastSessions, "Past sessions", "count", "accent-card-read"], [analytics.weekHours.toFixed(1), "This week", "hours", "accent-card-track"]].map(([value, label, suffix, color], index) => <div key={label} className={`rounded-lg border border-gray-200/50 dark:border-slate-700/50 p-4 text-center shadow-sm transition duration-300 hover:rotate-0 hover:-translate-y-0.5 hover:shadow-md ${index % 2 === 0 ? "rotate-1" : "-rotate-1"} ${color}`}><div className="text-2xl font-bold text-gray-900">{value}</div><div className="text-sm text-gray-600">{label}</div><div className="mt-1 text-xs uppercase text-gray-400">{suffix}</div></div>)}</div>

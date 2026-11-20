@@ -17,12 +17,13 @@ import {
   computeTrendStats,
   formatYAxisTicks,
 } from "./studyTrendUtils";
+import useTheme from "../../hooks/useTheme";
 
 /**
  * Custom dot renderer for daily hours data points.
  * Renders filled circle with card ring ONLY when hours > 0.
  */
-function CustomDailyDot(props) {
+function CustomDailyDot({ isDark, ...props }) {
   const { cx, cy, payload } = props;
   if (!payload || payload.hours <= 0 || cx == null || cy == null) {
     return null;
@@ -32,9 +33,8 @@ function CustomDailyDot(props) {
       cx={cx}
       cy={cy}
       r={3}
-      fill="var(--color-indigo-600, #6366f1)"
-      stroke="var(--color-card-bg, #ffffff)"
-      className="dark:stroke-[#14171c]"
+      fill={isDark ? "var(--color-ht-chart-emerald)" : "var(--color-indigo-600, #6366f1)"}
+      stroke={isDark ? "var(--color-ht-surface)" : "var(--color-card-bg, #ffffff)"}
       strokeWidth={2}
     />
   );
@@ -111,7 +111,7 @@ function CustomTooltipContent({ active, payload, label, coordinate, containerWid
 /**
  * Peak day annotation pill overlay
  */
-function PeakAnnotationOverlay({ peakPoint, chartData }) {
+function PeakAnnotationOverlay({ peakPoint, chartData, chartColors }) {
   if (!peakPoint || peakPoint.hours <= 0) return null;
 
   return (
@@ -141,7 +141,7 @@ function PeakAnnotationOverlay({ peakPoint, chartData }) {
                 y1={pillY + 6}
                 x2={x}
                 y2={y - 4}
-                stroke="var(--color-indigo-500, #6366f1)"
+                stroke={chartColors.annotation}
                 strokeWidth={1}
                 strokeDasharray="2 2"
                 opacity={0.6}
@@ -155,7 +155,7 @@ function PeakAnnotationOverlay({ peakPoint, chartData }) {
                 width={68}
                 height={18}
                 rx={9}
-                fill="var(--color-indigo-600, #6366f1)"
+                fill={chartColors.primary}
                 className="shadow-sm"
               />
               <text
@@ -185,6 +185,27 @@ export function StudyTrendChart({
   subtitle = "Planned hours across your recent schedule",
   _plannedHoursTotal = 0,
 }) {
+  const theme = useTheme();
+  const isDark = theme === "dark";
+  const chartColors = isDark
+    ? {
+        primary: "var(--color-ht-chart-emerald)",
+        secondary: "var(--color-ht-accent-soft)",
+        annotation: "var(--color-ht-chart-emerald)",
+        glow: "var(--color-ht-chart-emerald)",
+        neutral: "var(--color-ht-text-faint)",
+        grid: "var(--color-ht-border)",
+        surface: "var(--color-ht-surface)",
+      }
+    : {
+        primary: "var(--color-indigo-600, #6366f1)",
+        secondary: "var(--color-indigo-400, #818cf8)",
+        annotation: "var(--color-indigo-500, #6366f1)",
+        glow: "#6366f1",
+        neutral: "#94a3b8",
+        grid: "#e2e8f0",
+        surface: "#ffffff",
+      };
   const _chartContainerId = useId();
   const [rangeDays, setRangeDays] = useState(30);
   const [show7DayAvg, setShow7DayAvg] = useState(true);
@@ -422,29 +443,29 @@ export function StudyTrendChart({
               <defs>
                 {/* Vertical Area Gradient */}
                 <linearGradient id="trendAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-indigo-600, #6366f1)" stopOpacity={0.28} />
-                  <stop offset="100%" stopColor="var(--color-indigo-600, #6366f1)" stopOpacity={0.0} />
+                  <stop offset="0%" stopColor={chartColors.primary} stopOpacity={0.28} />
+                  <stop offset="100%" stopColor={chartColors.primary} stopOpacity={0.0} />
                 </linearGradient>
 
                 {/* Line Gradient */}
                 <linearGradient id="trendLineGrad" x1="0" y1="0" x2="1" y2="0">
-                  <stop offset="0%" stopColor="var(--color-indigo-600, #6366f1)" />
-                  <stop offset="100%" stopColor="var(--color-indigo-400, #818cf8)" />
+                  <stop offset="0%" stopColor={chartColors.primary} />
+                  <stop offset="100%" stopColor={chartColors.secondary} />
                 </linearGradient>
 
                 {/* Restrained Line Outer Glow Filter */}
                 <filter id="trendLineGlow" x="-10%" y="-10%" width="120%" height="120%">
-                  <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#6366f1" floodOpacity="0.25" />
+                  <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor={chartColors.glow} floodOpacity={isDark ? "0" : "0.25"} />
                 </filter>
               </defs>
 
               {/* Gridlines: Horizontal only */}
-              <CartesianGrid vertical={false} stroke="#e2e8f0" strokeOpacity={0.12} strokeDasharray="3 3" />
+              <CartesianGrid vertical={false} stroke={chartColors.grid} strokeOpacity={isDark ? 0.8 : 0.12} strokeDasharray="3 3" />
 
               {/* X Axis */}
               <XAxis
                 dataKey="day"
-                stroke="#94a3b8"
+                stroke={chartColors.neutral}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -455,7 +476,7 @@ export function StudyTrendChart({
 
               {/* Y Axis */}
               <YAxis
-                stroke="#94a3b8"
+                stroke={chartColors.neutral}
                 fontSize={11}
                 tickLine={false}
                 axisLine={false}
@@ -473,7 +494,7 @@ export function StudyTrendChart({
                   />
                 }
                 cursor={{
-                  stroke: "var(--color-indigo-500, #6366f1)",
+                  stroke: chartColors.annotation,
                   strokeWidth: 1,
                   strokeDasharray: "3 3",
                   strokeOpacity: 0.5,
@@ -484,7 +505,7 @@ export function StudyTrendChart({
               {todayKey && (
                 <ReferenceLine
                   x={chartData[chartData.length - 1]?.day}
-                  stroke="#94a3b8"
+                  stroke={chartColors.neutral}
                   strokeDasharray="2 2"
                   strokeOpacity={0.35}
                 />
@@ -494,7 +515,7 @@ export function StudyTrendChart({
               {dailyGoalHours > 0 && (
                 <ReferenceLine
                   y={dailyGoalHours}
-                  stroke="#10b981"
+                  stroke={isDark ? "var(--color-ht-chart-emerald)" : "#10b981"}
                   strokeDasharray="3 3"
                   strokeOpacity={0.6}
                   strokeWidth={1.5}
@@ -508,12 +529,12 @@ export function StudyTrendChart({
                 stroke="url(#trendLineGrad)"
                 strokeWidth={2}
                 fill="url(#trendAreaGrad)"
-                filter="url(#trendLineGlow)"
-                dot={<CustomDailyDot />}
+                filter={isDark ? undefined : "url(#trendLineGlow)"}
+                dot={<CustomDailyDot isDark={isDark} />}
                 activeDot={{
                   r: 5,
-                  fill: "var(--color-indigo-600, #6366f1)",
-                  stroke: "#ffffff",
+                  fill: chartColors.primary,
+                  stroke: chartColors.surface,
                   strokeWidth: 2,
                 }}
                 isAnimationActive={true}
@@ -526,15 +547,15 @@ export function StudyTrendChart({
                 <Line
                   type="monotone"
                   dataKey="avg7"
-                  stroke="#94a3b8"
+                  stroke={chartColors.neutral}
                   strokeWidth={1.5}
                   strokeDasharray="4 4"
                   strokeOpacity={0.65}
                   dot={false}
                   activeDot={{
                     r: 3.5,
-                    fill: "#94a3b8",
-                    stroke: "#ffffff",
+                    fill: chartColors.neutral,
+                    stroke: chartColors.surface,
                     strokeWidth: 1.5,
                   }}
                   isAnimationActive={true}
@@ -551,6 +572,7 @@ export function StudyTrendChart({
                     day: stats.peakDate,
                   }}
                   chartData={chartData}
+                  chartColors={chartColors}
                 />
               )}
             </AreaChart>

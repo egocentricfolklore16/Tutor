@@ -9,6 +9,28 @@
     <link rel="icon" type="image/png" href="/logo.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="theme-color" content="#059669" />
+    <script>
+      (() => {
+        let preference = null;
+        try {
+          preference = localStorage.getItem("hyper-tutor-dark-mode");
+        } catch (error) {
+          console.error("Error reading theme preference from localStorage:", error);
+          preference = null;
+        }
+
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const dark =
+          preference === "dark" ||
+          preference === "true" ||
+          (preference !== "light" && preference !== "false" && prefersDark);
+        const root = document.documentElement;
+        root.classList.toggle("dark", dark);
+        root.style.colorScheme = dark ? "dark" : "light";
+        const themeColor = document.querySelector('meta[name="theme-color"]');
+        if (themeColor) themeColor.content = dark ? "#121a18" : "#059669";
+      })();
+    </script>
     <link rel="apple-touch-icon" href="/icons/icon-192.png" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />

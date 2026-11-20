@@ -47,7 +47,7 @@ export default function Leaderboard() {
 
   return (
     <section
-      className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-slate-200 bg-slate-950 p-5 text-white shadow-sm lg:p-6"
+      className="relative flex h-full flex-col justify-between overflow-hidden rounded-3xl border border-white/10 bg-slate-950 p-5 text-white shadow-sm lg:p-6"
       aria-labelledby="leaderboard-title"
     >
       {/* Background glow effects */}

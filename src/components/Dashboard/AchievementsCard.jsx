@@ -41,7 +41,7 @@ function AchievementsCard() {
   const headingText = hasEarned ? "Your wins are adding up" : "Start earning achievements";
 
   return (
-    <section className="accent-card-achievements rounded-lg border p-5 shadow-sm">
+    <section className="accent-card-achievements rounded-lg border border-current/10 p-5 shadow-sm">
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-2">
           <Award className="h-5 w-5" />

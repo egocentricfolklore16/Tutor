@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { getOwlPose, OwlEyePixels, OwlPoseConfig, POSE_CONFIG } from "./poses";
 import OwlCalibrator from "./OwlCalibrator";
+import { useOwlEyeBehavior } from "./useOwlEyeBehavior";
 
 type Props = {
   poseId?: string;
@@ -15,13 +16,13 @@ type EyeName = "leftEye" | "rightEye";
 
 export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = false, className = "", onClick }: Props) {
   const debugEnabled = debug || (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("owlDebug"));
+  const eyeLookDebug = debugEnabled && typeof window !== "undefined" && new URLSearchParams(window.location.search).get("eyeLook") === "1";
   const [debugPoseId, setDebugPoseId] = useState(poseId === "happy" ? "wings-up" : poseId);
   const [poseConfigs, setPoseConfigs] = useState(POSE_CONFIG);
   const [loadedSize, setLoadedSize] = useState<NaturalSize | null>(null);
   const [compare, setCompare] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
-  const imageRef = useRef<HTMLImageElement>(null);
   const lastPoseRef = useRef<OwlPoseConfig>(getOwlPose(poseId));
   const [previousPose, setPreviousPose] = useState<OwlPoseConfig | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
@@ -95,79 +96,14 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
 
   const copyConfigs = useMemo(() => poseConfigs, [poseConfigs]);
 
-  useEffect(() => {
-    const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
-    if (reduced.matches) return;
-    const root = rootRef.current;
-    if (!root) return;
-    const irises = Array.from(root.querySelectorAll<HTMLElement>("[data-iris]"));
-    const eyelids = Array.from(root.querySelectorAll<HTMLElement>("[data-eyelid]"));
-    let frame = 0;
-    let visible = true;
-
-    const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; });
-    observer.observe(root);
-
-    const reset = () => {
-      irises.forEach((iris) => { iris.style.transform = "translate(-50%, -50%)"; });
-      root.style.setProperty("--owl-tilt-x", "0deg");
-      root.style.setProperty("--owl-tilt-y", "0deg");
-    };
-
-    const move = (event: PointerEvent) => {
-      if (!visible || compare) return;
-      cancelAnimationFrame(frame);
-      frame = requestAnimationFrame(() => {
-        irises.forEach((iris) => {
-          const eye = iris.closest<HTMLElement>(".owl-eye");
-          const rect = eye?.getBoundingClientRect();
-          const pixels = iris.dataset.eye === "left" ? pose.eyes !== "baked" && pose.eyes.leftEye : pose.eyes !== "baked" && pose.eyes.rightEye;
-          if (!rect || !pixels) return;
-          const dx = event.clientX - (rect.left + rect.width / 2);
-          const dy = event.clientY - (rect.top + rect.height / 2);
-          const distance = Math.hypot(dx, dy);
-          const strength = Math.min(1, distance / 260);
-          const angle = Math.atan2(dy, dx);
-          const travel = pixels.r * 0.26 * (stageRef.current?.getBoundingClientRect().width || 0) / naturalWidth * strength;
-          iris.style.transform = `translate(calc(-50% + ${Math.cos(angle) * travel}px), calc(-50% + ${Math.sin(angle) * travel}px))`;
-        });
-        if (window.matchMedia("(pointer:fine)").matches) {
-          const stageRect = stageRef.current?.getBoundingClientRect();
-          if (!stageRect) return;
-          const dx = (event.clientX - (stageRect.left + stageRect.width / 2)) / stageRect.width;
-          const dy = (event.clientY - (stageRect.top + stageRect.height / 2)) / stageRect.height;
-          root.style.setProperty("--owl-tilt-x", `${Math.max(-5, Math.min(5, -dy * 5))}deg`);
-          root.style.setProperty("--owl-tilt-y", `${Math.max(-8, Math.min(8, dx * 8))}deg`);
-        }
-        if (event.pointerType === "touch") window.setTimeout(reset, 1500);
-      });
-    };
-
-    let blinkTimer = 0;
-    const scheduleBlink = () => {
-      blinkTimer = window.setTimeout(() => {
-        if (!visible) { scheduleBlink(); return; }
-        const blink = () => {
-          eyelids.forEach((lid) => { lid.classList.add("is-blinking"); });
-          window.setTimeout(() => eyelids.forEach((lid) => lid.classList.remove("is-blinking")), 150);
-        };
-        blink();
-        if (Math.random() < 0.2) window.setTimeout(blink, 240);
-        scheduleBlink();
-      }, 2200 + Math.random() * 2800);
-    };
-
-    window.addEventListener("pointermove", move, { passive: true });
-    window.addEventListener("pointerleave", reset, { passive: true });
-    scheduleBlink();
-    return () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerleave", reset);
-      observer.disconnect();
-      cancelAnimationFrame(frame);
-      window.clearTimeout(blinkTimer);
-    };
-  }, [compare, naturalWidth, pose, pose.id]);
+  useOwlEyeBehavior({
+    rootRef,
+    stageRef,
+    pose,
+    naturalWidth,
+    mood,
+    enabled: pose.eyes !== "baked" && !compare,
+  });
 
   const eyeMarkup = pose.eyes !== "baked" && !debugEnabled && !compare && (
     <>
@@ -176,7 +112,7 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
         return (
           <span
             key={eyeName}
-            className="owl-eye"
+            className={`owl-eye ${eyeName === "rightEye" ? "owl-eye-right" : "owl-eye-left"}`}
             style={{
               left: `${eye.x / naturalWidth * 100}%`,
               top: `${eye.y / naturalHeight * 100}%`,
@@ -185,12 +121,21 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
             }}
           >
             <span className="owl-plate">
-              <span className="owl-iris" data-iris data-eye={eyeName === "leftEye" ? "left" : "right"}>
+              <span
+                className="owl-iris"
+                data-iris
+                data-eye={eyeName === "leftEye" ? "left" : "right"}
+                style={{ width: eyeName === "rightEye" ? "75.385%" : "76.923%", height: eyeName === "rightEye" ? "75.385%" : "76.923%" }}
+              >
                 <span className="owl-pupil" />
                 <span className="owl-glint owl-glint-a" />
                 <span className="owl-glint owl-glint-b" />
+                <span className="owl-glint-curve" />
               </span>
-              <span className="owl-eyelid" data-eyelid />
+              <span className="owl-socket-shadow" />
+              <span className="owl-eyelid owl-upper-lid" data-eyelid />
+              <span className="owl-lower-lid" />
+              <span className="owl-vignette" />
             </span>
           </span>
         );
@@ -204,7 +149,7 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
     <div
       ref={rootRef}
       data-pose={pose.id}
-      className={`owl-root ${mood === "happy" ? "owl-happy" : ""} ${debugEnabled ? "owl-debug-active" : ""} ${className}`}
+      className={`owl-root ${mood === "happy" ? "owl-happy" : ""} ${debugEnabled ? "owl-debug-active" : ""} ${eyeLookDebug ? "owl-eye-look-debug" : ""} ${className}`}
       onClick={onClick}
       aria-hidden="true"
     >
@@ -228,7 +173,6 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
             )}
             <img
               key={pose.id}
-              ref={imageRef}
               className="owl-image owl-picture-current"
               src={compare ? pose.pngFallback : pose.webp}
               onLoad={handleImageLoad}

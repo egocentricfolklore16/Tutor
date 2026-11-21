@@ -53,7 +53,7 @@ function AISuggestions() {
           </button>
           <button
             type="button"
-            onClick={() => navigate("/courses")}
+            onClick={() => navigate("/courses", { state: { openCreateSession: true } })}
             className="flex w-full cursor-pointer items-center gap-3 rounded-xl bg-emerald-600 px-4 py-3 text-left text-sm font-bold text-white shadow-button-primary transition hover:bg-emerald-700 dark:bg-emerald-600 dark:hover:bg-emerald-500"
           >
             <Plus className="h-5 w-5" />

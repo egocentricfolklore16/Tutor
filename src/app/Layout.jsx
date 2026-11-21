@@ -128,7 +128,7 @@ function Layout({ session, needsOnboarding }) {
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
-              New Session
+              New Course
             </button>
           )}
           <InstallPrompt userId={user?.id} />

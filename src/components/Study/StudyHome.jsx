@@ -24,9 +24,11 @@ import { useProfile } from "../../app/ProfileContext";
 import { deleteSession } from "../../lib/sessionService";
 import { useGamification } from "../../features/gamification";
 import { useCombinedSessions } from "../../hooks/useCombinedSessions";
-import { getStudySessionDefaults, isSlipping } from "../../lib/plannerUtils";
+import { useCreateActivity } from "../../hooks/usePlanner";
+import { isSlipping } from "../../lib/plannerUtils";
 import PageContainer from "../common/PageContainer";
 import ResponsiveSheet from "../common/ResponsiveSheet";
+import PlannerActivityModal from "../Planner/PlannerActivityModal";
 
 const INITIAL_FORM = { subject: "", topic: "", status: "", date: "", time: "", hours: "1" };
 const HISTORY_PAGE_SIZE = 20;
@@ -137,6 +139,7 @@ function StudyHome() {
   const [error, setError] = useState("");
 
   const [formOpen, setFormOpen] = useState(false);
+  const [plannerOpen, setPlannerOpen] = useState(false);
   const [formMode, setFormMode] = useState("create");
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(INITIAL_FORM);
@@ -150,6 +153,15 @@ function StudyHome() {
   const [historySearch, setHistorySearch] = useState("");
   const [visibleHistoryCount, setVisibleHistoryCount] = useState(HISTORY_PAGE_SIZE);
   const [clockNow, setClockNow] = useState(Date.now());
+  const { createActivity, isSaving: isCreatingPlannerActivity } = useCreateActivity();
+  const plannerSubjects = useMemo(
+    () => Array.from(new Set([
+      ...(profile?.subjects?.length
+        ? profile.subjects
+        : ["Mathematics", "Chemistry", "Physics", "Biology", "English", "History", "Computer Science"]),
+    ])),
+    [profile?.subjects]
+  );
 
   const loadData = useCallback(async () => {
     setHistoryLoading(true);
@@ -189,15 +201,9 @@ function StudyHome() {
   const openCreate = useCallback(() => {
     setFormMode("create");
     setEditingId(null);
-    const defaults = getStudySessionDefaults(profile);
-    setForm({
-      ...INITIAL_FORM,
-      subject: defaults.subject ? titleCase(defaults.subject) : "",
-      date: defaults.date || localDateString(),
-      time: defaults.time,
-    });
-    setFormOpen(true);
-  }, [profile]);
+    setFormOpen(false);
+    setPlannerOpen(true);
+  }, []);
 
   useEffect(() => {
     if (location.state?.openCreateSession) {
@@ -983,6 +989,20 @@ function StudyHome() {
           )}
         </section>
       </main>
+
+      <PlannerActivityModal
+        mode={plannerOpen ? "session" : null}
+        selectedDate={new Date()}
+        subjects={plannerSubjects}
+        preferredTime={profile?.preferred_time}
+        isSaving={isCreatingPlannerActivity}
+        onClose={() => setPlannerOpen(false)}
+        onSubmit={async (formData) => {
+          await createActivity(formData);
+          setPlannerOpen(false);
+          refreshSessions();
+        }}
+      />
 
       <ResponsiveSheet
         isOpen={formOpen}

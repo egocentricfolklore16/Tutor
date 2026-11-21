@@ -4,11 +4,11 @@
   height: 64px;
   margin: -2px 0 -10px;
   pointer-events: none;
-  --owl-width: 150px;
+  --owl-width: 160px;
 }
 .planner-mascot-lane > .owl-root {
   position:absolute;
-  bottom: calc(-150px * var(--owl-hidden-fraction));
+  bottom: calc(-160px * var(--owl-hidden-fraction) + 8px);
   right:8%;
   pointer-events:auto;
   filter:drop-shadow(0 9px 7px rgba(15,23,42,.22));
@@ -94,8 +94,8 @@
 @keyframes caret-blink { 50% { opacity:0 } }
 
 @media (max-width:639px) {
-  .planner-mascot-lane { height:58px; --owl-width:110px; margin-bottom:-6px; }
-  .planner-mascot-lane > .owl-root { right:4%; bottom:calc(-110px * var(--owl-hidden-fraction)); }
+  .planner-mascot-lane { height:58px; --owl-width:120px; margin-bottom:-6px; }
+  .planner-mascot-lane > .owl-root { right:4%; bottom:calc(-120px * var(--owl-hidden-fraction) + 8px); }
   .lumo-thought-bubble { right:calc(4% + var(--owl-width) + 8px); left:4px; min-width:0; max-width:none; bottom:24px; padding:8px 10px; }
   .progress-mascot-stage { min-height:130px; }
   .progress-mascot-stage > .owl-root { --owl-width:120px; right:6px; bottom:46px; }

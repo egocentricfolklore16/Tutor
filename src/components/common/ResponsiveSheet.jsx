@@ -34,6 +34,7 @@ export function ResponsiveSheet({
   closeOnOverlayClick = true,
   disableEscapeKey = false,
   isSheet = false, // When true on small screens under 640px, aligns to bottom as sheet. Default false (viewport centered).
+  isLeftDrawer = false,
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
@@ -119,13 +120,17 @@ export function ResponsiveSheet({
     }
   };
 
-  const containerAlignmentClass = isSheet
-    ? "items-end sm:items-center"
-    : "items-center";
+  const containerAlignmentClass = isLeftDrawer
+    ? "items-end sm:items-stretch sm:justify-start p-0 sm:p-0"
+    : isSheet
+      ? "items-end sm:items-center"
+      : "items-center";
 
-  const panelRoundedClass = isSheet
-    ? "rounded-t-3xl sm:rounded-2xl"
-    : "rounded-2xl";
+  const panelRoundedClass = isLeftDrawer
+    ? "rounded-t-3xl sm:rounded-none"
+    : isSheet
+      ? "rounded-t-3xl sm:rounded-2xl"
+      : "rounded-2xl";
 
   return createPortal(
     <div
@@ -138,7 +143,7 @@ export function ResponsiveSheet({
         ref={panelRef}
         tabIndex={-1}
         style={{ zIndex: Z_INDEX.MODAL_PANEL }}
-        className={`relative flex w-full ${maxWidth} max-h-[calc(100dvh-2rem)] flex-col ${panelRoundedClass} bg-white shadow-2xl transition-all dark:bg-[#14171c] dark:text-slate-100 animate-in zoom-in-95 duration-150 motion-reduce:animate-none outline-none ${className}`}
+        className={`relative flex w-full ${isLeftDrawer ? "h-[85dvh] max-h-none sm:h-full sm:max-w-[340px]" : `${maxWidth} max-h-[calc(100dvh-2rem)]`} flex-col ${panelRoundedClass} bg-white shadow-2xl transition-all dark:bg-[#14171c] dark:text-slate-100 animate-in zoom-in-95 duration-150 motion-reduce:animate-none outline-none ${className}`}
         role="dialog"
         aria-modal="true"
         aria-labelledby={title ? titleId : undefined}

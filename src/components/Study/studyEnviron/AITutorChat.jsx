@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from "react";
+import React, { useEffect, useRef, useState, useCallback, lazy, Suspense } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -8,7 +8,6 @@ import {
   Check,
   Clock,
   Copy,
-  Eraser,
   HelpCircle,
   Layers,
   ListTodo,
@@ -37,6 +36,8 @@ import {
 } from "../../../lib/lumoPrompts";
 import { sanitizeUrl } from "../../../lib/communityChat";
 
+const ChatHistoryDrawer = lazy(() => import("./ChatHistoryDrawer"));
+
 const AITutorChat = ({
   isOpen,
   mode = "popout",
@@ -63,11 +64,28 @@ const AITutorChat = ({
   const isFirstMountRef = useRef(true);
   const previousMessageCountRef = useRef(messages.length);
 
-  const { strictness = "hints_then_answer", updateStrictness } = useAITutor();
+  const {
+    strictness = "hints_then_answer",
+    updateStrictness,
+    conversationId,
+    conversationTitle,
+    selectConversation,
+    newChat,
+    retryFailed,
+    loadEarlierMessages,
+    isLoadingConversation,
+    conversationError,
+    retryConversationLoad,
+    offline,
+    historyRefreshVersion,
+    userId,
+  } = useAITutor();
   const [copyState, setCopyState] = useState({});
   const [isPromptsSheetOpen, setIsPromptsSheetOpen] = useState(false);
   const [isModeSwitcherOpen, setIsModeSwitcherOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
 
   const MODE_LABELS = {
     always_guide: "Guide first",
@@ -376,11 +394,11 @@ const AITutorChat = ({
                 components={markdownComponents}
               />
 
-              {isError && onRetry && (
+              {isError && (onRetry || retryFailed) && (
                 <div className="mt-3">
                   <button
                     type="button"
-                    onClick={onRetry}
+                    onClick={() => (onRetry ? onRetry(message) : retryFailed(message))}
                     className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-rose-600 px-3 py-2 text-[11px] font-semibold text-white transition hover:bg-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/70 motion-reduce:transition-none"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -398,11 +416,11 @@ const AITutorChat = ({
                 >
                   {copyState[bubbleText.slice(0, 32)] ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </button>
-                {onRetry && (
+                {(onRetry || retryFailed) && (
                   <button
                     type="button"
                     aria-label="Regenerate Lumo response"
-                    onClick={onRetry}
+                    onClick={() => (onRetry ? onRetry(message) : retryFailed(message))}
                     className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-600 shadow-sm transition hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-slate-800 dark:text-slate-300 dark:hover:text-white"
                   >
                     <RefreshCw className="h-4 w-4" />
@@ -484,6 +502,7 @@ const AITutorChat = ({
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Lumo</h2>
+                <span className="max-w-[120px] truncate text-[10px] text-slate-500 dark:text-slate-400">{conversationTitle}</span>
                 <button
                   type="button"
                   onClick={() => setIsModeSwitcherOpen(true)}
@@ -512,12 +531,24 @@ const AITutorChat = ({
             </button>
             <button
               type="button"
-              title="Clear conversation"
-              aria-label="Clear conversation"
-              onClick={onClear}
+              title="Chat history"
+              aria-label="Chat history"
+              onClick={() => setIsHistoryOpen(true)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             >
-              <Eraser className="h-4 w-4" />
+              <Clock className="h-4 w-4" />
+            </button>
+            <button
+              type="button"
+              title="New chat"
+              aria-label="New chat"
+              onClick={() => {
+                newChat?.();
+                onClear?.();
+              }}
+              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            >
+              <MessageSquarePlus className="h-4 w-4" />
             </button>
             {mode === "popout" ? (
               <button
@@ -576,6 +607,42 @@ const AITutorChat = ({
         {/* Messages / Empty State Container */}
         <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 lg:p-6" role="log" aria-live="polite">
           <div className={`mx-auto w-full space-y-4 ${mode === "fullpage" ? "max-w-3xl" : ""}`}>
+            {offline && (
+              <div role="status" className="rounded-xl bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-200">
+                You're offline. Your message will send when you're back online.
+              </div>
+            )}
+            {conversationError && (
+              <button type="button" onClick={retryConversationLoad} className="w-full rounded-xl bg-rose-50 px-3 py-2 text-left text-xs text-rose-700 dark:bg-rose-950/40 dark:text-rose-200">
+                {conversationError}
+              </button>
+            )}
+            {isLoadingConversation && (
+              <div className="space-y-3" aria-label="Loading messages">
+                {[0, 1, 2].map((item) => (
+                  <div key={item} className="h-16 animate-pulse rounded-2xl bg-slate-100 dark:bg-slate-800" />
+                ))}
+              </div>
+            )}
+            {!isLoadingConversation && messages.length > 0 && (
+              <button
+                type="button"
+                disabled={isLoadingEarlier}
+                onClick={async () => {
+                  setIsLoadingEarlier(true);
+                  const container = messagesContainerRef.current;
+                  const previousHeight = container?.scrollHeight || 0;
+                  await loadEarlierMessages();
+                  requestAnimationFrame(() => {
+                    if (container) container.scrollTop += container.scrollHeight - previousHeight;
+                  });
+                  setIsLoadingEarlier(false);
+                }}
+                className="mx-auto block min-h-11 rounded-xl px-3 text-xs font-semibold text-emerald-700 hover:bg-emerald-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 dark:text-emerald-300 dark:hover:bg-emerald-950/40"
+              >
+                {isLoadingEarlier ? "Loading earlier messages..." : "Load earlier messages"}
+              </button>
+            )}
             {messages.length === 0 && !isTyping && (
               <div className="flex min-h-full items-center justify-center pt-2">
                 <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-900">
@@ -684,19 +751,20 @@ const AITutorChat = ({
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      if (currentMessage.trim() && !isTyping) {
+                      if (currentMessage.trim() && !isTyping && !offline) {
                         sendMessage();
                       }
                     }
                   }}
-                  placeholder="Message Lumo..."
+                  placeholder={offline ? "You're offline" : "Message Lumo..."}
+                  disabled={offline}
                   aria-label="Message Lumo"
                   className="min-h-11 max-h-[140px] min-w-0 flex-1 resize-none rounded-xl bg-transparent px-2 py-2 text-sm leading-5 text-slate-900 placeholder:text-slate-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-100 dark:placeholder:text-slate-500"
                 />
                 <button
                   type="button"
                   onClick={() => sendMessage()}
-                  disabled={!currentMessage.trim() || isTyping}
+                  disabled={!currentMessage.trim() || isTyping || offline}
                   aria-label="Send message"
                   title="Send message"
                   className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-emerald-600 text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
@@ -839,6 +907,28 @@ const AITutorChat = ({
           </div>
         </div>
       </ResponsiveSheet>
+      <Suspense fallback={null}>
+        {isHistoryOpen && (
+          <ChatHistoryDrawer
+            isOpen={isHistoryOpen}
+            onClose={() => setIsHistoryOpen(false)}
+            userId={userId || profile?.user_id || null}
+            activeConversationId={conversationId}
+            refreshVersion={historyRefreshVersion}
+            onNewChat={() => {
+              newChat?.();
+              onClear?.();
+              setIsHistoryOpen(false);
+            }}
+            onSelect={async (id) => {
+              await selectConversation?.(id);
+              if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
+                setIsHistoryOpen(false);
+              }
+            }}
+          />
+        )}
+      </Suspense>
     </>
   );
 };

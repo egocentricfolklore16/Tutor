@@ -162,11 +162,8 @@ const NoteEditor = ({ studyId, userId, topic, onTimelineEvent }) => {
 
     try {
       const result = await invokeAiTutor({
+        studentMessage: "Create beautifully organized study notes for this session using the session topic and any available notes or readable resources.",
         sessionId: studyId,
-        messages: [{
-          role: "user",
-          content: "Create beautifully organized study notes for this session using the session topic and any available notes or readable resources.",
-        }],
         clientState: {
           intent: "generate_notes",
           use_resources: useResources,

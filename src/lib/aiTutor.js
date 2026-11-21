@@ -1,67 +1,39 @@
 import supabase from "./supabase";
 
-/**
- * Invokes the secure server-side Groq 'ai-tutor-chat' (or fallback 'ai-tutor') Edge Function.
- *
- * @param {Object} params
- * @param {number} params.sessionId - Current session ID from "Study" table
- * @param {Array} params.messages - Array of { role: 'user'|'assistant', content: string } (max 20)
- * @param {Object} params.clientState - { focus_mode, pomodoro_state, minutes_remaining }
- * @returns {Promise<{ reply: string, actions: Array, error?: Object }>}
- */
-export async function invokeAiTutor({ sessionId, messages = [], clientState = {} }) {
-  // Format messages: max 20, content capped at 4000
-  const formattedMessages = (messages || [])
-    .slice(-20)
-    .map((msg) => ({
-      role: msg.role || (msg.sender === "user" ? "user" : "assistant"),
-      content: (msg.content || msg.text || "").slice(0, 4000),
-    }));
+export async function invokeAiTutor({
+  studentMessage,
+  conversationId = null,
+  sessionId = null,
+  clientState = {},
+}) {
+  const body = {
+    student_message: String(studentMessage || "").slice(0, 4000),
+  };
+  if (conversationId) body.conversation_id = conversationId;
+  if (sessionId) body.current_study_session_id = Number(sessionId);
+  if (clientState && typeof clientState === "object") body.client_state = clientState;
 
-  const lastUserMsg = [...formattedMessages].reverse().find((m) => m.role === "user")?.content || "";
-  const conversationHistory = formattedMessages.slice(0, -1);
-
-  // Try ai-tutor-chat first
-  const { data: chatData, error: chatError } = await supabase.functions.invoke("ai-tutor-chat", {
-    body: {
-      message: lastUserMsg,
-      conversationHistory,
-      sessionId: Number(sessionId),
-    },
-  });
-
-  if (!chatError && chatData && !chatData.error) {
-    return {
-      reply: chatData.reply || "",
-      actions: Array.isArray(chatData.actions) ? chatData.actions : [],
-    };
-  }
-
-  // Fallback to ai-tutor
-  const { data, error } = await supabase.functions.invoke("ai-tutor", {
-    body: {
-      session_id: Number(sessionId),
-      messages: formattedMessages,
-      client_state: clientState,
-    },
-  });
+  const { data, error } = await supabase.functions.invoke("ai-chat", { body });
 
   if (error) {
-    let message = "An error occurred while connecting to Lumo.";
-    if (error.status === 401) message = "Please sign in again.";
-    else if (error.status === 404) message = "This session no longer exists.";
-    else if (error.status === 429) message = "You've reached the request limit. Please take a short break.";
-    else if (error.status === 502 || error.status === 503) message = "Lumo is busy, try again shortly.";
-    return { error: { code: "HTTP_ERROR", message } };
+    const status = error.status;
+    let message = "Lumo couldn't answer right now. Please try again.";
+    if (status === 401) message = "Please sign in again.";
+    else if (status === 429) message = "You've reached the request limit. Please take a short break.";
+    else if (status === 503) message = "Lumo is busy. Please try again shortly.";
+    else if (status === 404) message = "Conversation not found";
+    return { error: { status, message } };
   }
 
   if (data?.error) {
-    return { error: data.error };
+    return { error: { status: 400, message: "Lumo couldn't answer right now. Please try again." } };
   }
 
   return {
     reply: data?.reply || "",
-    actions: Array.isArray(data?.actions) ? data.actions : [],
+    actions: Array.isArray(data?.actions_taken) ? data.actions_taken : [],
+    conversationId: data?.conversation_id || null,
+    title: data?.title || null,
   };
 }
 
@@ -99,20 +71,8 @@ export async function sendAiTutorMessage({
   history = [],
   sessionId = null,
 }) {
-  const formattedMessages = [
-    ...history.map((m) => ({
-      role: m.role || (m.sender === "user" ? "user" : "assistant"),
-      content: m.text || m.content || "",
-    })),
-    { role: "user", content: message },
-  ];
-
-  const res = await invokeAiTutor({
-    sessionId,
-    messages: formattedMessages,
-  });
-
-  return res;
+  void history;
+  return invokeAiTutor({ studentMessage: message, sessionId });
 }
 
 export default invokeAiTutor;

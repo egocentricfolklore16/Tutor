@@ -14,6 +14,8 @@ import {
 import { hasAccessibilityNeed } from "../../lib/accessibility.js";
 import { getSubjectOptions } from "../../lib/userSubjects.js";
 import { useGuide } from "../../features/guide/useGuide";
+import { useAITutor } from "../../app/AITutorContext";
+import ResponsiveSheet from "../common/ResponsiveSheet";
 
 const STORAGE_BUCKET = "user-images";
 const levels = ["Beginner", "Intermediate", "Advanced", "High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
@@ -40,6 +42,7 @@ function ChoiceRow({ options, value, onChange }) {
 
 function Settings() {
   const { profile, refreshProfile, darkMode, toggleDarkMode } = useProfile();
+  const { clearAllChats } = useAITutor();
   const guide = useGuide();
   const fileInputRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
@@ -53,6 +56,8 @@ function Settings() {
   const [isSaving, setIsSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
+  const [clearingChats, setClearingChats] = useState(false);
 
   useEffect(() => {
     async function loadUser() {
@@ -142,7 +147,7 @@ function Settings() {
       </div>
     </section>
     <div className="settings-card">
-    {activeTab === "Privacy" ? <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900">Privacy</h2><p className="mt-2 text-sm text-slate-500">Privacy settings are not available yet.</p></div> : null}
+    {activeTab === "Privacy" ? <div className="space-y-6"><div><h2 className="text-xl font-bold text-slate-900 dark:text-slate-100">Privacy</h2><p className="mt-2 text-sm text-slate-500 dark:text-slate-400">Manage saved AI chat history.</p></div><div className="rounded-2xl border border-rose-200 p-4 dark:border-rose-900"><h3 className="text-sm font-bold text-slate-900 dark:text-slate-100">Clear all AI chat history</h3><p className="mt-1 text-xs leading-5 text-slate-500 dark:text-slate-400">Permanently delete every Lumo conversation and message from your account.</p><button type="button" onClick={() => setClearConfirmOpen(true)} className="mt-4 min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-bold text-white hover:bg-rose-700">Clear all AI chat history</button></div></div> : null}
     {activeTab === "Billing" && <Billing user={resolvedUser} />}
     {activeTab === "Profile" && <div className="space-y-10"><div><h2 className="text-2xl font-bold text-slate-900">Profile</h2><p className="mt-1 text-sm text-slate-500">Your personal details</p></div>
     <Section title="Change Profile Picture" description="Choose The Image You Want To Show In Your Sidebar." open={true} onToggle={() => {}}><div className="flex flex-col gap-5 sm:flex-row sm:items-center"><button type="button" onClick={() => fileInputRef.current?.click()} className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-full bg-emerald-100 text-emerald-800">{image ? <img src={image} alt={`${name} profile`} className="h-full w-full object-cover" /> : <span className="text-3xl font-bold">{name.charAt(0).toUpperCase()}</span>}<span className="absolute inset-0 flex items-center justify-center bg-black/50 text-white opacity-0 transition group-hover:opacity-100"><Camera size={22} /></span></button><div><p className="font-semibold">{name}</p><p className="mt-1 text-sm text-slate-500">Use A JPG, PNG, Or Other Image Up To 5 MB.</p><button type="button" onClick={() => fileInputRef.current?.click()} className="mt-3 rounded-lg border border-slate-300 px-3 py-2 text-sm font-semibold">Choose Image</button><input ref={fileInputRef} type="file" accept="image/*" onChange={chooseFile} className="hidden" /></div></div></Section>
@@ -153,7 +158,28 @@ function Settings() {
     </div>}
     {activeTab === "Appearance" && <div className="space-y-10"><Section title="Appearance" description="Make Hyper Tutor more comfortable and useful for you." open={true} onToggle={() => {}}><div className="grid gap-5 md:grid-cols-2"><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Reduce Motion<input type="checkbox" checked={settings.reducedMotion} onChange={(event) => update("reducedMotion", event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label><label className="flex items-center justify-between rounded-full bg-slate-50 p-4 text-sm font-semibold text-slate-700">Dark Mode<input type="checkbox" checked={darkMode} onChange={(event) => toggleDarkMode(event.target.checked)} className="h-4 w-4 accent-emerald-600" /></label></div></Section></div>}
     {activeTab === "Notifications" && <NotificationSettings userId={resolvedUser?.id} />}
-  </div>{error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}{activeTab === "Profile" && <button type="button" onClick={save} disabled={isSaving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {isSaving ? "Saving..." : "Save All Settings"}</button>}</div></PageContainer>;
+  </div>{error && <p className="mt-5 rounded-xl bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}{message && <p className="mt-5 rounded-xl bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{message}</p>}{activeTab === "Profile" && <button type="button" onClick={save} disabled={isSaving} className="mt-6 inline-flex items-center gap-2 rounded-full bg-emerald-600 px-5 py-3 font-semibold text-white hover:bg-emerald-700 disabled:opacity-50">{isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />} {isSaving ? "Saving..." : "Save All Settings"}</button>}
+    <ResponsiveSheet isOpen={clearConfirmOpen} onClose={() => setClearConfirmOpen(false)} title="Clear all AI chat history?">
+      <p className="text-sm text-slate-600 dark:text-slate-300">This permanently deletes all of your Lumo conversations and messages. This cannot be undone.</p>
+      <div className="mt-5 flex justify-end gap-2">
+        <button type="button" onClick={() => setClearConfirmOpen(false)} className="min-h-11 rounded-xl border border-slate-200 px-4 text-sm font-semibold dark:border-slate-700">Cancel</button>
+        <button
+          type="button"
+          disabled={clearingChats}
+          onClick={async () => {
+            setClearingChats(true);
+            const result = await clearAllChats();
+            setClearingChats(false);
+            setClearConfirmOpen(false);
+            setMessage(result?.success ? "AI chat history cleared." : "Couldn't clear chat history. Please try again.");
+          }}
+          className="min-h-11 rounded-xl bg-rose-600 px-4 text-sm font-bold text-white hover:bg-rose-700 disabled:opacity-50"
+        >
+          {clearingChats ? "Clearing..." : "Clear all history"}
+        </button>
+      </div>
+    </ResponsiveSheet>
+  </div></PageContainer>;
 }
 
 export default Settings;

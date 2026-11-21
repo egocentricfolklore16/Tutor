@@ -34,7 +34,11 @@ function useMediaQuery(query) {
 export function AITutorProvider({ children, session }) {
   const location = useLocation();
   const isDesktop = useMediaQuery("(min-width: 768px)");
-  const [mode, setModeState] = useState("closed");
+  const [mode, setModeState] = useState(() =>
+    typeof window !== "undefined" && new URLSearchParams(window.location.search).get("lumo") === "full"
+      ? "fullpage"
+      : "closed"
+  );
   const previousDesktopModeRef = useRef("popout");
   const [hasUnread, setHasUnread] = useState(false);
   const isOpen = mode !== "closed";
@@ -61,6 +65,8 @@ export function AITutorProvider({ children, session }) {
   const lastEventTimeRef = useRef(0);
   const eventCountRef = useRef(0);
   const conversationIdRef = useRef(null);
+  const conversationRequestRef = useRef(0);
+  const conversationAbortRef = useRef(null);
   const openingKeyRef = useRef("");
   const kickoffKeyRef = useRef("");
   const user = session?.user || null;
@@ -114,6 +120,11 @@ export function AITutorProvider({ children, session }) {
       conversationCache.clear();
       openingKeyRef.current = "";
       kickoffKeyRef.current = "";
+      conversationRequestRef.current += 1;
+      conversationAbortRef.current?.abort();
+      localStorage.removeItem("hyper-tutor:chat-history-collapsed");
+      localStorage.removeItem("hyper-tutor:last-ai-conversation");
+      Object.keys(localStorage).filter((key) => key.startsWith("hyper-tutor:last-ai-conversation:") || key.startsWith("hyper-tutor:onboarding:")).forEach((key) => localStorage.removeItem(key));
       setConversationId(null);
       setConversationTitle("New chat");
       setMessages([]);
@@ -181,26 +192,40 @@ export function AITutorProvider({ children, session }) {
 
   const loadMessages = useCallback(async (id) => {
     if (!id || !user?.id) return;
+    const requestId = ++conversationRequestRef.current;
+    conversationAbortRef.current?.abort();
+    const controller = new AbortController();
+    conversationAbortRef.current = controller;
     setConversationError("");
     setIsLoadingConversation(true);
+    setConversationId(id);
+    conversationIdRef.current = id;
     const cached = conversationCache.get(id);
     if (cached) setMessages(cached);
 
     const { data: conversation, error: conversationErrorResult } = await supabase
-      .from("ai_conversations").select("*").eq("id", id).eq("archived", false).maybeSingle();
+      .from("ai_conversations").select("*").eq("id", id).eq("archived", false).maybeSingle()
+      .abortSignal(controller.signal);
     if (conversationErrorResult || !conversation) {
+      if (requestId !== conversationRequestRef.current) return;
       setIsLoadingConversation(false);
-      setConversationId(null);
-      conversationIdRef.current = null;
-      setConversationTitle("New chat");
-      setMessages([]);
-      localStorage.removeItem(lastOpenKey(user.id));
+      if (conversationErrorResult?.code !== "PGRST116") {
+        setConversationError("Couldn't load this chat. Please try again.");
+      } else {
+        setConversationId(null);
+        conversationIdRef.current = null;
+        setConversationTitle("New chat");
+        setMessages([]);
+        localStorage.removeItem(lastOpenKey(user.id));
+      }
       return;
     }
 
     const { data, error } = await supabase
       .from("ai_messages").select("*").eq("conversation_id", id)
-      .order("created_at", { ascending: false }).limit(50);
+      .order("created_at", { ascending: false }).limit(50)
+      .abortSignal(controller.signal);
+    if (requestId !== conversationRequestRef.current) return;
     if (error) {
       setConversationError("Couldn't load this chat. Please try again.");
     } else {
@@ -226,7 +251,12 @@ export function AITutorProvider({ children, session }) {
     if (!user?.id) return;
     setConversationError("");
     setIsLoadingConversation(true);
-    let query = supabase.from("ai_conversations").select("*").eq("user_id", user.id).eq("archived", false);
+    let query = supabase
+      .from("ai_conversations")
+      .select("*, ai_messages!inner(id)")
+      .eq("user_id", user.id)
+      .eq("archived", false)
+      .eq("ai_messages.role", "user");
     if (sessionId) query = query.eq("session_id", sessionId);
     const { data, error } = await query.order("last_message_at", { ascending: false }).limit(1).maybeSingle();
     setIsLoadingConversation(false);
@@ -240,7 +270,11 @@ export function AITutorProvider({ children, session }) {
     }
     if (sessionId) {
       const { data: overall } = await supabase
-        .from("ai_conversations").select("*").eq("user_id", user.id).eq("archived", false)
+        .from("ai_conversations")
+        .select("*, ai_messages!inner(id)")
+        .eq("user_id", user.id)
+        .eq("archived", false)
+        .eq("ai_messages.role", "user")
         .order("last_message_at", { ascending: false }).limit(1).maybeSingle();
       if (overall?.id) await loadMessages(overall.id);
     }
@@ -396,7 +430,9 @@ export function AITutorProvider({ children, session }) {
   }, [isTyping, performSend]);
 
   const sendKickoff = useCallback(async () => {
-    if (!user?.id || kickoffKeyRef.current || isTyping) return;
+    if (!user?.id || isTyping || conversationIdRef.current || messages.length > 0) return;
+    const key = `${user.id}:kickoff:${activeSessionId || "all"}`;
+    if (kickoffKeyRef.current === key) return;
     kickoffKeyRef.current = `${user.id}:kickoff:${activeSessionId || "all"}`;
     await performSend({
       studentMessage: "(The student just opened the tutor panel. Greet them briefly.)",
@@ -406,13 +442,18 @@ export function AITutorProvider({ children, session }) {
   }, [user?.id, activeSessionId, isTyping, performSend]);
 
   useEffect(() => {
+    if (!isOpen) kickoffKeyRef.current = "";
+  }, [isOpen]);
+
+  useEffect(() => {
     if (!isOpen || isLoadingConversation || conversationId || messages.length > 0) return;
-    const key = `${user?.id || ""}:${activeSessionId || "all"}`;
-    if (kickoffKeyRef.current.startsWith(`${user?.id}:kickoff:`) === false) sendKickoff();
-    else if (!kickoffKeyRef.current.includes(key)) sendKickoff();
+    sendKickoff();
   }, [isOpen, isLoadingConversation, conversationId, messages.length, user?.id, activeSessionId, sendKickoff]);
 
   const newChat = useCallback(() => {
+    conversationRequestRef.current += 1;
+    conversationAbortRef.current?.abort();
+    kickoffKeyRef.current = "";
     setConversationId(null);
     conversationIdRef.current = null;
     setConversationTitle("New chat");
@@ -489,10 +530,21 @@ export function AITutorProvider({ children, session }) {
   }, [user, focusMode, getTutorClientState, activeSessionId, appendToActive]);
 
   useEffect(() => {
+    document.body.setAttribute("data-lumo-mode", mode);
     if (mode === "fullpage") {
       const previous = document.body.style.overflow;
       document.body.style.overflow = "hidden";
-      return () => { document.body.style.overflow = previous || ""; };
+      document.body.classList.add("lumo-chat-expanded");
+      return () => {
+        document.body.style.overflow = previous || "";
+        document.body.classList.remove("lumo-chat-expanded");
+      };
+    }
+    document.body.classList.remove("lumo-chat-expanded");
+    if (mode === "closed") {
+      document.body.removeAttribute("data-lumo-mode");
+    } else {
+      document.body.setAttribute("data-lumo-mode", mode);
     }
   }, [mode]);
 

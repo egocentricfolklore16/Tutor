@@ -2,6 +2,8 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { Archive, Clock3, MoreVertical, Pencil, Trash2, Loader2 } from "lucide-react";
 import ResponsiveSheet from "../../common/ResponsiveSheet";
 import supabase from "../../../lib/supabase";
+import Avatar from "../../common/Avatar";
+import { useProfile } from "../../../app/ProfileContext";
 
 function relativeTime(value) {
   const timestamp = new Date(value).getTime();
@@ -38,7 +40,9 @@ export default function ChatHistoryDrawer({
   refreshVersion,
   onNewChat,
   isInline = false,
+  isOverlay = false,
 }) {
+  const { profile } = useProfile();
   const [conversations, setConversations] = useState([]);
   const [search, setSearch] = useState("");
   const [offset, setOffset] = useState(0);
@@ -58,9 +62,10 @@ export default function ChatHistoryDrawer({
     setError("");
     let query = supabase
       .from("ai_conversations")
-      .select("*")
+      .select("*, ai_messages!inner(id, content, role)")
       .eq("user_id", userId)
       .eq("archived", false)
+      .eq("ai_messages.role", "user")
       .order("last_message_at", { ascending: false })
       .range(append ? offset : 0, (append ? offset : 0) + 29);
     if (search.trim()) query = query.ilike("title", `%${search.trim()}%`);
@@ -70,7 +75,18 @@ export default function ChatHistoryDrawer({
       setError("Couldn't load chat history. Please try again.");
       return;
     }
-    const next = data || [];
+    const next = (data || [])
+      .filter((item) => Array.isArray(item.ai_messages) && item.ai_messages.some((message) => message.role === "user"))
+      .map((item) => {
+        const firstUser = item.ai_messages.find((message) => message.role === "user");
+        const fallbackTitle = firstUser?.content?.trim().slice(0, 60);
+        return {
+          ...item,
+          title: (!item.title || item.title.trim() === "New chat") && fallbackTitle
+            ? fallbackTitle
+            : item.title || "New chat",
+        };
+      });
     setConversations((previous) => append ? [...previous, ...next] : next);
     setOffset((append ? offset : 0) + next.length);
     setHasMore(next.length === 30);
@@ -161,10 +177,20 @@ export default function ChatHistoryDrawer({
       title="Chat history"
       isLeftDrawer
       isInline={isInline}
+      isOverlay={isOverlay}
       className="border-r border-slate-200 dark:border-slate-800"
     >
       <div className="flex h-full flex-col">
         <div className="px-1 pb-3">
+          {onNewChat && (
+            <button
+              type="button"
+              onClick={onNewChat}
+              className="mb-2 min-h-11 w-full rounded-xl bg-emerald-600 px-3 text-sm font-bold text-white hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400"
+            >
+              New chat
+            </button>
+          )}
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
@@ -258,6 +284,13 @@ export default function ChatHistoryDrawer({
             {loading ? <Loader2 className="h-4 w-4 animate-spin" /> : null}Load more
           </button>
         )}
+        <div className="mt-auto flex items-center gap-2 border-t border-slate-100 px-1 pt-3 dark:border-slate-800">
+          <Avatar src={profile?.avatar_url || profile?.user_img} name={profile?.full_name || profile?.username} size="sm" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-xs font-bold text-slate-900 dark:text-slate-100">{profile?.full_name || profile?.username || "Learner"}</p>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400">{profile?.subscription_tier || profile?.plan || "Free"} plan</p>
+          </div>
+        </div>
         <p className="mt-3 px-1 text-[10px] leading-4 text-slate-500 dark:text-slate-400">
           Chats are saved to your account. Only you can see them. Delete any chat anytime.
         </p>

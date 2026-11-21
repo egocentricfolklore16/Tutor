@@ -1,5 +1,52 @@
 import supabase from "./supabase.js";
 
+let pushSubscriptionBackoff = false;
+
+async function insertPushSubscription(userId, subscription) {
+  if (pushSubscriptionBackoff) return null;
+  const jsonSub = subscription.toJSON();
+  const endpoint = subscription.endpoint;
+  const { error } = await supabase.from("push_subscriptions").upsert(
+    {
+      user_id: userId,
+      endpoint,
+      p256dh: jsonSub.keys?.p256dh || "",
+      auth: jsonSub.keys?.auth || "",
+      user_agent: navigator.userAgent,
+      last_seen_at: new Date().toISOString(),
+      failure_count: 0,
+    },
+    { onConflict: "endpoint" }
+  );
+  if (!error) return subscription;
+  if (error.status === 403 || error.code === "42501") {
+    try {
+      await subscription.unsubscribe();
+      const registration = await navigator.serviceWorker.ready;
+      const applicationServerKey = urlBase64ToUint8Array(import.meta.env.VITE_VAPID_PUBLIC_KEY);
+      const fresh = await registration.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey });
+      const freshJson = fresh.toJSON();
+      const { error: retryError } = await supabase.from("push_subscriptions").upsert(
+        {
+          user_id: userId,
+          endpoint: fresh.endpoint,
+          p256dh: freshJson.keys?.p256dh || "",
+          auth: freshJson.keys?.auth || "",
+          user_agent: navigator.userAgent,
+          last_seen_at: new Date().toISOString(),
+          failure_count: 0,
+        },
+        { onConflict: "endpoint" }
+      );
+      if (!retryError) return fresh;
+    } catch (_retryError) {
+      // Fall through to the session backoff below.
+    }
+  }
+  pushSubscriptionBackoff = true;
+  return null;
+}
+
 export function urlBase64ToUint8Array(base64String) {
   if (!base64String || typeof base64String !== "string") {
     throw new Error("VAPID_KEY_MISSING");
@@ -147,31 +194,8 @@ export async function enablePush(userId) {
     throw new Error("PUSH_UnknownError: Failed to obtain subscription.");
   }
 
-  // 8. Upsert subscription into push_subscriptions
-  const jsonSub = subscription.toJSON();
-  const endpoint = subscription.endpoint;
-  const p256dh = jsonSub.keys?.p256dh || "";
-  const auth = jsonSub.keys?.auth || "";
-
-  const { error: subError } = await supabase
-    .from("push_subscriptions")
-    .upsert(
-      {
-        user_id: userId,
-        endpoint,
-        p256dh,
-        auth,
-        user_agent: navigator.userAgent,
-        last_seen_at: new Date().toISOString(),
-        failure_count: 0,
-      },
-      { onConflict: "endpoint" }
-    );
-
-  if (subError) {
-    console.error("Failed to save push subscription to DB:", subError);
-    throw subError;
-  }
+  // 8. Upsert subscription; recover stale cross-account endpoints without looping.
+  await insertPushSubscription(userId, subscription);
 
   // Upsert master switch preference
   await supabase
@@ -200,7 +224,7 @@ export async function disablePush(userId) {
         const endpoint = subscription.endpoint;
         await subscription.unsubscribe().catch((err) => console.warn("Failed to unsubscribe locally:", err));
 
-        await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint);
+        await supabase.from("push_subscriptions").delete().eq("endpoint", endpoint).eq("user_id", userId);
       }
     } catch (err) {
       console.warn("disablePush error:", err);
@@ -241,32 +265,9 @@ export async function syncSubscription(userId) {
         applicationServerKey: convertedKey,
       });
 
-      const jsonSub = newSub.toJSON();
-      await supabase.from("push_subscriptions").upsert(
-        {
-          user_id: userId,
-          endpoint: newSub.endpoint,
-          p256dh: jsonSub.keys?.p256dh || "",
-          auth: jsonSub.keys?.auth || "",
-          user_agent: navigator.userAgent,
-          last_seen_at: new Date().toISOString(),
-          failure_count: 0,
-        },
-        { onConflict: "endpoint" }
-      );
+      await insertPushSubscription(userId, newSub);
     } else if (subscription) {
-      const jsonSub = subscription.toJSON();
-      await supabase.from("push_subscriptions").upsert(
-        {
-          user_id: userId,
-          endpoint: subscription.endpoint,
-          p256dh: jsonSub.keys?.p256dh || "",
-          auth: jsonSub.keys?.auth || "",
-          user_agent: navigator.userAgent,
-          last_seen_at: new Date().toISOString(),
-        },
-        { onConflict: "endpoint" }
-      );
+      await insertPushSubscription(userId, subscription);
     }
   } catch (err) {
     console.warn("syncSubscription error:", err);

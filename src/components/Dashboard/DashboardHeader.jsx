@@ -182,7 +182,7 @@ function DashboardHeader({ toggleSidebar }) {
   };
 
   return <>
-    <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
+    <header className="sticky top-0 z-[20] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
       <span data-guide="topbar-greeting" />
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden">

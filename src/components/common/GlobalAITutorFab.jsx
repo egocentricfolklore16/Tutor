@@ -46,7 +46,7 @@ const GlobalAITutorFab = ({ session: _session }) => {
 
   return (
     <>
-      <div className="flex w-full justify-end">
+      <div className={`${mode === "fullpage" ? "hidden" : "flex"} w-full justify-end`}>
         <button
           type="button"
           onClick={handleToggle}
@@ -70,12 +70,15 @@ const GlobalAITutorFab = ({ session: _session }) => {
 
       {createPortal(
         <div
+          role={mode === "closed" ? undefined : "dialog"}
+          aria-modal={mode === "closed" ? undefined : "true"}
+          aria-label={mode === "closed" ? undefined : "Lumo AI tutor"}
           className={
             mode === "closed"
-              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[3000] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out motion-reduce:transition-none"
+              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[60] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out motion-reduce:transition-none"
               : mode === "fullpage"
-              ? "fixed inset-0 h-[100dvh] md:h-screen w-screen z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
-              : "fixed inset-y-0 right-0 h-full w-full md:w-[380px] max-w-full z-[3000] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
+              ? "fixed isolate inset-0 h-[100dvh] w-screen z-[60] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
+              : "fixed isolate right-0 top-0 h-[100dvh] w-full min-w-0 z-[60] translate-x-0 opacity-100 transition-all duration-200 ease-in-out md:top-16 md:h-[calc(100dvh-4rem)] md:w-[clamp(380px,32vw,460px)] md:min-w-[360px] max-w-full motion-reduce:transition-none"
           }
         >
           <AITutorChat

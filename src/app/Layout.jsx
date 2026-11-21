@@ -118,7 +118,7 @@ function Layout({ session, needsOnboarding }) {
         {/* Mobile Navigation Tab Bar */}
         <BottomNavBar />
 
-        <div className="fixed bottom-20 left-4 right-4 z-[2000] flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] motion-reduce:transition-none md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:px-0">
+        <div data-lumo-floating-controls className="fixed bottom-20 left-4 right-4 z-[40] flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] motion-reduce:transition-none md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:px-0">
           <GlobalAITutorFab session={session} />
           {!isCoursesHome && (
             <button

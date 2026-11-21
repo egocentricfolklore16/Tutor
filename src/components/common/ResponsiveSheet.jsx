@@ -36,6 +36,7 @@ export function ResponsiveSheet({
   isSheet = false, // When true on small screens under 640px, aligns to bottom as sheet. Default false (viewport centered).
   isLeftDrawer = false,
   isInline = false,
+  isOverlay = false,
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
@@ -111,18 +112,40 @@ export function ResponsiveSheet({
         previousFocusedElementRef.current.focus();
       }
     };
-  }, [isOpen, isInline, onClose, disableEscapeKey]);
+  }, [isOpen, isInline, isOverlay, onClose, disableEscapeKey]);
 
   if (!isOpen) return null;
 
   if (isInline) {
+    if (isOverlay) {
+      return (
+        <div className="absolute inset-0 z-[70] bg-slate-950/20" onMouseDown={(event) => event.target === event.currentTarget && onClose?.()}>
+          <aside
+            ref={panelRef}
+            tabIndex={-1}
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={title ? titleId : undefined}
+            className={`absolute inset-y-0 left-0 flex h-full w-full flex-col bg-white shadow-2xl outline-none dark:bg-[#14171c] ${className}`}
+          >
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-5 py-4 dark:border-slate-800">
+              <h3 id={titleId} className="text-base font-bold text-slate-900 dark:text-white">{title}</h3>
+              <button type="button" onClick={onClose} className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 dark:text-slate-400 dark:hover:bg-slate-800" aria-label="Close chat history">
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto p-4 pb-safe">{children}</div>
+          </aside>
+        </div>
+      );
+    }
     return (
       <aside
         ref={panelRef}
         tabIndex={-1}
         role="complementary"
         aria-labelledby={title ? titleId : undefined}
-        className={`flex h-full w-full shrink-0 flex-col border-r border-slate-200 bg-white outline-none dark:border-slate-800 dark:bg-[#14171c] sm:min-w-[180px] sm:max-w-[280px] ${className}`}
+        className={`flex h-full w-full shrink-0 flex-col border-r border-slate-200 bg-white outline-none dark:border-slate-800 dark:bg-[#14171c] sm:w-[280px] sm:min-w-[280px] sm:max-w-[280px] ${className}`}
       >
         <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
           {title ? (

@@ -29,6 +29,7 @@ import AchievementsPage from "./components/Community/AchievementsPage.jsx";
 import Shop from "./components/Shop/Shop.jsx";
 import { syncAndCheckAchievements } from "./lib/achievementSync.js";
 import ScrollToTop from "./components/common/ScrollToTop.jsx";
+import { disablePush } from "./lib/push.js";
 
 function LegacyStudyRouteRedirect() {
   const location = useLocation();
@@ -37,18 +38,32 @@ function LegacyStudyRouteRedirect() {
 }
 
 async function checkOnboardingCompletion(userId) {
-  const { data: profile, error } = await supabase
-    .from("profiles")
-    .select("onboarding_completed")
-    .eq("user_id", userId)
-    .maybeSingle();
-
-  if (error) {
-    console.error("onboarding completion check failed:", error);
-    throw error;
+  const cacheKey = `hyper-tutor:onboarding:${userId}`;
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      const request = supabase
+        .from("profiles")
+        .select("onboarding_completed")
+        .eq("user_id", userId)
+        .maybeSingle();
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error("Onboarding check timed out")), 5000)
+      );
+      const { data: profile, error } = await Promise.race([request, timeout]);
+      if (error) throw error;
+      const completed = Boolean(profile?.onboarding_completed);
+      try { localStorage.setItem(cacheKey, completed ? "true" : "false"); } catch (_error) {}
+      return completed;
+    } catch (_error) {
+      if (attempt < 2) await new Promise((resolve) => setTimeout(resolve, 300 * (attempt + 1)));
+    }
   }
-
-  return Boolean(profile?.onboarding_completed);
+  try {
+    const cached = localStorage.getItem(cacheKey);
+    if (cached === "true") return true;
+    if (cached === "false") return false;
+  } catch (_error) {}
+  return false;
 }
 
 function App() {
@@ -146,6 +161,9 @@ function App() {
       if (!mounted) return;
 
       if (event === "SIGNED_OUT") {
+        if (sessionRef.current?.user?.id) {
+          disablePush(sessionRef.current.user.id).catch(() => {});
+        }
         setSession(null);
         setNeedsOnboarding(false);
         setOnboardingError("");
@@ -193,13 +211,6 @@ function App() {
       {loading || onboardingLoading ? (
         <div className="min-h-screen flex items-center justify-center bg-slate-950 p-6">
           <LoadingCompanion message="Loading Hyper Tutor..." />
-        </div>
-      ) : onboardingError ? (
-        <div
-          role="alert"
-          className="min-h-screen flex items-center justify-center bg-slate-950 p-6 text-center text-slate-100"
-        >
-          <p>{onboardingError}</p>
         </div>
       ) : (
         <BrowserRouter>

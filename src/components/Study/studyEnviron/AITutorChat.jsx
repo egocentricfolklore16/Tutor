@@ -59,6 +59,8 @@ const AITutorChat = ({
   const messagesEndRef = useRef(null);
   const messagesContainerRef = useRef(null);
   const textareaRef = useRef(null);
+  const panelRef = useRef(null);
+  const previousFocusRef = useRef(null);
   const isPinnedRef = useRef(true);
   const animatedMessageIdsRef = useRef(new Set());
   const isFirstMountRef = useRef(true);
@@ -85,6 +87,13 @@ const AITutorChat = ({
   const [isModeSwitcherOpen, setIsModeSwitcherOpen] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    try {
+      return localStorage.getItem("hyper-tutor:chat-history-collapsed") === "true";
+    } catch (_error) {
+      return false;
+    }
+  });
   const [isLoadingEarlier, setIsLoadingEarlier] = useState(false);
 
   const MODE_LABELS = {
@@ -161,16 +170,57 @@ const AITutorChat = ({
           setIsPromptsSheetOpen(false);
           return;
         }
+        if (isHistoryOpen) {
+          e.preventDefault();
+          if (mode === "fullpage") setSidebarCollapsed(true);
+          else setIsHistoryOpen(false);
+          return;
+        }
         e.preventDefault();
+        if (mode === "fullpage") {
+          if (setMode) setMode("popout");
+          return;
+        }
         if (onClose) onClose();
       }
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [isOpen, onClose, isPromptsSheetOpen]);
+  }, [isOpen, onClose, isPromptsSheetOpen, isHistoryOpen, mode, setMode]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    previousFocusRef.current = document.activeElement;
+    const timer = setTimeout(() => {
+      panelRef.current?.querySelector("button:not([disabled]), textarea:not([disabled]), input:not([disabled])")?.focus();
+    }, 40);
+    const trapFocus = (event) => {
+      if (event.key !== "Tab" || mode === "popout") return;
+      const focusables = panelRef.current?.querySelectorAll(
+        'button:not([disabled]), [href], input:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusables?.length) return;
+      const first = focusables[0];
+      const last = focusables[focusables.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    document.addEventListener("keydown", trapFocus);
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("keydown", trapFocus);
+      if (previousFocusRef.current instanceof HTMLElement) previousFocusRef.current.focus();
+    };
+  }, [isOpen, mode]);
 
   const charCount = currentMessage.length;
   const lumoState = isTyping ? "thinking" : messages.length > 0 ? "replied" : "thinking";
+  const chatDebug = typeof window !== "undefined" && new URLSearchParams(window.location.search).get("chatDebug") === "1";
 
   const handleCopy = async (text) => {
     if (!text) return;
@@ -480,18 +530,27 @@ const AITutorChat = ({
   return (
     <>
       <div
-        className="flex h-full w-full max-w-full bg-white transition dark:bg-[#18211f] motion-reduce:transition-none"
+        ref={panelRef}
+        className="relative flex h-full w-full max-w-full bg-white transition dark:bg-[#18211f] motion-reduce:transition-none"
         style={{
           width: mode === "fullpage" ? "100%" : typeof width === "number" ? `${width}px` : width,
           maxWidth: "100vw",
         }}
       >
         <Suspense fallback={null}>
-          {isHistoryOpen && (
+          {((mode === "fullpage" && !sidebarCollapsed) || (mode !== "fullpage" && isHistoryOpen)) && (
             <ChatHistoryDrawer
               isOpen
               isInline
-              onClose={() => setIsHistoryOpen(false)}
+              isOverlay={mode !== "fullpage"}
+              onClose={() => {
+                if (mode === "fullpage") {
+                  setSidebarCollapsed(true);
+                  try { localStorage.setItem("hyper-tutor:chat-history-collapsed", "true"); } catch (_error) {}
+                } else {
+                  setIsHistoryOpen(false);
+                }
+              }}
               userId={userId || profile?.user_id || null}
               activeConversationId={conversationId}
               refreshVersion={historyRefreshVersion}
@@ -507,7 +566,7 @@ const AITutorChat = ({
             />
           )}
         </Suspense>
-        <div className={`${isHistoryOpen ? "hidden sm:flex" : "flex"} min-w-0 flex-1 flex-col bg-white dark:bg-[#18211f]`}>
+        <div className="flex min-w-0 flex-1 flex-col bg-white dark:bg-[#18211f]">
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 p-3 pt-[max(1rem,env(safe-area-inset-top))] dark:border-slate-800 dark:bg-[#18211f] sm:p-4">
           <div className="flex min-w-0 items-center gap-2">
@@ -556,8 +615,14 @@ const AITutorChat = ({
               title="Chat history"
               aria-label="Chat history"
               aria-expanded={isHistoryOpen}
-              onClick={() => setIsHistoryOpen((open) => !open)}
-              className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+              onClick={() => mode === "fullpage"
+                ? setSidebarCollapsed((collapsed) => {
+                    const next = !collapsed;
+                    try { localStorage.setItem("hyper-tutor:chat-history-collapsed", String(next)); } catch (_error) {}
+                    return next;
+                  })
+                : setIsHistoryOpen((open) => !open)}
+              className={`${mode === "fullpage" ? "hidden sm:inline-flex" : "inline-flex"} h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100`}
             >
               <Clock className="h-4 w-4" />
             </button>
@@ -668,6 +733,13 @@ const AITutorChat = ({
             )}
             {messages.length === 0 && !isTyping && (
               <div className="flex min-h-full items-center justify-center pt-2">
+                {conversationId ? (
+                  <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-6 text-center dark:border-slate-700 dark:bg-slate-900">
+                    <LumoAvatar size="lg" state="thinking" className="mx-auto mb-3" />
+                    <p className="text-sm font-semibold text-slate-700 dark:text-slate-200">This chat is empty.</p>
+                    <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Send a message to continue it.</p>
+                  </div>
+                ) : (
                 <div className="w-full max-w-md rounded-2xl border border-dashed border-slate-200 bg-slate-50 p-4 text-center dark:border-slate-700 dark:bg-slate-900">
                   <div className="relative mx-auto mb-3 flex items-center justify-center">
                     <LumoAvatar size="lg" state="thinking" className="relative z-10 motion-safe:animate-lumo-gentle-float" />
@@ -708,6 +780,7 @@ const AITutorChat = ({
                     </div>
                   </div>
                 </div>
+                )}
               </div>
             )}
 
@@ -806,7 +879,16 @@ const AITutorChat = ({
               <div className="ml-auto text-[10px] text-slate-500 dark:text-slate-400">Lumo can make mistakes. Double-check important info.</div>
             </div>
           </div>
-        </div>
+          </div>
+          {chatDebug && (
+            <div role="status" className="absolute right-3 top-20 z-[10] w-[260px] rounded-xl border border-slate-700 bg-slate-950/95 p-3 text-[10px] leading-5 text-white shadow-xl">
+              <div>mode: {mode}</div>
+              <div>conversationId: {conversationId || "null"}</div>
+              <div>status: {isLoadingConversation ? "loading" : isTyping ? "sending" : conversationError ? "error" : "ready"}</div>
+              <div>messages in memory: {messages.length}</div>
+              {conversationError && <div>error: {conversationError}</div>}
+            </div>
+          )}
         </div>
       </div>
 

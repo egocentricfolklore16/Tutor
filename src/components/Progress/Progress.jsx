@@ -8,9 +8,10 @@ import AchievementsCard from "../Dashboard/AchievementsCard";
 import Leaderboard from "../Dashboard/Leaderboard";
 import StudyTrendChart from "./StudyTrendChart";
 import { useNavigate } from "react-router-dom";
-import { useGamification, LevelRoadmap, LEVEL_MILESTONES, GemWallet } from "../../features/gamification";
+import { useGamification, LevelRoadmap, LEVEL_MILESTONES } from "../../features/gamification";
 import { useProfile } from "../../app/ProfileContext";
 import { getDailyGoalMinutes } from "../../lib/weeklyHours";
+import ProgressMascot from "../mascot/ProgressMascot";
 
 const dateKey = (value) => {
   const date = toDate(value);
@@ -153,9 +154,13 @@ function Progress() {
               <h2 className="font-semibold text-slate-900 dark:text-white">Study Gem Balance</h2>
               <p className="mt-1 text-xs text-slate-500">Earn gems through daily goals, quests, and streak milestones.</p>
             </div>
-            <div className="mt-4">
-              <GemWallet balance={gems.balance} onVisitShop={() => navigate("/Shop")} />
-            </div>
+            <ProgressMascot
+              completion={completionRate}
+              completedSessions={analytics.pastSessions}
+              gems={gems.balance}
+              level={xp.level}
+              onVisitShop={() => navigate("/Shop")}
+            />
           </div>
         </div>
 

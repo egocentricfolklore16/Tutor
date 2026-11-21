@@ -1,0 +1,107 @@
+.planner-mascot-lane {
+  position: relative;
+  z-index: 10;
+  height: 64px;
+  margin: -2px 0 -10px;
+  pointer-events: none;
+  --owl-width: 150px;
+}
+.planner-mascot-lane > .owl-root {
+  position:absolute;
+  bottom: calc(-150px * var(--owl-hidden-fraction));
+  right:8%;
+  pointer-events:auto;
+  filter:drop-shadow(0 9px 7px rgba(15,23,42,.22));
+}
+.dark .planner-mascot-lane > .owl-root { filter:drop-shadow(0 10px 8px rgba(0,0,0,.48)); }
+.planner-mascot-lane.align-center > .owl-root { right:calc(50% - var(--owl-width)/2); }
+.planner-calendar-ao {
+  position:absolute;
+  left:0; right:0; top:54px; height:16px;
+  z-index:15;
+  background:linear-gradient(to bottom, rgba(0,0,0,.18), transparent);
+  opacity:.5;
+  pointer-events:none;
+}
+.lumo-thought-bubble {
+  position:absolute;
+  z-index:12;
+  right:calc(8% + var(--owl-width) + 12px);
+  bottom:28px;
+  max-width:260px;
+  min-width:210px;
+  min-height:48px;
+  border:1px solid rgba(16,185,129,.22);
+  border-radius:16px 16px 16px 6px;
+  background:linear-gradient(135deg, rgba(236,253,245,.96), rgba(209,250,229,.96));
+  color:#065f46;
+  padding:10px 12px;
+  box-shadow:0 10px 24px rgba(16,185,129,.12);
+  pointer-events:auto;
+  animation:thought-pop 200ms ease-out;
+}
+.dark .lumo-thought-bubble {
+  background:linear-gradient(135deg, rgba(16,61,49,.98), rgba(20,71,57,.98));
+  border-color:rgba(110,231,183,.24);
+  color:#d1fae5;
+  box-shadow:0 12px 28px rgba(0,0,0,.32);
+}
+.bubble-text { margin:0; font-size:12px; line-height:1.45; font-weight:700; }
+.bubble-caret { display:inline-block; width:1px; height:12px; margin-left:2px; vertical-align:-2px; background:currentColor; animation:caret-blink 700ms step-end infinite; }
+.bubble-tail { position:absolute; right:-7px; bottom:12px; width:14px; height:14px; transform:rotate(45deg); background:inherit; border-right:1px solid rgba(16,185,129,.22); border-top:1px solid rgba(16,185,129,.22); }
+.bubble-trail { position:absolute; right:-18px; border-radius:50%; background:#d1fae5; border:1px solid rgba(16,185,129,.18); }
+.bubble-trail-a { bottom:4px; width:8px; height:8px; }
+.bubble-trail-b { bottom:-9px; width:5px; height:5px; }
+.dark .bubble-trail { background:#1d4a3c; }
+.bubble-plan-button { margin-top:7px; border:0; border-radius:9px; background:#059669; color:white; padding:6px 9px; font-size:11px; font-weight:800; }
+
+.progress-mascot-stage {
+  position:relative;
+  min-height:170px;
+  margin-top:2px;
+  pointer-events:none;
+}
+.progress-gem-strip { position:absolute; left:0; right:0; bottom:0; z-index:10; pointer-events:auto; }
+.progress-mascot-stage > .owl-root {
+  position:absolute;
+  right:8px;
+  bottom:58px;
+  --owl-width:170px;
+  pointer-events:auto;
+  filter:drop-shadow(0 8px 6px rgba(15,23,42,.18));
+}
+.dark .progress-mascot-stage > .owl-root { filter:drop-shadow(0 9px 7px rgba(0,0,0,.42)); }
+.progress-mascot-chip {
+  position:absolute;
+  z-index:12;
+  right:178px;
+  bottom:78px;
+  max-width:190px;
+  border-radius:12px;
+  background:#ecfdf5;
+  color:#065f46;
+  border:1px solid rgba(16,185,129,.22);
+  padding:8px 10px;
+  font-size:11px;
+  font-weight:800;
+  box-shadow:0 8px 18px rgba(16,185,129,.12);
+  pointer-events:auto;
+  animation:thought-pop 200ms ease-out;
+}
+.dark .progress-mascot-chip { background:#18382f; color:#d1fae5; border-color:rgba(110,231,183,.24); }
+
+@keyframes thought-pop { from { opacity:0; transform:scale(.92) translateY(3px) } to { opacity:1; transform:scale(1) translateY(0) } }
+@keyframes caret-blink { 50% { opacity:0 } }
+
+@media (max-width:639px) {
+  .planner-mascot-lane { height:58px; --owl-width:110px; margin-bottom:-6px; }
+  .planner-mascot-lane > .owl-root { right:4%; bottom:calc(-110px * var(--owl-hidden-fraction)); }
+  .lumo-thought-bubble { right:calc(4% + var(--owl-width) + 8px); left:4px; min-width:0; max-width:none; bottom:24px; padding:8px 10px; }
+  .progress-mascot-stage { min-height:130px; }
+  .progress-mascot-stage > .owl-root { --owl-width:120px; right:6px; bottom:46px; }
+  .progress-mascot-chip { right:126px; bottom:68px; max-width:150px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .lumo-thought-bubble, .progress-mascot-chip { animation:none; }
+  .bubble-caret { animation:none; }
+}

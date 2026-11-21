@@ -21,6 +21,8 @@ import LoadingCompanion from "../common/LoadingCompanion";
 import PageContainer from "../common/PageContainer";
 import Modal from "../common/ResponsiveSheet";
 import NotificationPromptCard from "../Notifications/NotificationPromptCard";
+import PlannerMascotLane from "../mascot/PlannerMascotLane";
+import { dispatchOwlHappy } from "../mascot/useOwlMood";
 import {
   usePlannerActivities,
   useCreateActivity,
@@ -167,6 +169,7 @@ const PlannerPage = () => {
       } else {
         await createActivity(formData);
         showToast("Session added to your planner");
+        dispatchOwlHappy();
       }
       setActivityMode(null);
       setEditingActivity(null);
@@ -326,7 +329,7 @@ const PlannerPage = () => {
         <LoadingSpinner />
       ) : (
         <>
-          <div className="mb-6 rounded-2xl border border-slate-200 bg-white p-3 dark:border-slate-800 dark:bg-slate-900/80 sm:p-4">
+          <div className="relative z-0 mb-0 rounded-2xl border border-slate-200 bg-white p-3 pb-8 dark:border-slate-800 dark:bg-slate-900/80 sm:p-4 sm:pb-8">
             <div className="flex min-w-0 items-center gap-1">
               <button
                 type="button"
@@ -389,7 +392,13 @@ const PlannerPage = () => {
             </div>
           </div>
 
-          <div>
+          <PlannerMascotLane
+            activities={visibleActivities}
+            align="right"
+            onPlan={() => handleAddActivity(selectedDate)}
+          />
+
+          <div className="relative z-20 rounded-2xl bg-white dark:bg-slate-900/80">
             <Calendar
               currentDate={currentDate}
               selectedDate={selectedDate}

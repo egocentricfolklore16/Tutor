@@ -35,13 +35,14 @@ export function ResponsiveSheet({
   disableEscapeKey = false,
   isSheet = false, // When true on small screens under 640px, aligns to bottom as sheet. Default false (viewport centered).
   isLeftDrawer = false,
+  isInline = false,
 }) {
   const titleId = useId();
   const panelRef = useRef(null);
   const previousFocusedElementRef = useRef(null);
 
   useEffect(() => {
-    if (!isOpen) return;
+    if (!isOpen || isInline) return;
 
     // Save previous active element for focus restoration upon modal close
     previousFocusedElementRef.current = document.activeElement;
@@ -110,9 +111,45 @@ export function ResponsiveSheet({
         previousFocusedElementRef.current.focus();
       }
     };
-  }, [isOpen, onClose, disableEscapeKey]);
+  }, [isOpen, isInline, onClose, disableEscapeKey]);
 
   if (!isOpen) return null;
+
+  if (isInline) {
+    return (
+      <aside
+        ref={panelRef}
+        tabIndex={-1}
+        role="complementary"
+        aria-labelledby={title ? titleId : undefined}
+        className={`flex h-full w-full shrink-0 flex-col border-r border-slate-200 bg-white outline-none dark:border-slate-800 dark:bg-[#14171c] sm:min-w-[180px] sm:max-w-[280px] ${className}`}
+      >
+        <div className="flex shrink-0 items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800">
+          {title ? (
+            <h3 id={titleId} className="truncate text-sm font-bold text-slate-900 dark:text-white">
+              {title}
+            </h3>
+          ) : (
+            <div />
+          )}
+          <button
+            type="button"
+            onClick={onClose}
+            className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-slate-500 hover:bg-slate-100 hover:text-slate-800 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
+            aria-label="Close dialog"
+          >
+            <X className="h-4 w-4" />
+          </button>
+        </div>
+        <div className="min-h-0 flex-1 overflow-y-auto p-3 pb-safe">{children}</div>
+        {footer && (
+          <div className="shrink-0 border-t border-slate-100 px-4 py-3 dark:border-slate-800">
+            {footer}
+          </div>
+        )}
+      </aside>
+    );
+  }
 
   const handleOverlayMouseDown = (e) => {
     if (closeOnOverlayClick && e.target === e.currentTarget) {

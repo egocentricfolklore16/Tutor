@@ -37,6 +37,7 @@ export default function ChatHistoryDrawer({
   onArchive,
   refreshVersion,
   onNewChat,
+  isInline = false,
 }) {
   const [conversations, setConversations] = useState([]);
   const [search, setSearch] = useState("");
@@ -159,6 +160,7 @@ export default function ChatHistoryDrawer({
       onClose={onClose}
       title="Chat history"
       isLeftDrawer
+      isInline={isInline}
       className="border-r border-slate-200 dark:border-slate-800"
     >
       <div className="flex h-full flex-col">

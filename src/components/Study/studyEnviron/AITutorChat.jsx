@@ -480,12 +480,34 @@ const AITutorChat = ({
   return (
     <>
       <div
-        className="flex h-full w-full max-w-full flex-col bg-white transition dark:bg-[#18211f] motion-reduce:transition-none"
+        className="flex h-full w-full max-w-full bg-white transition dark:bg-[#18211f] motion-reduce:transition-none"
         style={{
           width: mode === "fullpage" ? "100%" : typeof width === "number" ? `${width}px` : width,
           maxWidth: "100vw",
         }}
       >
+        <Suspense fallback={null}>
+          {isHistoryOpen && (
+            <ChatHistoryDrawer
+              isOpen
+              isInline
+              onClose={() => setIsHistoryOpen(false)}
+              userId={userId || profile?.user_id || null}
+              activeConversationId={conversationId}
+              refreshVersion={historyRefreshVersion}
+              onNewChat={() => {
+                newChat?.();
+                onClear?.();
+                setIsHistoryOpen(false);
+              }}
+              onSelect={async (id) => {
+                await selectConversation?.(id);
+                setIsHistoryOpen(false);
+              }}
+            />
+          )}
+        </Suspense>
+        <div className={`${isHistoryOpen ? "hidden sm:flex" : "flex"} min-w-0 flex-1 flex-col bg-white dark:bg-[#18211f]`}>
         {/* Header */}
         <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 bg-slate-50 p-3 pt-[max(1rem,env(safe-area-inset-top))] dark:border-slate-800 dark:bg-[#18211f] sm:p-4">
           <div className="flex min-w-0 items-center gap-2">
@@ -533,7 +555,8 @@ const AITutorChat = ({
               type="button"
               title="Chat history"
               aria-label="Chat history"
-              onClick={() => setIsHistoryOpen(true)}
+              aria-expanded={isHistoryOpen}
+              onClick={() => setIsHistoryOpen((open) => !open)}
               className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-slate-100"
             >
               <Clock className="h-4 w-4" />
@@ -784,6 +807,7 @@ const AITutorChat = ({
             </div>
           </div>
         </div>
+        </div>
       </div>
 
       <ResponsiveSheet
@@ -907,28 +931,6 @@ const AITutorChat = ({
           </div>
         </div>
       </ResponsiveSheet>
-      <Suspense fallback={null}>
-        {isHistoryOpen && (
-          <ChatHistoryDrawer
-            isOpen={isHistoryOpen}
-            onClose={() => setIsHistoryOpen(false)}
-            userId={userId || profile?.user_id || null}
-            activeConversationId={conversationId}
-            refreshVersion={historyRefreshVersion}
-            onNewChat={() => {
-              newChat?.();
-              onClear?.();
-              setIsHistoryOpen(false);
-            }}
-            onSelect={async (id) => {
-              await selectConversation?.(id);
-              if (typeof window !== "undefined" && window.matchMedia("(max-width: 639px)").matches) {
-                setIsHistoryOpen(false);
-              }
-            }}
-          />
-        )}
-      </Suspense>
     </>
   );
 };

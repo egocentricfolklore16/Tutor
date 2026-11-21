@@ -1,5 +1,6 @@
-import React, { useEffect, useRef, useState } from "react";
-import { getOwlPose, OWL_POSES, OwlPose } from "./poses";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { getOwlPose, OwlEyePixels, OwlPoseConfig, POSE_CONFIG } from "./poses";
+import OwlCalibrator from "./OwlCalibrator";
 
 type Props = {
   poseId?: string;
@@ -9,23 +10,36 @@ type Props = {
   onClick?: () => void;
 };
 
+type NaturalSize = { poseId: string; width: number; height: number };
+type EyeName = "leftEye" | "rightEye";
+
 export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = false, className = "", onClick }: Props) {
   const debugEnabled = debug || (typeof window !== "undefined" && new URLSearchParams(window.location.search).has("owlDebug"));
-  const [debugPoseId, setDebugPoseId] = useState(poseId);
-  useEffect(() => setDebugPoseId(poseId), [poseId]);
-  const pose = getOwlPose(debugEnabled ? debugPoseId : poseId);
+  const [debugPoseId, setDebugPoseId] = useState(poseId === "happy" ? "wings-up" : poseId);
+  const [poseConfigs, setPoseConfigs] = useState(POSE_CONFIG);
+  const [loadedSize, setLoadedSize] = useState<NaturalSize | null>(null);
+  const [compare, setCompare] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
-  const lastPoseRef = useRef<OwlPose>(pose);
-  const [previousPose, setPreviousPose] = useState<OwlPose | null>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const imageRef = useRef<HTMLImageElement>(null);
+  const lastPoseRef = useRef<OwlPoseConfig>(getOwlPose(poseId));
+  const [previousPose, setPreviousPose] = useState<OwlPoseConfig | null>(null);
   const [showPrevious, setShowPrevious] = useState(false);
+
+  useEffect(() => setDebugPoseId(poseId === "happy" ? "wings-up" : poseId), [poseId]);
+
+  const activePoseId = debugEnabled ? debugPoseId : poseId;
+  const pose = poseConfigs[activePoseId] || getOwlPose(activePoseId);
+  const naturalWidth = loadedSize?.poseId === pose.id ? loadedSize.width : pose.naturalWidth;
+  const naturalHeight = loadedSize?.poseId === pose.id ? loadedSize.height : pose.naturalHeight;
 
   useEffect(() => {
     if (lastPoseRef.current.id !== pose.id) {
       setPreviousPose(lastPoseRef.current);
       lastPoseRef.current = pose;
     }
-    rootRef.current?.setAttribute("data-pose", poseId);
-  }, [pose, poseId]);
+    rootRef.current?.setAttribute("data-pose", pose.id);
+  }, [pose]);
 
   useEffect(() => {
     if (!previousPose) return;
@@ -33,6 +47,53 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
     const timer = window.setTimeout(() => setShowPrevious(false), 250);
     return () => window.clearTimeout(timer);
   }, [previousPose]);
+
+  const handleImageLoad = useCallback((event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    const size = { poseId: pose.id, width: image.naturalWidth, height: image.naturalHeight };
+    setLoadedSize(size);
+    if (import.meta.env.DEV && (size.width !== pose.naturalWidth || size.height !== pose.naturalHeight)) {
+      console.warn(
+        `[HyperOwl] ${pose.id} image is ${size.width}x${size.height}; POSE_CONFIG expects ${pose.naturalWidth}x${pose.naturalHeight}.`,
+      );
+    }
+  }, [pose]);
+
+  const handleImageError = useCallback((event: React.SyntheticEvent<HTMLImageElement>) => {
+    const image = event.currentTarget;
+    if (image.dataset.fallback === "true") return;
+    image.dataset.fallback = "true";
+    image.src = pose.pngFallback;
+  }, [pose]);
+
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    for (const [label, src] of [["WebP", pose.webp], ["PNG", pose.pngFallback]] as const) {
+      const variant = new Image();
+      variant.onload = () => {
+        if (variant.naturalWidth !== pose.naturalWidth || variant.naturalHeight !== pose.naturalHeight) {
+          console.warn(
+            `[HyperOwl] ${pose.id} ${label} is ${variant.naturalWidth}x${variant.naturalHeight}; POSE_CONFIG expects ${pose.naturalWidth}x${pose.naturalHeight}.`,
+          );
+        }
+      };
+      variant.src = src;
+    }
+  }, [pose]);
+
+  const updateEye = useCallback((targetPoseId: string, eye: EyeName, value: OwlEyePixels) => {
+    setPoseConfigs((current) => {
+      const currentPose = current[targetPoseId];
+      if (!currentPose || currentPose.eyes === "baked") return current;
+      const next = {
+        ...currentPose,
+        eyes: { ...currentPose.eyes, [eye]: value },
+      } as OwlPoseConfig;
+      return { ...current, [targetPoseId]: next };
+    });
+  }, []);
+
+  const copyConfigs = useMemo(() => poseConfigs, [poseConfigs]);
 
   useEffect(() => {
     const reduced = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -47,40 +108,39 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
     const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; });
     observer.observe(root);
 
+    const reset = () => {
+      irises.forEach((iris) => { iris.style.transform = "translate(-50%, -50%)"; });
+      root.style.setProperty("--owl-tilt-x", "0deg");
+      root.style.setProperty("--owl-tilt-y", "0deg");
+    };
+
     const move = (event: PointerEvent) => {
-      if (!visible) return;
+      if (!visible || compare) return;
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const rect = root.getBoundingClientRect();
         irises.forEach((iris) => {
-          if (pose.eyes === "baked") return;
-          const eyeConfig = iris.dataset.eye === "left" ? pose.eyes.leftEye : pose.eyes.rightEye;
-          const cx = rect.left + rect.width * eyeConfig.cx / 100;
-          const cy = rect.top + rect.height * eyeConfig.cy / 100;
-          const dx = event.clientX - cx;
-          const dy = event.clientY - cy;
+          const eye = iris.closest<HTMLElement>(".owl-eye");
+          const rect = eye?.getBoundingClientRect();
+          const pixels = iris.dataset.eye === "left" ? pose.eyes !== "baked" && pose.eyes.leftEye : pose.eyes !== "baked" && pose.eyes.rightEye;
+          if (!rect || !pixels) return;
+          const dx = event.clientX - (rect.left + rect.width / 2);
+          const dy = event.clientY - (rect.top + rect.height / 2);
           const distance = Math.hypot(dx, dy);
           const strength = Math.min(1, distance / 260);
           const angle = Math.atan2(dy, dx);
-          const travel = eyeConfig.maxTravel * strength;
-          iris.style.transform = `translate(${Math.cos(angle) * travel}px, ${Math.sin(angle) * travel}px)`;
+          const travel = pixels.r * 0.26 * (stageRef.current?.getBoundingClientRect().width || 0) / naturalWidth * strength;
+          iris.style.transform = `translate(calc(-50% + ${Math.cos(angle) * travel}px), calc(-50% + ${Math.sin(angle) * travel}px))`;
         });
         if (window.matchMedia("(pointer:fine)").matches) {
-          const dx = (event.clientX - (rect.left + rect.width / 2)) / rect.width;
-          const dy = (event.clientY - (rect.top + rect.height / 2)) / rect.height;
+          const stageRect = stageRef.current?.getBoundingClientRect();
+          if (!stageRect) return;
+          const dx = (event.clientX - (stageRect.left + stageRect.width / 2)) / stageRect.width;
+          const dy = (event.clientY - (stageRect.top + stageRect.height / 2)) / stageRect.height;
           root.style.setProperty("--owl-tilt-x", `${Math.max(-5, Math.min(5, -dy * 5))}deg`);
           root.style.setProperty("--owl-tilt-y", `${Math.max(-8, Math.min(8, dx * 8))}deg`);
         }
-        if (event.pointerType === "touch") {
-          window.setTimeout(reset, 1500);
-        }
+        if (event.pointerType === "touch") window.setTimeout(reset, 1500);
       });
-    };
-
-    const reset = () => {
-      irises.forEach((iris) => { iris.style.transform = "translate(0, 0)"; });
-      root.style.setProperty("--owl-tilt-x", "0deg");
-      root.style.setProperty("--owl-tilt-y", "0deg");
     };
 
     let blinkTimer = 0;
@@ -107,105 +167,96 @@ export default function HyperOwl({ poseId = "thinking", mood = "idle", debug = f
       cancelAnimationFrame(frame);
       window.clearTimeout(blinkTimer);
     };
-  }, [pose]);
+  }, [compare, naturalWidth, pose, pose.id]);
 
-  const [debugConfig, setDebugConfig] = useState(pose.eyes === "baked" ? null : { ...pose.eyes });
-  useEffect(() => setDebugConfig(pose.eyes === "baked" ? null : { ...pose.eyes }), [pose]);
-
-  const copyDebug = () => navigator.clipboard?.writeText(JSON.stringify({ id: pose.id, eyes: debugConfig }, null, 2));
-
-  const eyeMarkup = pose.eyes !== "baked" && (
+  const eyeMarkup = pose.eyes !== "baked" && !debugEnabled && !compare && (
     <>
-      {(["leftEye", "rightEye"] as const).map((key) => {
-        const config = debugConfig && debugConfig !== "baked" ? debugConfig[key] : pose.eyes[key];
+      {(["leftEye", "rightEye"] as const).map((eyeName) => {
+        const eye = pose.eyes[eyeName];
         return (
           <span
-            key={key}
+            key={eyeName}
             className="owl-eye"
-            style={{ left: `${config.cx}%`, top: `${config.cy}%`, width: `${config.r * 2}%`, height: `${config.r * 2}%` }}
-            onPointerDown={(event) => {
-              if (!debugEnabled) return;
-              event.stopPropagation();
-              const target = event.currentTarget;
-              target.setPointerCapture(event.pointerId);
-              const move = (pointerEvent: PointerEvent) => {
-                const rect = rootRef.current?.getBoundingClientRect();
-                if (!rect) return;
-                setDebugConfig((current) => {
-                  if (!current || current === "baked") return current;
-                  return {
-                    ...current,
-                    [key]: {
-                      ...current[key],
-                      cx: Math.max(0, Math.min(100, ((pointerEvent.clientX - rect.left) / rect.width) * 100)),
-                      cy: Math.max(0, Math.min(100, ((pointerEvent.clientY - rect.top) / rect.height) * 100)),
-                    },
-                  };
-                });
-              };
-              target.addEventListener("pointermove", move);
-              target.addEventListener("pointerup", () => target.removeEventListener("pointermove", move), { once: true });
-            }}
-            onWheel={(event) => {
-              if (!debugEnabled) return;
-              event.preventDefault();
-              setDebugConfig((current) => {
-                if (!current || current === "baked") return current;
-                return {
-                  ...current,
-                  [key]: { ...current[key], r: Math.max(2, current[key].r + (event.deltaY > 0 ? -0.5 : 0.5)) },
-                };
-              });
+            style={{
+              left: `${eye.x / naturalWidth * 100}%`,
+              top: `${eye.y / naturalHeight * 100}%`,
+              width: `${2 * eye.r / naturalWidth * 100}%`,
+              aspectRatio: "1",
             }}
           >
-            <span className="owl-sclera" />
-            <span className="owl-iris" data-iris data-eye={key === "leftEye" ? "left" : "right"}>
-              <span className="owl-pupil" />
-              <span className="owl-glint owl-glint-a" />
-              <span className="owl-glint owl-glint-b" />
+            <span className="owl-plate">
+              <span className="owl-iris" data-iris data-eye={eyeName === "leftEye" ? "left" : "right"}>
+                <span className="owl-pupil" />
+                <span className="owl-glint owl-glint-a" />
+                <span className="owl-glint owl-glint-b" />
+              </span>
+              <span className="owl-eyelid" data-eyelid />
             </span>
-            <span className="owl-eyelid" data-eyelid />
           </span>
         );
       })}
     </>
   );
 
+  const stageAspectRatio = `${naturalWidth} / ${naturalHeight}`;
+
   return (
     <div
       ref={rootRef}
       data-pose={pose.id}
-      className={`owl-root ${mood === "happy" ? "owl-happy" : ""} ${className}`}
+      className={`owl-root ${mood === "happy" ? "owl-happy" : ""} ${debugEnabled ? "owl-debug-active" : ""} ${className}`}
       onClick={onClick}
       aria-hidden="true"
     >
       <div className="owl-float">
         <div className="owl-tilt">
-          {previousPose && showPrevious && (
-            <picture className="owl-picture owl-picture-old">
-              <source srcSet={previousPose.webp} type="image/webp" />
-              <img src={previousPose.pngFallback} alt="" width={previousPose.width} height={previousPose.height} draggable={false} />
-            </picture>
-          )}
-          <picture className="owl-picture owl-picture-current">
-            <source srcSet={pose.webp} type="image/webp" />
-            <img src={pose.pngFallback} alt="" width={pose.width} height={pose.height} draggable={false} />
-          </picture>
-          {eyeMarkup}
+          <div
+            ref={stageRef}
+            className="owl-stage"
+            style={{ aspectRatio: stageAspectRatio }}
+          >
+            {previousPose && showPrevious && !compare && (
+              <img
+                className="owl-image owl-picture-old"
+                src={previousPose.webp}
+                alt=""
+                width={previousPose.naturalWidth}
+                height={previousPose.naturalHeight}
+                draggable={false}
+                aria-hidden="true"
+              />
+            )}
+            <img
+              key={pose.id}
+              ref={imageRef}
+              className="owl-image owl-picture-current"
+              src={compare ? pose.pngFallback : pose.webp}
+              onLoad={handleImageLoad}
+              onError={handleImageError}
+              alt=""
+              width={pose.naturalWidth}
+              height={pose.naturalHeight}
+              draggable={false}
+              aria-hidden="true"
+            />
+            {eyeMarkup}
+            {debugEnabled && pose.eyes !== "baked" && (
+              <OwlCalibrator
+                pose={pose}
+                poseId={pose.id}
+                poseConfigs={copyConfigs}
+                stageRef={stageRef}
+                naturalWidth={naturalWidth}
+                naturalHeight={naturalHeight}
+                compare={compare}
+                onCompareChange={setCompare}
+                onPoseChange={setDebugPoseId}
+                onEyeChange={updateEye}
+              />
+            )}
+          </div>
         </div>
       </div>
-      {debugEnabled && debugConfig && (
-        <div className="owl-debug" onPointerDown={(event) => event.stopPropagation()}>
-          <select
-            aria-label="Debug owl pose"
-            value={debugPoseId}
-            onChange={(event) => setDebugPoseId(event.target.value)}
-          >
-            {Object.keys(OWL_POSES).map((id) => <option key={id} value={id}>{id}</option>)}
-          </select>
-          <button type="button" onClick={copyDebug}>Copy JSON</button>
-        </div>
-      )}
     </div>
   );
 }

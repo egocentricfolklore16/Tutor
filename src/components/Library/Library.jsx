@@ -677,6 +677,7 @@ function Library({ session }) {
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
+                  data-guide={tab.id === "quizzes" ? "library-quiz" : tab.id === "flashcards" ? "library-flashcard" : tab.id === "resources" ? "library-resource" : undefined}
                   className={`inline-flex min-h-11 items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${
                     isActive
                       ? "bg-emerald-600 text-white dark:bg-emerald-500"
@@ -702,6 +703,7 @@ function Library({ session }) {
             <button
               type="button"
               onClick={() => setCreationType(creationType === "flashcard" ? null : "flashcard")}
+              data-guide="library-flashcard"
               className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-amber-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-amber-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-amber-400 dark:hover:bg-amber-300 motion-reduce:transition-none"
             >
               <Plus className="h-4 w-4" /> Flashcard
@@ -709,6 +711,7 @@ function Library({ session }) {
             <button
               type="button"
               onClick={() => setCreationType(creationType === "resource" ? null : "resource")}
+              data-guide="library-resource"
               className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-sky-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-sky-500 dark:hover:bg-sky-400 motion-reduce:transition-none"
             >
               <Plus className="h-4 w-4" /> Resource

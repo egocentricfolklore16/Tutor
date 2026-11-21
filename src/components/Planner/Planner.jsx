@@ -272,7 +272,7 @@ const PlannerPage = () => {
     <PageContainer maxWidth="max-w-7xl">
       {toastMessage && (
         <div className="fixed bottom-20 left-4 right-4 z-[120] pb-[env(safe-area-inset-bottom)] motion-safe:animate-fade-in md:bottom-6 md:left-auto md:right-6 md:max-w-md">
-          <div role="status" className="flex max-w-full items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm dark:bg-white dark:text-slate-900">
+          <div role="status" data-guide="planner-success" className="flex max-w-full items-center gap-2 rounded-xl bg-slate-900 px-4 py-3 text-sm font-bold text-white shadow-sm dark:bg-white dark:text-slate-900">
             <CheckCircle className="h-4 w-4 shrink-0 text-emerald-400 dark:text-emerald-600" />
             <span className="break-words">{toastMessage}</span>
           </div>
@@ -292,6 +292,7 @@ const PlannerPage = () => {
         </div>
         <button
           onClick={() => handleAddActivity(selectedDate)}
+          data-guide="planner-create-new"
           className="hidden min-h-11 shrink-0 items-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none lg:inline-flex"
           disabled={isLoadingSessions}
         >
@@ -303,6 +304,7 @@ const PlannerPage = () => {
       <button
         type="button"
         onClick={() => handleAddActivity(selectedDate)}
+        data-guide="planner-create-new"
         disabled={isLoadingSessions}
         className="mb-6 flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none lg:hidden"
       >

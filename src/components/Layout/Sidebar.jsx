@@ -244,6 +244,7 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           <button
             type="button"
             onClick={toggleSidebar2}
+            data-guide="sidebar-collapse"
             aria-label={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
             title={isOpen ? "Collapse navigation menu" : "Expand navigation menu"}
             className="p-1 rounded-lg text-black dark:text-white hover:bg-black/5 dark:hover:bg-white/10 transition-all duration-300 focus:outline-none focus:shadow-focus"
@@ -274,6 +275,16 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
               <Link
                 key={item.name}
                 to={"/" + item.name}
+                data-guide={
+                  item.name === "Dashboard" ? "sidebar-home" :
+                  item.name === "Courses" ? "sidebar-courses" :
+                  item.name === "Planner" ? "sidebar-planner" :
+                  item.name === "Progress" ? "sidebar-progress" :
+                  item.name === "Library" ? "sidebar-library" :
+                  item.name === "Community" ? "sidebar-community" :
+                  item.name === "FAQ" ? "sidebar-help" :
+                  item.name === "Settings" ? "sidebar-settings" : undefined
+                }
                 className="block text-black dark:text-white no-underline"
               >
                 <li
@@ -332,7 +343,8 @@ function Sidebar({ isOpen, toggleSidebar, user }) {
           {isOpen && (
             <button
               type="button"
-              onClick={() => setFeedbackOpen(true)}
+              data-guide="sidebar-help"
+              onClick={() => window.dispatchEvent(new CustomEvent("lumo-guide-open-menu"))}
               className="flex items-center text-slate-600 dark:text-slate-400 hover:text-emerald-600 dark:hover:text-emerald-400 text-xs mt-4 whitespace-nowrap overflow-hidden transition-colors"
             >
               <svg

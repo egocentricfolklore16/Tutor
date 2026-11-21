@@ -106,7 +106,7 @@ export default function PlannerMascotLane({ activities, align = "right", onPlan 
   const resume = () => { pausedRef.current = false; };
 
   return (
-    <div className={`planner-mascot-lane align-${align}`} style={{ "--owl-hidden-fraction": "0.42", "--owl-overlap-px": "14px" } as React.CSSProperties}>
+    <div data-lumo-mascot className={`planner-mascot-lane align-${align}`} style={{ "--owl-hidden-fraction": "0.42", "--owl-overlap-px": "14px" } as React.CSSProperties}>
       {visible && (
         <div
           className="lumo-thought-bubble"

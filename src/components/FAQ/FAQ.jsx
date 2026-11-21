@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { ChevronDown, HelpCircle, Search } from "lucide-react";
 import PageContainer from "../common/PageContainer";
+import { useGuide } from "../../features/guide/useGuide";
 
 const faqs = [
   ["Getting started", "What is Hyper Tutor?", "Hyper Tutor is a learning companion that combines planning, AI tutoring, active recall, progress tracking, and study resources in one workspace."],
@@ -36,6 +37,7 @@ const faqs = [
 ];
 
 function FAQ() {
+  const guide = useGuide();
   const [query, setQuery] = useState("");
   const [category, setCategory] = useState("All");
   const [openQuestion, setOpenQuestion] = useState(0);
@@ -58,6 +60,7 @@ function FAQ() {
           </div>
         </div>
         <p className="mt-4 max-w-2xl text-slate-600 dark:text-slate-400">Find clear answers about your account, study routine, AI tutor, progress, and privacy.</p>
+        <button type="button" onClick={() => guide.setOpenMenu(true)} className="mt-4 min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white">Tour and tips</button>
 
         <label className="relative mt-8 block">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" size={19} />

@@ -693,6 +693,7 @@ function StudyHome() {
           <button
             type="button"
             onClick={() => startSession(item)}
+            data-guide="study-session-action"
             className={`inline-flex min-h-10 items-center gap-2 rounded-lg px-4 py-2 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 ${
               item.is_group_session
                 ? "bg-cyan-600 text-white hover:bg-cyan-700 focus-visible:ring-cyan-500"

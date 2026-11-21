@@ -13,6 +13,7 @@ import {
 } from "../../lib/notifications";
 import { hasAccessibilityNeed } from "../../lib/accessibility.js";
 import { getSubjectOptions } from "../../lib/userSubjects.js";
+import { useGuide } from "../../features/guide/useGuide";
 
 const STORAGE_BUCKET = "user-images";
 const levels = ["Beginner", "Intermediate", "Advanced", "High school", "College / university", "Working professional", "Independent learner", "9th Grade", "10th Grade", "11th Grade", "12th Grade", "College Freshman", "College Student", "Professional"];
@@ -39,6 +40,7 @@ function ChoiceRow({ options, value, onChange }) {
 
 function Settings() {
   const { profile, refreshProfile, darkMode, toggleDarkMode } = useProfile();
+  const guide = useGuide();
   const fileInputRef = useRef(null);
   const [currentUser, setCurrentUser] = useState(null);
   const [settings, setSettings] = useState({ ...defaultSettings, primaryGoal: profile?.primary_goal || defaultSettings.primaryGoal, learnerType: profile?.learner_type || defaultSettings.learnerType, studentLevel: profile?.education_level || "", subject: profile?.settings_subject || profile?.subjects?.[0] || "", currentTopic: profile?.current_topic || "", curriculumStandard: profile?.curriculum_standard || "None/General", learningStyle: profile?.learning_style || defaultSettings.learningStyle, knowledgeGaps: profile?.knowledge_gaps || [], accessibilityNeeds: profile?.accessibility_needs || [], language: profile?.language || "English", reducedMotion: profile?.reduced_motion || false, collaborationInterest: profile?.collaboration_interest || defaultSettings.collaborationInterest, preferredTime: profile?.preferred_time || defaultSettings.preferredTime, studyDays: profile?.study_days || defaultSettings.studyDays, weeklyHours: profile?.weekly_hours || defaultSettings.weeklyHours });
@@ -131,7 +133,15 @@ function Settings() {
 
   const tabs = ["Profile", "Billing", "Notifications", "Privacy", "Appearance"];
 
-  return <PageContainer maxWidth="max-w-5xl"><div className="settings-page text-slate-900 dark:text-slate-100"><header className="mb-6"><h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">Settings</h1><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-2 overflow-x-auto rounded-2xl bg-slate-100 p-2 dark:bg-slate-900" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`flex min-h-11 shrink-0 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${activeTab === tab ? "bg-emerald-600 text-white dark:bg-emerald-500" : "text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"}`}>{tab}</button>)}</nav><div className="settings-card">
+  return <PageContainer maxWidth="max-w-5xl"><div className="settings-page text-slate-900 dark:text-slate-100"><header className="mb-6"><h1 className="text-2xl font-black tracking-tight text-slate-900 dark:text-slate-50 sm:text-3xl">Settings</h1><p className="mt-2 text-sm leading-6 text-slate-600 dark:text-slate-300">Manage your account and preferences</p></header><nav className="settings-tabs mb-6 flex w-full gap-2 overflow-x-auto rounded-2xl bg-slate-100 p-2 dark:bg-slate-900" aria-label="Settings sections">{tabs.map((tab) => <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`flex min-h-11 shrink-0 items-center justify-center rounded-xl px-4 py-2.5 text-sm font-semibold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 motion-reduce:transition-none ${activeTab === tab ? "bg-emerald-600 text-white dark:bg-emerald-500" : "text-slate-600 hover:bg-white hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white"}`}>{tab}</button>)}</nav>
+    <section className="mb-6 flex flex-col gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900 dark:bg-emerald-950/30 sm:flex-row sm:items-center sm:justify-between">
+      <div><h2 className="text-sm font-black text-slate-900 dark:text-slate-100">Lumo tour and tips</h2><p className="mt-1 text-xs text-slate-600 dark:text-slate-300">Replay the app tour or control contextual tips.</p></div>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" onClick={guide.startTour} className="min-h-11 rounded-xl bg-emerald-600 px-4 text-sm font-bold text-white">Replay tour</button>
+        <button type="button" onClick={() => guide.setNudgesDisabled(false)} className="min-h-11 rounded-xl border border-slate-300 px-4 text-sm font-bold dark:border-slate-700">Reset tips</button>
+      </div>
+    </section>
+    <div className="settings-card">
     {activeTab === "Privacy" ? <div className="py-10 text-center"><h2 className="text-xl font-bold text-slate-900">Privacy</h2><p className="mt-2 text-sm text-slate-500">Privacy settings are not available yet.</p></div> : null}
     {activeTab === "Billing" && <Billing user={resolvedUser} />}
     {activeTab === "Profile" && <div className="space-y-10"><div><h2 className="text-2xl font-bold text-slate-900">Profile</h2><p className="mt-1 text-sm text-slate-500">Your personal details</p></div>

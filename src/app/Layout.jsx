@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, lazy, Suspense } from "react";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import Sidebar from "../components/Layout/Sidebar";
@@ -10,6 +10,11 @@ import NotificationPromptCard from "../components/Notifications/NotificationProm
 import BottomNavBar from "../components/common/BottomNavBar";
 import { ProfileProvider, useProfile } from "./ProfileContext";
 import { AITutorProvider } from "./AITutorContext";
+import { GuideProvider } from "../features/guide/GuideProvider";
+import "../features/guide/lumo-guide.css";
+
+const LumoGuide = lazy(() => import("../features/guide/LumoGuide"));
+const HelpLauncher = lazy(() => import("../features/guide/HelpLauncher"));
 
 function GlobalStudyCompanion() {
   const { profile } = useProfile();
@@ -73,6 +78,7 @@ function Layout({ session, needsOnboarding }) {
   return (
     <ProfileProvider user={user}>
       <AITutorProvider session={session}>
+        <GuideProvider>
         <div className="mainapp">
         {isDesktop && <Sidebar isOpen={isSidebarExpanded} toggleSidebar={toggleSidebar} user={user} />}
 
@@ -118,6 +124,7 @@ function Layout({ session, needsOnboarding }) {
             <button
               type="button"
               onClick={() => navigate("/courses", { state: { openCreateSession: true } })}
+              data-guide="new-session"
               className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
             >
               <Plus className="h-4 w-4" aria-hidden="true" />
@@ -126,7 +133,12 @@ function Layout({ session, needsOnboarding }) {
           )}
           <InstallPrompt userId={user?.id} />
         </div>
+        <Suspense fallback={null}>
+          <LumoGuide />
+          <HelpLauncher />
+        </Suspense>
         </div>
+        </GuideProvider>
       </AITutorProvider>
     </ProfileProvider>
   );

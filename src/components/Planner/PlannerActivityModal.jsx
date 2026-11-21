@@ -405,6 +405,7 @@ function PlannerActivityModal({
               <div className="relative mt-1.5">
                 <input
                   ref={titleInputRef}
+                  data-guide="planner-session-title"
                   value={form.title}
                   onChange={(e) => update("title", e.target.value.slice(0, 100))}
                   required
@@ -473,6 +474,7 @@ function PlannerActivityModal({
                 </span>
                 <input
                   type="date"
+                  data-guide="planner-session-date"
                   value={form.date}
                   onChange={(e) => update("date", e.target.value)}
                   required
@@ -487,6 +489,7 @@ function PlannerActivityModal({
                   </span>
                   <input
                     type="time"
+                    data-guide="planner-session-time"
                     value={form.startTime}
                     onChange={(e) => update("startTime", e.target.value)}
                     required
@@ -740,6 +743,7 @@ function PlannerActivityModal({
                 </button>
                 <button
                   type="submit"
+                  data-guide="planner-session-save"
                   disabled={isSaving}
                   className="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 font-bold text-white shadow-md hover:bg-blue-700 disabled:opacity-50"
                 >

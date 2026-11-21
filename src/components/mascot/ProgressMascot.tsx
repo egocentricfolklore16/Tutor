@@ -34,7 +34,7 @@ export default function ProgressMascot({ completion, completedSessions, gems, le
   }, [completion, completedSessions, level]);
 
   return (
-    <div className="progress-mascot-stage">
+    <div data-lumo-mascot className="progress-mascot-stage">
       {chip && (
         <div className="progress-mascot-chip" role="status" aria-live="polite">
           {level > 1 ? `Level ${level} already, keep going!` : `${gems} gems saved. The shop is open!`}

@@ -51,6 +51,12 @@ export function BottomNavBar() {
             <Link
               key={item.name}
               to={item.path}
+              data-guide={
+                item.name === "Dashboard" ? "sidebar-home" :
+                item.name === "Planner" ? "sidebar-planner" :
+                item.name === "Progress" ? "sidebar-progress" :
+                item.name === "Courses" ? "sidebar-courses" : undefined
+              }
               className={`flex min-h-11 min-w-11 flex-1 flex-col items-center justify-center gap-1 rounded-xl text-xs font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 ${
                 active
                   ? "text-emerald-600 dark:text-emerald-400 font-semibold"

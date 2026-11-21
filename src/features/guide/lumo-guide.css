@@ -1,0 +1,97 @@
+.lumo-guide-layer { position: fixed; inset: 0; z-index: 1500; pointer-events: none; }
+.lumo-guide-spotlight {
+  position: fixed; left: 0; top: 0; width: 1px; height: 1px;
+  border: 2px solid rgb(16 185 129 / .95); border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgb(15 23 42 / .55), 0 0 18px rgb(16 185 129 / .55);
+  pointer-events: none; transition: width 120ms ease, height 120ms ease;
+}
+.lumo-guide-owl {
+  position: fixed; left: 0; top: 0; width: 112px; height: 100px;
+  transform: translate3d(-200px,-200px,0); pointer-events: none;
+  will-change: transform; filter: drop-shadow(0 8px 6px rgb(15 23 42 / .18));
+  transition: transform 720ms cubic-bezier(.22,.75,.24,1);
+}
+.lumo-guide-owl .owl-root { --owl-width:112px; }
+.lumo-guide-shadow {
+  position: absolute; left: 23%; bottom: 2%; width: 54%; height: 10%;
+  border-radius: 50%; background: rgb(15 23 42 / .22); filter: blur(5px);
+}
+.lumo-guide-bubble, .lumo-welcome, .lumo-help-menu, .lumo-guide-debug {
+  pointer-events: auto; color: #0f172a; background: rgba(255,255,255,.98);
+  border: 1px solid rgb(226 232 240); box-shadow: 0 18px 48px rgb(15 23 42 / .18);
+  border-radius: 18px;
+}
+.dark .lumo-guide-bubble, .dark .lumo-welcome, .dark .lumo-help-menu, .dark .lumo-guide-debug {
+  color: #e5e7eb; background: rgba(24,33,31,.98); border-color: rgb(44 59 55);
+}
+.lumo-guide-bubble {
+  position: fixed; width: 320px; max-width: calc(100vw - 16px);
+  min-height: 154px; padding: 16px; z-index: 3;
+  animation: lumo-bubble-in 150ms ease-out;
+}
+.lumo-guide-bubble h2, .lumo-welcome h2 { margin: 0 0 6px; font-size: 15px; font-weight: 900; }
+.lumo-guide-bubble p, .lumo-welcome p { margin: 0; font-size: 14px; line-height: 1.45; }
+.lumo-guide-actions { display: flex; align-items: center; gap: 8px; margin-top: 12px; }
+.lumo-guide-actions button, .lumo-guide-take-me, .lumo-guide-skip {
+  min-height: 44px; border: 0; border-radius: 12px; font-size: 13px; font-weight: 800;
+}
+.lumo-guide-primary { padding: 0 14px; background: #059669; color: #fff; }
+.lumo-guide-secondary { padding: 0 14px; background: #e2e8f0; color: #334155; }
+.dark .lumo-guide-secondary { background: #26342f; color: #e2e8f0; }
+.lumo-guide-actions button:disabled { opacity: .45; }
+.lumo-guide-take-me { margin-top: 10px; padding: 0 12px; background: #d1fae5; color: #065f46; }
+.lumo-guide-meta { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; margin-top: 10px; font-size: 11px; color: #64748b; }
+.lumo-guide-dots { display: flex; gap: 4px; }
+.lumo-guide-dots i { width: 5px; height: 5px; border-radius: 50%; background: #cbd5e1; }
+.lumo-guide-dots i.active { width: 14px; border-radius: 5px; background: #10b981; }
+.lumo-guide-skip { justify-self: end; min-height: 44px; padding: 0 4px; background: transparent; color: #64748b; }
+.lumo-welcome {
+  position: fixed; left: 50%; bottom: 96px; width: min(420px, calc(100vw - 24px));
+  transform: translateX(-50%); display: grid; grid-template-columns: 112px 1fr; align-items: center;
+  gap: 10px; padding: 14px; animation: lumo-bubble-in 150ms ease-out;
+}
+.lumo-welcome-owl { width: 112px; }
+.lumo-welcome-owl .owl-root { --owl-width:112px; }
+.lumo-help-launcher {
+  position: fixed; left: 18px; bottom: 18px; z-index: 1400;
+  width: 44px; height: 44px; display: none; align-items: center; justify-content: center;
+  border: 0; border-radius: 14px; background: #059669; color: #fff;
+  box-shadow: 0 10px 24px rgb(5 150 105 / .28); pointer-events: auto;
+}
+.lumo-help-menu {
+  position: fixed; left: 16px; bottom: 72px; z-index: 1600;
+  width: min(360px, calc(100vw - 32px)); max-height: min(620px, calc(100vh - 96px));
+  overflow: hidden; padding: 12px; pointer-events: auto;
+}
+.lumo-help-menu header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.lumo-help-menu header div { display:flex; flex-direction:column; }
+.lumo-help-menu header span { font-size:11px; color:#64748b; }
+.lumo-help-menu header button { width:44px; height:44px; border:0; border-radius:12px; background:transparent; }
+.lumo-help-search { display:flex; align-items:center; gap:8px; height:44px; padding:0 10px; border-radius:12px; background:#f1f5f9; color:#64748b; }
+.dark .lumo-help-search { background:#26342f; }
+.lumo-help-search input { min-width:0; flex:1; border:0; outline:0; background:transparent; color:inherit; }
+.lumo-help-menu nav { max-height:380px; overflow-y:auto; margin-top:8px; }
+.lumo-help-menu nav button { width:100%; min-height:58px; display:flex; align-items:center; justify-content:space-between; gap:8px; text-align:left; border:0; border-radius:12px; background:transparent; padding:8px; color:inherit; }
+.lumo-help-menu nav button:hover { background:#ecfdf5; }
+.dark .lumo-help-menu nav button:hover { background:#26342f; }
+.lumo-help-menu nav button span { display:flex; flex-direction:column; }
+.lumo-help-menu nav strong { font-size:13px; }
+.lumo-help-menu nav small { margin-top:2px; font-size:11px; color:#64748b; }
+.lumo-help-toggle { display:flex; align-items:center; gap:8px; min-height:44px; margin-top:8px; font-size:13px; }
+.lumo-guide-debug { position:fixed; right:12px; top:76px; z-index:1700; display:flex; flex-direction:column; gap:6px; width:min(280px,calc(100vw - 24px)); padding:12px; font-size:12px; pointer-events:auto; }
+.lumo-guide-debug button { min-height:44px; border:0; border-radius:10px; background:#d1fae5; color:#065f46; }
+@keyframes lumo-bubble-in { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+@media (min-width:768px) { .lumo-help-launcher { display:flex; } }
+@media (max-width:639px) {
+  .lumo-guide-bubble { left:8px !important; right:8px !important; bottom:calc(4.25rem + env(safe-area-inset-bottom)) !important; top:auto !important; width:auto; max-height:240px; }
+  .lumo-guide-owl { width:96px; height:86px; }
+  .lumo-guide-owl .owl-root { --owl-width:96px; }
+  .lumo-welcome { bottom:calc(5rem + env(safe-area-inset-bottom)); grid-template-columns:92px 1fr; }
+  .lumo-welcome-owl { width:92px; }
+  .lumo-welcome-owl .owl-root { --owl-width:92px; }
+  .lumo-help-launcher { left:12px; bottom:calc(4.75rem + env(safe-area-inset-bottom)); }
+  .lumo-help-menu { left:8px; bottom:calc(5.75rem + env(safe-area-inset-bottom)); width:calc(100vw - 16px); }
+}
+@media (prefers-reduced-motion:reduce) {
+  .lumo-guide-spotlight, .lumo-guide-owl, .lumo-guide-bubble, .lumo-welcome { transition:none; animation:none; }
+}

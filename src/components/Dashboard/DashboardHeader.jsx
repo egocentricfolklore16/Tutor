@@ -183,6 +183,7 @@ function DashboardHeader({ toggleSidebar }) {
 
   return <>
     <header className="sticky top-0 z-[100] flex min-h-16 flex-nowrap items-center justify-between gap-2 bg-white px-3 py-3 text-slate-700 sm:px-4 md:px-6 dark:bg-[#14171c] dark:text-slate-200 shadow-surface">
+      <span data-guide="topbar-greeting" />
       <div className="flex min-w-0 shrink items-center gap-2">
         <span className="flex shrink-0 items-center gap-1.5 sm:hidden">
           {typeof toggleSidebar === "function" && (
@@ -204,7 +205,7 @@ function DashboardHeader({ toggleSidebar }) {
           {aiSuggestionsOpen && <div className="motion-dialog absolute right-0 top-12 z-[210] w-[min(88vw,22rem)]"><div className="mb-2 flex justify-end"><button type="button" title="Close AI suggestions" aria-label="Close AI suggestions" onClick={() => setAiSuggestionsOpen(false)} className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-white text-slate-500 shadow-sm hover:text-slate-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-slate-800 dark:text-slate-300"><X className="h-4 w-4" /></button></div><AISuggestions /></div>}
         </div>
 
-        <button type="button" title="Search the app" aria-label="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
+        <button type="button" data-guide="topbar-search" title="Search the app" aria-label="Search the app" onClick={() => setSearchOpen(true)} className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-xl p-2 text-slate-700 transition hover:bg-sky-100 hover:text-sky-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 sm:gap-3 sm:bg-sky-100 sm:px-3 sm:py-2 sm:text-sky-900 shadow-surface dark:text-sky-300 dark:sm:bg-sky-950/40 dark:sm:text-sky-200">
           <Search className="h-4 w-4 text-sky-700 dark:text-sky-400" />
           <span className="hidden text-xs font-semibold sm:inline">Search</span>
           <span className="hidden items-center gap-1 rounded-full bg-white/80 px-2 py-0.5 text-[11px] font-bold text-sky-800 sm:flex dark:bg-slate-800/80 dark:text-sky-300">
@@ -220,6 +221,7 @@ function DashboardHeader({ toggleSidebar }) {
         >
           <button
             type="button"
+            data-guide="topbar-xp"
             onClick={() => setXpDropdownOpen((prev) => !prev)}
             aria-label={`Level ${xpLevel}, ${xpPoints} XP`}
             aria-expanded={xpDropdownOpen}
@@ -274,6 +276,7 @@ function DashboardHeader({ toggleSidebar }) {
         >
           <button
             type="button"
+            data-guide="topbar-gems"
             onClick={() => setGemsDropdownOpen((prev) => !prev)}
             aria-label={`Gems balance: ${gemsCount}`}
             aria-expanded={gemsDropdownOpen}
@@ -315,6 +318,7 @@ function DashboardHeader({ toggleSidebar }) {
         <button
           type="button"
           title={darkMode ? "Switch to light mode" : "Switch to dark mode"}
+          data-guide="topbar-theme"
           aria-label={darkMode ? "Switch to light mode" : "Switch to dark mode"}
           onClick={() => toggleDarkMode(!darkMode)}
           className="inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-violet-100 hover:text-violet-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-violet-950/40"
@@ -322,14 +326,14 @@ function DashboardHeader({ toggleSidebar }) {
           {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
         </button>
 
-        <button type="button" title="Notifications" aria-label={`Notifications${totalUnreadCount > 0 ? `, ${totalUnreadCount} unread` : ""}`} onClick={handleNotificationsClick} className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-rose-950/40">
+        <button type="button" data-guide="topbar-notifications" title="Notifications" aria-label={`Notifications${totalUnreadCount > 0 ? `, ${totalUnreadCount} unread` : ""}`} onClick={handleNotificationsClick} className="relative inline-flex h-11 w-11 items-center justify-center rounded-xl text-slate-700 transition hover:bg-rose-100 hover:text-rose-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:text-slate-300 dark:hover:bg-rose-950/40">
           <Bell className="h-4 w-4" />
           {totalUnreadCount > 0 && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[9px] font-bold text-white">{Math.min(totalUnreadCount, 9)}</span>}
         </button>
 
         {/* Profile Avatar */}
         <div className="relative">
-          <button type="button" title="Profile menu" aria-label="Open profile menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-800 dark:text-emerald-100">
+          <button type="button" data-guide="topbar-profile" title="Profile menu" aria-label="Open profile menu" aria-expanded={menuOpen} onClick={() => setMenuOpen((open) => !open)} className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl bg-emerald-200 text-emerald-900 shadow-sm transition hover:bg-emerald-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-800 dark:text-emerald-100">
             {profile?.avatar_url ? <img src={profile.avatar_url} alt={`${name} profile`} className="h-full w-full object-cover" /> : <UserRound className="h-5 w-5" />}
           </button>
           {menuOpen && (

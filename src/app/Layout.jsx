@@ -1,4 +1,5 @@
 import React, { useState, useEffect, lazy, Suspense } from "react";
+import { createPortal } from "react-dom";
 import { Navigate, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { Plus } from "lucide-react";
 import Sidebar from "../components/Layout/Sidebar";
@@ -59,6 +60,7 @@ function Layout({ session, needsOnboarding }) {
   })();
 
   const pathLower = location.pathname.toLowerCase();
+  const isStudyRoomOpen = /^\/community\/rooms\/[^/]+\/?$/.test(pathLower);
   const isFullWidthPage =
     location.pathname.startsWith("/Dashboard") ||
     location.pathname === "/" ||
@@ -74,6 +76,35 @@ function Layout({ session, needsOnboarding }) {
     (typeof navigator !== "undefined" && navigator.standalone === true);
 
   if (needsOnboarding) return <Navigate to="/onboarding" replace />;
+
+  const floatingControls = (
+    <div
+      data-lumo-floating-controls
+      className={`fixed bottom-20 left-4 right-4 ${
+        isStudyRoomOpen ? "z-[1100]" : "z-[40]"
+      } flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] motion-reduce:transition-none md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:px-0`}
+    >
+      <GlobalAITutorFab session={session} isStudyRoomOpen={isStudyRoomOpen} />
+      {!isCoursesHome && (
+        <button
+          type="button"
+          onClick={() => navigate("/courses", { state: { openCreateSession: true } })}
+          data-guide="new-session"
+          aria-hidden={isStudyRoomOpen}
+          tabIndex={isStudyRoomOpen ? -1 : undefined}
+          className={`inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none ${
+            isStudyRoomOpen ? "invisible pointer-events-none" : ""
+          }`}
+        >
+          <Plus className="h-4 w-4" aria-hidden="true" />
+          New Course
+        </button>
+      )}
+      <div className={isStudyRoomOpen ? "invisible pointer-events-none" : ""} aria-hidden={isStudyRoomOpen}>
+        <InstallPrompt userId={user?.id} />
+      </div>
+    </div>
+  );
 
   return (
     <ProfileProvider user={user}>
@@ -118,24 +149,14 @@ function Layout({ session, needsOnboarding }) {
         {/* Mobile Navigation Tab Bar */}
         <BottomNavBar />
 
-        <div data-lumo-floating-controls className="fixed bottom-20 left-4 right-4 z-[40] flex flex-col items-end gap-3 pb-[env(safe-area-inset-bottom)] pl-[env(safe-area-inset-left)] pr-[env(safe-area-inset-right)] motion-reduce:transition-none md:bottom-6 md:left-auto md:right-6 md:w-[380px] md:px-0">
-          <GlobalAITutorFab session={session} />
-          {!isCoursesHome && (
-            <button
-              type="button"
-              onClick={() => navigate("/courses", { state: { openCreateSession: true } })}
-              data-guide="new-session"
-              className="inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500/70 dark:bg-emerald-500 dark:hover:bg-emerald-400 motion-reduce:transition-none"
-            >
-              <Plus className="h-4 w-4" aria-hidden="true" />
-              New Course
-            </button>
-          )}
-          <InstallPrompt userId={user?.id} />
-        </div>
+        {isStudyRoomOpen ? createPortal(floatingControls, document.body) : floatingControls}
         <Suspense fallback={null}>
-          <LumoGuide />
-          <HelpLauncher />
+          {!isStudyRoomOpen && (
+            <>
+              <LumoGuide />
+              <HelpLauncher />
+            </>
+          )}
         </Suspense>
         </div>
         </GuideProvider>

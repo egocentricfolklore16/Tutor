@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Clock,
@@ -31,6 +32,11 @@ import { sanitizeUrl } from "../../lib/communityChat";
 export default function VirtualStudyRoom() {
   const { roomId } = useParams();
   const navigate = useNavigate();
+  const roomRootRef = useRef(null);
+  const previousFocusRef = useRef(null);
+  const leaveCalledRoomIdsRef = useRef(new Set());
+  const leaveTimeoutRef = useRef(null);
+  const scheduledLeaveRoomIdRef = useRef(null);
 
   const [currentUserId, setCurrentUserId] = useState(null);
   const [room, setRoom] = useState(null);
@@ -55,6 +61,7 @@ export default function VirtualStudyRoom() {
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
   const broadcastChannelRef = useRef(null);
+  const [mobileView, setMobileView] = useState("room");
 
   // Share resource modal / Friend invite modal
   const [showInviteModal, setShowInviteModal] = useState(false);
@@ -65,6 +72,47 @@ export default function VirtualStudyRoom() {
   const [showHostSettings, setShowHostSettings] = useState(false);
   const [editName, setEditName] = useState("");
   const [editCapacity, setEditCapacity] = useState(10);
+
+  useEffect(() => {
+    const body = document.body;
+    const root = document.documentElement;
+    const scrollY = window.scrollY;
+    const previousStyles = {
+      bodyOverflow: body.style.overflow,
+      bodyPosition: body.style.position,
+      bodyTop: body.style.top,
+      bodyWidth: body.style.width,
+      rootOverflow: root.style.overflow,
+    };
+    const isIos =
+      /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+      (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+
+    root.style.overflow = "hidden";
+    body.style.overflow = "hidden";
+    if (isIos) {
+      body.style.position = "fixed";
+      body.style.top = `-${scrollY}px`;
+      body.style.width = "100%";
+    }
+
+    return () => {
+      root.style.overflow = previousStyles.rootOverflow;
+      body.style.overflow = previousStyles.bodyOverflow;
+      body.style.position = previousStyles.bodyPosition;
+      body.style.top = previousStyles.bodyTop;
+      body.style.width = previousStyles.bodyWidth;
+      if (isIos) window.scrollTo(0, scrollY);
+    };
+  }, []);
+
+  useEffect(() => {
+    previousFocusRef.current = document.activeElement;
+    roomRootRef.current?.focus();
+    return () => {
+      if (previousFocusRef.current?.isConnected) previousFocusRef.current.focus();
+    };
+  }, []);
 
   // Play soft chime on phase change
   const playChime = useCallback(() => {
@@ -198,7 +246,7 @@ export default function VirtualStudyRoom() {
     };
   }, [roomId, fetchRoster]);
 
-  // 2. Room Heartbeat (every 45s while visible) & Leave on cleanup
+  // 2. Room Heartbeat (every 45s while visible)
   useEffect(() => {
     if (!roomId || roomError) return;
 
@@ -218,7 +266,23 @@ export default function VirtualStudyRoom() {
       }
     }, 45000);
 
+    return () => {
+      clearInterval(interval);
+    };
+  }, [roomId, userGoal, roomError]);
+
+  useEffect(() => {
+    if (!roomId) return;
+
+    if (scheduledLeaveRoomIdRef.current === roomId) {
+      window.clearTimeout(leaveTimeoutRef.current);
+      leaveTimeoutRef.current = null;
+      scheduledLeaveRoomIdRef.current = null;
+    }
+
     const handleLeave = () => {
+      if (leaveCalledRoomIdsRef.current.has(roomId)) return;
+      leaveCalledRoomIdsRef.current.add(roomId);
       try {
         void supabase.rpc("leave_study_room", { p_room_id: roomId });
       } catch (e) {
@@ -229,11 +293,11 @@ export default function VirtualStudyRoom() {
     window.addEventListener("pagehide", handleLeave);
 
     return () => {
-      clearInterval(interval);
       window.removeEventListener("pagehide", handleLeave);
-      handleLeave();
+      scheduledLeaveRoomIdRef.current = roomId;
+      leaveTimeoutRef.current = window.setTimeout(handleLeave, 0);
     };
-  }, [roomId, userGoal, roomError]);
+  }, [roomId]);
 
   // 3. Realtime Subscriptions for study_rooms & study_room_members
   useEffect(() => {
@@ -503,17 +567,32 @@ export default function VirtualStudyRoom() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 text-white">
+    return createPortal(
+      <div
+        ref={roomRootRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Virtual study room"
+        tabIndex={-1}
+        className="fixed inset-0 z-[1000] flex h-screen h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-slate-950 p-6 text-white"
+      >
         <Loader2 className="h-10 w-10 animate-spin text-emerald-500" />
         <p className="mt-3 text-sm font-bold">Entering virtual study room...</p>
-      </div>
+      </div>,
+      document.body
     );
   }
 
   if (roomError || !room) {
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-slate-950 p-6 text-center text-white">
+    return createPortal(
+      <div
+        ref={roomRootRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Virtual study room"
+        tabIndex={-1}
+        className="fixed inset-0 z-[1000] flex h-screen h-[100dvh] w-full flex-col items-center justify-center overflow-hidden bg-slate-950 p-6 text-center text-white"
+      >
         <AlertCircle className="h-12 w-12 text-rose-500" />
         <p className="mt-3 text-lg font-black">{roomError || "Room Unavailable"}</p>
         <button
@@ -523,7 +602,8 @@ export default function VirtualStudyRoom() {
         >
           Return to Rooms Lobby
         </button>
-      </div>
+      </div>,
+      document.body
     );
   }
 
@@ -539,11 +619,18 @@ export default function VirtualStudyRoom() {
       ? "from-amber-500/20 to-orange-500/10 text-amber-400 border-amber-500/40"
       : "from-slate-800 to-slate-900 text-slate-300 border-slate-700";
 
-  return (
-    <div className="fixed inset-0 z-[100] md:static flex flex-col h-[100dvh] w-screen bg-slate-950 text-white overflow-hidden">
+  return createPortal(
+    <div
+      ref={roomRootRef}
+      role="dialog"
+      aria-modal="true"
+      aria-label={`Study room: ${room.name}`}
+      tabIndex={-1}
+      className="fixed inset-0 z-[1000] flex h-screen h-[100dvh] w-full flex-col overflow-hidden bg-slate-950 text-white outline-none"
+    >
       {/* Top Header Navigation */}
-      <header className="flex shrink-0 items-center justify-between border-b border-slate-800 bg-[#14171c] px-4 py-3 sm:px-6">
-        <div className="flex items-center gap-3">
+      <header className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 bg-[#14171c] px-3 pb-3 pt-[calc(0.75rem+env(safe-area-inset-top))] sm:px-6">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => navigate("/community/rooms")}
@@ -553,23 +640,23 @@ export default function VirtualStudyRoom() {
             <LogOut className="h-4 w-4" />
           </button>
 
-          <div>
+          <div className="min-w-0 flex-1">
             <div className="flex items-center gap-2">
-              <span className="rounded-xl bg-emerald-950 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300">
+              <span className="max-w-[72px] truncate rounded-xl bg-emerald-950 px-2.5 py-0.5 text-[10px] font-bold text-emerald-300 sm:max-w-none">
                 {room.subject}
               </span>
-              <h1 className="text-base font-black text-white truncate max-w-[180px] sm:max-w-xs">
+              <h1 className="min-w-0 truncate text-base font-black text-white">
                 {room.name}
               </h1>
             </div>
-            <p className="text-[11px] text-slate-400">
+            <p className="truncate text-[11px] text-slate-400">
               {roster.length} / {room.capacity} studying · {room.cycles_completed || 0} cycles done
             </p>
           </div>
         </div>
 
         {/* Top Controls: Sound Toggle, Invite, Host Settings */}
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
           <button
             type="button"
             onClick={() => setSoundEnabled(!soundEnabled)}
@@ -606,9 +693,36 @@ export default function VirtualStudyRoom() {
       </header>
 
       {/* Main Split Grid */}
-      <div className="flex-1 grid grid-cols-1 md:grid-cols-12 overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+        <div className="grid shrink-0 grid-cols-2 border-b border-slate-800 bg-[#14171c] lg:hidden">
+          <button
+            type="button"
+            onClick={() => setMobileView("room")}
+            aria-pressed={mobileView === "room"}
+            className={`min-h-11 px-4 text-xs font-bold ${
+              mobileView === "room" ? "text-emerald-300" : "text-slate-400"
+            }`}
+          >
+            Room
+          </button>
+          <button
+            type="button"
+            onClick={() => setMobileView("chat")}
+            aria-pressed={mobileView === "chat"}
+            className={`min-h-11 px-4 text-xs font-bold ${
+              mobileView === "chat" ? "text-emerald-300" : "text-slate-400"
+            }`}
+          >
+            Chat
+          </button>
+        </div>
+        <div className="grid min-h-0 min-w-0 flex-1 grid-cols-1 overflow-hidden lg:grid-cols-[minmax(0,1fr)_360px]">
         {/* Left / Center Column: Timer & Roster */}
-        <div className="md:col-span-7 lg:col-span-8 flex flex-col p-4 sm:p-6 overflow-y-auto space-y-6">
+        <div
+          className={`min-h-0 min-w-0 flex-col gap-6 overflow-y-auto p-4 sm:p-6 ${
+            mobileView === "room" ? "flex" : "hidden"
+          } lg:flex`}
+        >
           {/* Main Shared Circular Countdown Timer */}
           <div
             className={`relative flex flex-col items-center justify-center rounded-3xl border bg-gradient-to-b ${phaseColor} p-8 text-center shadow-2xl transition-all duration-300`}
@@ -759,11 +873,15 @@ export default function VirtualStudyRoom() {
         </div>
 
         {/* Right Column: Ephemeral Live Room Chat */}
-        <div className="md:col-span-5 lg:col-span-4 border-t md:border-t-0 md:border-l border-slate-800 bg-[#14171c] flex flex-col h-full overflow-hidden">
-          <div className="p-4 border-b border-slate-800 flex items-center justify-between shrink-0">
-            <div className="flex items-center gap-2 text-xs font-bold text-white">
+        <div
+          className={`min-h-0 min-w-0 h-full flex-col overflow-hidden border-t border-slate-800 bg-[#14171c] lg:w-[360px] lg:border-l lg:border-t-0 ${
+            mobileView === "chat" ? "flex" : "hidden"
+          } lg:flex`}
+        >
+          <div className="flex shrink-0 items-center justify-between gap-2 border-b border-slate-800 p-4">
+            <div className="flex min-w-0 items-center gap-2 text-xs font-bold text-white">
               <MessageSquare className="h-4 w-4 text-emerald-400" />
-              <span>Room Chat (Ephemeral)</span>
+              <span className="truncate">Room Chat (Ephemeral)</span>
             </div>
             <button
               type="button"
@@ -779,7 +897,7 @@ export default function VirtualStudyRoom() {
           </p>
 
           {/* Chat Messages List */}
-          <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
             {chatMessages.length === 0 ? (
               <p className="text-center text-xs text-slate-500 py-8">
                 Say hi to fellow room members!
@@ -837,7 +955,7 @@ export default function VirtualStudyRoom() {
           </div>
 
           {/* Chat Form */}
-          <form onSubmit={handleSendChatMessage} className="p-3 border-t border-slate-800 flex items-center gap-2 shrink-0">
+          <form onSubmit={handleSendChatMessage} className="flex shrink-0 items-center gap-2 border-t border-slate-800 p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
             <input
               type="text"
               value={chatInput}
@@ -854,12 +972,13 @@ export default function VirtualStudyRoom() {
             </button>
           </form>
         </div>
+        </div>
       </div>
 
       {/* Share Resource Modal */}
       {showShareModal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-950/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-xs"
           onClick={() => setShowShareModal(false)}
         >
           <div
@@ -897,7 +1016,7 @@ export default function VirtualStudyRoom() {
       {/* Invite Friends Modal */}
       {showInviteModal && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-950/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-xs"
           onClick={() => setShowInviteModal(false)}
         >
           <div
@@ -937,7 +1056,7 @@ export default function VirtualStudyRoom() {
       {/* Host Settings Modal */}
       {showHostSettings && (
         <div
-          className="fixed inset-0 z-[200] flex items-center justify-center bg-slate-950/60 p-4 backdrop-blur-xs"
+          className="fixed inset-0 z-[1050] flex items-center justify-center bg-slate-950/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] pt-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-xs"
           onClick={() => setShowHostSettings(false)}
         >
           <div
@@ -991,6 +1110,7 @@ export default function VirtualStudyRoom() {
           </div>
         </div>
       )}
-    </div>
+    </div>,
+    document.body
   );
 }

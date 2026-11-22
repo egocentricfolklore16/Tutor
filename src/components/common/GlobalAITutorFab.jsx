@@ -6,7 +6,7 @@ import { useProfile } from "../../app/ProfileContext";
 import { useAITutor } from "../../app/AITutorContext";
 import AITutorChat from "../Study/studyEnviron/AITutorChat";
 
-const GlobalAITutorFab = ({ session: _session }) => {
+const GlobalAITutorFab = ({ session: _session, isStudyRoomOpen = false }) => {
   const {
     mode,
     setMode,
@@ -29,6 +29,7 @@ const GlobalAITutorFab = ({ session: _session }) => {
 
   const pathLower = location.pathname.toLowerCase();
   const isThreadPage = pathLower.includes("/chat/") && pathLower.split("/chat/")[1]?.trim().length > 0;
+  const chatLayer = isStudyRoomOpen ? "z-[1100]" : "z-[60]";
   if (isThreadPage) {
     return null;
   }
@@ -75,10 +76,10 @@ const GlobalAITutorFab = ({ session: _session }) => {
           aria-label={mode === "closed" ? undefined : "Lumo AI tutor"}
           className={
             mode === "closed"
-              ? "fixed inset-0 md:left-auto md:right-0 md:w-[380px] z-[60] pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out motion-reduce:transition-none"
+              ? `fixed inset-0 md:left-auto md:right-0 md:w-[380px] ${chatLayer} pointer-events-none translate-x-full opacity-0 transition-all duration-200 ease-in-out motion-reduce:transition-none`
               : mode === "fullpage"
-              ? "fixed isolate inset-0 h-[100dvh] w-screen z-[60] translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none"
-              : "fixed isolate right-0 top-0 h-[100dvh] w-full min-w-0 z-[60] translate-x-0 opacity-100 transition-all duration-200 ease-in-out md:top-16 md:h-[calc(100dvh-4rem)] md:w-[clamp(380px,32vw,460px)] md:min-w-[360px] max-w-full motion-reduce:transition-none"
+              ? `fixed isolate inset-0 h-[100dvh] w-full ${chatLayer} translate-x-0 opacity-100 transition-all duration-200 ease-in-out motion-reduce:transition-none`
+              : `fixed isolate right-0 top-0 h-[100dvh] w-full min-w-0 ${chatLayer} translate-x-0 opacity-100 transition-all duration-200 ease-in-out md:top-16 md:h-[calc(100dvh-4rem)] md:w-[clamp(380px,32vw,460px)] md:min-w-[360px] max-w-full motion-reduce:transition-none`
           }
         >
           <AITutorChat

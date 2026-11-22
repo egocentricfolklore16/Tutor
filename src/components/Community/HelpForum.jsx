@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   HelpCircle,
@@ -18,6 +18,7 @@ import {
 import supabase from "../../lib/supabase";
 import Avatar from "../common/Avatar";
 import AskQuestionModal from "./AskQuestionModal";
+import { useRealtimeTable } from "../../lib/realtime/index.js";
 
 export default function HelpForum({ user, userSubjects = [] }) {
   const navigate = useNavigate();
@@ -33,6 +34,7 @@ export default function HelpForum({ user, userSubjects = [] }) {
   const [errorMsg, setErrorMsg] = useState(null);
 
   const [showAskModal, setShowAskModal] = useState(false);
+  const realtimeRefreshTimerRef = useRef(null);
 
   const fetchPosts = useCallback(async () => {
     setLoading(true);
@@ -110,6 +112,23 @@ export default function HelpForum({ user, userSubjects = [] }) {
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
+
+  const refreshPostsSoon = useCallback(() => {
+    clearTimeout(realtimeRefreshTimerRef.current);
+    realtimeRefreshTimerRef.current = setTimeout(fetchPosts, 300);
+  }, [fetchPosts]);
+
+  useRealtimeTable({
+    table: "forum_posts",
+    onChange: refreshPostsSoon,
+    onReconnect: fetchPosts,
+    onRecover: fetchPosts,
+  });
+
+  useEffect(
+    () => () => clearTimeout(realtimeRefreshTimerRef.current),
+    []
+  );
 
   return (
     <div className="space-y-6">

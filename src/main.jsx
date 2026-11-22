@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import ErrorBoundary from "./components/common/ErrorBoundary";
+import { RealtimeDebug } from "./lib/realtime";
 
 // Register Service Worker on startup in production only
 if (import.meta.env.PROD && "serviceWorker" in navigator) {
@@ -22,6 +23,7 @@ createRoot(document.getElementById("root")).render(
   <StrictMode>
     <ErrorBoundary>
       <App />
+      <RealtimeDebug />
     </ErrorBoundary>
   </StrictMode>
 );

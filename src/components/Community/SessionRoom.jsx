@@ -11,6 +11,7 @@ import {
   Radio,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { useRealtimeTables } from "../../lib/realtime/index.js";
 import { toTime } from "../../lib/dates";
 import ChatThread from "./ChatThread";
 
@@ -90,45 +91,22 @@ export default function SessionRoom({
     fetchSessionData();
   }, [fetchSessionData]);
 
-  // Realtime subscription for session status and participant RSVP changes
-  useEffect(() => {
-    if (!sessionId) return;
-
-    const channelName = `group_session:${sessionId}:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
-
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "group_study_sessions",
-          filter: `id=eq.${sessionId}`,
-        },
-        (payload) => {
-          setSession(payload.new);
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "group_study_session_participants",
-          filter: `session_id=eq.${sessionId}`,
-        },
-        () => {
-          fetchSessionData();
-        }
-      );
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [sessionId, fetchSessionData]);
+  useRealtimeTables({
+    subscriptions: [
+      { table: "group_study_sessions", filter: sessionId ? `id=eq.${sessionId}` : undefined },
+      {
+        table: "group_study_session_participants",
+        filter: sessionId ? `session_id=eq.${sessionId}` : undefined,
+      },
+    ],
+    enabled: Boolean(sessionId),
+    onChange: (payload) => {
+      if (payload.table === "group_study_sessions") setSession(payload.new);
+      else void fetchSessionData();
+    },
+    onReconnect: fetchSessionData,
+    onRecover: fetchSessionData,
+  });
 
   // 2. Shared Timer countdown calculation
   useEffect(() => {

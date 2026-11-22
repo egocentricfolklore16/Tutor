@@ -28,6 +28,7 @@ import supabase from "../../lib/supabase";
 import Avatar from "../common/Avatar";
 import FriendPicker from "./FriendPicker";
 import { sanitizeUrl } from "../../lib/communityChat";
+import { useRealtimeTable } from "../../lib/realtime/index.js";
 
 export default function VirtualStudyRoom() {
   const { roomId } = useParams();
@@ -37,6 +38,10 @@ export default function VirtualStudyRoom() {
   const leaveCalledRoomIdsRef = useRef(new Set());
   const leaveTimeoutRef = useRef(null);
   const scheduledLeaveRoomIdRef = useRef(null);
+  const rosterRefreshTimerRef = useRef(null);
+  const roomChatListRef = useRef(null);
+  const typingTimerRef = useRef(null);
+  const typingBroadcastTimerRef = useRef(null);
 
   const [currentUserId, setCurrentUserId] = useState(null);
   const [room, setRoom] = useState(null);
@@ -60,7 +65,9 @@ export default function VirtualStudyRoom() {
   // Chat state (broadcast)
   const [chatMessages, setChatMessages] = useState([]);
   const [chatInput, setChatInput] = useState("");
+  const [chatError, setChatError] = useState("");
   const broadcastChannelRef = useRef(null);
+  const [typingUserIds, setTypingUserIds] = useState([]);
   const [mobileView, setMobileView] = useState("room");
 
   // Share resource modal / Friend invite modal
@@ -148,6 +155,77 @@ export default function VirtualStudyRoom() {
       console.error("Error fetching roster:", err);
     }
   }, [roomId]);
+
+  const debounceRosterRefresh = useCallback(() => {
+    clearTimeout(rosterRefreshTimerRef.current);
+    rosterRefreshTimerRef.current = setTimeout(fetchRoster, 300);
+  }, [fetchRoster]);
+
+  const refreshRoom = useCallback(async () => {
+    if (!roomId) return;
+    const { data, error } = await supabase
+      .from("study_rooms")
+      .select("*")
+      .eq("id", roomId)
+      .maybeSingle();
+    if (error) {
+      console.error("Error refreshing study room:", error);
+      return;
+    }
+    if (!data) return;
+    if (data.status === "closed") {
+      setRoomError("The host has closed this room.");
+      window.setTimeout(() => navigate("/community/rooms"), 1200);
+      return;
+    }
+    setRoom((previous) => ({ ...previous, ...data }));
+  }, [roomId, navigate]);
+
+  const handleRoomChange = useCallback(
+    (payload) => {
+      const updatedRoom = payload.new;
+      if (updatedRoom.status === "closed") {
+        setRoomError("The host has closed this room.");
+        window.setTimeout(() => navigate("/community/rooms"), 1200);
+        return;
+      }
+      setRoom((previous) => ({ ...previous, ...updatedRoom }));
+    },
+    [navigate]
+  );
+
+  useRealtimeTable({
+    table: "study_rooms",
+    filter: roomId ? `id=eq.${roomId}` : undefined,
+    event: "UPDATE",
+    enabled: Boolean(roomId),
+    onChange: handleRoomChange,
+    onReconnect: refreshRoom,
+    onRecover: refreshRoom,
+  });
+
+  useRealtimeTable({
+    table: "study_room_members",
+    filter: roomId ? `room_id=eq.${roomId}` : undefined,
+    enabled: Boolean(roomId),
+    onChange: debounceRosterRefresh,
+    onReconnect: debounceRosterRefresh,
+    onRecover: debounceRosterRefresh,
+  });
+
+  useEffect(() => {
+    if (!chatMessages.length || !roomChatListRef.current) return;
+    roomChatListRef.current.scrollTop = roomChatListRef.current.scrollHeight;
+  }, [chatMessages]);
+
+  useEffect(
+    () => () => {
+      clearTimeout(rosterRefreshTimerRef.current);
+      clearTimeout(typingTimerRef.current);
+      clearTimeout(typingBroadcastTimerRef.current);
+    },
+    []
+  );
 
   // 1. Initial Auth & Join Room
   useEffect(() => {
@@ -299,92 +377,83 @@ export default function VirtualStudyRoom() {
     };
   }, [roomId]);
 
-  // 3. Realtime Subscriptions for study_rooms & study_room_members
-  useEffect(() => {
-    if (!roomId) return;
-
-    const channelName = `room_db:${roomId}:${crypto.randomUUID()}`;
-    const roomSub = supabase.channel(channelName);
-
-    roomSub
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "study_rooms",
-          filter: `id=eq.${roomId}`,
-        },
-        (payload) => {
-          const newRoom = payload.new;
-          if (newRoom.status === "closed") {
-            setRoomError("The host has closed this room.");
-            return;
-          }
-          setRoom((prev) => ({ ...prev, ...newRoom }));
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "*",
-          schema: "public",
-          table: "study_room_members",
-          filter: `room_id=eq.${roomId}`,
-        },
-        () => {
-          fetchRoster();
-        }
-      );
-
-    roomSub.subscribe();
-
-    const rosterInterval = setInterval(fetchRoster, 30000);
-
-    return () => {
-      supabase.removeChannel(roomSub);
-      clearInterval(rosterInterval);
-    };
-  }, [roomId, fetchRoster]);
-
   // 4. Ephemeral Broadcast & Presence Chat Channel
   useEffect(() => {
     if (!roomId || !currentUserId) return;
 
-    const channelName = `room:${roomId}:${crypto.randomUUID()}`;
+    const channelName = `room:${roomId}`;
     const bChannel = supabase.channel(channelName, {
-      config: { broadcast: { self: true } },
+      config: {
+        broadcast: { self: true, ack: true },
+        presence: { key: currentUserId },
+      },
     });
 
     bChannel
       .on("broadcast", { event: "chat" }, (payload) => {
-        setChatMessages((prev) => [...prev.slice(-49), payload.payload]);
+        const message = payload.payload;
+        setChatMessages((previous) => {
+          const exists = previous.findIndex((item) => item.id === message.id);
+          if (exists >= 0) {
+            return previous.map((item, index) =>
+              index === exists ? { ...item, ...message, sending: false, sent: true } : item
+            );
+          }
+          return [...previous.slice(-49), { ...message, sending: false, sent: true }];
+        });
       })
       .on("broadcast", { event: "reaction" }, (payload) => {
-        setChatMessages((prev) => [
-          ...prev.slice(-49),
-          {
-            id: Date.now(),
+        const reaction = {
+            id: payload.payload.id,
             type: "reaction",
             user_id: payload.payload.user_id,
             name: payload.payload.name,
             emoji: payload.payload.emoji,
             created_at: new Date().toISOString(),
-          },
-        ]);
+          };
+        setChatMessages((previous) =>
+          previous.some((item) => item.id === reaction.id)
+            ? previous
+            : [...previous.slice(-49), reaction]
+        );
+      })
+      .on("presence", { event: "sync" }, () => {
+        debounceRosterRefresh();
+      })
+      .on("broadcast", { event: "typing" }, (payload) => {
+        const { user_id: typingUserId, is_typing: isTyping } = payload.payload || {};
+        if (!typingUserId || typingUserId === currentUserId) return;
+        setTypingUserIds((previous) =>
+          isTyping
+            ? previous.includes(typingUserId) ? previous : [...previous, typingUserId]
+            : previous.filter((id) => id !== typingUserId)
+        );
+        clearTimeout(typingTimerRef.current);
+        if (isTyping) {
+          typingTimerRef.current = setTimeout(() => {
+            setTypingUserIds((previous) => previous.filter((id) => id !== typingUserId));
+          }, 3000);
+        }
       });
 
-    bChannel.subscribe();
+    bChannel.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        const { error } = await bChannel.track({ online_at: new Date().toISOString() });
+        if (error) console.error("Unable to publish room presence:", error);
+      }
+    });
 
     broadcastChannelRef.current = bChannel;
 
     return () => {
-      if (broadcastChannelRef.current) {
-        supabase.removeChannel(broadcastChannelRef.current);
-        broadcastChannelRef.current = null;
-      }
+      clearTimeout(typingTimerRef.current);
+      clearTimeout(typingBroadcastTimerRef.current);
+      setTypingUserIds([]);
+      void bChannel.untrack();
+      supabase.removeChannel(bChannel);
+      if (broadcastChannelRef.current === bChannel) broadcastChannelRef.current = null;
     };
-  }, [roomId, currentUserId]);
+  }, [roomId, currentUserId, debounceRosterRefresh]);
 
   // 5. Shared Timer Engine
   useEffect(() => {
@@ -504,50 +573,77 @@ export default function VirtualStudyRoom() {
   };
 
   // Chat Send
-  const handleSendChatMessage = (e) => {
+  const handleSendChatMessage = async (e) => {
     e.preventDefault();
     if (!chatInput.trim() || !broadcastChannelRef.current || !currentUserId) return;
 
     const me = roster.find((r) => r.user_id === currentUserId);
     const msgObj = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       user_id: currentUserId,
       name: me?.full_name || me?.username || "Learner",
       user_img: me?.user_img,
       text: chatInput.trim(),
       created_at: new Date().toISOString(),
+      sending: true,
     };
 
-    broadcastChannelRef.current.send({
+    setChatMessages((previous) => [...previous.slice(-49), msgObj]);
+    setChatInput("");
+    setChatError("");
+    clearTimeout(typingBroadcastTimerRef.current);
+    void broadcastChannelRef.current.send({
       type: "broadcast",
-      event: "chat",
-      payload: msgObj,
+      event: "typing",
+      payload: { user_id: currentUserId, is_typing: false },
     });
 
-    setChatInput("");
+    try {
+      const result = await broadcastChannelRef.current.send({
+        type: "broadcast",
+        event: "chat",
+        payload: msgObj,
+      });
+      if (result !== "ok") throw new Error(`Room chat broadcast failed: ${result}`);
+      setChatMessages((previous) =>
+        previous.map((message) =>
+          message.id === msgObj.id ? { ...message, sending: false, sent: true } : message
+        )
+      );
+    } catch (error) {
+      console.error("Unable to send room chat message:", error);
+      setChatMessages((previous) => previous.filter((message) => message.id !== msgObj.id));
+      setChatError("Message could not be sent. Please try again.");
+      window.setTimeout(() => setChatError(""), 3000);
+    }
   };
 
   const handleSendEmoji = (emoji) => {
     if (!broadcastChannelRef.current || !currentUserId) return;
     const me = roster.find((r) => r.user_id === currentUserId);
-    broadcastChannelRef.current.send({
+    const reaction = {
+      id: crypto.randomUUID(),
+      type: "reaction",
+      user_id: currentUserId,
+      name: me?.full_name || me?.username || "Learner",
+      emoji,
+      created_at: new Date().toISOString(),
+    };
+    setChatMessages((previous) => [...previous.slice(-49), reaction]);
+    void broadcastChannelRef.current.send({
       type: "broadcast",
       event: "reaction",
-      payload: {
-        user_id: currentUserId,
-        name: me?.full_name || me?.username || "Learner",
-        emoji,
-      },
+      payload: reaction,
     });
   };
 
-  const handleShareResource = (e) => {
+  const handleShareResource = async (e) => {
     e.preventDefault();
     if (!resourceLinkInput.trim() || !broadcastChannelRef.current) return;
 
     const me = roster.find((r) => r.user_id === currentUserId);
     const msgObj = {
-      id: Date.now(),
+      id: crypto.randomUUID(),
       type: "resource",
       user_id: currentUserId,
       name: me?.full_name || me?.username || "Learner",
@@ -556,14 +652,35 @@ export default function VirtualStudyRoom() {
       created_at: new Date().toISOString(),
     };
 
-    broadcastChannelRef.current.send({
-      type: "broadcast",
-      event: "chat",
-      payload: msgObj,
-    });
-
+    setChatMessages((previous) => [...previous.slice(-49), msgObj]);
     setResourceLinkInput("");
     setShowShareModal(false);
+    try {
+      const result = await broadcastChannelRef.current.send({
+        type: "broadcast",
+        event: "chat",
+        payload: msgObj,
+      });
+      if (result !== "ok") throw new Error(`Room resource broadcast failed: ${result}`);
+    } catch (error) {
+      console.error("Unable to share room resource:", error);
+      setChatMessages((previous) => previous.filter((message) => message.id !== msgObj.id));
+      setChatError("Link could not be shared. Please try again.");
+      window.setTimeout(() => setChatError(""), 3000);
+    }
+  };
+
+  const handleRoomChatInput = (event) => {
+    setChatInput(event.target.value);
+    if (!broadcastChannelRef.current || !currentUserId) return;
+    clearTimeout(typingBroadcastTimerRef.current);
+    typingBroadcastTimerRef.current = window.setTimeout(() => {
+      void broadcastChannelRef.current?.send({
+        type: "broadcast",
+        event: "typing",
+        payload: { user_id: currentUserId, is_typing: true },
+      });
+    }, 180);
   };
 
   if (loading) {
@@ -897,7 +1014,7 @@ export default function VirtualStudyRoom() {
           </p>
 
           {/* Chat Messages List */}
-          <div className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
+          <div ref={roomChatListRef} className="min-h-0 flex-1 space-y-3 overflow-y-auto p-4">
             {chatMessages.length === 0 ? (
               <p className="text-center text-xs text-slate-500 py-8">
                 Say hi to fellow room members!
@@ -931,7 +1048,14 @@ export default function VirtualStudyRoom() {
                             minute: "2-digit",
                           })}
                         </span>
+                        {msg.sending ? <span>Sending…</span> : msg.sent ? <span>Sent</span> : null}
                       </div>
+                      {typingUserIds.length > 0 && (
+                        <p className="px-4 pb-1 text-[10px] text-slate-400">Someone is typing…</p>
+                      )}
+                      {chatError && (
+                        <p role="status" className="px-4 pb-1 text-[10px] text-rose-400">{chatError}</p>
+                      )}
                       <p className="text-slate-200 font-medium leading-relaxed">{msg.text}</p>
                     </div>
                   )}
@@ -959,7 +1083,7 @@ export default function VirtualStudyRoom() {
             <input
               type="text"
               value={chatInput}
-              onChange={(e) => setChatInput(e.target.value)}
+              onChange={handleRoomChatInput}
               placeholder="Type message..."
               className="flex-1 rounded-2xl border border-slate-800 bg-slate-900 py-2 px-3 text-xs text-white outline-none focus:border-emerald-500"
             />

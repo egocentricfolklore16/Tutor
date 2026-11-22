@@ -3,6 +3,7 @@ import supabase from "../lib/supabase.js";
 import { getUserTimeZone } from "../lib/streaks";
 import { getAccessibilityClasses } from "../lib/accessibility.js";
 import { gamificationService } from "../features/gamification/services/gamificationService.js";
+import { useRealtimeTable } from "../lib/realtime/index.js";
 
 const ProfileContext = createContext(null);
 const THEME_STORAGE_KEY = "hyper-tutor-dark-mode";
@@ -100,6 +101,16 @@ export function ProfileProvider({ user, children }) {
     setIsLoading(false);
   }, [user?.id, touchLastSeenThrottled]);
 
+  useRealtimeTable({
+    table: "profiles",
+    filter: user?.id ? `user_id=eq.${user.id}` : undefined,
+    event: "UPDATE",
+    enabled: Boolean(user?.id),
+    onChange: loadProfile,
+    onReconnect: loadProfile,
+    onRecover: loadProfile,
+  });
+
   useEffect(() => {
     let active = true;
     setIsLoading(true);
@@ -134,23 +145,6 @@ export function ProfileProvider({ user, children }) {
       loadProfile();
     };
 
-    // Realtime channel for profile changes
-    const channelName = `profile-updates-${user.id}:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
-
-    channel
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "profiles", filter: `user_id=eq.${user.id}` },
-        (payload) => {
-          if (payload.new) {
-            setProfile((prev) => ({ ...prev, ...payload.new }));
-          }
-        }
-      );
-
-    channel.subscribe();
-
     const handleSessionCompleted = () => {
       gamificationService.checkAndClaimQuests(loadProfile);
     };
@@ -160,7 +154,6 @@ export function ProfileProvider({ user, children }) {
 
     return () => {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
-      supabase.removeChannel(channel);
       window.removeEventListener("hyper-tutor-rewards-updated", handleRewardsUpdated);
       window.removeEventListener("hyper-tutor-session-completed", handleSessionCompleted);
     };

@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { MessageSquare, Search, Users, Loader2, Plus, UserPlus } from "lucide-react";
 import supabase from "../../lib/supabase";
 import { toTime } from "../../lib/dates";
 import { formatRelativeTime, calculateUnreadCount } from "../../lib/communityChat";
 import FriendPicker from "./FriendPicker";
+import { useRealtimeTable } from "../../lib/realtime/index.js";
 
 export default function ChatInbox({ currentUserId, onSelectConversation, onFindFriends, headerAction }) {
   const [conversations, setConversations] = useState([]);
@@ -12,6 +13,8 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
   const [filterTab, setFilterTab] = useState("all"); // 'all' | 'friends' | 'groups'
   const [showFriendPicker, setShowFriendPicker] = useState(false);
   const [imgErrors, setImgErrors] = useState({});
+  const [conversationIds, setConversationIds] = useState([]);
+  const refreshTimerRef = useRef(null);
 
   const fetchInboxData = useCallback(async () => {
     if (!currentUserId) return;
@@ -26,12 +29,14 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
       if (partErr) throw partErr;
 
       if (!partRows || partRows.length === 0) {
+        setConversationIds([]);
         setConversations([]);
         setLoading(false);
         return;
       }
 
       const convIds = partRows.map((p) => p.conversation_id);
+      setConversationIds(convIds);
       const participantMap = {};
       partRows.forEach((p) => {
         participantMap[p.conversation_id] = p;
@@ -214,27 +219,35 @@ export default function ChatInbox({ currentUserId, onSelectConversation, onFindF
     fetchInboxData();
   }, [fetchInboxData]);
 
-  // Realtime listener for message changes
-  useEffect(() => {
-    if (!currentUserId) return;
+  const refreshInboxSoon = useCallback(() => {
+    clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(fetchInboxData, 300);
+  }, [fetchInboxData]);
 
-    const channelName = `inbox_messages:${currentUserId}:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
+  useRealtimeTable({
+    table: "conversation_participants",
+    filter: currentUserId ? `user_id=eq.${currentUserId}` : undefined,
+    enabled: Boolean(currentUserId),
+    onChange: refreshInboxSoon,
+    onReconnect: fetchInboxData,
+    onRecover: fetchInboxData,
+  });
 
-    channel.on(
-      "postgres_changes",
-      { event: "INSERT", schema: "public", table: "messages" },
-      () => {
-        fetchInboxData();
-      }
-    );
+  useRealtimeTable({
+    table: "messages",
+    filter: conversationIds.length
+      ? `conversation_id=in.(${conversationIds.join(",")})`
+      : undefined,
+    enabled: Boolean(currentUserId && conversationIds.length),
+    onChange: refreshInboxSoon,
+    onReconnect: fetchInboxData,
+    onRecover: fetchInboxData,
+  });
 
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [currentUserId, fetchInboxData]);
+  useEffect(
+    () => () => clearTimeout(refreshTimerRef.current),
+    []
+  );
 
   const filteredConversations = conversations
     .filter((c) => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -19,6 +19,7 @@ import {
   LockKeyholeOpen,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { useRealtimeTables } from "../../lib/realtime/index.js";
 import Avatar from "../common/Avatar";
 import PageContainer from "../common/PageContainer";
 
@@ -43,6 +44,7 @@ export default function ForumPostDetail() {
 
   // Realtime Banner
   const [hasNewAnswers, setHasNewAnswers] = useState(false);
+  const realtimeRefreshTimerRef = useRef(null);
 
   // Report Modal
   const [reportTarget, setReportTarget] = useState(null); // { type: 'post'|'answer', id }
@@ -59,7 +61,7 @@ export default function ForumPostDetail() {
     setTimeout(() => setToastMsg(null), 3500);
   };
 
-  const fetchPostDetails = useCallback(async () => {
+  const fetchPostDetails = useCallback(async ({ recordView = true } = {}) => {
     if (!postId) return;
     setLoading(true);
     setErrorMsg(null);
@@ -71,10 +73,12 @@ export default function ForumPostDetail() {
       setCurrentUserId(user?.id || null);
 
       // 1. Increment view count
-      try {
-        await supabase.rpc("increment_post_views", { p_post_id: postId });
-      } catch {
-        // ignore view error
+      if (recordView) {
+        try {
+          await supabase.rpc("increment_post_views", { p_post_id: postId });
+        } catch {
+          // ignore view error
+        }
       }
 
       // 2. Fetch post
@@ -163,32 +167,41 @@ export default function ForumPostDetail() {
     fetchPostDetails();
   }, [fetchPostDetails]);
 
-  // Realtime subscription for new answers
-  useEffect(() => {
-    if (!postId) return;
+  const refreshPostFromRealtime = useCallback(
+    (payload) => {
+      if (payload.table === "forum_answers") setHasNewAnswers(true);
+      clearTimeout(realtimeRefreshTimerRef.current);
+      realtimeRefreshTimerRef.current = setTimeout(
+        () => fetchPostDetails({ recordView: false }),
+        300
+      );
+    },
+    [fetchPostDetails]
+  );
 
-    const channelName = `forum_answers:${postId}:${crypto.randomUUID()}`;
-    const sub = supabase.channel(channelName);
+  const voteFilter = [
+    postId,
+    ...answers.map((answer) => answer.id),
+  ].filter(Boolean);
 
-    sub.on(
-      "postgres_changes",
-      {
-        event: "INSERT",
-        schema: "public",
-        table: "forum_answers",
-        filter: `post_id=eq.${postId}`,
-      },
-      () => {
-        setHasNewAnswers(true);
-      }
-    );
+  useRealtimeTables({
+    subscriptions: [
+      { table: "forum_posts", filter: postId ? `id=eq.${postId}` : undefined },
+      { table: "forum_answers", filter: postId ? `post_id=eq.${postId}` : undefined },
+      ...(voteFilter.length
+        ? [{ table: "forum_votes", filter: `target_id=in.(${voteFilter.join(",")})` }]
+        : []),
+    ],
+    enabled: Boolean(postId),
+    onChange: refreshPostFromRealtime,
+    onReconnect: () => fetchPostDetails({ recordView: false }),
+    onRecover: () => fetchPostDetails({ recordView: false }),
+  });
 
-    sub.subscribe();
-
-    return () => {
-      supabase.removeChannel(sub);
-    };
-  }, [postId]);
+  useEffect(
+    () => () => clearTimeout(realtimeRefreshTimerRef.current),
+    []
+  );
 
   // Toggle Upvote
   const handleToggleVote = async (targetType, targetId) => {

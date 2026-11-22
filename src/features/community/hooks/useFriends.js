@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import {
   fetchUserFriendships,
   searchUsers as searchUsersApi,
@@ -6,6 +6,7 @@ import {
   updateFriendshipStatus as updateStatusApi,
   removeFriendship as removeFriendshipApi,
 } from "../services/friendsService";
+import { useRealtimeTables } from "../../../lib/realtime/index.js";
 
 export function useFriends(currentUserId) {
   const [friendships, setFriendships] = useState([]);
@@ -15,6 +16,7 @@ export function useFriends(currentUserId) {
   const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const realtimeRefreshTimerRef = useRef(null);
 
   const loadFriendships = useCallback(async () => {
     if (!currentUserId) {
@@ -37,6 +39,29 @@ export function useFriends(currentUserId) {
   useEffect(() => {
     loadFriendships();
   }, [loadFriendships]);
+
+  const refreshFriendshipsSoon = useCallback(() => {
+    clearTimeout(realtimeRefreshTimerRef.current);
+    realtimeRefreshTimerRef.current = setTimeout(loadFriendships, 300);
+  }, [loadFriendships]);
+
+  useRealtimeTables({
+    subscriptions: currentUserId
+      ? [
+          { table: "friendships", filter: `requester_id=eq.${currentUserId}` },
+          { table: "friendships", filter: `addressee_id=eq.${currentUserId}` },
+        ]
+      : [],
+    enabled: Boolean(currentUserId),
+    onChange: refreshFriendshipsSoon,
+    onReconnect: loadFriendships,
+    onRecover: loadFriendships,
+  });
+
+  useEffect(
+    () => () => clearTimeout(realtimeRefreshTimerRef.current),
+    []
+  );
 
   const search = useCallback(
     async (query) => {

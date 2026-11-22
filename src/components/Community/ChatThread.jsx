@@ -24,6 +24,7 @@ import {
   PinOff,
 } from "lucide-react";
 import supabase from "../../lib/supabase";
+import { useRealtimeTable } from "../../lib/realtime/index.js";
 import { toTime } from "../../lib/dates";
 import ResourcePicker from "./ResourcePicker";
 import ResourceCard from "./ResourceCard";
@@ -405,6 +406,60 @@ export default function ChatThread({
     fetchInitialMessages();
   }, [fetchInitialMessages]);
 
+  const handleRealtimeMessageChange = useCallback(
+    async (payload) => {
+      if (payload.eventType === "DELETE") {
+        setMessages((previous) => previous.filter((message) => message.id !== payload.old.id));
+        return;
+      }
+
+      const newMsg = payload.new;
+      if (payload.eventType === "UPDATE") {
+        setMessages((previous) =>
+          previous.map((message) =>
+            message.id === newMsg.id ? { ...message, ...newMsg } : message
+          )
+        );
+        return;
+      }
+
+      setMessages((previous) => {
+        const existingIndex = previous.findIndex(
+          (message) =>
+            message.id === newMsg.id ||
+            (message.isOptimistic &&
+              message.sender_id === newMsg.sender_id &&
+              message.content === newMsg.content)
+        );
+
+        if (existingIndex >= 0) {
+          return previous.map((message, index) =>
+            index === existingIndex ? { ...newMsg, isOptimistic: false } : message
+          );
+        }
+
+        if (!isUserNearBottom.current) {
+          setNewMessagesCount((count) => count + 1);
+          setShowJumpToLatest(true);
+        }
+        return [...previous, newMsg];
+      });
+
+      if (newMsg.sender_id) await fetchSenderProfiles([newMsg.sender_id]);
+      await updateLastReadAt();
+    },
+    [fetchSenderProfiles, updateLastReadAt]
+  );
+
+  useRealtimeTable({
+    table: "messages",
+    filter: conversationId ? `conversation_id=eq.${conversationId}` : undefined,
+    enabled: Boolean(conversationId && currentUserId),
+    onChange: handleRealtimeMessageChange,
+    onReconnect: fetchInitialMessages,
+    onRecover: fetchInitialMessages,
+  });
+
   useEffect(() => {
     if (!loading && threadContainerRef.current) {
       if (isUserNearBottom.current) {
@@ -482,74 +537,6 @@ export default function ChatThread({
       loadOlderMessages();
     }
   };
-
-  // Realtime subscription for INSERTs & DELETEs
-  useEffect(() => {
-    if (!conversationId || !currentUserId) return;
-
-    const channelName = `chat_messages:${conversationId}:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
-
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        async (payload) => {
-          const newMsg = payload.new;
-
-          setMessages((prev) => {
-            const exists = prev.some(
-              (m) => m.id === newMsg.id || (m.isOptimistic && m.sender_id === newMsg.sender_id && m.content === newMsg.content)
-            );
-
-            if (exists) {
-              return prev.map((m) =>
-                m.isOptimistic && m.sender_id === newMsg.sender_id && m.content === newMsg.content
-                  ? newMsg
-                  : m
-              );
-            }
-
-            if (!isUserNearBottom.current) {
-              setNewMessagesCount((c) => c + 1);
-              setShowJumpToLatest(true);
-            }
-
-            return [...prev, newMsg];
-          });
-
-          if (newMsg.sender_id) {
-            await fetchSenderProfiles([newMsg.sender_id]);
-          }
-
-          await updateLastReadAt();
-        }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "DELETE",
-          schema: "public",
-          table: "messages",
-          filter: `conversation_id=eq.${conversationId}`,
-        },
-        (payload) => {
-          const deletedId = payload.old.id;
-          setMessages((prev) => prev.filter((m) => m.id !== deletedId));
-        }
-      );
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [conversationId, currentUserId, fetchSenderProfiles, updateLastReadAt]);
 
   // Toggle Emoji Reaction
   const handleToggleReaction = async (msgId, emoji) => {

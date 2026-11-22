@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import supabase from "../lib/supabase";
+import { useRealtimeTable } from "../lib/realtime/index.js";
 
 export function useInAppNotifications() {
   const [userId, setUserId] = useState(null);
@@ -82,53 +83,38 @@ export function useInAppNotifications() {
     }
   }, [userId, fetchNotifications]);
 
-  // 4. Realtime subscription to in_app_notifications
-  useEffect(() => {
-    if (!userId) return;
+  const handleNotificationChange = useCallback(
+    async (payload) => {
+      const { eventType, new: next, old } = payload;
+      if (eventType === "DELETE") {
+        setNotifications((prev) => prev.filter((item) => item.id !== old.id));
+        return;
+      }
 
-    const channelName = `in_app_notifications:${userId}:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
-
-    channel
-      .on(
-        "postgres_changes",
-        {
-          event: "INSERT",
-          schema: "public",
-          table: "in_app_notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        async (payload) => {
-          const newNotif = payload.new;
-          setNotifications((prev) => [newNotif, ...prev]);
-
-          if (newNotif.actor_id) {
-            await fetchActorProfiles([newNotif.actor_id]);
-          }
+      setNotifications((prev) => {
+        const index = prev.findIndex((item) => item.id === next.id);
+        if (eventType === "UPDATE") {
+          if (index < 0) return prev;
+          return prev.map((item) => (item.id === next.id ? { ...item, ...next } : item));
         }
-      )
-      .on(
-        "postgres_changes",
-        {
-          event: "UPDATE",
-          schema: "public",
-          table: "in_app_notifications",
-          filter: `user_id=eq.${userId}`,
-        },
-        (payload) => {
-          const updated = payload.new;
-          setNotifications((prev) =>
-            prev.map((item) => (item.id === updated.id ? updated : item))
-          );
-        }
-      );
+        return index < 0 ? [next, ...prev].slice(0, 40) : prev;
+      });
 
-    channel.subscribe();
+      if (eventType === "INSERT" && next.actor_id) {
+        await fetchActorProfiles([next.actor_id]);
+      }
+    },
+    [fetchActorProfiles]
+  );
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [userId, fetchActorProfiles]);
+  useRealtimeTable({
+    table: "in_app_notifications",
+    filter: userId ? `user_id=eq.${userId}` : undefined,
+    enabled: Boolean(userId),
+    onChange: handleNotificationChange,
+    onReconnect: fetchNotifications,
+    onRecover: fetchNotifications,
+  });
 
   // Actions
   const markAsRead = async (notificationId) => {

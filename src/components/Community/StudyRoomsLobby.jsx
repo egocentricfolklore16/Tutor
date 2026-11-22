@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Users,
@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 import supabase from "../../lib/supabase";
 import Avatar from "../common/Avatar";
+import { useRealtimeTable } from "../../lib/realtime/index.js";
 
 export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const navigate = useNavigate();
@@ -48,6 +49,7 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
   const [userGoal, setUserGoal] = useState("");
   const [joinError, setJoinError] = useState(null);
   const [joining, setJoining] = useState(false);
+  const roomsRefreshTimerRef = useRef(null);
 
   const fetchRooms = useCallback(async () => {
     setLoading(true);
@@ -68,6 +70,11 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
       setLoading(false);
     }
   }, [selectedSubject]);
+
+  const debounceRoomsRefresh = useCallback(() => {
+    clearTimeout(roomsRefreshTimerRef.current);
+    roomsRefreshTimerRef.current = setTimeout(fetchRooms, 300);
+  }, [fetchRooms]);
 
   // Fetch my groups for create room group assignment (handled gracefully if study_groups is missing in live DB)
   useEffect(() => {
@@ -92,24 +99,26 @@ export default function StudyRoomsLobby({ user, userSubjects = [] }) {
 
   useEffect(() => {
     fetchRooms();
-
-    const channelName = `public:study_rooms:${crypto.randomUUID()}`;
-    const channel = supabase.channel(channelName);
-
-    channel.on(
-      "postgres_changes",
-      { event: "*", schema: "public", table: "study_rooms" },
-      () => {
-        fetchRooms();
-      }
-    );
-
-    channel.subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [fetchRooms]);
+
+  useRealtimeTable({
+    table: "study_rooms",
+    onChange: debounceRoomsRefresh,
+    onReconnect: debounceRoomsRefresh,
+    onRecover: debounceRoomsRefresh,
+  });
+
+  useRealtimeTable({
+    table: "study_room_members",
+    onChange: debounceRoomsRefresh,
+    onReconnect: debounceRoomsRefresh,
+    onRecover: debounceRoomsRefresh,
+  });
+
+  useEffect(
+    () => () => clearTimeout(roomsRefreshTimerRef.current),
+    []
+  );
 
   const handleCreateRoom = async (e) => {
     e.preventDefault();

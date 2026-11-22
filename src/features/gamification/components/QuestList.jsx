@@ -111,28 +111,29 @@ export function QuestList() {
   const weeklyResetLabel = formatResetTime(questData?.weekly_resets_at);
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {/* Quests Header */}
-      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-white p-4 shadow-surface dark:bg-[#18211f]">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-amber-100 text-amber-600 dark:bg-amber-500/20 dark:text-amber-300">
-            <Sparkles className="h-5 w-5" />
-          </div>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <Sparkles className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
           <div>
-            <h2 className="text-sm font-extrabold text-slate-900 dark:text-white">Daily Quests &amp; Challenge</h2>
-            <p className="text-xs text-slate-500 dark:text-slate-400">Complete daily objectives for XP and Gems</p>
+            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">Daily quests &amp; challenges</h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400">Small wins earn XP and gems</p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
-            <Clock className="h-3 w-3" /> {dailyResetLabel}
+        <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+          <Clock className="h-3.5 w-3.5" /> {dailyResetLabel}
+          <span className="sr-only">for daily quests</span>
+          <span aria-hidden="true" className="mx-1 text-slate-300 dark:text-slate-700">·</span>
+          <span className="text-xs text-slate-500 dark:text-slate-400">
+            {dailyQuests.filter((quest) => quest.completed).length}/{dailyQuests.length} done
           </span>
         </div>
       </div>
 
       {error && (
-        <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200 shadow-surface">
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-xs font-semibold text-rose-800 dark:border-rose-900/60 dark:bg-rose-950/40 dark:text-rose-200">
           <div className="flex items-center gap-2 min-w-0">
             <AlertCircle className="h-4 w-4 shrink-0 text-rose-600 dark:text-rose-400" />
             <span className="truncate">{error}</span>
@@ -151,7 +152,7 @@ export function QuestList() {
       {isLoading && !questData ? (
         <div className="grid gap-3 sm:grid-cols-3">
           {[1, 2, 3].map((i) => (
-            <div key={i} className="flex h-32 flex-col justify-between animate-pulse rounded-2xl bg-white p-4 shadow-surface dark:bg-[#18211f]">
+            <div key={i} className="flex h-32 flex-col justify-between animate-pulse rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#18211f]">
               <div className="space-y-2">
                 <div className="h-3 w-3/4 rounded-full bg-slate-200 dark:bg-slate-700" />
                 <div className="h-2 w-1/2 rounded-full bg-slate-100 dark:bg-slate-800" />
@@ -173,11 +174,11 @@ export function QuestList() {
             return (
               <div
                 key={quest.key}
-                className="flex flex-col justify-between rounded-2xl bg-white p-4 shadow-surface dark:bg-[#18211f] transition hover:shadow-surface-hover"
+                className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 transition-colors hover:border-emerald-300 dark:border-slate-800 dark:bg-[#18211f] dark:hover:border-emerald-800"
               >
                 <div>
                   <div className="flex items-start justify-between gap-2">
-                    <h3 className="text-xs font-extrabold text-slate-900 dark:text-white line-clamp-1">{quest.title}</h3>
+                    <h3 className="text-sm font-semibold text-slate-900 dark:text-white line-clamp-1">{quest.title}</h3>
                     {isClaimed ? (
                       <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-bold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                         <CheckCircle2 className="h-3 w-3" /> Claimed
@@ -187,7 +188,7 @@ export function QuestList() {
                         type="button"
                         onClick={() => handleClaim(quest.key)}
                         disabled={isClaiming}
-                        className="inline-flex items-center gap-1 rounded-full bg-amber-500 px-2.5 py-0.5 text-[10px] font-bold text-white transition hover:bg-amber-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 shadow-button-primary disabled:opacity-50"
+                        className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-emerald-600 px-3 py-1 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
                       >
                         {isClaiming ? <Loader2 className="h-3 w-3 animate-spin" /> : "Claim"}
                       </button>
@@ -198,20 +199,27 @@ export function QuestList() {
                   <p className="mt-1 text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">{quest.description}</p>
                 </div>
 
-                <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800/60">
-                  <div className="mb-1.5 flex items-center justify-between text-[10px] font-bold text-slate-500 dark:text-slate-400">
+                <div className="mt-3 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="mb-2 flex items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
                     <span>{progress} / {target} {quest.metric || ""}</span>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-amber-600 dark:text-amber-400">+{quest.xp || 0} XP</span>
-                      <span className="flex items-center gap-0.5 text-cyan-600 dark:text-cyan-400">
+                      <span className="text-slate-600 dark:text-slate-300">+{quest.xp || 0} XP</span>
+                      <span className="flex items-center gap-0.5 text-slate-600 dark:text-slate-300">
                         <GemIcon className="h-3 w-3 text-cyan-500" /> +{quest.gems || 0}
                       </span>
                     </div>
                   </div>
 
-                  <div className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800">
+                  <div
+                    className="h-1.5 w-full overflow-hidden rounded-full bg-slate-100 dark:bg-slate-800"
+                    role="progressbar"
+                    aria-label={`${quest.title} progress`}
+                    aria-valuemin={0}
+                    aria-valuemax={target}
+                    aria-valuenow={Math.min(progress, target)}
+                  >
                     <div
-                      className={`h-full rounded-full transition-all duration-500 ${isClaimed ? "bg-emerald-500 dark:bg-emerald-400" : "bg-amber-400 dark:bg-amber-500"}`}
+                      className={`h-full rounded-full transition-all duration-500 ${isClaimed ? "bg-emerald-500 dark:bg-emerald-400" : "bg-emerald-400 dark:bg-emerald-500"}`}
                       style={{ width: `${pct}%` }}
                     />
                   </div>
@@ -224,39 +232,37 @@ export function QuestList() {
 
       {/* Weekly Challenge Banner */}
       {weeklyQuest && (
-        <div className="flex flex-col gap-3 rounded-2xl bg-gradient-to-r from-amber-500 to-orange-500 p-4 text-white shadow-surface sm:flex-row sm:items-center sm:justify-between">
+        <div className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-[#18211f] sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/20">
-              <Trophy className="h-5 w-5 text-white" />
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-emerald-50 text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
+              <Trophy className="h-5 w-5" />
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="rounded-full bg-white/20 px-2 py-0.5 text-[10px] font-extrabold uppercase tracking-wide">
+                <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                   Weekly Challenge
                 </span>
-                <span className="text-[10px] font-semibold text-amber-100">
-                  {weeklyResetLabel}
-                </span>
+                <span className="text-xs text-slate-500 dark:text-slate-400">{weeklyResetLabel}</span>
               </div>
-              <h3 className="mt-0.5 text-sm font-extrabold text-white">{weeklyQuest.title}</h3>
-              <p className="text-xs text-amber-50">{weeklyQuest.description}</p>
+              <h3 className="mt-0.5 text-sm font-semibold text-slate-900 dark:text-white">{weeklyQuest.title}</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400">{weeklyQuest.description}</p>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-3 sm:text-right">
-            <div className="text-xs font-bold text-white">
+            <div className="text-xs font-semibold text-slate-700 dark:text-slate-200">
               <div className="flex items-center gap-2 justify-end">
                 <span>+{weeklyQuest.xp || 0} XP</span>
                 <span className="flex items-center gap-0.5">
-                  <GemIcon className="h-3.5 w-3.5 text-white" /> +{weeklyQuest.gems || 0}
+                  <GemIcon className="h-3.5 w-3.5 text-cyan-500" /> +{weeklyQuest.gems || 0}
                 </span>
               </div>
-              <div className="mt-1 text-[11px] text-amber-100">
+              <div className="mt-1 text-xs text-slate-500 dark:text-slate-400">
                 {weeklyQuest.progress || 0} / {weeklyQuest.target || 1} {weeklyQuest.metric || "mins"}
               </div>
             </div>
             {weeklyQuest.claimed ? (
-              <span className="inline-flex items-center gap-1 rounded-full bg-white/20 px-2.5 py-1 text-xs font-extrabold text-white">
+              <span className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300">
                 <CheckCircle2 className="h-3.5 w-3.5" /> Claimed
               </span>
             ) : weeklyQuest.completed ? (
@@ -264,7 +270,7 @@ export function QuestList() {
                 type="button"
                 onClick={() => handleClaim(weeklyQuest.key)}
                 disabled={claimingKey === weeklyQuest.key}
-                className="inline-flex items-center gap-1 rounded-xl bg-white px-3 py-1.5 text-xs font-extrabold text-orange-600 transition hover:bg-amber-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white shadow-md disabled:opacity-50"
+                className="inline-flex min-h-11 items-center gap-1 rounded-xl bg-emerald-600 px-3 py-2 text-xs font-semibold text-white transition-colors hover:bg-emerald-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-400"
               >
                 {claimingKey === weeklyQuest.key ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : "Claim Rewards"}
               </button>

@@ -120,7 +120,7 @@ export default function VirtualStudyRoom() {
         const startMs = Date.now();
         const { data: roomRows, error: roomErr } = await supabase
           .from("study_rooms")
-          .select("*, host:created_by(id, username, full_name, user_img)")
+          .select("*")
           .eq("id", roomId)
           .maybeSingle();
 
@@ -129,18 +129,38 @@ export default function VirtualStudyRoom() {
         const offset = Date.now() - estimatedServerMs;
         if (isMounted) setClockOffset(offset);
 
-        if (roomErr || !roomRows) {
+        if (roomErr) {
+          console.error("Error loading study room:", roomErr);
+          throw new Error("Couldn't load this room. Please try again.");
+        }
+
+        if (!roomRows || roomRows.status === "closed") {
           throw new Error("Study room not found or closed.");
         }
 
-        if (roomRows.status === "closed") {
-          throw new Error("This study room has been closed by the host.");
+        let host = null;
+        if (roomRows.host_id) {
+          const { data: hostProfile, error: hostErr } = await supabase
+            .from("community_profiles")
+            .select("user_id, username, full_name, user_img")
+            .eq("user_id", roomRows.host_id)
+            .maybeSingle();
+
+          if (hostErr) {
+            console.error("Error loading study room host profile:", hostErr);
+            throw new Error("Couldn't load this room. Please try again.");
+          }
+
+          if (hostProfile) {
+            host = { ...hostProfile, id: hostProfile.user_id };
+          }
         }
 
+        const roomData = { ...roomRows, host };
         if (isMounted) {
-          setRoom(roomRows);
-          setEditName(roomRows.name);
-          setEditCapacity(roomRows.capacity);
+          setRoom(roomData);
+          setEditName(roomData.name);
+          setEditCapacity(roomData.capacity);
         }
 
         // Call RPC join_study_room
